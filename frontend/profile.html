@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QENVO — Profile</title>
+    <meta name="description" content="View and manage your QENVO profile.">
+    <link rel="icon" type="image/svg+xml" href="assets/brand/qenvo-icon.svg">
+
+    <!-- Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/profile.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+    <div class="custom-cursor" id="customCursor"></div>
+    <div class="custom-cursor-dot" id="customCursorDot"></div>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Minimal App Header -->
+    <header style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-8); border-bottom: 1px solid var(--border); background: var(--surface);">
+        <a href="dashboard.html" class="btn btn-ghost" style="font-weight: 600;">
+            ← Back to Messages
+        </a>
+        <a href="dashboard.html" class="brand-link" style="color: var(--text); display: flex; align-items: center; gap: 8px;">
+            <img src="assets/brand/qenvo-icon.svg" alt="QENVO Logo" style="width: 26px; height: 26px; border-radius: 6px;">
+            <span style="font-weight: 800; font-size: 17px; letter-spacing: -0.3px;">QENVO</span>
+        </a>
+        <div style="display: flex; gap: 8px;">
+            <a href="settings.html" class="btn btn-secondary btn-sm">Settings</a>
+            <button type="button" class="btn btn-outline btn-sm" id="profileLogoutBtn">Sign Out</button>
+        </div>
+    </header>
+
+    <main class="profile-page-container">
+        <div class="profile-card">
+            <div class="profile-banner"></div>
+
+            <div class="profile-header-content">
+                <div class="profile-avatar-wrap">
+                    <div class="avatar avatar-xl" id="profileAvatar">
+                        <span id="profileInitials">CU</span>
+                        <span class="avatar-status online" id="profileStatusDot"></span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary" id="toggleEditProfileBtn">
+                    Edit Profile
+                </button>
+            </div>
+
+            <div class="profile-info-block">
+                <h1 class="profile-display-name" id="profileDisplayName">Loading User...</h1>
+                <div class="profile-username" id="profileUsername">@username</div>
+                <p class="profile-bio-text" id="profileBioText">Bio description here.</p>
+
+                <!-- Edit Profile Inline Form -->
+                <div id="editProfileSection" style="display: none; background: var(--surface-elevated); padding: var(--space-6); border-radius: var(--radius-lg); margin-bottom: var(--space-6); border: 1px solid var(--border);">
+                    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: var(--space-4);">Edit Profile Details</h3>
+                    <form id="editProfileForm">
+                        <div class="form-group">
+                            <label class="form-label" for="editFullName">Full Name</label>
+                            <input type="text" class="form-input" id="editFullName" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="editBio">Bio</label>
+                            <textarea class="form-textarea" id="editBio" rows="3" placeholder="Tell people a little about yourself..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="editAvatarUrl">Avatar Image URL (Optional)</label>
+                            <input type="url" class="form-input" id="editAvatarUrl" placeholder="https://example.com/avatar.jpg">
+                        </div>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button type="button" class="btn btn-secondary" id="cancelEditProfileBtn">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="saveProfileBtn">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Profile Metadata Grid -->
+                <div class="profile-meta-grid">
+                    <div class="meta-box">
+                        <span class="meta-label">Email Address</span>
+                        <span class="meta-value" id="profileEmail">user@example.com</span>
+                    </div>
+                    <div class="meta-box">
+                        <span class="meta-label">Account Created</span>
+                        <span class="meta-value" id="profileJoined">September 2026</span>
+                    </div>
+                    <div class="meta-box">
+                        <span class="meta-label">Session Status</span>
+                        <span class="meta-value" style="color: var(--success);">Active &amp; Authenticated</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/theme.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/ui.js"></script>
+</body>
+</html>

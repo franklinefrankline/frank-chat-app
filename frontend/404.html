@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QENVO — Page Not Found (404)</title>
+    <meta name="description" content="QENVO — Page not found.">
+    <link rel="icon" type="image/svg+xml" href="assets/brand/qenvo-icon.svg">
+
+    <!-- Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body class="auth-page">
+
+    <div class="custom-cursor" id="customCursor"></div>
+    <div class="custom-cursor-dot" id="customCursorDot"></div>
+
+    <main class="auth-centered-box" style="text-align: center;">
+        <div style="display: flex; justify-content: center; margin-bottom: var(--space-6);">
+            <a href="index.html" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit;">
+                <img src="assets/brand/qenvo-icon.svg" alt="QENVO" style="width: 36px; height: 36px; border-radius: 9px;">
+                <span style="font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">QENVO</span>
+            </a>
+        </div>
+        <div style="font-size: 72px; font-weight: 900; line-height: 1; color: var(--primary); margin-bottom: var(--space-4); letter-spacing: -2px;">
+            404
+        </div>
+        <h1 class="auth-card-title" style="margin-bottom: var(--space-2);">Page not found</h1>
+        <p class="auth-card-subtitle" style="margin-bottom: var(--space-8);">
+            The page or conversation you are looking for has been moved or does not exist.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+            <a href="dashboard.html" class="btn btn-primary btn-large">Go to Messages</a>
+            <a href="index.html" class="btn btn-secondary">Return Home</a>
+        </div>
+    </main>
+
+    <script src="js/theme.js"></script>
+    <script src="js/ui.js"></script>
+</body>
+</html>

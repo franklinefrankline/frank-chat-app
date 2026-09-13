@@ -1,0 +1,114 @@
+/* -------------------------------------------------------------------------
+   QENVO DESIGN SYSTEM VARIABLES
+   Connect. Communicate. Simply.
+   ------------------------------------------------------------------------- */
+
+:root {
+    /* QENVO Official Brand Color Palette */
+    --primary: #4f46e5;         /* Indigo */
+    --primary-dark: #4338ca;
+    --primary-hover: #3730a3;
+    --primary-soft: rgba(79, 70, 229, 0.12);
+    --primary-glow: rgba(79, 70, 229, 0.35);
+
+    --accent: #7c3aed;          /* Violet */
+    --accent-dark: #6d28d9;
+    --accent-soft: rgba(124, 58, 237, 0.12);
+
+    --electric-blue: #3b82f6;   /* Electric Blue */
+    --cyan: #22d3ee;            /* Cyan */
+
+    /* Semantic Status Colors */
+    --success: #22c55e;
+    --success-soft: rgba(34, 197, 94, 0.12);
+    --danger: #ef4444;
+    --danger-soft: rgba(239, 68, 68, 0.12);
+    --warning: #f59e0b;
+    --warning-soft: rgba(245, 158, 11, 0.12);
+    --info: #3b82f6;
+
+    /* Light Theme Neutral Surfaces */
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --surface-elevated: #f1f5f9;
+    --surface-muted: #e2e8f0;
+    --border: #e2e8f0;
+    --border-hover: #cbd5e1;
+
+    /* Light Theme Typography */
+    --text: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --text-inverse: #ffffff;
+
+    /* Spacing Scale */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+
+    /* Border Radii */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-full: 9999px;
+
+    /* Elevation & Shadows */
+    --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+    --shadow-lg: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+    --shadow-xl: 0 20px 40px -10px rgba(15, 23, 42, 0.12);
+
+    /* Z-Index Hierarchy */
+    --z-base: 1;
+    --z-sticky: 100;
+    --z-dropdown: 200;
+    --z-overlay: 300;
+    --z-modal: 400;
+    --z-toast: 500;
+    --z-cursor: 9999;
+
+    /* Motion & Transitions */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Font Family */
+    --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* -------------------------------------------------------------------------
+   PREMIUM DARK THEME SPECIFICATION (QENVO DEEP NAVY)
+   ------------------------------------------------------------------------- */
+body.dark {
+    --background: #080b24;      /* Deep Navy */
+    --surface: #0d1230;         /* Dark Navy */
+    --surface-elevated: #151c45;
+    --surface-muted: #1e265c;
+    --border: #1e265c;
+    --border-hover: #313c7a;
+
+    --text: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --text-inverse: #080b24;
+
+    --primary-soft: rgba(79, 70, 229, 0.22);
+    --primary-glow: rgba(79, 70, 229, 0.55);
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.55);
+    --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.65);
+}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" width="160" height="40" fill="none">
+    <defs>
+        <linearGradient id="qenvoLogoLightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6366F1" />
+            <stop offset="60%" stop-color="#4F46E5" />
+            <stop offset="100%" stop-color="#8B5CF6" />
+        </linearGradient>
+    </defs>
+    <!-- Q Symbol -->
+    <g transform="translate(0, 0)">
+        <rect width="40" height="40" rx="10" fill="url(#qenvoLogoLightGrad)" />
+        <path d="M20 9C14.477 9 10 13.477 10 19C10 24.523 14.477 29 20 29C22.28 29 24.38 28.237 26.064 26.95L28.243 29.129C28.633 29.519 29.266 29.519 29.657 29.129C30.047 28.738 30.047 28.106 29.657 27.715L27.356 25.414C28.995 23.682 30 21.458 30 19C30 13.477 25.523 9 20 9ZM20 12.8C23.424 12.8 26.2 15.576 26.2 19C26.2 22.424 23.424 25.2 20 25.2C16.576 25.2 13.8 22.424 13.8 19C13.8 15.576 16.576 12.8 20 12.8Z" fill="#FFFFFF" />
+        <circle cx="20" cy="19" r="2.8" fill="#FFFFFF" opacity="0.95" />
+    </g>
+    <!-- QENVO Typography Wordmark for Light UI -->
+    <text x="52" y="27" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="900" letter-spacing="1.2" fill="#0F172A">QENVO</text>
+</svg>
