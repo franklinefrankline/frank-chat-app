@@ -5,6 +5,10 @@
   "trailingSlash": false,
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "backend/main.py"
+    },
+    {
       "src": "/assets/(.*)",
       "dest": "/frontend/assets/$1",
       "headers": {
