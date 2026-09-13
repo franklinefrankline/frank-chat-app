@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRANK — Settings</title>
+    <meta name="description" content="FRANK preferences and application settings.">
+    <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
+
+    <!-- Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/settings.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+    <!-- Desktop Custom Cursor (Miniature FRANK F) -->
+    <div class="custom-cursor" id="customCursor" aria-hidden="true"></div>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Header -->
+    <header style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-8); border-bottom: 1px solid var(--border); background: var(--surface);">
+        <a href="dashboard.html" class="btn btn-ghost" style="font-weight: 600;">
+            ← Back to Messages
+        </a>
+        <a href="dashboard.html" class="brand-link" style="color: var(--text); display: flex; align-items: center; gap: 8px;">
+            <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" style="width: 26px; height: 26px; border-radius: 6px;">
+            <span style="font-weight: 800; font-size: 17px; letter-spacing: -0.3px;">FRANK</span>
+        </a>
+        <div style="display: flex; gap: 8px;">
+            <a href="profile.html" class="btn btn-secondary btn-sm">My Profile</a>
+            <button type="button" class="btn btn-outline btn-sm" id="settingsLogoutBtn">Sign Out</button>
+        </div>
+    </header>
+
+    <main class="settings-container">
+        <div class="settings-layout">
+            <!-- Sidebar Navigation -->
+            <nav class="settings-sidebar" aria-label="Settings Categories">
+                <button type="button" class="settings-nav-btn active" data-tab="appearance">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    Appearance
+                </button>
+                <button type="button" class="settings-nav-btn" data-tab="notifications">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    Notifications
+                </button>
+                <button type="button" class="settings-nav-btn" data-tab="privacy">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    Privacy
+                </button>
+                <button type="button" class="settings-nav-btn" data-tab="security">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    Security
+                </button>
+                <button type="button" class="settings-nav-btn" data-tab="about">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    About
+                </button>
+            </nav>
+
+            <!-- Panels -->
+            <div class="settings-content-panel">
+
+                <!-- 1. APPEARANCE TAB -->
+                <section id="tabAppearance" class="settings-tab-section">
+                    <div class="settings-section-header">
+                        <h2 class="settings-title">Appearance</h2>
+                        <p class="settings-desc">Customize how FRANK looks and feels across your devices.</p>
+                    </div>
+
+                    <div class="theme-picker-grid">
+                        <div class="theme-card" data-theme-choice="light" id="themeCardLight">
+                            <div class="theme-preview-box theme-preview-light"></div>
+                            <div class="theme-card-name">Light Theme</div>
+                            <span style="font-size: 11px; color: var(--text-muted);">Clean &amp; Crisp</span>
+                        </div>
+
+                        <div class="theme-card" data-theme-choice="dark" id="themeCardDark">
+                            <div class="theme-preview-box theme-preview-dark"></div>
+                            <div class="theme-card-name">Dark Theme</div>
+                            <span style="font-size: 11px; color: var(--text-muted);">Sleek &amp; Focused</span>
+                        </div>
+
+                        <div class="theme-card" data-theme-choice="system" id="themeCardSystem">
+                            <div class="theme-preview-box theme-preview-system"></div>
+                            <div class="theme-card-name">System Default</div>
+                            <span style="font-size: 11px; color: var(--text-muted);">Sync with OS</span>
+                        </div>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Subtle Animations</div>
+                            <div class="setting-subtext">Enable smooth micro-animations for sent messages and typing indicators.</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingAnimations" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Interactive Custom Cursor</div>
+                            <div class="setting-subtext">Display smooth accent cursor on desktop devices.</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingCustomCursor" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </section>
+
+                <!-- 2. NOTIFICATIONS TAB -->
+                <section id="tabNotifications" class="settings-tab-section" style="display:none;">
+                    <div class="settings-section-header">
+                        <h2 class="settings-title">Notifications</h2>
+                        <p class="settings-desc">Choose when and how you receive message alerts.</p>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Desktop Notifications</div>
+                            <div class="setting-subtext">Display banner notifications when incoming messages arrive.</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingDesktopNotifs" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Sound Effects</div>
+                            <div class="setting-subtext">Play a subtle chime on incoming messages and delivery.</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingSound" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Group Message Alerts</div>
+                            <div class="setting-subtext">Receive notifications for all group discussions.</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingGroupNotifs" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </section>
+
+                <!-- 3. PRIVACY TAB -->
+                <section id="tabPrivacy" class="settings-tab-section" style="display:none;">
+                    <div class="settings-section-header">
+                        <h2 class="settings-title">Privacy Controls</h2>
+                        <p class="settings-desc">Control your presence and visibility preferences.</p>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Read Receipts</div>
+                            <div class="setting-subtext">Let other users see when you have read their messages (double checkmark).</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingReadReceipts" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Typing Indicators</div>
+                            <div class="setting-subtext">Display a typing indicator when you are composing a message.</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingTyping" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Online Status Visibility</div>
+                            <div class="setting-subtext">Share live online/offline presence with contacts.</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingOnlinePresence" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </section>
+
+                <!-- 4. SECURITY TAB -->
+                <section id="tabSecurity" class="settings-tab-section" style="display:none;">
+                    <div class="settings-section-header">
+                        <h2 class="settings-title">Account Security</h2>
+                        <p class="settings-desc">Manage session protection and credentials.</p>
+                    </div>
+
+                    <div style="margin-bottom: var(--space-6);">
+                        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: var(--space-3);">Active Sessions</h3>
+                        <div style="padding: 12px; background: var(--surface-elevated); border-radius: var(--radius-md); border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-size: 13px; font-weight: 700;">Current Browser Session</div>
+                                <div style="font-size: 11px; color: var(--success); font-weight: 600;">Active Now &bull; Signed with Bearer JWT</div>
+                            </div>
+                            <span class="badge badge-success">Current</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: var(--space-3);">Two-Factor Authentication</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: var(--space-4);">
+                            Add an extra layer of security to your account with TOTP authenticator apps.
+                        </p>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="showToast('2FA configuration coming soon in v2.1', 'info')">
+                            Configure Two-Factor Auth (Coming Soon)
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 5. ABOUT TAB -->
+                <section id="tabAbout" class="settings-tab-section" style="display:none;">
+                    <div class="settings-section-header">
+                        <h2 class="settings-title">About FRANK</h2>
+                        <p class="settings-desc">Platform and release specifications.</p>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: var(--space-4); font-size: 14px; color: var(--text-secondary);">
+                        <div><strong>Application:</strong> FRANK Professional Edition</div>
+                        <div><strong>FRANK Version:</strong> 2.0.0 (Build 2026.09)</div>
+                        <div><strong>FRANK Privacy &amp; Security:</strong> Protected by TLS encryption and secure JWT session protocols.</div>
+                        <div><strong>Core Stack:</strong> FastAPI &bull; SQLAlchemy &bull; WebSockets &bull; Vanilla JS &bull; CSS3</div>
+                        <div><strong>Status:</strong> All local services operational.</div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none">
+    <defs>
+        <linearGradient id="cursorSpine" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#3B82F6" />
+            <stop offset="50%" stop-color="#8B5CF6" />
+            <stop offset="100%" stop-color="#D946EF" />
+        </linearGradient>
+        <linearGradient id="cursorTop" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#2563EB" />
+            <stop offset="100%" stop-color="#22D3EE" />
+        </linearGradient>
+        <linearGradient id="cursorMid" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#7C3AED" />
+            <stop offset="100%" stop-color="#F43F5E" />
+        </linearGradient>
+        <filter id="cursorDropShadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.6" />
+        </filter>
+    </defs>
+    <g filter="url(#cursorDropShadow)">
+        <!-- Outer Contrast Stroke for crispness on all backgrounds -->
+        <!-- Top Beam Outer -->
+        <path d="M 4 4.5 C 4 3.1 5.1 2 6.5 2 L 18 2 C 19.4 2 20.5 3.1 20.5 4.5 C 20.5 5.9 19.4 7 18 7 L 6.5 7 C 5.1 7 4 5.9 4 4.5 Z" fill="#0A0E2A" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" />
+        <path d="M 4 4.5 C 4 3.1 5.1 2 6.5 2 L 18 2 C 19.4 2 20.5 3.1 20.5 4.5 C 20.5 5.9 19.4 7 18 7 L 6.5 7 C 5.1 7 4 5.9 4 4.5 Z" fill="url(#cursorTop)" />
+
+        <!-- Vertical Spine Outer & Gradient -->
+        <path d="M 4 4.5 L 4 17.5 C 4 18.9 5.1 20 6.5 20 C 7.9 20 9 18.9 9 17.5 L 9 4.5 Z" fill="url(#cursorSpine)" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" />
+        
+        <!-- Chat Tail Notch -->
+        <path d="M 4 17 L 1.5 21 C 1 21.7 1.6 22.5 2.5 22.5 L 6.5 22.5 C 7.2 22.5 7.6 22 7.2 21.3 L 4 17 Z" fill="#D946EF" />
+
+        <!-- Mid Beam Outer & Gradient -->
+        <path d="M 6.5 10.5 L 14 10.5 C 15.4 10.5 16.5 11.6 16.5 13 C 16.5 14.4 15.4 15.5 14 15.5 L 6.5 15.5 Z" fill="url(#cursorMid)" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" />
+
+        <!-- Spark Accent Dot -->
+        <circle cx="18" cy="4.5" r="1.5" fill="#22D3EE" />
+    </g>
+</svg>

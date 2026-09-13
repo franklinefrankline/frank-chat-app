@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+    <defs>
+        <linearGradient id="frankSpineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#3B82F6" />
+            <stop offset="50%" stop-color="#7C3AED" />
+            <stop offset="100%" stop-color="#C026D3" />
+        </linearGradient>
+        <linearGradient id="frankTopBeamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#2563EB" />
+            <stop offset="60%" stop-color="#3B82F6" />
+            <stop offset="100%" stop-color="#06B6D4" />
+        </linearGradient>
+        <linearGradient id="frankMidBeamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#7C3AED" />
+            <stop offset="70%" stop-color="#A855F7" />
+            <stop offset="100%" stop-color="#E879F9" />
+        </linearGradient>
+        <linearGradient id="frankBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0B0F28" />
+            <stop offset="100%" stop-color="#141B4D" />
+        </linearGradient>
+        <filter id="frankGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2.5" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+    </defs>
+    <!-- Background Container Tile -->
+    <rect width="48" height="48" rx="12" fill="url(#frankBgGrad)" stroke="rgba(59, 130, 246, 0.3)" stroke-width="1.2" />
+    
+    <!-- Top Horizontal Chat Beam (Electric Blue -> Cyan) -->
+    <path d="M 12 14 C 12 11.238 14.238 9 17 9 L 34 9 C 36.762 9 39 11.238 39 14 C 39 16.762 36.762 19 34 19 L 17 19 C 14.238 19 12 16.762 12 14 Z" fill="url(#frankTopBeamGrad)" />
+    
+    <!-- Vertical Communication Spine with Chat Tail (Blue -> Violet -> Magenta) -->
+    <path d="M 12 14 L 12 34 C 12 36.762 14.238 39 17 39 C 19.762 39 22 36.762 22 34 L 22 14 Z" fill="url(#frankSpineGrad)" />
+    <!-- Speech bubble notch at bottom of spine -->
+    <path d="M 12 33 L 7.5 38.5 C 6.8 39.3 7.4 40.5 8.5 40.5 L 14.5 40.5 C 15.5 40.5 16 39.8 15.5 39 L 12 33 Z" fill="#C026D3" />
+
+    <!-- Middle Horizontal Chat Beam (Violet -> Magenta) -->
+    <path d="M 17 23 L 28 23 C 30.762 23 33 25.238 33 28 C 33 30.762 30.762 33 28 33 L 17 33 Z" fill="url(#frankMidBeamGrad)" />
+    
+    <!-- Communication Spark Pulse Dot in Cyan -->
+    <circle cx="34.5" cy="14" r="2.2" fill="#22D3EE" filter="url(#frankGlow)" />
+</svg>

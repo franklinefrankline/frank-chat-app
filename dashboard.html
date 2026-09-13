@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRANK — Think</title>
+    <meta name="description" content="FRANK is a modern, premium real-time communication platform. Think.">
+    <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
+
+    <!-- Open Graph Meta -->
+    <meta property="og:title" content="FRANK — Think">
+    <meta property="og:description" content="Think">
+    <meta property="og:image" content="assets/brand/frank-logo.svg">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <!-- Custom Desktop Cursor (Miniature FRANK F) -->
+    <div class="custom-cursor" id="customCursor" aria-hidden="true"></div>
+
+    <!-- Application Loading Screen with 8-Step Animated FRANK Logo -->
+    <div class="app-loading-screen" id="appLoadingScreen">
+        <div class="frank-logo-anim-stage splash">
+            <div class="frank-light-streak" aria-hidden="true"></div>
+            <div class="frank-anim-glow" aria-hidden="true"></div>
+            <div class="frank-anim-emblem">
+                <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="splashSpineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#2563EB" />
+                            <stop offset="45%" stop-color="#7C3AED" />
+                            <stop offset="100%" stop-color="#C026D3" />
+                        </linearGradient>
+                        <linearGradient id="splashTopGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#2563EB" />
+                            <stop offset="50%" stop-color="#3B82F6" />
+                            <stop offset="100%" stop-color="#06B6D4" />
+                        </linearGradient>
+                        <linearGradient id="splashMidGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#7C3AED" />
+                            <stop offset="60%" stop-color="#A855F7" />
+                            <stop offset="100%" stop-color="#F43F5E" />
+                        </linearGradient>
+                        <linearGradient id="splashBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#0B0F28" />
+                            <stop offset="100%" stop-color="#141B4D" />
+                        </linearGradient>
+                        <filter id="splashSparkGlow" x="-30%" y="-30%" width="160%" height="160%">
+                            <feGaussianBlur stdDeviation="2" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                    </defs>
+                    <rect class="frank-svg-bg" x="6" y="6" width="88" height="88" rx="22" fill="url(#splashBgGrad)" stroke="rgba(59, 130, 246, 0.35)" stroke-width="1.6" />
+                    <!-- STEP 2: F symbol begins drawing (spine + chat notch) -->
+                    <path class="frank-draw-spine" d="M 30 26 L 30 70 L 21 80 L 29 80" stroke="url(#splashSpineGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <!-- STEP 3: F shape completes (top & mid beams) -->
+                    <path class="frank-draw-top" d="M 30 26 L 74 26" stroke="url(#splashTopGrad)" stroke-width="10" stroke-linecap="round" fill="none" />
+                    <path class="frank-draw-mid" d="M 30 48 L 58 48" stroke="url(#splashMidGrad)" stroke-width="10" stroke-linecap="round" fill="none" />
+                    <!-- STEP 5: Spark pulse dot -->
+                    <circle class="frank-svg-spark" cx="74" cy="26" r="3.5" fill="#22D3EE" filter="url(#splashSparkGlow)" />
+                </svg>
+            </div>
+            <div class="frank-anim-wordmark">FRANK</div>
+            <div class="frank-anim-tagline">Think</div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Root -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Mobile Drawer Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
+    <!-- Main Application Shell -->
+    <div class="chat-app" id="chatApp">
+
+        <!-- WebSocket Reconnection & Status Banner -->
+        <div class="connection-banner" id="connectionBanner" style="display:none;"></div>
+
+        <!-- ================= 1. LEFT SIDEBAR (260px) ================= -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <a href="index.html" class="brand-text" title="FRANK — Think">
+                    <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" class="brand-logo-img" style="width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;">
+                    <div class="brand-title-wrap">
+                        <span class="brand-title-text">FRANK</span>
+                        <span class="brand-tagline-text">Think</span>
+                    </div>
+                </a>
+                <span class="brand-badge">PRO</span>
+            </div>
+
+            <!-- New Chat Primary Action Button -->
+            <button type="button" class="btn btn-primary btn-full sidebar-new-chat-btn" id="sidebarNewChatActionBtn" data-open-modal="newChatModal" style="margin-bottom: var(--space-4); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>New Chat</span>
+            </button>
+
+            <!-- Sidebar Navigation Sections -->
+            <nav class="sidebar-nav" aria-label="Sidebar Sections">
+                <button type="button" class="nav-item active" data-section="chats">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>Chats</span>
+                    <span class="nav-badge" id="totalUnreadBadge" style="display:none;">0</span>
+                </button>
+
+                <button type="button" class="nav-item" data-section="groups" id="navGroupsBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span>Groups</span>
+                </button>
+
+                <button type="button" class="nav-item" data-section="contacts" id="navContactsBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    <span>Contacts</span>
+                </button>
+
+                <button type="button" class="nav-item" data-section="favorites" id="navFavoritesBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    <span>Favorites</span>
+                </button>
+
+                <button type="button" class="nav-item" data-section="archive" id="navArchiveBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                        <rect x="1" y="3" width="22" height="5"></rect>
+                        <line x1="10" y1="12" x2="14" y2="12"></line>
+                    </svg>
+                    <span>Archive</span>
+                </button>
+
+                <!-- Tools Section -->
+                <div class="sidebar-section-title">Tools</div>
+
+                <button type="button" class="nav-item" id="navCreateGroupBtn" data-open-modal="createGroupModal">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                    <span>Create Group</span>
+                </button>
+
+                <button type="button" class="nav-item" id="navInvitePeopleBtn" data-open-modal="invitePeopleModal">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                    <span>Invite People</span>
+                </button>
+
+                <button type="button" class="nav-item" id="navFindPeopleBtn" data-open-modal="newChatModal">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <span>Find People</span>
+                </button>
+
+                <!-- Settings Section -->
+                <div class="sidebar-section-title">Settings</div>
+
+                <a href="settings.html?tab=notifications" class="nav-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <span>Notifications</span>
+                </a>
+
+                <a href="settings.html?tab=appearance" class="nav-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 2a10 10 0 0 0 0 20v-20z"></path>
+                    </svg>
+                    <span>Appearance</span>
+                </a>
+
+                <a href="settings.html?tab=privacy" class="nav-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span>Privacy</span>
+                </a>
+
+                <a href="settings.html" class="nav-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    <span>Settings</span>
+                </a>
+            </nav>
+
+            <!-- Bottom Profile & Utilities -->
+            <div class="sidebar-footer">
+                <!-- User Profile Card -->
+                <div class="sidebar-user" id="sidebarUserCard" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="User profile menu">
+                    <div class="avatar avatar-md" id="sidebarUserAvatar">
+                        <span id="sidebarUserInitials">CU</span>
+                        <span class="avatar-status online" id="sidebarUserPresence"></span>
+                    </div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name" id="sidebarUserName">Loading...</div>
+                        <div class="sidebar-user-status">
+                            <span style="width:6px; height:6px; border-radius:50%; background:currentColor;"></span>
+                            Online
+                        </div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+
+                    <!-- Profile Dropdown -->
+                    <div class="dropdown-menu sidebar-user-menu" id="sidebarUserMenu">
+                        <a href="profile.html" class="dropdown-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            View Profile
+                        </a>
+                        <a href="settings.html" class="dropdown-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            Settings
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <button type="button" class="dropdown-item danger" id="sidebarLogoutBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Theme & Logout row -->
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 4px;">
+                    <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Dark Theme</span>
+                    <button type="button" class="btn btn-ghost btn-icon" id="dashboardThemeBtn" aria-label="Toggle Dark Mode">
+                        <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ================= 2. CONVERSATION / GROUP PANEL (340px) ================= -->
+        <section class="conversation-panel" id="conversationPanel">
+            <div class="conversation-header">
+                <button type="button" class="btn btn-ghost btn-icon mobile-nav-toggle" id="openSidebarBtn" aria-label="Open Sidebar Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+
+                <h1 class="conversation-header-title">Messages</h1>
+
+                <button type="button" class="btn btn-primary btn-icon" id="newChatModalBtn" data-open-modal="newChatModal" aria-label="Start New Chat" title="Start New Chat">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="conversation-search-wrap">
+                <div class="conversation-search">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="conversationSearchInput" placeholder="Search conversations or groups...">
+                    <button type="button" id="clearSearchBtn" style="display:none; color:var(--text-muted);">✕</button>
+                </div>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="conversation-filters">
+                <button type="button" class="filter-chip active" data-filter="all">All</button>
+                <button type="button" class="filter-chip" data-filter="unread">Unread</button>
+                <button type="button" class="filter-chip" data-filter="groups">Groups</button>
+                <button type="button" class="filter-chip" data-filter="archived">Archived</button>
+            </div>
+
+            <!-- Conversation Items Stream -->
+            <div class="conversation-list" id="conversationList">
+                <div class="empty-state" id="conversationListLoading">
+                    <div class="spinner"></div>
+                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">Syncing messages...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 3. ACTIVE CHAT WINDOW (Remaining Width) ================= -->
+        <main class="chat-window" id="chatWindow">
+
+            <!-- Empty Chat State -->
+            <div class="empty-state" id="emptyChatPlaceholder">
+                <div class="empty-state-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </div>
+                <h2 class="empty-state-title">Your conversations live here</h2>
+                <p class="empty-state-desc">Select an active chat or group on the left, or initiate a new conversation with a contact.</p>
+                <button type="button" class="btn btn-primary" data-open-modal="newChatModal">
+                    Start a New Chat
+                </button>
+            </div>
+
+            <!-- Active Chat View -->
+            <div id="activeChatView" style="display:none; flex-direction:column; height:100%; width:100%;">
+
+                <!-- Chat Header (NO CALL BUTTONS - naturally redistributed) -->
+                <header class="chat-header">
+                    <!-- Mobile Back Button -->
+                    <button type="button" class="btn btn-ghost btn-icon mobile-back-btn" id="mobileBackBtn" aria-label="Back to conversations">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+
+                    <div class="chat-partner-info" id="chatPartnerHeaderBtn">
+                        <div class="avatar avatar-md" id="chatPartnerAvatar">
+                            <span id="chatPartnerInitials">Q</span>
+                            <span class="avatar-status" id="chatPartnerStatusDot"></span>
+                        </div>
+                        <div>
+                            <div class="chat-partner-name" id="chatPartnerName">Active Conversation</div>
+                            <div class="chat-partner-presence" id="chatPartnerPresenceText">Online</div>
+                        </div>
+                    </div>
+
+                    <!-- Header Controls: Search, Members / Info, More -->
+                    <div class="chat-header-actions" style="position: relative;">
+                        <!-- 1. Search Messages in this Chat -->
+                        <button type="button" class="btn btn-ghost btn-icon" id="chatSearchBtn" title="Search in Chat" aria-label="Search Messages">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </button>
+
+                        <!-- 2. Members / Group Info Drawer Toggle -->
+                        <button type="button" class="btn btn-ghost btn-icon" id="toggleDrawerBtn" title="Group Info / Conversation Details" aria-label="Conversation Details">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </button>
+
+                        <!-- 3. More Menu Dropdown Toggle -->
+                        <button type="button" class="btn btn-ghost btn-icon" id="chatMoreBtn" title="More Options" aria-label="More Options">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="1"></circle>
+                                <circle cx="12" cy="5" r="1"></circle>
+                                <circle cx="12" cy="19" r="1"></circle>
+                            </svg>
+                        </button>
+
+                        <!-- More Menu Popover -->
+                        <div class="chat-more-menu" id="chatMoreMenu">
+                            <button type="button" class="chat-more-item" id="moreGroupInfoBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                Group / Chat Info
+                            </button>
+                            <button type="button" class="chat-more-item" id="moreAddMembersBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                                Add Members
+                            </button>
+                            <button type="button" class="chat-more-item" id="moreInviteLinkBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                Invite via Link
+                            </button>
+                            <button type="button" class="chat-more-item" id="moreMuteBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+                                Mute Notifications
+                            </button>
+                            <button type="button" class="chat-more-item" id="morePinChatBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                Pin Chat
+                            </button>
+                            <button type="button" class="chat-more-item" id="moreMarkUnreadBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                Mark as Unread
+                            </button>
+                            <button type="button" class="chat-more-item" id="moreExportChatBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Export Chat
+                            </button>
+                            <button type="button" class="chat-more-item" id="moreClearChatBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                Clear Chat View
+                            </button>
+                            <div class="chat-more-divider"></div>
+                            <button type="button" class="chat-more-item danger" id="moreLeaveGroupBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                                Leave Group
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Collapsible In-Chat Search Bar -->
+                <div class="chat-search-bar" id="chatSearchBar" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="chatSearchInput" placeholder="Search messages or shared document filenames...">
+                    <button type="button" class="btn btn-ghost btn-icon btn-sm" id="closeChatSearchBtn">✕</button>
+                </div>
+
+                <!-- Scrollable Messages Area -->
+                <div class="messages-container" id="messagesContainer">
+                    <!-- Dynamic message rows rendered here -->
+                </div>
+
+                <!-- Typing Pulse Indicator -->
+                <div class="typing-box" id="typingIndicatorBox" style="margin-left: 8%;">
+                    <span id="typingUserText">Someone is typing</span>
+                    <div class="typing-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+
+                <!-- Composer Area -->
+                <footer class="chat-composer-container">
+
+                    <!-- Reply Preview Strip -->
+                    <div class="composer-reply-strip" id="composerReplyStrip">
+                        <div style="min-width: 0;">
+                            <span style="font-weight: 700; color: var(--primary);" id="replySenderName">Replying to message</span>
+                            <div class="composer-reply-text" id="replyPreviewText">...</div>
+                        </div>
+                        <button type="button" id="cancelReplyBtn" class="btn-ghost" style="padding: 2px 6px; border-radius: 4px; font-size: 11px;">✕</button>
+                    </div>
+
+                    <!-- Popover: Emoji Picker -->
+                    <div class="emoji-popover" id="emojiPickerPopover">
+                        <div class="emoji-grid" id="emojiPickerGrid"></div>
+                    </div>
+
+                    <!-- Popover: Attachments (Real Documents & Media) -->
+                    <div class="attachment-popover" id="attachmentPopover">
+                        <div class="attachment-menu-list">
+                            <button type="button" class="attachment-menu-item" data-action="doc">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <span>Document</span>
+                            </button>
+                            <button type="button" class="attachment-menu-item" data-action="photo">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                <span>Photos &amp; Videos</span>
+                            </button>
+                            <button type="button" class="attachment-menu-item" data-action="file">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                                </svg>
+                                <span>All Files</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Composer Input Bar -->
+                    <div class="chat-composer">
+                        <!-- Attachment Trigger -->
+                        <button type="button" class="btn btn-ghost btn-icon" id="attachmentBtn" aria-label="Add document or attachment" title="Share Document or File">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                            </svg>
+                        </button>
+
+                        <!-- Emoji Trigger -->
+                        <button type="button" class="btn btn-ghost btn-icon" id="emojiBtn" aria-label="Insert Emoji" title="Insert Emoji">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                                <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                                <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                            </svg>
+                        </button>
+
+                        <!-- Textarea -->
+                        <textarea 
+                            class="composer-textarea" 
+                            id="messageComposerTextarea" 
+                            placeholder="Type a message (Enter to send, Shift+Enter for new line)..." 
+                            rows="1"
+                            aria-label="Message Input"
+                        ></textarea>
+
+                        <!-- Send Button -->
+                        <button type="button" class="composer-send-btn" id="composerSendBtn" aria-label="Send message" title="Send message">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </footer>
+            </div>
+        </main>
+
+        <!-- ================= 4. DETAILS / GROUP INFO DRAWER (300px) ================= -->
+        <aside class="chat-details-drawer" id="detailsDrawer" style="display:none;">
+            <div class="drawer-header">
+                <span style="font-size: 15px; font-weight: 700; color: var(--text);">Chat Details</span>
+                <button type="button" class="btn btn-ghost btn-icon" id="closeDrawerBtn" aria-label="Close Details">✕</button>
+            </div>
+
+            <div class="drawer-content">
+                <div class="avatar avatar-xl" id="drawerAvatar" style="margin-bottom: var(--space-3);">
+                    <span id="drawerInitials">Q</span>
+                </div>
+                <h3 id="drawerName" style="font-size: 18px; font-weight: 800; color: var(--text);">Name</h3>
+                <div id="drawerSubtitle" style="font-size: 13px; color: var(--text-muted); margin-bottom: var(--space-3);">@username</div>
+                <p class="drawer-bio" id="drawerBio">Bio or group description goes here...</p>
+
+                <!-- Drawer Tabs: Members & Documents -->
+                <div class="drawer-tabs-bar" id="drawerTabsBar">
+                    <button type="button" class="drawer-tab-btn active" data-tab="members" id="drawerTabMembersBtn">Members</button>
+                    <button type="button" class="drawer-tab-btn" data-tab="docs" id="drawerTabDocsBtn">Documents</button>
+                </div>
+
+                <!-- Members Section -->
+                <div class="drawer-section" id="drawerMembersSection" style="margin-top: 0; padding-top: 0; border-top: none;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <span class="drawer-section-title" style="margin-bottom: 0;">Group Members</span>
+                        <button type="button" class="btn btn-ghost btn-sm" id="drawerAddMemberActionBtn" onclick="if(window.groupsModule && window.chatController) window.groupsModule.openAddMembersModal(window.chatController.activeId);">+ Add</button>
+                    </div>
+                    <div id="drawerMembersList" style="max-height: 220px; overflow-y: auto;">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Shared Documents Section -->
+                <div class="drawer-section" id="drawerDocsSection" style="display: none; margin-top: 0; padding-top: 0; border-top: none;">
+                    <div class="drawer-section-title">Shared Documents</div>
+                    <div id="drawerDocsList" style="max-height: 260px; overflow-y: auto;">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Security & Encryption -->
+                <div class="drawer-section">
+                    <div class="drawer-section-title">Security &amp; Encryption</div>
+                    <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-secondary);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        Protected WebSocket Session
+                    </div>
+                </div>
+
+                <!-- Danger Action: Leave Group -->
+                <div class="drawer-section" id="drawerLeaveGroupSection">
+                    <button type="button" class="btn btn-danger btn-full btn-sm" id="drawerLeaveGroupBtn" style="display:none;" onclick="if(window.groupsModule && window.chatController) window.groupsModule.leaveGroup(window.chatController.activeId, window.chatController.activePartner?.name);">
+                        Leave Group
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- New Chat Modal -->
+    <div class="modal-backdrop" id="newChatModal" role="dialog" aria-modal="true" aria-labelledby="newChatModalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="modal-title" id="newChatModalTitle">New Conversation</h2>
+                <button type="button" class="modal-close" data-close-modal="newChatModal" aria-label="Close modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="userSearchQuery">Search Users</label>
+                    <input type="text" class="form-input" id="userSearchQuery" placeholder="Search by name or username...">
+                </div>
+                <div style="max-height: 260px; overflow-y: auto;" id="userSearchResults">
+                    <div class="empty-state" style="padding: var(--space-4);">
+                        <div style="font-size: 13px; color: var(--text-muted);">Type above to find contacts</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Group Modal -->
+    <div class="modal-backdrop" id="createGroupModal" role="dialog" aria-modal="true" aria-labelledby="createGroupModalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="modal-title" id="createGroupModalTitle">Create a Group</h2>
+                <button type="button" class="modal-close" data-close-modal="createGroupModal" aria-label="Close modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="createGroupForm">
+                    <div class="form-group">
+                        <label class="form-label" for="groupNameInput">Group Name</label>
+                        <input type="text" class="form-input" id="groupNameInput" placeholder="e.g. FRANK Engineering" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="groupDescInput">Description (Optional)</label>
+                        <textarea class="form-textarea" id="groupDescInput" placeholder="What is this group about?" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Select Initial Members</label>
+                        <div id="groupMembersChecklist" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px;">
+                            <!-- Injected by groups.js -->
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="padding: 0; background: transparent; border: none; margin-top: var(--space-4);">
+                        <button type="button" class="btn btn-secondary" data-close-modal="createGroupModal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="createGroupSubmitBtn">Create Group</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invite People Modal -->
+    <div class="modal-backdrop" id="invitePeopleModal" role="dialog" aria-modal="true" aria-labelledby="invitePeopleModalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="modal-title" id="invitePeopleModalTitle">Invite People to FRANK</h2>
+                <button type="button" class="modal-close" data-close-modal="invitePeopleModal" aria-label="Close modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Share your personal invite link with teammates to start collaborating on FRANK:</p>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="inviteLinkInput" value="https://frank.app/join" readonly>
+                    <button type="button" class="btn btn-primary" id="copyInviteLinkBtn" onclick="navigator.clipboard.writeText(document.getElementById('inviteLinkInput').value); showToast('Invite link copied!', 'success');">Copy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Screen / First-Time User Onboarding Modal -->
+    <div class="modal-backdrop" id="welcomeOnboardingModal" role="dialog" aria-modal="true" aria-labelledby="welcomeModalTitle">
+        <div class="modal-card" style="max-width: 480px; text-align: center; padding: var(--space-8) var(--space-6);">
+            <div style="font-size: 44px; margin-bottom: var(--space-2);">👋</div>
+            <h2 class="modal-title" id="welcomeModalTitle" style="font-size: 26px; font-weight: 800; margin-bottom: var(--space-2); justify-content: center;">Welcome to FRANK 👋</h2>
+            <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.6; margin-bottom: var(--space-6);">
+                Your account is ready. Let's start your first conversation.
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                <button type="button" class="btn btn-primary btn-large btn-full" id="onboardingFindPeopleBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    Find People
+                </button>
+                <button type="button" class="btn btn-ghost btn-full" id="onboardingSkipBtn">
+                    Skip for Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/modal.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/documents.js"></script>
+    <script src="js/messages.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/groups.js"></script>
+    <script src="js/contacts.js"></script>
+    <script src="js/users.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

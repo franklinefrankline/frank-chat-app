@@ -1,51 +1,19 @@
 {
   "version": 2,
-  "name": "frank-chat-vercel",
   "cleanUrls": true,
   "trailingSlash": false,
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "backend/main.py"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/frontend/assets/$1",
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
-      "src": "/css/(.*)",
-      "dest": "/frontend/css/$1",
-      "headers": {
-        "cache-control": "public, max-age=86400"
-      }
-    },
-    {
-      "src": "/js/(.*)",
-      "dest": "/frontend/js/$1",
-      "headers": {
-        "cache-control": "public, max-age=86400"
-      }
-    },
-    { "src": "/login", "dest": "/frontend/login.html" },
-    { "src": "/register", "dest": "/frontend/register.html" },
-    { "src": "/dashboard", "dest": "/frontend/dashboard.html" },
-    { "src": "/chat", "dest": "/frontend/dashboard.html" },
-    { "src": "/groups", "dest": "/frontend/dashboard.html" },
-    { "src": "/contacts", "dest": "/frontend/dashboard.html" },
-    { "src": "/settings", "dest": "/frontend/settings.html" },
-    { "src": "/profile", "dest": "/frontend/profile.html" },
-    { "src": "/forgot-password", "dest": "/frontend/forgot-password.html" },
-    { "src": "/reset-password", "dest": "/frontend/reset-password.html" },
-    { "src": "/favicon.ico", "dest": "/frontend/assets/brand/frank-icon.svg" },
-    { "src": "/frank-icon.svg", "dest": "/frontend/assets/brand/frank-icon.svg" },
-    { "src": "/", "dest": "/frontend/index.html" },
-    { "src": "/(.*)\\.html", "dest": "/frontend/$1.html" },
-    { "src": "/(.*)", "dest": "/frontend/$1" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "status": 404, "dest": "/frontend/404.html" }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.py" },
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/chat", "destination": "/dashboard.html" },
+    { "source": "/groups", "destination": "/dashboard.html" },
+    { "source": "/contacts", "destination": "/dashboard.html" },
+    { "source": "/login", "destination": "/login.html" },
+    { "source": "/register", "destination": "/register.html" },
+    { "source": "/settings", "destination": "/settings.html" },
+    { "source": "/profile", "destination": "/profile.html" },
+    { "source": "/forgot-password", "destination": "/forgot-password.html" },
+    { "source": "/reset-password", "destination": "/reset-password.html" }
   ],
   "headers": [
     {
@@ -54,6 +22,12 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
   ]

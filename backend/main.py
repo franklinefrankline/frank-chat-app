@@ -174,16 +174,54 @@ def health_check():
 
 
 # Frontend Static Files Serving
-frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
-if frontend_dir.exists():
-    app.mount("/css", StaticFiles(directory=str(frontend_dir / "css")), name="css")
-    app.mount("/js", StaticFiles(directory=str(frontend_dir / "js")), name="js")
+backend_frontend = Path(__file__).resolve().parent / "frontend"
+root_frontend = Path(__file__).resolve().parent.parent / "frontend"
+root_dir = Path(__file__).resolve().parent.parent
+
+if backend_frontend.exists():
+    frontend_dir = backend_frontend
+elif root_frontend.exists():
+    frontend_dir = root_frontend
+elif (root_dir / "index.html").exists():
+    frontend_dir = root_dir
+else:
+    frontend_dir = None
+
+if frontend_dir and frontend_dir.exists():
+    if (frontend_dir / "css").exists():
+        app.mount("/css", StaticFiles(directory=str(frontend_dir / "css")), name="css")
+    if (frontend_dir / "js").exists():
+        app.mount("/js", StaticFiles(directory=str(frontend_dir / "js")), name="js")
     if (frontend_dir / "assets").exists():
         app.mount("/assets", StaticFiles(directory=str(frontend_dir / "assets")), name="assets")
 
     @app.get("/")
     def serve_landing():
         return FileResponse(frontend_dir / "index.html")
+
+    @app.get("/login")
+    def serve_login():
+        return FileResponse(frontend_dir / "login.html")
+
+    @app.get("/register")
+    def serve_register():
+        return FileResponse(frontend_dir / "register.html")
+
+    @app.get("/dashboard")
+    def serve_dashboard():
+        return FileResponse(frontend_dir / "dashboard.html")
+
+    @app.get("/chat")
+    def serve_chat():
+        return FileResponse(frontend_dir / "dashboard.html")
+
+    @app.get("/settings")
+    def serve_settings():
+        return FileResponse(frontend_dir / "settings.html")
+
+    @app.get("/profile")
+    def serve_profile():
+        return FileResponse(frontend_dir / "profile.html")
 
     @app.get("/{filename}.html")
     def serve_html_page(filename: str):

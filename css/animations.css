@@ -1,0 +1,523 @@
+/* -------------------------------------------------------------------------
+   MICRO-ANIMATIONS & TRANSITIONS
+   Subtle, fast (150-300ms), performance-optimized with GPU acceleration
+   ------------------------------------------------------------------------- */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes messageInSent {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes messageInReceived {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes typingPulse {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-5px);
+        opacity: 1;
+    }
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes toastSlideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(24px) scale(0.96);
+    }
+}
+
+@keyframes pulseOnline {
+    0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* -------------------------------------------------------------------------
+   FRANK 8-STEP LOGO ENTRANCE ANIMATION SYSTEM
+   Think
+   Sequence:
+   Step 1: Light streak appears
+   Step 2: F symbol begins drawing (spine + speech notch)
+   Step 3: F shape completes (top & mid chat beams)
+   Step 4: Gradient blooms (Blue -> Cyan -> Violet -> Magenta)
+   Step 5: Subtle glow & spark dot appear
+   Step 6: "FRANK" wordmark appears (opacity 0->1, translateY 10px->0)
+   Step 7: Tagline "Think" appears (fade-up)
+   Step 8: Settles into final pristine state (~2.2s total duration)
+   ------------------------------------------------------------------------- */
+
+.frank-logo-anim-stage {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    user-select: none;
+    overflow: visible;
+}
+
+/* STEP 1: Light Streak Sweeping Across Stage */
+.frank-light-streak {
+    position: absolute;
+    top: 36%;
+    left: 50%;
+    width: 140px;
+    height: 3px;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, transparent, #3B82F6, #8B5CF6, #22D3EE, #D946EF, transparent);
+    filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.9));
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0;
+    transform: translate(-50%, -50%) scaleX(0.2);
+    animation: frankLightStreakSweep 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
+}
+
+@keyframes frankLightStreakSweep {
+    0% {
+        opacity: 0;
+        transform: translate(-90%, -50%) scaleX(0.2);
+    }
+    30% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scaleX(1.1);
+    }
+    70% {
+        opacity: 0.9;
+        transform: translate(-10%, -50%) scaleX(0.8);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(40%, -50%) scaleX(0.1);
+    }
+}
+
+/* STEP 5: Ambient Glow Backdrop */
+.frank-anim-glow {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    width: 130px;
+    height: 130px;
+    transform: translate(-50%, -50%) scale(0.7);
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.28) 0%, rgba(124, 58, 237, 0.2) 45%, rgba(217, 70, 239, 0.1) 70%, transparent 80%);
+    filter: blur(28px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    animation: frankGlowBloom 0.8s ease-out 1.25s forwards;
+}
+
+@keyframes frankGlowBloom {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.6);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+}
+
+/* FRANK Animated Emblem Container */
+.frank-anim-emblem {
+    position: relative;
+    z-index: 2;
+    width: 92px;
+    height: 92px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.9);
+    animation: frankEmblemEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards,
+               frankEmblemGlowPulse 0.9s ease-out 1.35s forwards;
+}
+
+@keyframes frankEmblemEntrance {
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes frankEmblemGlowPulse {
+    0% {
+        filter: drop-shadow(0 0 0 rgba(34, 211, 238, 0));
+    }
+    50% {
+        filter: drop-shadow(0 0 24px rgba(34, 211, 238, 0.75)) drop-shadow(0 0 36px rgba(124, 58, 237, 0.5));
+    }
+    100% {
+        filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.45));
+    }
+}
+
+/* STEP 2: F Symbol Begins Drawing (Spine + Chat Notch) */
+.frank-draw-spine {
+    stroke-dasharray: 105;
+    stroke-dashoffset: 105;
+    animation: frankDrawSpine 0.65s cubic-bezier(0.65, 0, 0.35, 1) 0.35s forwards;
+}
+
+@keyframes frankDrawSpine {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* STEP 3: F Shape Completes (Top & Middle Chat Beams) */
+.frank-draw-top {
+    stroke-dasharray: 55;
+    stroke-dashoffset: 55;
+    animation: frankDrawTop 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.75s forwards;
+}
+
+@keyframes frankDrawTop {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.frank-draw-mid {
+    stroke-dasharray: 38;
+    stroke-dashoffset: 38;
+    animation: frankDrawMid 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.88s forwards;
+}
+
+@keyframes frankDrawMid {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* Base tile background */
+.frank-svg-bg {
+    opacity: 0;
+    animation: frankFadeIn 0.5s ease 0.2s forwards;
+}
+
+@keyframes frankFadeIn {
+    to { opacity: 1; }
+}
+
+/* STEP 5: Communication Spark Dot with Glow */
+.frank-svg-spark {
+    opacity: 0;
+    transform: scale(0.2);
+    transform-origin: 74px 26px;
+    animation: frankSparkPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 1.25s forwards;
+}
+
+@keyframes frankSparkPop {
+    0% {
+        opacity: 0;
+        transform: scale(0.2);
+    }
+    70% {
+        opacity: 1;
+        transform: scale(1.35);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* STEP 6: Wordmark "FRANK" Reveal (opacity 0->1, translateY 10px->0) */
+.frank-anim-wordmark {
+    position: relative;
+    z-index: 2;
+    margin-top: 16px;
+    font-family: var(--font-sans);
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #ffffff;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: frankTextReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) 1.55s forwards;
+}
+
+/* STEP 7: Tagline Reveal (subtle fade-up) */
+.frank-anim-tagline {
+    position: relative;
+    z-index: 2;
+    margin-top: 6px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #94A3B8;
+    opacity: 0;
+    transform: translateY(8px);
+    animation: frankTextReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) 1.85s forwards;
+}
+
+@keyframes frankTextReveal {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Compact Variant for Auth Screens */
+.frank-logo-anim-stage.compact {
+    padding: 8px 0;
+}
+.frank-logo-anim-stage.compact .frank-anim-emblem {
+    width: 68px;
+    height: 68px;
+}
+.frank-logo-anim-stage.compact .frank-anim-wordmark {
+    font-size: 21px;
+    margin-top: 10px;
+}
+.frank-logo-anim-stage.compact .frank-anim-tagline {
+    font-size: 11.5px;
+}
+.frank-logo-anim-stage.compact .frank-light-streak {
+    width: 100px;
+}
+
+/* Section 13: Dashboard Static Logo Hover Micro-Interaction */
+.sidebar-brand a.brand-text,
+.dashboard-brand-hover {
+    display: inline-flex;
+    align-items: center;
+    transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+                filter 180ms ease;
+    cursor: pointer;
+}
+
+.sidebar-brand a.brand-text:hover,
+.dashboard-brand-hover:hover {
+    transform: scale(1.03);
+    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 18px rgba(34, 211, 238, 0.35));
+}
+
+/* -------------------------------------------------------------------------
+   CUSTOM FRANK CURSOR STYLING & ANIMATIONS
+   18-24px miniature FRANK F symbol with subtle glow, hover scale, click ripple,
+   and 2-3 particle subtle trail.
+   ------------------------------------------------------------------------- */
+@media (hover: hover) and (pointer: fine) {
+    .custom-cursor {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 22px;
+        height: 22px;
+        background-image: url('../assets/brand/frank-cursor.svg');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        pointer-events: none;
+        z-index: var(--z-cursor, 99999);
+        opacity: 0;
+        transform: translate3d(-11px, -11px, 0) scale(1);
+        filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.45));
+        transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+                    filter 180ms ease,
+                    opacity 150ms ease;
+        will-change: transform, opacity;
+    }
+
+    /* Section 18: Cursor Hover Scale & Increased Glow */
+    .custom-cursor.hover {
+        transform: translate3d(-11px, -11px, 0) scale(1.15);
+        filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.85)) drop-shadow(0 0 16px rgba(124, 58, 237, 0.6));
+    }
+
+    /* Section 21 & 22: Hide custom cursor on text inputs, textareas, resize/drag */
+    .custom-cursor.hidden-for-input {
+        opacity: 0 !important;
+    }
+
+    /* Section 19: Cursor Click Effect (Expanding Ripple Ring) */
+    .frank-cursor-ripple {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid #22D3EE;
+        box-shadow: 0 0 8px rgba(192, 38, 211, 0.7);
+        pointer-events: none;
+        z-index: calc(var(--z-cursor, 99999) - 1);
+        transform: translate3d(-50%, -50%, 0) scale(0.6);
+        animation: frankCursorRippleAnim 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes frankCursorRippleAnim {
+        0% {
+            opacity: 0.95;
+            transform: translate3d(-50%, -50%, 0) scale(0.6);
+        }
+        100% {
+            opacity: 0;
+            transform: translate3d(-50%, -50%, 0) scale(2.8);
+        }
+    }
+
+    /* Section 20: Cursor Trail (Subtle, max 2-3 tiny particles) */
+    .frank-cursor-particle {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: calc(var(--z-cursor, 99999) - 2);
+        opacity: 0.55;
+        transform: translate3d(-50%, -50%, 0) scale(1);
+        animation: frankParticleFade 320ms cubic-bezier(0.2, 0, 0.3, 1) forwards;
+    }
+
+    @keyframes frankParticleFade {
+        0% {
+            opacity: 0.55;
+            transform: translate3d(-50%, -50%, 0) scale(1);
+        }
+        100% {
+            opacity: 0;
+            transform: translate3d(-50%, -50%, 0) scale(0.2);
+        }
+    }
+}
+
+/* Accessibility: Respect Reduced Motion Preferences (Section 24) */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .frank-anim-emblem,
+    .frank-draw-spine,
+    .frank-draw-top,
+    .frank-draw-mid,
+    .frank-svg-spark,
+    .frank-anim-wordmark,
+    .frank-anim-tagline,
+    .frank-svg-bg,
+    .sidebar-brand a.brand-text,
+    .dashboard-brand-hover {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+        filter: none !important;
+        stroke-dashoffset: 0 !important;
+    }
+    .frank-light-streak,
+    .frank-anim-glow,
+    .frank-cursor-ripple,
+    .frank-cursor-particle {
+        display: none !important;
+        animation: none !important;
+    }
+    .custom-cursor {
+        transition: none !important;
+    }
+}
