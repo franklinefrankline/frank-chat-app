@@ -20,7 +20,10 @@ from routes import auth, users, messages, groups, files
 from websocket.chat import handle_websocket_connection
 
 # Create database tables automatically
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Table creation note: {e}")
 
 def check_and_migrate_db():
     try:
@@ -38,7 +41,10 @@ def check_and_migrate_db():
     except Exception as e:
         print(f"Migration note: {e}")
 
-check_and_migrate_db()
+try:
+    check_and_migrate_db()
+except Exception as e:
+    print(f"Migration init note: {e}")
 
 
 # Seed initial demo users if database is newly initialized

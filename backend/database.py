@@ -16,7 +16,12 @@ if env_path.exists():
     except Exception:
         pass
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./chatapp.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        DATABASE_URL = "sqlite:////tmp/chatapp.db"
+    else:
+        DATABASE_URL = "sqlite:///./chatapp.db"
 
 # Normalize PostgreSQL URL for SQLAlchemy 2.0+
 if DATABASE_URL.startswith("postgres://"):

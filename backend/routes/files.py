@@ -17,8 +17,15 @@ router = APIRouter(prefix="/api/files", tags=["Files & Documents"])
 
 # Upload directory configuration
 BASE_DIR = Path(__file__).resolve().parent.parent
-UPLOAD_DIR = BASE_DIR / os.getenv("UPLOAD_DIRECTORY", "uploads")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+    UPLOAD_DIR = Path("/tmp") / os.getenv("UPLOAD_DIRECTORY", "uploads")
+else:
+    UPLOAD_DIR = BASE_DIR / os.getenv("UPLOAD_DIRECTORY", "uploads")
+
+try:
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    print(f"Upload dir init note: {e}")
 
 MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "25"))
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
