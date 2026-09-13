@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QENVO — Profile</title>
-    <meta name="description" content="View and manage your QENVO profile.">
-    <link rel="icon" type="image/svg+xml" href="assets/brand/qenvo-icon.svg">
+    <title>FRANK — Profile</title>
+    <meta name="description" content="View and manage your FRANK profile.">
+    <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
 
     <!-- Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,8 +22,8 @@
 </head>
 <body>
 
-    <div class="custom-cursor" id="customCursor"></div>
-    <div class="custom-cursor-dot" id="customCursorDot"></div>
+    <!-- Desktop Custom Cursor (Miniature FRANK F) -->
+    <div class="custom-cursor" id="customCursor" aria-hidden="true"></div>
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- Minimal App Header -->
@@ -32,8 +32,8 @@
             ← Back to Messages
         </a>
         <a href="dashboard.html" class="brand-link" style="color: var(--text); display: flex; align-items: center; gap: 8px;">
-            <img src="assets/brand/qenvo-icon.svg" alt="QENVO Logo" style="width: 26px; height: 26px; border-radius: 6px;">
-            <span style="font-weight: 800; font-size: 17px; letter-spacing: -0.3px;">QENVO</span>
+            <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" style="width: 26px; height: 26px; border-radius: 6px;">
+            <span style="font-weight: 800; font-size: 17px; letter-spacing: -0.3px;">FRANK</span>
         </a>
         <div style="display: flex; gap: 8px;">
             <a href="settings.html" class="btn btn-secondary btn-sm">Settings</a>
@@ -105,6 +105,7 @@
     </main>
 
     <!-- Scripts -->
+    <script src="js/config.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/api.js"></script>

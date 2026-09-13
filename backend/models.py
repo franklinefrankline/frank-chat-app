@@ -16,7 +16,7 @@ class User(Base):
     email = Column(String(120), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(100), nullable=False)
-    bio = Column(String(255), default="Hey there! I am using QENVO.")
+    bio = Column(String(255), default="Hey there! I am using FRANK.")
     avatar_url = Column(String(255), default="")
     is_online = Column(Boolean, default=False)
     last_seen = Column(DateTime(timezone=True), default=get_utc_now)

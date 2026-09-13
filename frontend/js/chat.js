@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------
-   QENVO - ACTIVE CHAT CONTROLLER
+   FRANK - ACTIVE CHAT CONTROLLER
    Conversation lifecycle, real-time message stream, group chat support,
    document attachments, independent scrolling, drawer details & search
    ------------------------------------------------------------------------- */
@@ -546,7 +546,7 @@ class ChatController {
 
         document.getElementById('moreInviteLinkBtn')?.addEventListener('click', () => {
             this.closeMoreMenu();
-            const inviteUrl = window.location.origin + `/join?code=qenvo-${this.activeType === 'group' ? 'grp' : 'usr'}-${this.activeId}`;
+            const inviteUrl = window.location.origin + `/join?code=frank-${this.activeType === 'group' ? 'grp' : 'usr'}-${this.activeId}`;
             navigator.clipboard.writeText(inviteUrl).then(() => {
                 showToast('Invitation link copied to clipboard!', 'success');
             }).catch(() => {
@@ -593,7 +593,7 @@ class ChatController {
         const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `qenvo-chat-${this.activeType}-${this.activeId}.txt`;
+        a.download = `frank-chat-${this.activeType}-${this.activeId}.txt`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -691,8 +691,8 @@ class ChatController {
             this.loadGroupMembersList(target.id);
         } else {
             if (subtitleEl) subtitleEl.textContent = `@${target.username || 'user'}`;
-            let bio = target.bio || 'Productive conversations powered by QENVO.';
-            if (bio.includes('ChatApp')) bio = bio.replace(/ChatApp/gi, 'QENVO');
+            let bio = target.bio || 'Productive conversations powered by FRANK.';
+            if (bio.includes('ChatApp') || bio.includes('QENVO')) bio = bio.replace(/ChatApp|QENVO/gi, 'FRANK');
             if (bioEl) bioEl.textContent = bio;
             if (tabsBar) tabsBar.style.display = 'flex';
             if (membersSec) membersSec.style.display = 'none';

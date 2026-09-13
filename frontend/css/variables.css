@@ -1,11 +1,12 @@
 /* -------------------------------------------------------------------------
-   QENVO DESIGN SYSTEM VARIABLES
-   Connect. Communicate. Simply.
+   FRANK BRAND DESIGN SYSTEM
+   Think
+   Electric Blue, Cyan, Violet, Magenta, Deep Indigo
    ------------------------------------------------------------------------- */
 
 :root {
-    /* QENVO Official Brand Color Palette */
-    --primary: #4f46e5;         /* Indigo */
+    /* FRANK Official Brand Color Palette */
+    --primary: #4f46e5;         /* Deep Indigo */
     --primary-dark: #4338ca;
     --primary-hover: #3730a3;
     --primary-soft: rgba(79, 70, 229, 0.12);
@@ -15,8 +16,9 @@
     --accent-dark: #6d28d9;
     --accent-soft: rgba(124, 58, 237, 0.12);
 
-    --electric-blue: #3b82f6;   /* Electric Blue */
+    --electric-blue: #2563eb;   /* Electric Blue */
     --cyan: #22d3ee;            /* Cyan */
+    --magenta: #d946ef;         /* Magenta */
 
     /* Semantic Status Colors */
     --success: #22c55e;
@@ -88,7 +90,7 @@
 }
 
 /* -------------------------------------------------------------------------
-   PREMIUM DARK THEME SPECIFICATION (QENVO DEEP NAVY)
+   PREMIUM DARK THEME SPECIFICATION (FRANK DEEP INDIGO / NAVY)
    ------------------------------------------------------------------------- */
 body.dark {
     --background: #080b24;      /* Deep Navy */

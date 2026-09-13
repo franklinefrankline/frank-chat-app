@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: frank-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: frankdb
+      POSTGRES_USER: frankuser
+      POSTGRES_PASSWORD: franksecurepassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U frankuser -d frankdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: frank-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://frankuser:franksecurepassword@postgres:5432/frankdb
+      SECRET_KEY: replace-this-with-a-random-secret-key-32-chars
+      ENVIRONMENT: production
+      HOST: 0.0.0.0
+      PORT: 8000
+      FRONTEND_URL: https://frank-chat-vercel.app
+      CORS_ORIGINS: https://frank-chat-vercel.app,https://frank-chat-vercel.vercel.app,http://localhost:8000
+      MAX_FILE_SIZE_MB: 25
+    ports:
+      - "8000:8000"
+    volumes:
+      - frank_uploads:/app/backend/uploads
+
+volumes:
+  postgres_data:
+  frank_uploads:

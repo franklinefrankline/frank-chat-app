@@ -1,8 +1,8 @@
-# QENVO
+# FRANK
 
-**Connect. Communicate. Simply.**
+**Think**
 
-A modern real-time communication platform built with a FastAPI backend, PostgreSQL database, Vanilla JavaScript frontend, REST APIs and WebSocket-based real-time communication.
+A modern real-time communication platform built with a FastAPI backend, PostgreSQL/SQLite database, Vanilla JavaScript frontend, REST APIs and WebSocket-based real-time communication.
 
 ## Architecture
 
@@ -10,7 +10,7 @@ A modern real-time communication platform built with a FastAPI backend, PostgreS
 * **Frontend**: Pure HTML5, Vanilla CSS3 (Custom design system tokens, responsive grid & flexbox, dark/light theme support), Modular Vanilla JavaScript (`api.js`, `websocket.js`, `chat.js`, `auth.js`, `notifications.js`, etc.).
 * **Security**: Passwords hashed securely, JWT bearer authorization, WebSocket token verification, CORS protection, SQL injection prevention via ORM parameterization, XSS-safe DOM encoding.
 
-## Running QENVO
+## Running FRANK
 
 ### 1. Start the Backend Server
 ```bash

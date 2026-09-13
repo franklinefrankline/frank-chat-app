@@ -18,14 +18,23 @@ if env_path.exists():
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./chatapp.db")
 
-connect_args = {}
+# Normalize PostgreSQL URL for SQLAlchemy 2.0+
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+engine_kwargs = {
+    "pool_pre_ping": True
+}
+
 if DATABASE_URL.startswith("sqlite"):
-    connect_args["check_same_thread"] = False
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+else:
+    engine_kwargs["pool_size"] = int(os.getenv("DB_POOL_SIZE", "10"))
+    engine_kwargs["max_overflow"] = int(os.getenv("DB_MAX_OVERFLOW", "20"))
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args=connect_args,
-    pool_pre_ping=True
+    **engine_kwargs
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -55,7 +64,7 @@ def check_and_migrate_db():
                     conn.execute(text("ALTER TABLE messages ADD COLUMN updated_at TIMESTAMP NULL"))
         if "users" in inspector.get_table_names():
             with engine.begin() as conn:
-                conn.execute(text("UPDATE users SET bio = REPLACE(bio, 'ChatApp', 'QENVO') WHERE bio LIKE '%ChatApp%'"))
+                conn.execute(text("UPDATE users SET bio = REPLACE(REPLACE(bio, 'ChatApp', 'FRANK'), 'QENVO', 'FRANK') WHERE bio LIKE '%ChatApp%' OR bio LIKE '%QENVO%'"))
     except Exception as e:
         print(f"Migration note: {e}")
 

@@ -177,7 +177,21 @@ const messagesModule = {
             docFileType = doc.file_type || (window.documentsController ? window.documentsController.getFileCategory(docFilename) : 'document');
             const ext = docFilename.split('.').pop().toUpperCase();
             const sizeStr = (doc.file_size && window.documentsController) ? window.documentsController.formatFileSize(doc.file_size) : `${ext} Document`;
-            const badgeHtml = window.documentsController ? window.documentsController.getFileBadgeMarkup(docFileType, ext) : '';
+            let mediaEmbed = '';
+            const viewUrl = api.getFileViewUrl(docFileId);
+            if (docFileType === 'video') {
+                mediaEmbed = `
+                    <div class="message-video-wrap" style="margin-top: 10px; border-radius: 10px; overflow: hidden; background: #000; max-width: 380px;">
+                        <video controls playsinline preload="metadata" style="width: 100%; max-height: 260px; display: block;" src="${viewUrl}"></video>
+                    </div>
+                `;
+            } else if (docFileType === 'image') {
+                mediaEmbed = `
+                    <div class="message-image-wrap" style="margin-top: 10px; border-radius: 10px; overflow: hidden; max-width: 380px;">
+                        <img loading="lazy" style="width: 100%; max-height: 260px; object-fit: cover; display: block; border-radius: 10px; cursor: pointer;" src="${viewUrl}" alt="${this.escapeHTML(docFilename)}" onclick="window.open('${viewUrl}', '_blank')">
+                    </div>
+                `;
+            }
 
             bodyHtml = `
                 <div class="message-document-card" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
@@ -188,10 +202,11 @@ const messagesModule = {
                             <div class="message-doc-sub">${sizeStr} • ${ext}</div>
                         </div>
                     </div>
+                    ${mediaEmbed}
                     <div class="message-doc-actions">
                         <button type="button" class="btn btn-sm btn-primary msg-doc-open-btn" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                            Open Document
+                            ${docFileType === 'video' ? 'Play Video' : 'Open Document'}
                         </button>
                         <button type="button" class="btn btn-sm btn-secondary msg-doc-download-btn" data-file-id="${docFileId}" data-filename="${this.escapeHTML(docFilename)}" title="Download">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>

@@ -80,9 +80,9 @@ const notificationsModule = {
             const desktopEnabled = localStorage.getItem('pref_settingDesktopNotifs') !== 'false';
             if (desktopEnabled && 'Notification' in window && Notification.permission === 'granted') {
                 const senderName = msg.sender ? msg.sender.full_name : 'New Message';
-                new Notification(`QENVO: ${senderName}`, {
+                new Notification(`FRANK: ${senderName}`, {
                     body: msg.content,
-                    icon: 'assets/brand/qenvo-icon.svg'
+                    icon: 'assets/brand/frank-icon.svg'
                 });
             }
         }

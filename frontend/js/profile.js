@@ -35,9 +35,9 @@ const profileModule = {
     async loadProfileData() {
         try {
             const user = await api.getCurrentUser();
-            let bioText = user.bio || 'Hey there! I am using QENVO.';
-            if (bioText.includes('ChatApp')) {
-                bioText = bioText.replace(/ChatApp/gi, 'QENVO');
+            let bioText = user.bio || 'Hey there! I am using FRANK.';
+            if (bioText.includes('ChatApp') || bioText.includes('QENVO')) {
+                bioText = bioText.replace(/ChatApp|QENVO/gi, 'FRANK');
                 user.bio = bioText;
             }
             auth.setUser(user);

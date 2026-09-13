@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------
-   QENVO - DEDICATED DOCUMENT SHARING MODULE
+   FRANK - DEDICATED DOCUMENT SHARING MODULE
    System file picker, client validation, preview confirmation, progress tracker,
    message sending, authenticated viewer & downloader.
    ------------------------------------------------------------------------- */
@@ -21,11 +21,11 @@ class DocumentsController {
 
     init() {
         // Create hidden OS file input
-        let fileInput = document.getElementById('qenvoFileInput');
+        let fileInput = document.getElementById('frankFileInput') || document.getElementById('qenvoFileInput');
         if (!fileInput) {
             fileInput = document.createElement('input');
             fileInput.type = 'file';
-            fileInput.id = 'qenvoFileInput';
+            fileInput.id = 'frankFileInput';
             fileInput.style.display = 'none';
             document.body.appendChild(fileInput);
         }
@@ -42,11 +42,13 @@ class DocumentsController {
 
     // ---------------- FILE SELECTION ----------------
     selectDocument(type = 'doc') {
-        const fileInput = document.getElementById('qenvoFileInput');
+        const fileInput = document.getElementById('frankFileInput') || document.getElementById('qenvoFileInput');
         if (!fileInput) return;
 
-        if (type === 'photo') {
-            fileInput.accept = 'image/*,video/*';
+        if (type === 'video') {
+            fileInput.accept = 'video/*,.mp4,.mov,.webm,.mkv';
+        } else if (type === 'photo') {
+            fileInput.accept = 'image/*,video/*,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm,.mkv';
         } else if (type === 'doc') {
             fileInput.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.json,.zip,.rar,.7z,.tar,.gz';
         } else {
@@ -95,6 +97,7 @@ class DocumentsController {
 
     getFileCategory(filename) {
         const ext = '.' + filename.split('.').pop().toLowerCase();
+        if (['.mp4', '.mov', '.webm', '.mkv'].includes(ext)) return 'video';
         if (['.pdf'].includes(ext)) return 'pdf';
         if (['.doc', '.docx'].includes(ext)) return 'word';
         if (['.xls', '.xlsx', '.csv'].includes(ext)) return 'excel';
@@ -109,7 +112,13 @@ class DocumentsController {
         let badgeColor = '#6366F1';
         let iconSvg = '';
 
-        if (category === 'pdf') {
+        if (category === 'video') {
+            badgeColor = '#EC4899';
+            iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>`;
+        } else if (category === 'image') {
+            badgeColor = '#06B6D4';
+            iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+        } else if (category === 'pdf') {
             badgeColor = '#EF4444';
             iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
         } else if (category === 'word') {
@@ -143,12 +152,30 @@ class DocumentsController {
         const ext = file.name.split('.').pop().toUpperCase();
         const sizeStr = this.formatFileSize(file.size);
         const badgeHtml = this.getFileBadgeMarkup(category, ext);
+        const titleText = category === 'video' ? 'Send Video' : (category === 'image' ? 'Send Photo' : 'Send Document');
+
+        let mediaPreviewHtml = '';
+        if (category === 'video') {
+            const objectUrl = URL.createObjectURL(file);
+            mediaPreviewHtml = `
+                <div style="margin-top: 14px; border-radius: 12px; overflow: hidden; background: #000; border: 1px solid var(--border);">
+                    <video controls playsinline preload="metadata" style="width: 100%; max-height: 220px; display: block;" src="${objectUrl}"></video>
+                </div>
+            `;
+        } else if (category === 'image') {
+            const objectUrl = URL.createObjectURL(file);
+            mediaPreviewHtml = `
+                <div style="margin-top: 14px; border-radius: 12px; overflow: hidden; background: #000; border: 1px solid var(--border);">
+                    <img style="width: 100%; max-height: 220px; object-fit: contain; display: block;" src="${objectUrl}" alt="Preview">
+                </div>
+            `;
+        }
 
         const modalHtml = `
             <div class="modal-backdrop show" id="documentPreviewModal" role="dialog" aria-modal="true" aria-labelledby="previewModalTitle">
-                <div class="modal-card" style="max-width: 440px;">
+                <div class="modal-card" style="max-width: 460px;">
                     <div class="modal-header">
-                        <h2 class="modal-title" id="previewModalTitle">Send Document</h2>
+                        <h2 class="modal-title" id="previewModalTitle">${titleText}</h2>
                         <button type="button" class="modal-close" id="cancelDocPreviewCrossBtn" aria-label="Close">✕</button>
                     </div>
                     <div class="modal-body" style="padding: var(--space-5);">
@@ -159,10 +186,11 @@ class DocumentsController {
                                     ${messagesModule.escapeHTML(file.name)}
                                 </div>
                                 <div class="document-preview-meta">
-                                    ${sizeStr} • ${ext} Document
+                                    ${sizeStr} • ${ext} File
                                 </div>
                             </div>
                         </div>
+                        ${mediaPreviewHtml}
 
                         <!-- Progress Bar Container (hidden until user clicks Send) -->
                         <div class="upload-progress-wrapper" id="uploadProgressWrapper" style="display: none; margin-top: 16px;">

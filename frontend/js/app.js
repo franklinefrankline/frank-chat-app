@@ -49,19 +49,19 @@ class AppController {
                 window.location.href = 'login.html';
             }
         } finally {
-            // Dismiss Loading Screen with smooth transition
+            // Section 11: Splash animation duration ~1.8-2.2s, dismiss smoothly
             setTimeout(() => {
                 const loader = document.getElementById('appLoadingScreen');
                 if (loader) {
                     loader.classList.add('fade-out');
-                    setTimeout(() => loader.remove(), 600);
+                    setTimeout(() => loader.remove(), 500);
                 }
-            }, 600);
+            }, 1800);
         }
     }
 
     checkFirstTimeOnboarding() {
-        const hasOnboarded = localStorage.getItem('qenvo_onboarded');
+        const hasOnboarded = localStorage.getItem('frank_onboarded') || localStorage.getItem('qenvo_onboarded');
         if (!hasOnboarded) {
             const welcomeModal = document.getElementById('welcomeOnboardingModal');
             if (welcomeModal) {
@@ -69,7 +69,7 @@ class AppController {
 
                 document.getElementById('onboardingFindPeopleBtn')?.addEventListener('click', () => {
                     welcomeModal.classList.remove('active');
-                    localStorage.setItem('qenvo_onboarded', 'true');
+                    localStorage.setItem('frank_onboarded', 'true');
                     const newChatModal = document.getElementById('newChatModal');
                     if (newChatModal) newChatModal.classList.add('active');
                     document.getElementById('userSearchQuery')?.focus();
@@ -77,7 +77,7 @@ class AppController {
 
                 document.getElementById('onboardingSkipBtn')?.addEventListener('click', () => {
                     welcomeModal.classList.remove('active');
-                    localStorage.setItem('qenvo_onboarded', 'true');
+                    localStorage.setItem('frank_onboarded', 'true');
                 });
             }
         }

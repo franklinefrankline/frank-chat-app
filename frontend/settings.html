@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QENVO — Settings</title>
-    <meta name="description" content="QENVO preferences and application settings.">
-    <link rel="icon" type="image/svg+xml" href="assets/brand/qenvo-icon.svg">
+    <title>FRANK — Settings</title>
+    <meta name="description" content="FRANK preferences and application settings.">
+    <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
 
-    <!-- Fonts -->
+    <!-- Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-    <!-- Stylesheets -->
+    <!-- CSS -->
     <link rel="stylesheet" href="css/reset.css">
     <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/components.css">
@@ -22,8 +22,8 @@
 </head>
 <body>
 
-    <div class="custom-cursor" id="customCursor"></div>
-    <div class="custom-cursor-dot" id="customCursorDot"></div>
+    <!-- Desktop Custom Cursor (Miniature FRANK F) -->
+    <div class="custom-cursor" id="customCursor" aria-hidden="true"></div>
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- Header -->
@@ -32,8 +32,8 @@
             ← Back to Messages
         </a>
         <a href="dashboard.html" class="brand-link" style="color: var(--text); display: flex; align-items: center; gap: 8px;">
-            <img src="assets/brand/qenvo-icon.svg" alt="QENVO Logo" style="width: 26px; height: 26px; border-radius: 6px;">
-            <span style="font-weight: 800; font-size: 17px; letter-spacing: -0.3px;">QENVO</span>
+            <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" style="width: 26px; height: 26px; border-radius: 6px;">
+            <span style="font-weight: 800; font-size: 17px; letter-spacing: -0.3px;">FRANK</span>
         </a>
         <div style="display: flex; gap: 8px;">
             <a href="profile.html" class="btn btn-secondary btn-sm">My Profile</a>
@@ -73,8 +73,8 @@
                 <!-- 1. APPEARANCE TAB -->
                 <section id="tabAppearance" class="settings-tab-section">
                     <div class="settings-section-header">
-                        <h2 class="settings-title">Appearance &amp; Theme</h2>
-                        <p class="settings-desc">Customize how QENVO looks and feels across your devices.</p>
+                        <h2 class="settings-title">Appearance</h2>
+                        <p class="settings-desc">Customize how FRANK looks and feels across your devices.</p>
                     </div>
 
                     <div class="theme-picker-grid">
@@ -234,14 +234,14 @@
                 <!-- 5. ABOUT TAB -->
                 <section id="tabAbout" class="settings-tab-section" style="display:none;">
                     <div class="settings-section-header">
-                        <h2 class="settings-title">About QENVO</h2>
+                        <h2 class="settings-title">About FRANK</h2>
                         <p class="settings-desc">Platform and release specifications.</p>
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: var(--space-4); font-size: 14px; color: var(--text-secondary);">
-                        <div><strong>Application:</strong> QENVO Professional Edition</div>
-                        <div><strong>QENVO Version:</strong> 2.0.0 (Build 2026.09)</div>
-                        <div><strong>QENVO Privacy &amp; Security:</strong> Protected by TLS encryption and secure JWT session protocols.</div>
+                        <div><strong>Application:</strong> FRANK Professional Edition</div>
+                        <div><strong>FRANK Version:</strong> 2.0.0 (Build 2026.09)</div>
+                        <div><strong>FRANK Privacy &amp; Security:</strong> Protected by TLS encryption and secure JWT session protocols.</div>
                         <div><strong>Core Stack:</strong> FastAPI &bull; SQLAlchemy &bull; WebSockets &bull; Vanilla JS &bull; CSS3</div>
                         <div><strong>Status:</strong> All local services operational.</div>
                     </div>
@@ -251,6 +251,7 @@
     </main>
 
     <!-- Scripts -->
+    <script src="js/config.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/api.js"></script>

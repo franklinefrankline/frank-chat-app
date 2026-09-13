@@ -39,7 +39,7 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
         email=user_in.email.strip().lower(),
         full_name=user_in.full_name.strip(),
         hashed_password=hash_password(user_in.password),
-        bio="Hey there! I am using QENVO."
+        bio="Hey there! I am using FRANK."
     )
     db.add(user)
     db.commit()

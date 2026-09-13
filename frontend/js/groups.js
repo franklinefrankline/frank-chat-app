@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------
-   QENVO - GROUPS MANAGEMENT MODULE
+   FRANK - GROUPS MANAGEMENT MODULE
    Group channel creation, member selection, adding members, member roles,
    group settings, shared documents and discussions
    ------------------------------------------------------------------------- */

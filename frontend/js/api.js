@@ -3,9 +3,11 @@
    Clean async HTTP requests with token injection, error handling, and timeout
    ------------------------------------------------------------------------- */
 
-const API_BASE = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
-    ? window.location.origin
-    : 'http://localhost:8000';
+const API_BASE = (window.FRANK_CONFIG && window.FRANK_CONFIG.API_BASE)
+    ? window.FRANK_CONFIG.API_BASE
+    : (window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
+        ? window.location.origin
+        : 'http://localhost:8000');
 
 const api = {
     getToken() {

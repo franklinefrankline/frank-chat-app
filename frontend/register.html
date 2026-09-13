@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QENVO — Create Account</title>
-    <meta name="description" content="Create a new QENVO account and start real-time messaging today.">
-    <link rel="icon" type="image/svg+xml" href="assets/brand/qenvo-icon.svg">
+    <title>FRANK — Think</title>
+    <meta name="description" content="Create a new FRANK account and start real-time messaging today.">
+    <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
 
     <!-- Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,9 +22,8 @@
 </head>
 <body class="auth-page">
 
-    <!-- Desktop Custom Cursor -->
-    <div class="custom-cursor" id="customCursor"></div>
-    <div class="custom-cursor-dot" id="customCursorDot"></div>
+    <!-- Desktop Custom Cursor (Miniature FRANK F) -->
+    <div class="custom-cursor" id="customCursor" aria-hidden="true"></div>
 
     <div class="toast-container" id="toastContainer"></div>
 
@@ -33,42 +32,56 @@
         <div class="auth-showcase">
             <div class="auth-showcase-header">
                 <a href="index.html" class="brand-link">
-                    <img src="assets/brand/qenvo-icon.svg" alt="QENVO Logo" style="width: 32px; height: 32px; border-radius: 8px;">
-                    <span>QENVO</span>
+                    <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" style="width: 32px; height: 32px; border-radius: 8px;">
+                    <span>FRANK</span>
                 </a>
             </div>
 
             <div class="auth-showcase-content">
-                <!-- Animated QENVO Logo -->
-                <div class="qenvo-logo-anim-stage compact" style="margin-bottom: var(--space-4); align-items: flex-start;">
-                    <div class="qenvo-anim-particles" aria-hidden="true">
-                        <span class="qenvo-particle"></span>
-                        <span class="qenvo-particle"></span>
-                        <span class="qenvo-particle"></span>
-                        <span class="qenvo-particle"></span>
-                        <span class="qenvo-particle"></span>
-                    </div>
-                    <div class="qenvo-anim-emblem">
-                        <svg viewBox="0 0 120 120" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Animated FRANK Logo -->
+                <div class="frank-logo-anim-stage compact" style="margin-bottom: var(--space-4); align-items: flex-start;">
+                    <div class="frank-light-streak" aria-hidden="true"></div>
+                    <div class="frank-anim-glow" aria-hidden="true"></div>
+                    <div class="frank-anim-emblem">
+                        <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <defs>
-                                <linearGradient id="regQGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stop-color="#4F46E5" />
-                                    <stop offset="50%" stop-color="#7C3AED" />
-                                    <stop offset="100%" stop-color="#22D3EE" />
+                                <linearGradient id="regSpineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#2563EB" />
+                                    <stop offset="45%" stop-color="#7C3AED" />
+                                    <stop offset="100%" stop-color="#C026D3" />
                                 </linearGradient>
+                                <linearGradient id="regTopGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#2563EB" />
+                                    <stop offset="50%" stop-color="#3B82F6" />
+                                    <stop offset="100%" stop-color="#06B6D4" />
+                                </linearGradient>
+                                <linearGradient id="regMidGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#7C3AED" />
+                                    <stop offset="60%" stop-color="#A855F7" />
+                                    <stop offset="100%" stop-color="#F43F5E" />
+                                </linearGradient>
+                                <linearGradient id="regBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#0B0F28" />
+                                    <stop offset="100%" stop-color="#141B4D" />
+                                </linearGradient>
+                                <filter id="regSparkGlow" x="-30%" y="-30%" width="160%" height="160%">
+                                    <feGaussianBlur stdDeviation="2" result="blur" />
+                                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                </filter>
                             </defs>
-                            <rect x="8" y="8" width="104" height="104" rx="26" fill="#0D1230" stroke="rgba(79, 70, 229, 0.4)" stroke-width="2" />
-                            <circle class="qenvo-svg-ring" cx="58" cy="54" r="28" stroke="url(#regQGrad)" stroke-width="8" stroke-linecap="round" fill="none" />
-                            <path class="qenvo-svg-tail" d="M 68 64 L 84 80" stroke="url(#regQGrad)" stroke-width="8" stroke-linecap="round" fill="none" />
-                            <circle class="qenvo-svg-core" cx="58" cy="54" r="8" fill="#22D3EE" />
+                            <rect class="frank-svg-bg" x="6" y="6" width="88" height="88" rx="22" fill="url(#regBgGrad)" stroke="rgba(59, 130, 246, 0.35)" stroke-width="1.6" />
+                            <path class="frank-draw-spine" d="M 30 26 L 30 70 L 21 80 L 29 80" stroke="url(#regSpineGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                            <path class="frank-draw-top" d="M 30 26 L 74 26" stroke="url(#regTopGrad)" stroke-width="10" stroke-linecap="round" fill="none" />
+                            <path class="frank-draw-mid" d="M 30 48 L 58 48" stroke="url(#regMidGrad)" stroke-width="10" stroke-linecap="round" fill="none" />
+                            <circle class="frank-svg-spark" cx="74" cy="26" r="3.5" fill="#22D3EE" filter="url(#regSparkGlow)" />
                         </svg>
                     </div>
-                    <div class="qenvo-anim-wordmark" style="font-size: 24px; color: #FFFFFF; font-weight: 900; letter-spacing: 2px;">QENVO</div>
-                    <div class="qenvo-anim-tagline" style="color: #94A3B8; font-size: 13px; font-weight: 600;">Connect. Communicate. Simply.</div>
+                    <div class="frank-anim-wordmark">FRANK</div>
+                    <div class="frank-anim-tagline">Think</div>
                 </div>
 
-                <h2 style="font-size: 34px; font-weight: 800; line-height: 1.2; margin-top: var(--space-4);">Welcome to QENVO</h2>
-                <p style="font-size: 18px; color: #cbd5e1; font-weight: 500; margin-bottom: var(--space-6);">"Chat. Collaborate. Share. Together."</p>
+                <h2 style="font-size: 34px; font-weight: 800; line-height: 1.2; margin-top: var(--space-4);">Welcome to FRANK</h2>
+                <p style="font-size: 18px; color: #cbd5e1; font-weight: 500; margin-bottom: var(--space-6);">"Think"</p>
 
                 <div class="auth-feature-list">
                     <div class="auth-feature-item">
@@ -99,7 +112,7 @@
             </div>
 
             <div class="auth-showcase-footer">
-                &copy; 2026 QENVO. All rights reserved. &bull; Connect. Communicate. Simply.
+                &copy; 2026 FRANK. All rights reserved. &bull; Think
             </div>
         </div>
 
@@ -108,9 +121,9 @@
             <div class="auth-card">
                 <div class="auth-card-header">
                     <div class="auth-card-logo" style="margin-bottom: var(--space-4); display: flex; justify-content: center; align-items: center;">
-                        <img src="assets/brand/qenvo-logo.svg" alt="QENVO Logo" style="height: 36px; width: auto;" class="auth-logo-img">
+                        <img src="assets/brand/frank-logo.svg" alt="FRANK Logo" style="height: 38px; width: auto;" class="auth-logo-img">
                     </div>
-                    <h1 class="auth-card-title">Create your QENVO account</h1>
+                    <h1 class="auth-card-title">Create your FRANK account</h1>
                     <p class="auth-card-subtitle">Fill in your details below to get started.</p>
                 </div>
 
@@ -225,6 +238,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="js/config.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/api.js"></script>

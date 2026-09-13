@@ -42,7 +42,7 @@ def seed_demo_users():
             demo_users = [
                 {
                     "username": "alex",
-                    "email": "alex@qenvo.io",
+                    "email": "alex@frank.app",
                     "full_name": "Alex Morgan",
                     "bio": "Product Designer & Tech Enthusiast 🚀",
                     "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
@@ -50,7 +50,7 @@ def seed_demo_users():
                 },
                 {
                     "username": "sarah",
-                    "email": "sarah@qenvo.io",
+                    "email": "sarah@frank.app",
                     "full_name": "Sarah Connor",
                     "bio": "Building the future of real-time communication.",
                     "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
@@ -58,7 +58,7 @@ def seed_demo_users():
                 },
                 {
                     "username": "david",
-                    "email": "david@qenvo.io",
+                    "email": "david@frank.app",
                     "full_name": "David Chen",
                     "bio": "Software Architect & Open Source Contributor.",
                     "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
@@ -86,7 +86,7 @@ def seed_demo_users():
                 intro_msg = models.Message(
                     sender_id=created[0].id,
                     recipient_id=created[1].id,
-                    content="Welcome to QENVO! Feel free to test real-time messaging, emoji reactions, and reply threads.",
+                    content="Welcome to FRANK! Feel free to test real-time messaging, emoji reactions, and reply threads.",
                     status="read"
                 )
                 db.add(intro_msg)
@@ -111,16 +111,31 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 app = FastAPI(
-    title="QENVO API",
-    description="QENVO real-time communication platform API",
+    title="FRANK API",
+    description="FRANK real-time communication platform API",
     version="2.0.0"
 )
 
 # CORS configuration
-allowed_origins = os.getenv("CORS_ORIGINS", "*").split(",")
+default_origins = [
+    "https://frank-chat-vercel.app",
+    "https://frank-chat-vercel.vercel.app",
+    "http://localhost:8000",
+    "http://localhost:3000",
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:3000"
+]
+
+env_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+frontend_url = os.getenv("FRONTEND_URL", "").strip()
+if frontend_url and frontend_url not in default_origins:
+    default_origins.append(frontend_url)
+
+allowed_origins = list(set(default_origins + env_origins))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if "*" not in allowed_origins else ["*"],
+    allow_origins=allowed_origins if "*" not in env_origins else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -146,7 +161,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
 def health_check():
     return {
         "status": "healthy",
-        "service": "QENVO Backend",
+        "service": "FRANK Backend",
         "version": "2.0.0"
     }
 
@@ -169,3 +184,10 @@ if frontend_dir.exists():
         if target.exists():
             return FileResponse(target)
         return FileResponse(frontend_dir / "404.html", status_code=404)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    host = os.environ.get("HOST", "0.0.0.0")
+    uvicorn.run("main:app", host=host, port=port, reload=False)

@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QENVO — Connect. Communicate. Simply.</title>
-    <meta name="description" content="QENVO is a premium real-time communication platform for simple, secure and seamless conversations.">
-    <link rel="icon" type="image/svg+xml" href="assets/brand/qenvo-icon.svg">
+    <title>FRANK — Think</title>
+    <meta name="description" content="FRANK is a modern, premium real-time communication platform. Think.">
+    <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
 
     <!-- Open Graph Meta -->
-    <meta property="og:title" content="QENVO — Connect. Communicate. Simply.">
-    <meta property="og:description" content="Modern real-time communication, designed for everyone.">
-    <meta property="og:image" content="assets/brand/qenvo-logo.svg">
+    <meta property="og:title" content="FRANK — Think">
+    <meta property="og:description" content="Think">
+    <meta property="og:image" content="assets/brand/frank-logo.svg">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,34 +26,53 @@
     <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
+    <!-- Custom Desktop Cursor (Miniature FRANK F) -->
+    <div class="custom-cursor" id="customCursor" aria-hidden="true"></div>
 
-    <!-- Application Loading Screen with 7-Step Animated QENVO Logo -->
+    <!-- Application Loading Screen with 8-Step Animated FRANK Logo -->
     <div class="app-loading-screen" id="appLoadingScreen">
-        <div class="qenvo-logo-anim-stage splash">
-            <div class="qenvo-anim-particles" aria-hidden="true">
-                <span class="qenvo-particle"></span>
-                <span class="qenvo-particle"></span>
-                <span class="qenvo-particle"></span>
-                <span class="qenvo-particle"></span>
-                <span class="qenvo-particle"></span>
-            </div>
-            <div class="qenvo-anim-emblem">
-                <svg viewBox="0 0 120 120" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <div class="frank-logo-anim-stage splash">
+            <div class="frank-light-streak" aria-hidden="true"></div>
+            <div class="frank-anim-glow" aria-hidden="true"></div>
+            <div class="frank-anim-emblem">
+                <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
-                        <linearGradient id="splashQGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#4F46E5" />
-                            <stop offset="50%" stop-color="#7C3AED" />
-                            <stop offset="100%" stop-color="#22D3EE" />
+                        <linearGradient id="splashSpineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#2563EB" />
+                            <stop offset="45%" stop-color="#7C3AED" />
+                            <stop offset="100%" stop-color="#C026D3" />
                         </linearGradient>
+                        <linearGradient id="splashTopGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#2563EB" />
+                            <stop offset="50%" stop-color="#3B82F6" />
+                            <stop offset="100%" stop-color="#06B6D4" />
+                        </linearGradient>
+                        <linearGradient id="splashMidGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#7C3AED" />
+                            <stop offset="60%" stop-color="#A855F7" />
+                            <stop offset="100%" stop-color="#F43F5E" />
+                        </linearGradient>
+                        <linearGradient id="splashBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#0B0F28" />
+                            <stop offset="100%" stop-color="#141B4D" />
+                        </linearGradient>
+                        <filter id="splashSparkGlow" x="-30%" y="-30%" width="160%" height="160%">
+                            <feGaussianBlur stdDeviation="2" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
                     </defs>
-                    <rect x="8" y="8" width="104" height="104" rx="26" fill="#0D1230" stroke="rgba(79, 70, 229, 0.4)" stroke-width="2" />
-                    <circle class="qenvo-svg-ring" cx="58" cy="54" r="28" stroke="url(#splashQGrad)" stroke-width="8" stroke-linecap="round" fill="none" />
-                    <path class="qenvo-svg-tail" d="M 68 64 L 84 80" stroke="url(#splashQGrad)" stroke-width="8" stroke-linecap="round" fill="none" />
-                    <circle class="qenvo-svg-core" cx="58" cy="54" r="8" fill="#22D3EE" />
+                    <rect class="frank-svg-bg" x="6" y="6" width="88" height="88" rx="22" fill="url(#splashBgGrad)" stroke="rgba(59, 130, 246, 0.35)" stroke-width="1.6" />
+                    <!-- STEP 2: F symbol begins drawing (spine + chat notch) -->
+                    <path class="frank-draw-spine" d="M 30 26 L 30 70 L 21 80 L 29 80" stroke="url(#splashSpineGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <!-- STEP 3: F shape completes (top & mid beams) -->
+                    <path class="frank-draw-top" d="M 30 26 L 74 26" stroke="url(#splashTopGrad)" stroke-width="10" stroke-linecap="round" fill="none" />
+                    <path class="frank-draw-mid" d="M 30 48 L 58 48" stroke="url(#splashMidGrad)" stroke-width="10" stroke-linecap="round" fill="none" />
+                    <!-- STEP 5: Spark pulse dot -->
+                    <circle class="frank-svg-spark" cx="74" cy="26" r="3.5" fill="#22D3EE" filter="url(#splashSparkGlow)" />
                 </svg>
             </div>
-            <div class="qenvo-anim-wordmark">QENVO</div>
-            <div class="qenvo-anim-tagline">Connect. Communicate. Simply.</div>
+            <div class="frank-anim-wordmark">FRANK</div>
+            <div class="frank-anim-tagline">Think</div>
         </div>
     </div>
 
@@ -72,9 +91,12 @@
         <!-- ================= 1. LEFT SIDEBAR (260px) ================= -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
-                <a href="index.html" class="brand-text">
-                    <img src="assets/brand/qenvo-icon.svg" alt="QENVO Logo" class="brand-logo-img" style="width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;">
-                    <span class="brand-title-text">QENVO</span>
+                <a href="index.html" class="brand-text" title="FRANK — Think">
+                    <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" class="brand-logo-img" style="width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;">
+                    <div class="brand-title-wrap">
+                        <span class="brand-title-text">FRANK</span>
+                        <span class="brand-tagline-text">Think</span>
+                    </div>
                 </a>
                 <span class="brand-badge">PRO</span>
             </div>
@@ -610,7 +632,7 @@
                 <form id="createGroupForm">
                     <div class="form-group">
                         <label class="form-label" for="groupNameInput">Group Name</label>
-                        <input type="text" class="form-input" id="groupNameInput" placeholder="e.g. QENVO Engineering" required>
+                        <input type="text" class="form-input" id="groupNameInput" placeholder="e.g. FRANK Engineering" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="groupDescInput">Description (Optional)</label>
@@ -635,22 +657,24 @@
     <div class="modal-backdrop" id="invitePeopleModal" role="dialog" aria-modal="true" aria-labelledby="invitePeopleModalTitle">
         <div class="modal-card">
             <div class="modal-header">
-                <h2 class="modal-title" id="invitePeopleModalTitle">Invite People to QENVO</h2>
+                <h2 class="modal-title" id="invitePeopleModalTitle">Invite People to FRANK</h2>
                 <button type="button" class="modal-close" data-close-modal="invitePeopleModal" aria-label="Close modal">✕</button>
             </div>
             <div class="modal-body">
-                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Share your personal invite link with teammates to start collaborating on QENVO:</p>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Share your personal invite link with teammates to start collaborating on FRANK:</p>
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-input" id="inviteLinkInput" value="https://qenvo.io/join" readonly>
+                    <input type="text" class="form-input" id="inviteLinkInput" value="https://frank.app/join" readonly>
                     <button type="button" class="btn btn-primary" id="copyInviteLinkBtn" onclick="navigator.clipboard.writeText(document.getElementById('inviteLinkInput').value); showToast('Invite link copied!', 'success');">Copy</button>
                 </div>
             </div>
         </div>
+    </div>
+
     <!-- Welcome Screen / First-Time User Onboarding Modal -->
     <div class="modal-backdrop" id="welcomeOnboardingModal" role="dialog" aria-modal="true" aria-labelledby="welcomeModalTitle">
         <div class="modal-card" style="max-width: 480px; text-align: center; padding: var(--space-8) var(--space-6);">
             <div style="font-size: 44px; margin-bottom: var(--space-2);">👋</div>
-            <h2 class="modal-title" id="welcomeModalTitle" style="font-size: 26px; font-weight: 800; margin-bottom: var(--space-2); justify-content: center;">Welcome to QENVO 👋</h2>
+            <h2 class="modal-title" id="welcomeModalTitle" style="font-size: 26px; font-weight: 800; margin-bottom: var(--space-2); justify-content: center;">Welcome to FRANK 👋</h2>
             <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.6; margin-bottom: var(--space-6);">
                 Your account is ready. Let's start your first conversation.
             </p>
@@ -670,6 +694,7 @@
     </div>
 
     <!-- Core Scripts -->
+    <script src="js/config.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/modal.js"></script>

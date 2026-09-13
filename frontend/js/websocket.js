@@ -23,12 +23,16 @@ class ChatWebSocketClient {
             this.reconnectTimer = null;
         }
 
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsHost = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
-            ? window.location.host
-            : 'localhost:8000';
-
-        const wsUrl = `${wsProtocol}//${wsHost}/ws/${token}`;
+        let wsUrl = '';
+        if (window.FRANK_CONFIG && window.FRANK_CONFIG.WS_BASE) {
+            wsUrl = `${window.FRANK_CONFIG.WS_BASE}/ws/${token}`;
+        } else {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsHost = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
+                ? window.location.host
+                : 'localhost:8000';
+            wsUrl = `${wsProtocol}//${wsHost}/ws/${token}`;
+        }
 
         this.notify('status', { status: 'connecting' });
 
@@ -39,7 +43,7 @@ class ChatWebSocketClient {
                 this.isConnected = true;
                 this.reconnectAttempts = 0;
                 this.notify('status', { status: 'connected' });
-                console.log('QENVO WebSocket: Connected');
+                console.log('FRANK WebSocket: Connected');
             };
 
             this.socket.onmessage = (event) => {
@@ -57,16 +61,16 @@ class ChatWebSocketClient {
             this.socket.onclose = (event) => {
                 this.isConnected = false;
                 this.notify('status', { status: 'disconnected' });
-                console.log(`QENVO WebSocket: Closed (Code: ${event.code}). Scheduling reconnect...`);
+                console.log(`FRANK WebSocket: Closed (Code: ${event.code}). Scheduling reconnect...`);
                 this.scheduleReconnect();
             };
 
             this.socket.onerror = (err) => {
-                console.error('QENVO WebSocket: Error', err);
+                console.error('FRANK WebSocket: Error', err);
             };
 
         } catch (err) {
-            console.error('QENVO WebSocket connection error:', err);
+            console.error('FRANK WebSocket connection error:', err);
             this.scheduleReconnect();
         }
     }

@@ -50,7 +50,36 @@ ALLOWED_EXTENSIONS = {
     ".webp": ("image/webp", "image"),
     ".gif": ("image/gif", "image"),
     ".svg": ("image/svg+xml", "image"),
+    # Videos
+    ".mp4": ("video/mp4", "video"),
+    ".mov": ("video/quicktime", "video"),
+    ".webm": ("video/webm", "video"),
+    ".mkv": ("video/x-matroska", "video"),
 }
+
+# Optional S3-compatible Object Storage (AWS S3, Cloudflare R2, Supabase)
+STORAGE_BUCKET = os.getenv("STORAGE_BUCKET")
+STORAGE_ENDPOINT = os.getenv("STORAGE_ENDPOINT")
+STORAGE_ACCESS_KEY = os.getenv("STORAGE_ACCESS_KEY")
+STORAGE_SECRET_KEY = os.getenv("STORAGE_SECRET_KEY")
+STORAGE_REGION = os.getenv("STORAGE_REGION", "us-east-1")
+
+s3_client = None
+if STORAGE_BUCKET and STORAGE_ACCESS_KEY and STORAGE_SECRET_KEY:
+    try:
+        import boto3
+        from botocore.config import Config
+        s3_client = boto3.client(
+            "s3",
+            endpoint_url=STORAGE_ENDPOINT,
+            aws_access_key_id=STORAGE_ACCESS_KEY,
+            aws_secret_access_key=STORAGE_SECRET_KEY,
+            region_name=STORAGE_REGION,
+            config=Config(signature_version="s3v4")
+        )
+    except Exception as e:
+        print(f"Warning: S3 storage initialization failed ({e}). Falling back to local storage.")
+        s3_client = None
 
 DISALLOWED_EXTENSIONS = {
     ".exe", ".bat", ".cmd", ".sh", ".ps1", ".msi", ".dll", ".com",
@@ -188,7 +217,22 @@ async def upload_file(
         with open(stored_path, "wb") as f:
             f.write(content)
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save file on server.")
+        if not s3_client:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save file on server.")
+
+    # Persistent cloud object storage (S3/R2/Supabase)
+    if s3_client and STORAGE_BUCKET:
+        try:
+            s3_client.put_object(
+                Bucket=STORAGE_BUCKET,
+                Key=unique_name,
+                Body=content,
+                ContentType=mime_type
+            )
+        except Exception as e:
+            print(f"S3 upload note: {e}")
+            if not stored_path.exists():
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save file to object storage.")
 
     # Create document record
     doc = models.Document(
@@ -239,13 +283,25 @@ def view_file_content(
 
     file_path = UPLOAD_DIR / doc.stored_filename
     if not file_path.exists():
+        if s3_client and STORAGE_BUCKET:
+            try:
+                from fastapi.responses import RedirectResponse
+                presigned_url = s3_client.generate_presigned_url(
+                    "get_object",
+                    Params={"Bucket": STORAGE_BUCKET, "Key": doc.stored_filename},
+                    ExpiresIn=3600
+                )
+                return RedirectResponse(url=presigned_url)
+            except Exception as e:
+                print(f"S3 signed URL error: {e}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Physical file not found on server.")
 
-    # Inline disposition allows PDFs and images to render directly in browser tabs
+    # Inline disposition allows PDFs, videos, and images to render directly in browser tabs
     encoded_filename = urllib.parse.quote(doc.original_filename)
     headers = {
         "Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}",
-        "X-Content-Type-Options": "nosniff"
+        "X-Content-Type-Options": "nosniff",
+        "Accept-Ranges": "bytes"
     }
 
     return FileResponse(
@@ -270,6 +326,21 @@ def download_file(
 
     file_path = UPLOAD_DIR / doc.stored_filename
     if not file_path.exists():
+        if s3_client and STORAGE_BUCKET:
+            try:
+                from fastapi.responses import RedirectResponse
+                presigned_url = s3_client.generate_presigned_url(
+                    "get_object",
+                    Params={
+                        "Bucket": STORAGE_BUCKET,
+                        "Key": doc.stored_filename,
+                        "ResponseContentDisposition": f"attachment; filename=\"{doc.original_filename}\""
+                    },
+                    ExpiresIn=3600
+                )
+                return RedirectResponse(url=presigned_url)
+            except Exception as e:
+                print(f"S3 signed URL error: {e}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Physical file not found on server.")
 
     encoded_filename = urllib.parse.quote(doc.original_filename)
