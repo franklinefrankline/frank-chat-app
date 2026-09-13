@@ -2,8 +2,8 @@
   "version": 2,
   "cleanUrls": true,
   "trailingSlash": false,
+  "framework": null,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.py" },
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/chat", "destination": "/dashboard.html" },
     { "source": "/groups", "destination": "/dashboard.html" },
