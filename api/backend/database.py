@@ -56,21 +56,45 @@ def get_db():
 
 def check_and_migrate_db():
     try:
+        import secrets
         from sqlalchemy import inspect, text
+        # Ensure any new tables (like conversations) are created
+        Base.metadata.create_all(bind=engine)
+
         inspector = inspect(engine)
-        if "messages" in inspector.get_table_names():
-            columns = [col["name"] for col in inspector.get_columns("messages")]
-            with engine.begin() as conn:
+        tables = inspector.get_table_names()
+
+        with engine.begin() as conn:
+            if "messages" in tables:
+                columns = [col["name"] for col in inspector.get_columns("messages")]
                 if "message_type" not in columns:
                     conn.execute(text("ALTER TABLE messages ADD COLUMN message_type VARCHAR(20) DEFAULT 'text'"))
                 if "file_id" not in columns:
                     conn.execute(text("ALTER TABLE messages ADD COLUMN file_id INTEGER NULL"))
                 if "updated_at" not in columns:
                     conn.execute(text("ALTER TABLE messages ADD COLUMN updated_at TIMESTAMP NULL"))
-        if "users" in inspector.get_table_names():
-            with engine.begin() as conn:
+
+            if "groups" in tables:
+                columns = [col["name"] for col in inspector.get_columns("groups")]
+                if "privacy" not in columns:
+                    conn.execute(text("ALTER TABLE groups ADD COLUMN privacy VARCHAR(20) DEFAULT 'private'"))
+                    conn.execute(text("UPDATE groups SET privacy = 'private' WHERE privacy IS NULL"))
+
+            if "users" in tables:
+                columns = [col["name"] for col in inspector.get_columns("users")]
+                if "frank_id" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN frank_id VARCHAR(6) NULL"))
+
+                result = conn.execute(text("SELECT id FROM users WHERE frank_id IS NULL OR frank_id = ''")).fetchall()
+                alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+                for row in result:
+                    uid = row[0]
+                    new_fid = "".join(secrets.choice(alphabet) for _ in range(6))
+                    conn.execute(text("UPDATE users SET frank_id = :fid WHERE id = :uid"), {"fid": new_fid, "uid": uid})
+
                 conn.execute(text("UPDATE users SET bio = REPLACE(REPLACE(bio, 'ChatApp', 'FRANK'), 'QENVO', 'FRANK') WHERE bio LIKE '%ChatApp%' OR bio LIKE '%QENVO%'"))
     except Exception as e:
         print(f"Migration note: {e}")
 
 check_and_migrate_db()
+

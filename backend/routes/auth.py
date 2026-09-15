@@ -17,6 +17,19 @@ from security import (
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
+import secrets
+
+FRANK_ID_CHARACTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def generate_unique_frank_id(db: Session) -> str:
+    for _ in range(100):
+        candidate = "".join(secrets.choice(FRANK_ID_CHARACTERS) for _ in range(6))
+        if not db.query(models.User).filter(models.User.frank_id == candidate).first():
+            return candidate
+    raise HTTPException(status_code=500, detail="Failed to generate unique FRANK ID.")
+
+
 @router.post("/register", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
 def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
     # Check username
@@ -33,10 +46,14 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
             detail="Email address already registered."
         )
 
+    # Generate unique 6-character FRANK ID
+    frank_id = generate_unique_frank_id(db)
+
     # Create user
     user = models.User(
         username=user_in.username.strip(),
         email=user_in.email.strip().lower(),
+        frank_id=frank_id,
         full_name=user_in.full_name.strip(),
         hashed_password=hash_password(user_in.password),
         bio="Hey there! I am using FRANK."
@@ -56,6 +73,7 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
         token_type="bearer",
         user=schemas.UserResponse.from_orm(user)
     )
+
 
 
 @router.post("/login", response_model=schemas.Token)

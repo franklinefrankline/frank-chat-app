@@ -26,6 +26,7 @@ function getMockDb() {
                     id: 1,
                     username: 'alex',
                     email: 'alex@frank.app',
+                    frank_id: 'F4M8Q1',
                     full_name: 'Alex Morgan',
                     bio: 'Product Designer & Tech Enthusiast 🚀',
                     avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
@@ -36,6 +37,7 @@ function getMockDb() {
                     id: 2,
                     username: 'sarah',
                     email: 'sarah@frank.app',
+                    frank_id: 'K7P2X9',
                     full_name: 'Sarah Connor',
                     bio: 'Building the future of real-time communication.',
                     avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
@@ -46,12 +48,16 @@ function getMockDb() {
                     id: 3,
                     username: 'david',
                     email: 'david@frank.app',
+                    frank_id: 'B3N8R5',
                     full_name: 'David Chen',
                     bio: 'Software Architect & Open Source Contributor.',
                     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
                     is_online: false,
                     created_at: '2026-01-01T00:00:00Z'
                 }
+            ],
+            conversations: [
+                { id: 1, user_a_id: 1, user_b_id: 2, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z' }
             ],
             messages: [
                 {
@@ -85,15 +91,46 @@ function getMockDb() {
                     name: 'FRANK Core Team',
                     description: 'Product design, architecture & engineering',
                     avatar_url: null,
+                    privacy: 'private',
                     created_by: 1,
                     members_count: 3,
                     created_at: '2026-01-01T00:00:00Z'
                 }
+            ],
+            group_members: [
+                { id: 1, group_id: 1, user_id: 1, role: 'owner', joined_at: '2026-01-01T00:00:00Z' },
+                { id: 2, group_id: 1, user_id: 2, role: 'admin', joined_at: '2026-01-01T00:00:00Z' },
+                { id: 3, group_id: 1, user_id: 3, role: 'member', joined_at: '2026-01-01T00:00:00Z' }
             ]
         };
         try {
             localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(db));
         } catch {}
+    } else {
+        // Ensure frank_id exists on all users
+        let changed = false;
+        const defaults = ['F4M8Q1', 'K7P2X9', 'B3N8R5'];
+        db.users.forEach((u, i) => {
+            if (!u.frank_id) {
+                u.frank_id = defaults[i] || ('F' + Math.random().toString(36).substring(2, 7).toUpperCase());
+                changed = true;
+            }
+        });
+        if (!db.conversations) {
+            db.conversations = [];
+            changed = true;
+        }
+        if (!db.group_members) {
+            db.group_members = [
+                { id: 1, group_id: 1, user_id: 1, role: 'owner', joined_at: '2026-01-01T00:00:00Z' },
+                { id: 2, group_id: 1, user_id: 2, role: 'admin', joined_at: '2026-01-01T00:00:00Z' },
+                { id: 3, group_id: 1, user_id: 3, role: 'member', joined_at: '2026-01-01T00:00:00Z' }
+            ];
+            changed = true;
+        }
+        if (changed) {
+            try { localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(db)); } catch {}
+        }
     }
     return db;
 }
@@ -118,6 +155,7 @@ function handleMockRequest(endpoint, options = {}) {
         if (raw) currentUser = JSON.parse(raw);
     } catch {}
     if (!currentUser) currentUser = db.users[0];
+    if (!currentUser.frank_id) currentUser.frank_id = 'F4M8Q1';
 
     // 1. Auth: Login
     if (endpoint === '/api/auth/login' && method === 'POST') {
@@ -128,6 +166,7 @@ function handleMockRequest(endpoint, options = {}) {
                 id: db.users.length + 1,
                 username: body.username || 'user',
                 email: `${body.username || 'user'}@frank.app`,
+                frank_id: 'F' + Math.random().toString(36).substring(2, 7).toUpperCase(),
                 full_name: (body.username ? body.username.charAt(0).toUpperCase() + body.username.slice(1) : 'FRANK User'),
                 bio: 'Hey there! I am using FRANK.',
                 avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
@@ -142,6 +181,8 @@ function handleMockRequest(endpoint, options = {}) {
             token_type: 'bearer',
             user: user
         };
+    }
+
     }
 
     // 2. Auth: Register
@@ -177,7 +218,71 @@ function handleMockRequest(endpoint, options = {}) {
         return currentUser;
     }
 
-    // 4. Users: List & Search
+    // 4. Users: Lookup by FRANK ID
+    if (endpoint.startsWith('/api/users/frank/') && method === 'GET') {
+        const frankId = endpoint.replace('/api/users/frank/', '').trim().toUpperCase();
+        const found = db.users.find(u => (u.frank_id || '').toUpperCase() === frankId);
+        if (!found) {
+            const err = new Error(`User with FRANK ID '${frankId}' not found.`);
+            err.status = 404;
+            throw err;
+        }
+        return {
+            id: found.id,
+            username: found.username,
+            full_name: found.full_name,
+            frank_id: found.frank_id,
+            bio: found.bio,
+            avatar_url: found.avatar_url,
+            is_online: found.is_online
+        };
+    }
+
+    // 4b. Users: Create / Get Single Private Conversation
+    if (endpoint === '/api/users/conversations/private' && method === 'POST') {
+        let target = null;
+        if (body.target_user_id) {
+            target = db.users.find(u => u.id === body.target_user_id);
+        } else if (body.frank_id) {
+            const fid = body.frank_id.trim().toUpperCase();
+            target = db.users.find(u => (u.frank_id || '').toUpperCase() === fid);
+        }
+
+        if (!target) {
+            const err = new Error('Target user not found.');
+            err.status = 404;
+            throw err;
+        }
+
+        if (target.id === currentUser.id) {
+            const err = new Error('Cannot start conversation with yourself.');
+            err.status = 400;
+            throw err;
+        }
+
+        const ua = Math.min(currentUser.id, target.id);
+        const ub = Math.max(currentUser.id, target.id);
+        if (!db.conversations) db.conversations = [];
+        let conv = db.conversations.find(c => c.user_a_id === ua && c.user_b_id === ub);
+        if (!conv) {
+            conv = {
+                id: db.conversations.length ? Math.max(...db.conversations.map(c => c.id)) + 1 : 1,
+                user_a_id: ua,
+                user_b_id: ub,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            db.conversations.push(conv);
+            saveMockDb(db);
+        }
+
+        return {
+            ...conv,
+            other_user: target
+        };
+    }
+
+    // 4c. Users: List & Search
     if (endpoint.startsWith('/api/users') && method === 'GET') {
         if (endpoint.includes('/conversations')) {
             // Handled below in #5
@@ -196,7 +301,7 @@ function handleMockRequest(endpoint, options = {}) {
                 const q = searchParams.get('q');
                 if (q) {
                     const pat = q.toLowerCase();
-                    list = list.filter(u => u.username.toLowerCase().includes(pat) || u.full_name.toLowerCase().includes(pat));
+                    list = list.filter(u => u.username.toLowerCase().includes(pat) || u.full_name.toLowerCase().includes(pat) || (u.frank_id && u.frank_id.toLowerCase().includes(pat)));
                 }
             }
             return list;
@@ -214,13 +319,26 @@ function handleMockRequest(endpoint, options = {}) {
             const lastMsg = chatMsgs.length > 0 ? chatMsgs[chatMsgs.length - 1] : null;
             return {
                 id: p.id,
+                type: 'direct',
+                name: p.full_name,
+                username: p.username,
+                frank_id: p.frank_id,
+                avatar_url: p.avatar_url,
+                is_online: p.is_online,
                 user: p,
-                last_message: lastMsg ? lastMsg.content : 'Started a conversation',
-                last_message_time: lastMsg ? lastMsg.created_at : p.created_at,
+                last_message: lastMsg ? {
+                    id: lastMsg.id,
+                    content: lastMsg.content,
+                    message_type: lastMsg.message_type || 'text',
+                    sender_id: lastMsg.sender_id,
+                    created_at: lastMsg.created_at,
+                    status: lastMsg.status
+                } : null,
                 unread_count: 0
             };
         });
     }
+
 
     // 6. Direct Messages
     if (endpoint.startsWith('/api/messages/direct/') && method === 'GET') {
@@ -285,12 +403,74 @@ function handleMockRequest(endpoint, options = {}) {
         return { status: 'success', emoji: body.emoji || '👍' };
     }
 
-    // 9. Groups List
+    // 9. Groups List & Creation
     if (endpoint === '/api/groups' && method === 'GET') {
         return db.groups;
     }
 
-    // 10. Group Details
+    if (endpoint === '/api/groups' && method === 'POST') {
+        const newGroup = {
+            id: db.groups.length ? Math.max(...db.groups.map(g => g.id)) + 1 : 1,
+            name: body.name || 'New Group',
+            description: body.description || '',
+            avatar_url: body.avatar_url || '',
+            privacy: body.privacy || 'private',
+            created_by: currentUser.id,
+            members_count: 1 + (body.member_ids ? body.member_ids.length : 0),
+            created_at: new Date().toISOString()
+        };
+        db.groups.push(newGroup);
+        if (!db.group_members) db.group_members = [];
+        db.group_members.push({
+            id: db.group_members.length + 1,
+            group_id: newGroup.id,
+            user_id: currentUser.id,
+            role: 'owner',
+            joined_at: new Date().toISOString()
+        });
+        (body.member_ids || []).forEach(uid => {
+            if (uid !== currentUser.id) {
+                db.group_members.push({
+                    id: db.group_members.length + 1,
+                    group_id: newGroup.id,
+                    user_id: uid,
+                    role: 'member',
+                    joined_at: new Date().toISOString()
+                });
+            }
+        });
+        saveMockDb(db);
+        return newGroup;
+    }
+
+    // 10. Group Details & Members
+    if (endpoint.includes('/members/') && endpoint.endsWith('/role') && method === 'PATCH') {
+        const parts = endpoint.split('/');
+        const gid = Number(parts[3]);
+        const uid = Number(parts[5]);
+        const role = body.role || 'member';
+        if (!db.group_members) db.group_members = [];
+        let mem = db.group_members.find(m => m.group_id === gid && m.user_id === uid);
+        if (!mem) {
+            mem = { id: db.group_members.length + 1, group_id: gid, user_id: uid, role, joined_at: new Date().toISOString() };
+            db.group_members.push(mem);
+        } else {
+            mem.role = role;
+        }
+        saveMockDb(db);
+        const u = db.users.find(x => x.id === uid) || { id: uid, full_name: 'User', username: 'user' };
+        return { ...mem, user: u };
+    }
+
+    if (endpoint.startsWith('/api/groups/') && method === 'DELETE' && !endpoint.includes('/members/')) {
+        const parts = endpoint.split('/');
+        const gid = Number(parts[3]);
+        db.groups = db.groups.filter(g => g.id !== gid);
+        if (db.group_members) db.group_members = db.group_members.filter(m => m.group_id !== gid);
+        saveMockDb(db);
+        return { success: true, message: 'Group deleted' };
+    }
+
     if (endpoint.startsWith('/api/groups/') && method === 'GET') {
         if (endpoint.endsWith('/messages')) {
             const parts = endpoint.split('/');
@@ -298,12 +478,31 @@ function handleMockRequest(endpoint, options = {}) {
             return db.messages.filter(m => m.group_id === gid);
         }
         if (endpoint.endsWith('/members')) {
-            return db.users;
+            const parts = endpoint.split('/');
+            const gid = Number(parts[3]);
+            if (!db.group_members) db.group_members = [];
+            const group = db.groups.find(g => g.id === gid);
+            const mems = db.group_members.filter(m => m.group_id === gid);
+            if (mems.length === 0) {
+                return db.users.map(u => ({
+                    id: u.id,
+                    group_id: gid,
+                    user_id: u.id,
+                    role: (group && u.id === group.created_by) ? 'owner' : (u.id === 2 ? 'admin' : 'member'),
+                    joined_at: new Date().toISOString(),
+                    user: u
+                }));
+            }
+            return mems.map(m => ({
+                ...m,
+                user: db.users.find(u => u.id === m.user_id) || { id: m.user_id, full_name: 'Member', username: 'member' }
+            }));
         }
         const parts = endpoint.split('/');
         const gid = Number(parts[3]);
         return db.groups.find(g => g.id === gid) || db.groups[0];
     }
+
 
     // 11. Profile Update
     if (endpoint === '/api/users/profile' && method === 'PUT') {
@@ -519,11 +718,39 @@ const api = {
         });
     },
 
+    async getUserByFrankId(frankId) {
+        return this.request(`/api/users/frank/${encodeURIComponent((frankId || '').trim().toUpperCase())}`);
+    },
+
+    async createPrivateConversation(targetUserId, frankId) {
+        return this.request('/api/users/conversations/private', {
+            method: 'POST',
+            body: JSON.stringify({
+                target_user_id: targetUserId || null,
+                frank_id: frankId || null
+            })
+        });
+    },
+
+    async updateMemberRole(groupId, userId, role) {
+        return this.request(`/api/groups/${groupId}/members/${userId}/role`, {
+            method: 'PATCH',
+            body: JSON.stringify({ role })
+        });
+    },
+
+    async deleteGroup(groupId) {
+        return this.request(`/api/groups/${groupId}`, {
+            method: 'DELETE'
+        });
+    },
+
     async removeGroupMember(groupId, userId) {
         return this.request(`/api/groups/${groupId}/members/${userId}`, {
             method: 'DELETE'
         });
     },
+
 
     // Document & File Endpoints
     uploadFile(formData, onProgress) {

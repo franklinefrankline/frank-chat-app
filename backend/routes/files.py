@@ -210,11 +210,15 @@ async def upload_file(
     if file_size == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The selected file is empty.")
 
-    if file_size > MAX_FILE_SIZE_BYTES:
+    max_limit = 100 * 1024 * 1024 if file_type == "video" else 50 * 1024 * 1024
+    max_label = "100 MB" if file_type == "video" else "50 MB"
+
+    if file_size > max_limit:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File size ({file_size / (1024*1024):.1f} MB) exceeds the allowed limit of {MAX_FILE_SIZE_MB} MB."
+            detail=f"File size ({file_size / (1024*1024):.1f} MB) exceeds the allowed limit of {max_label} for {file_type}s."
         )
+
 
     # Generate safe unique storage filename
     unique_name = f"{uuid.uuid4().hex}{ext}"

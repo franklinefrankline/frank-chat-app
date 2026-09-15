@@ -121,10 +121,11 @@ const messagesModule = {
     renderMessageRow(msg, currentUserId) {
         const isSent = msg.sender_id === currentUserId;
         const timeFormatted = this.formatMessageTimestamp(msg.created_at);
-        const isEdited = !!msg.updated_at;
-        const timeStr = `${timeFormatted}${isEdited ? ' · Edited' : ''}`;
+        const isEdited = !!msg.updated_at && msg.updated_at !== msg.created_at;
+        const timeStr = `${timeFormatted}${isEdited ? ' <span class="message-edited-badge" style="font-size:10px; opacity:0.75; font-style:italic;" title="Edited">(Edited)</span>' : ''}`;
         const fullTooltip = `Sent: ${this.formatMessageTimestamp(msg.created_at)}${isEdited ? ` · Edited: ${this.formatMessageTimestamp(msg.updated_at)}` : ''}`;
         const statusIcon = isSent ? this.getStatusIcon(msg.status) : '';
+
 
         // Reaction badges aggregation
         const reactionCounts = {};
@@ -177,8 +178,10 @@ const messagesModule = {
             docFileType = doc.file_type || (window.documentsController ? window.documentsController.getFileCategory(docFilename) : 'document');
             const ext = docFilename.split('.').pop().toUpperCase();
             const sizeStr = (doc.file_size && window.documentsController) ? window.documentsController.formatFileSize(doc.file_size) : `${ext} Document`;
+            const badgeHtml = window.documentsController ? window.documentsController.getFileBadgeMarkup(docFileType, ext) : `<div class="doc-badge-icon" style="background: rgba(99, 102, 241, 0.15); color: #6366F1;">📄</div>`;
             let mediaEmbed = '';
             const viewUrl = api.getFileViewUrl(docFileId);
+
             if (docFileType === 'video') {
                 mediaEmbed = `
                     <div class="message-video-wrap" style="margin-top: 10px; border-radius: 10px; overflow: hidden; background: #000; max-width: 380px;">

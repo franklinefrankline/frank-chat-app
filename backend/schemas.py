@@ -37,11 +37,44 @@ class UserUpdate(BaseModel):
 
 class UserResponse(UserBase):
     id: int
+    frank_id: str
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     is_online: bool = False
     last_seen: Optional[datetime] = None
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class UserPreviewResponse(BaseModel):
+    id: int
+    username: str
+    full_name: str
+    frank_id: str
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    is_online: bool = False
+
+    class Config:
+        from_attributes = True
+
+
+# ---------------- CONVERSATION SCHEMAS ----------------
+
+class ConversationCreate(BaseModel):
+    target_user_id: Optional[int] = None
+    frank_id: Optional[str] = None
+
+
+class ConversationResponse(BaseModel):
+    id: int
+    user_a_id: int
+    user_b_id: int
+    created_at: datetime
+    updated_at: datetime
+    other_user: Optional[UserResponse] = None
 
     class Config:
         from_attributes = True
@@ -138,6 +171,7 @@ class GroupCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = ""
     avatar_url: Optional[str] = ""
+    privacy: Optional[str] = "private"  # private by default
     member_ids: List[int] = []
 
 
@@ -145,10 +179,15 @@ class GroupUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     avatar_url: Optional[str] = None
+    privacy: Optional[str] = None
 
 
 class GroupMemberAdd(BaseModel):
     user_ids: List[int] = []
+
+
+class GroupRoleUpdate(BaseModel):
+    role: str = Field(..., pattern="^(admin|member)$")
 
 
 class GroupMemberResponse(BaseModel):
@@ -167,6 +206,7 @@ class GroupResponse(BaseModel):
     name: str
     description: Optional[str] = None
     avatar_url: Optional[str] = None
+    privacy: str = "private"
     created_by: int
     created_at: datetime
     members_count: int = 0
@@ -175,6 +215,7 @@ class GroupResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 
 # ---------------- PASSWORD RESET SCHEMAS ----------------

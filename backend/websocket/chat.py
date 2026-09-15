@@ -151,6 +151,26 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
 
                 db_session = SessionLocal()
                 try:
+                    if group_id:
+                        membership = db_session.query(models.GroupMember).filter(
+                            models.GroupMember.group_id == group_id,
+                            models.GroupMember.user_id == user_id
+                        ).first()
+                        if not membership:
+                            continue
+
+                    if recipient_id:
+                        ua = min(user_id, recipient_id)
+                        ub = max(user_id, recipient_id)
+                        conv = db_session.query(models.Conversation).filter(
+                            models.Conversation.user_a_id == ua,
+                            models.Conversation.user_b_id == ub
+                        ).first()
+                        if not conv:
+                            conv = models.Conversation(user_a_id=ua, user_b_id=ub)
+                            db_session.add(conv)
+                            db_session.commit()
+
                     msg = models.Message(
                         sender_id=user_id,
                         recipient_id=recipient_id,
@@ -165,6 +185,7 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                     db_session.add(msg)
                     db_session.commit()
                     db_session.refresh(msg)
+
 
                     doc_data = None
                     if file_id:

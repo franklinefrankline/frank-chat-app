@@ -56,6 +56,7 @@ def seed_demo_users():
                 {
                     "username": "alex",
                     "email": "alex@frank.app",
+                    "frank_id": "F4M8Q1",
                     "full_name": "Alex Morgan",
                     "bio": "Product Designer & Tech Enthusiast 🚀",
                     "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
@@ -64,6 +65,7 @@ def seed_demo_users():
                 {
                     "username": "sarah",
                     "email": "sarah@frank.app",
+                    "frank_id": "K7P2X9",
                     "full_name": "Sarah Connor",
                     "bio": "Building the future of real-time communication.",
                     "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
@@ -72,6 +74,7 @@ def seed_demo_users():
                 {
                     "username": "david",
                     "email": "david@frank.app",
+                    "frank_id": "B3N8R5",
                     "full_name": "David Chen",
                     "bio": "Software Architect & Open Source Contributor.",
                     "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
@@ -84,6 +87,7 @@ def seed_demo_users():
                 user = models.User(
                     username=u["username"],
                     email=u["email"],
+                    frank_id=u["frank_id"],
                     full_name=u["full_name"],
                     bio=u["bio"],
                     avatar_url=u["avatar_url"],

@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRANK — Think</title>
-    <meta name="description" content="FRANK is a modern, premium real-time communication platform. Think.">
+    <title>FRANK — Think. Chat. Connect. Together.</title>
+    <meta name="description" content="FRANK is a modern, premium real-time communication platform. Think. Chat. Connect. Together.">
     <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
 
     <!-- Open Graph Meta -->
-    <meta property="og:title" content="FRANK — Think">
-    <meta property="og:description" content="Think">
+    <meta property="og:title" content="FRANK — Think. Chat. Connect. Together.">
+    <meta property="og:description" content="Think. Chat. Connect. Together.">
     <meta property="og:image" content="assets/brand/frank-logo.svg">
 
     <!-- Fonts -->
@@ -36,7 +36,7 @@
                 <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="84" height="84" style="border-radius: 20px; display: block;">
             </div>
             <div class="frank-anim-wordmark" style="opacity: 1; transform: none; margin-top: 16px;">FRANK</div>
-            <div class="frank-anim-tagline" style="opacity: 1; transform: none; margin-top: 6px;">Think</div>
+            <div class="frank-anim-tagline" style="opacity: 1; transform: none; margin-top: 6px;">Think. Chat. Connect. Together.</div>
             <div class="frank-loading-bar-wrap" style="width: 100px; height: 3px; background: rgba(255,255,255,0.08); border-radius: 9999px; margin-top: 20px; overflow: hidden; position: relative;">
                 <div class="frank-loading-bar-fill" style="width: 50%; height: 100%; background: linear-gradient(90deg, #2563EB, #7C3AED, #06B6D4); border-radius: 9999px; animation: frankBarShimmer 0.9s infinite ease-in-out;"></div>
             </div>
@@ -58,11 +58,11 @@
         <!-- ================= 1. LEFT SIDEBAR (260px) ================= -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
-                <a href="index.html" class="brand-text" title="FRANK — Think">
+                <a href="index.html" class="brand-text" title="FRANK — Think. Chat. Connect. Together.">
                     <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" class="brand-logo-img" style="width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;">
                     <div class="brand-title-wrap">
                         <span class="brand-title-text">FRANK</span>
-                        <span class="brand-tagline-text">Think</span>
+                        <span class="brand-tagline-text">Think. Chat. Connect. Together.</span>
                     </div>
                 </a>
                 <span class="brand-badge">PRO</span>
@@ -447,7 +447,14 @@
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                     <polyline points="14 2 14 8 20 8"></polyline>
                                 </svg>
-                                <span>Document</span>
+                                <span>Document (up to 50MB)</span>
+                            </button>
+                            <button type="button" class="attachment-menu-item" data-action="video">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                                </svg>
+                                <span>Video (up to 100MB)</span>
                             </button>
                             <button type="button" class="attachment-menu-item" data-action="photo">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -455,7 +462,7 @@
                                     <circle cx="8.5" cy="8.5" r="1.5"></circle>
                                     <polyline points="21 15 16 10 5 21"></polyline>
                                 </svg>
-                                <span>Photos &amp; Videos</span>
+                                <span>Photos &amp; Images</span>
                             </button>
                             <button type="button" class="attachment-menu-item" data-action="file">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -463,6 +470,7 @@
                                 </svg>
                                 <span>All Files</span>
                             </button>
+
                         </div>
                     </div>
 
@@ -569,19 +577,87 @@
 
     <!-- New Chat Modal -->
     <div class="modal-backdrop" id="newChatModal" role="dialog" aria-modal="true" aria-labelledby="newChatModalTitle">
-        <div class="modal-card">
+        <div class="modal-card" style="max-width: 520px;">
             <div class="modal-header">
-                <h2 class="modal-title" id="newChatModalTitle">New Conversation</h2>
+                <h2 class="modal-title" id="newChatModalTitle">Start a Conversation</h2>
                 <button type="button" class="modal-close" data-close-modal="newChatModal" aria-label="Close modal">✕</button>
             </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label" for="userSearchQuery">Search Users</label>
-                    <input type="text" class="form-input" id="userSearchQuery" placeholder="Search by name or username...">
+            
+            <div class="modal-body" style="padding: 0;">
+                <!-- Dual Section Switcher -->
+                <div style="display: flex; border-bottom: 1px solid var(--border); background: var(--surface);">
+                    <button type="button" id="newChatTabContacts" class="tab-btn active" style="flex: 1; padding: 12px; font-weight: 700; font-size: 13px; text-align: center; border-bottom: 2px solid var(--primary); background: transparent; color: var(--text); cursor: pointer; border-top: none; border-left: none; border-right: none;">
+                        👥 Existing Contacts
+                    </button>
+                    <button type="button" id="newChatTabFrankId" class="tab-btn" style="flex: 1; padding: 12px; font-weight: 700; font-size: 13px; text-align: center; border-bottom: 2px solid transparent; background: transparent; color: var(--text-muted); cursor: pointer; border-top: none; border-left: none; border-right: none;">
+                        ⚡ New Person (FRANK ID)
+                    </button>
                 </div>
-                <div style="max-height: 260px; overflow-y: auto;" id="userSearchResults">
-                    <div class="empty-state" style="padding: var(--space-4);">
-                        <div style="font-size: 13px; color: var(--text-muted);">Type above to find contacts</div>
+
+                <!-- SECTION 1: Existing Contacts (Direct 1-click open, NO FRANK ID required) -->
+                <div id="newChatSectionContacts" style="padding: var(--space-4);">
+                    <div class="form-group" style="margin-bottom: var(--space-3);">
+                        <input type="text" class="form-input" id="userSearchQuery" placeholder="Filter existing contacts or chats..." autocomplete="off">
+                    </div>
+                    <div style="max-height: 280px; overflow-y: auto;" id="userSearchResults">
+                        <div class="empty-state" style="padding: var(--space-4);">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: New Person via Permanent 6-Character FRANK ID -->
+                <div id="newChatSectionFrankId" style="display: none; padding: var(--space-5);">
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5;">
+                        Connect with someone new using their permanent <strong>6-character FRANK ID</strong> (e.g. <code style="font-weight: 700; color: var(--accent-cyan);">F4M8Q1</code>).
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            id="frankIdSearchInput" 
+                            placeholder="6-CHAR ID (e.g. F4M8Q1)" 
+                            maxlength="6" 
+                            style="font-family: monospace; font-size: 17px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; text-align: center;"
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                        <button type="button" class="btn btn-primary" id="frankIdSearchBtn" style="padding: 0 18px; font-weight: 700; white-space: nowrap;">
+                            Find Person
+                        </button>
+                    </div>
+
+                    <!-- FRANK ID Search Status / Spinner -->
+                    <div id="frankIdSearchLoading" style="display: none; text-align: center; padding: 14px;">
+                        <div class="spinner" style="margin: 0 auto 8px auto;"></div>
+                        <div style="font-size: 12px; color: var(--text-muted);">Searching directory for FRANK ID...</div>
+                    </div>
+
+                    <!-- FRANK ID Error Message -->
+                    <div id="frankIdSearchError" style="display: none; padding: 10px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); font-size: 13px; color: var(--danger); margin-bottom: 12px;"></div>
+
+                    <!-- Profile Preview Card -->
+                    <div id="frankIdProfilePreview" style="display: none; background: var(--surface-elevated); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: var(--radius-lg); padding: 16px; margin-top: 8px;">
+                        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
+                            <div class="avatar avatar-lg" id="previewAvatar">
+                                <span id="previewInitials">CU</span>
+                                <span class="avatar-status online" id="previewStatusDot"></span>
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div id="previewFullName" style="font-size: 16px; font-weight: 800; color: var(--text);">Full Name</div>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                                    <span id="previewUsername" style="font-size: 13px; color: var(--text-muted);">@username</span>
+                                    <span id="previewFrankIdBadge" style="font-family: monospace; font-size: 11px; font-weight: 800; padding: 2px 6px; background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border-radius: 4px; border: 1px solid rgba(6, 182, 212, 0.3);">ID: ------</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p id="previewBio" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.4;"></p>
+
+                        <button type="button" class="btn btn-primary btn-full" id="previewStartChatBtn" style="font-weight: 700;">
+                            💬 Message
+                        </button>
                     </div>
                 </div>
             </div>
@@ -590,7 +666,7 @@
 
     <!-- Create Group Modal -->
     <div class="modal-backdrop" id="createGroupModal" role="dialog" aria-modal="true" aria-labelledby="createGroupModalTitle">
-        <div class="modal-card">
+        <div class="modal-card" style="max-width: 520px;">
             <div class="modal-header">
                 <h2 class="modal-title" id="createGroupModalTitle">Create a Group</h2>
                 <button type="button" class="modal-close" data-close-modal="createGroupModal" aria-label="Close modal">✕</button>
@@ -598,20 +674,65 @@
             <div class="modal-body">
                 <form id="createGroupForm">
                     <div class="form-group">
-                        <label class="form-label" for="groupNameInput">Group Name</label>
+                        <label class="form-label" for="groupNameInput">Group Name *</label>
                         <input type="text" class="form-input" id="groupNameInput" placeholder="e.g. FRANK Engineering" required>
                     </div>
+
                     <div class="form-group">
                         <label class="form-label" for="groupDescInput">Description (Optional)</label>
-                        <textarea class="form-textarea" id="groupDescInput" placeholder="What is this group about?" rows="2"></textarea>
+                        <textarea class="form-textarea" id="groupDescInput" placeholder="What is this group for?" rows="2"></textarea>
                     </div>
+
+                    <!-- Privacy Selector (Default: Private) -->
+                    <div class="form-group">
+                        <label class="form-label">Privacy Settings</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <label style="display: flex; align-items: flex-start; gap: 8px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); cursor: pointer;">
+                                <input type="radio" name="groupPrivacy" value="private" checked style="margin-top: 3px;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 13px; color: var(--text);">🔒 Private (Default)</div>
+                                    <div style="font-size: 11px; color: var(--text-muted); line-height: 1.3;">Only invited members can view and join</div>
+                                </div>
+                            </label>
+                            <label style="display: flex; align-items: flex-start; gap: 8px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); cursor: pointer;">
+                                <input type="radio" name="groupPrivacy" value="public" style="margin-top: 3px;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 13px; color: var(--text);">🌐 Public</div>
+                                    <div style="font-size: 11px; color: var(--text-muted); line-height: 1.3;">Anyone on the team can discover and join</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Member Selection Section -->
                     <div class="form-group">
                         <label class="form-label">Select Initial Members</label>
-                        <div id="groupMembersChecklist" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px;">
+                        
+                        <!-- Add via FRANK ID sub-box -->
+                        <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                            <input 
+                                type="text" 
+                                class="form-input" 
+                                id="groupFrankIdInput" 
+                                placeholder="Add by FRANK ID (e.g. K7P2X9)" 
+                                maxlength="6" 
+                                style="font-family: monospace; font-size: 12px; text-transform: uppercase; font-weight: 700;"
+                            >
+                            <button type="button" class="btn btn-secondary btn-sm" id="groupFrankIdAddBtn" style="white-space: nowrap;">
+                                + Add ID
+                            </button>
+                        </div>
+
+                        <!-- Selected Member Pills -->
+                        <div id="groupSelectedPills" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"></div>
+
+                        <!-- Existing Contacts Checklist -->
+                        <div id="groupMembersChecklist" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px; background: var(--surface);">
                             <!-- Injected by groups.js -->
                         </div>
                     </div>
-                    <div class="modal-footer" style="padding: 0; background: transparent; border: none; margin-top: var(--space-4);">
+
+                    <div class="modal-footer" style="padding: 0; background: transparent; border: none; margin-top: var(--space-4); display: flex; justify-content: flex-end; gap: 8px;">
                         <button type="button" class="btn btn-secondary" data-close-modal="createGroupModal">Cancel</button>
                         <button type="submit" class="btn btn-primary" id="createGroupSubmitBtn">Create Group</button>
                     </div>
@@ -619,6 +740,7 @@
             </div>
         </div>
     </div>
+
 
     <!-- Invite People Modal -->
     <div class="modal-backdrop" id="invitePeopleModal" role="dialog" aria-modal="true" aria-labelledby="invitePeopleModalTitle">

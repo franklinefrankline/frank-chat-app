@@ -424,17 +424,26 @@
 }
 
 /* -------------------------------------------------------------------------
-   CUSTOM FRANK CURSOR STYLING & ANIMATIONS
-   18-24px miniature FRANK F symbol with subtle glow, hover scale, click ripple,
-   and 2-3 particle subtle trail.
+   CUSTOM FRANK F CURSOR STYLING
+   Native hardware-accelerated 18-24px FRANK F cursor with subtle cyan/purple
+   glow for desktop fine pointers (@media (hover: hover) and (pointer: fine)),
+   hover scale 1.15 on interactives, and native text caret on inputs/textareas.
    ------------------------------------------------------------------------- */
-/* Custom Cursor Disabled - Default Normal OS Cursor */
-.custom-cursor,
-.custom-cursor-dot,
-.frank-cursor-ripple,
-.frank-cursor-particle {
-    display: none !important;
+@media (hover: hover) and (pointer: fine) {
+    html, body {
+        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='21' height='21' viewBox='0 0 24 24' fill='none'%3E%3Cdefs%3E%3ClinearGradient id='fg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2306B6D4'/%3E%3Cstop offset='100%25' stop-color='%238B5CF6'/%3E%3C/linearGradient%3E%3Cfilter id='g'%3E%3CfeDropShadow dx='0' dy='1' stdDeviation='1.2' flood-color='%2306B6D4' flood-opacity='0.7'/%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M3 2h14c1.1 0 2 .9 2 2s-.9 2-2 2H8v3h7c1.1 0 2 .9 2 2s-.9 2-2 2H8v8c0 .6-.4 1-1 1s-1-.4-1-1V3c0-.6.4-1 1-1z' fill='url(%23fg)' stroke='%23ffffff' stroke-width='0.75' filter='url(%23g)'/%3E%3C/svg%3E") 2 2, auto;
+    }
+
+    a, button, [role="button"], .btn, .conversation-card, .filter-chip, .clickable {
+        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Cdefs%3E%3ClinearGradient id='fg2' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2322D3EE'/%3E%3Cstop offset='100%25' stop-color='%23A855F7'/%3E%3C/linearGradient%3E%3Cfilter id='g2'%3E%3CfeDropShadow dx='0' dy='1.5' stdDeviation='2' flood-color='%2306B6D4' flood-opacity='0.9'/%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M3 2h14c1.1 0 2 .9 2 2s-.9 2-2 2H8v3h7c1.1 0 2 .9 2 2s-.9 2-2 2H8v8c0 .6-.4 1-1 1s-1-.4-1-1V3c0-.6.4-1 1-1z' fill='url(%23fg2)' stroke='%23ffffff' stroke-width='1' filter='url(%23g2)'/%3E%3C/svg%3E") 2 2, pointer !important;
+    }
+
+    /* Native text caret for inputs, textareas, and editable fields */
+    input, textarea, [contenteditable="true"], .composer-textarea, .form-input, .form-textarea {
+        cursor: text !important;
+    }
 }
+
 
 /* Accessibility: Respect Reduced Motion Preferences (Section 24) */
 @media (prefers-reduced-motion: reduce) {

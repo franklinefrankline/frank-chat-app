@@ -683,15 +683,16 @@ class ChatController {
         }
 
         if (isGroup) {
-            if (subtitleEl) subtitleEl.textContent = `${target.members_count || 1} members`;
+            const privacyLabel = (target.privacy === 'public') ? '🌐 Public Group' : '🔒 Private Group';
+            if (subtitleEl) subtitleEl.textContent = `${privacyLabel} • ${target.members_count || 1} members`;
             if (bioEl) bioEl.textContent = target.description || 'No group description provided.';
             if (tabsBar) tabsBar.style.display = 'flex';
             if (membersSec) membersSec.style.display = 'block';
-            if (leaveBtn) leaveBtn.style.display = 'block';
 
             this.loadGroupMembersList(target.id);
         } else {
-            if (subtitleEl) subtitleEl.textContent = `@${target.username || 'user'}`;
+            const frankBadge = target.frank_id ? ` • ID: ${target.frank_id}` : '';
+            if (subtitleEl) subtitleEl.textContent = `@${target.username || 'user'}${frankBadge}`;
             let bio = target.bio || 'Productive conversations powered by FRANK.';
             if (bio.includes('ChatApp') || bio.includes('QENVO')) bio = bio.replace(/ChatApp|QENVO/gi, 'FRANK');
             if (bioEl) bioEl.textContent = bio;
@@ -706,9 +707,14 @@ class ChatController {
 
     async loadGroupMembersList(groupId) {
         const listContainer = document.getElementById('drawerMembersList');
+        const addMemberActionBtn = document.getElementById('drawerAddMemberActionBtn');
+        const leaveSection = document.getElementById('drawerLeaveGroupSection');
         if (!listContainer) return;
 
         listContainer.innerHTML = '<div class="spinner" style="margin: 15px auto;"></div>';
+
+        const currentUser = auth.getUser();
+        const currentUserId = currentUser ? currentUser.id : null;
 
         try {
             const members = await api.getGroupMembers(groupId);
@@ -719,30 +725,124 @@ class ChatController {
                 return;
             }
 
+            // Find current user role
+            const myMembership = members.find(m => m.user_id === currentUserId);
+            const myRole = myMembership ? myMembership.role : 'member';
+
+            // Only owners and admins can add members
+            if (addMemberActionBtn) {
+                addMemberActionBtn.style.display = (myRole === 'owner' || myRole === 'admin') ? 'inline-block' : 'none';
+            }
+
+            // Render delete or leave group buttons
+            if (leaveSection) {
+                if (myRole === 'owner') {
+                    leaveSection.innerHTML = `
+                        <button type="button" class="btn btn-danger btn-full btn-sm" id="drawerDeleteGroupBtn" style="font-weight: 700;">
+                            🗑️ Delete Group
+                        </button>
+                    `;
+                    document.getElementById('drawerDeleteGroupBtn')?.addEventListener('click', () => {
+                        const grpName = document.getElementById('drawerName')?.textContent || 'this group';
+                        if (window.groupsModule) window.groupsModule.deleteGroup(groupId, grpName);
+                    });
+                } else {
+                    leaveSection.innerHTML = `
+                        <button type="button" class="btn btn-danger btn-full btn-sm" id="drawerLeaveGroupBtn">
+                            Leave Group
+                        </button>
+                    `;
+                    document.getElementById('drawerLeaveGroupBtn')?.addEventListener('click', () => {
+                        const grpName = document.getElementById('drawerName')?.textContent || 'this group';
+                        if (window.groupsModule) window.groupsModule.leaveGroup(groupId, grpName);
+                    });
+                }
+            }
+
             members.forEach(m => {
                 const u = m.user || {};
                 const initials = (u.full_name || u.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-                const isAdmin = m.role === 'admin';
+                const role = m.role || 'member';
+
+                let roleBadge = '';
+                if (role === 'owner') {
+                    roleBadge = '<span class="member-role-badge" style="background: rgba(245, 158, 11, 0.15); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.3);">👑 Owner</span>';
+                } else if (role === 'admin') {
+                    roleBadge = '<span class="member-role-badge" style="background: rgba(99, 102, 241, 0.15); color: #6366F1; border: 1px solid rgba(99, 102, 241, 0.3);">🛡️ Admin</span>';
+                } else {
+                    roleBadge = '<span style="font-size:11px; color:var(--text-muted);">Member</span>';
+                }
+
+                // Role actions
+                let actionsHtml = '';
+                if (m.user_id !== currentUserId) {
+                    if (myRole === 'owner') {
+                        if (role === 'admin') {
+                            actionsHtml = `
+                                <div style="display: flex; gap: 4px;">
+                                    <button type="button" class="btn btn-ghost btn-xs demote-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Demote to Member" style="font-size: 11px; padding: 2px 6px;">Demote</button>
+                                    <button type="button" class="btn btn-ghost btn-xs danger remove-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Remove member" style="font-size: 11px; padding: 2px 6px; color: var(--danger);">✕</button>
+                                </div>
+                            `;
+                        } else if (role === 'member') {
+                            actionsHtml = `
+                                <div style="display: flex; gap: 4px;">
+                                    <button type="button" class="btn btn-ghost btn-xs promote-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Promote to Admin" style="font-size: 11px; padding: 2px 6px;">Make Admin</button>
+                                    <button type="button" class="btn btn-ghost btn-xs danger remove-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Remove member" style="font-size: 11px; padding: 2px 6px; color: var(--danger);">✕</button>
+                                </div>
+                            `;
+                        }
+                    } else if (myRole === 'admin' && role === 'member') {
+                        actionsHtml = `
+                            <button type="button" class="btn btn-ghost btn-xs danger remove-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Remove member" style="font-size: 11px; padding: 2px 6px; color: var(--danger);">✕</button>
+                        `;
+                    }
+                }
 
                 const row = document.createElement('div');
                 row.className = 'drawer-member-row';
+                row.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border);';
                 row.innerHTML = `
                     <div class="avatar avatar-sm">
                         <span>${initials}</span>
                         <span class="avatar-status ${u.is_online ? 'online' : 'offline'}"></span>
                     </div>
                     <div style="flex:1; min-width:0;">
-                        <div style="font-size:13px; font-weight:700; color:var(--text);">${messagesModule.escapeHTML(u.full_name)}</div>
-                        <div style="font-size:11px; color:var(--text-muted);">@${messagesModule.escapeHTML(u.username)}</div>
+                        <div style="font-size:13px; font-weight:700; color:var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${messagesModule.escapeHTML(u.full_name)}</div>
+                        <div style="font-size:11px; color:var(--text-muted);">@${messagesModule.escapeHTML(u.username)}${u.frank_id ? ` • ${u.frank_id}` : ''}</div>
                     </div>
-                    ${isAdmin ? '<span class="member-role-badge">Admin</span>' : '<span style="font-size:11px; color:var(--text-muted);">Member</span>'}
+                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                        ${roleBadge}
+                        ${actionsHtml}
+                    </div>
                 `;
+
+                // Wire action listeners
+                row.querySelector('.promote-action')?.addEventListener('click', (e) => {
+                    const uid = parseInt(e.currentTarget.dataset.uid, 10);
+                    const uname = e.currentTarget.dataset.name;
+                    if (window.groupsModule) window.groupsModule.updateMemberRole(groupId, uid, 'admin', uname);
+                });
+
+                row.querySelector('.demote-action')?.addEventListener('click', (e) => {
+                    const uid = parseInt(e.currentTarget.dataset.uid, 10);
+                    const uname = e.currentTarget.dataset.name;
+                    if (window.groupsModule) window.groupsModule.updateMemberRole(groupId, uid, 'member', uname);
+                });
+
+                row.querySelector('.remove-action')?.addEventListener('click', (e) => {
+                    const uid = parseInt(e.currentTarget.dataset.uid, 10);
+                    const uname = e.currentTarget.dataset.name;
+                    if (window.groupsModule) window.groupsModule.removeMember(groupId, uid, uname);
+                });
+
                 listContainer.appendChild(row);
             });
         } catch {
             listContainer.innerHTML = '<div style="font-size:12px; color:var(--danger); text-align:center;">Failed to load members</div>';
         }
     }
+
 
     async loadSharedDocuments() {
         const docsContainer = document.getElementById('drawerDocsList');

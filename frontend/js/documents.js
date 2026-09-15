@@ -71,12 +71,17 @@ class DocumentsController {
             return;
         }
 
-        // 2. Size check
-        if (file.size > this.maxFileSizeBytes) {
+        // 2. Size check (50MB for docs/files, 100MB for video)
+        const isVideo = ['.mp4', '.mov', '.webm', '.mkv'].includes(ext);
+        const maxLimitMB = isVideo ? 100 : 50;
+        const maxLimitBytes = maxLimitMB * 1024 * 1024;
+
+        if (file.size > maxLimitBytes) {
             const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-            showToast(`File size (${sizeMb} MB) exceeds the allowed limit of ${this.maxFileSizeMB} MB.`, 'error');
+            showToast(`File size (${sizeMb} MB) exceeds the allowed limit of ${maxLimitMB} MB for ${isVideo ? 'videos' : 'documents'}.`, 'error');
             return;
         }
+
 
         if (file.size === 0) {
             showToast('The selected file is empty.', 'error');

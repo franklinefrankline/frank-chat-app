@@ -56,6 +56,19 @@ def send_message(
         partner = db.query(models.User).filter(models.User.id == msg_in.recipient_id).first()
         if not partner:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipient not found")
+        
+        # Enforce canonical single conversation guarantee
+        ua = min(current_user.id, msg_in.recipient_id)
+        ub = max(current_user.id, msg_in.recipient_id)
+        conv = db.query(models.Conversation).filter(
+            models.Conversation.user_a_id == ua,
+            models.Conversation.user_b_id == ub
+        ).first()
+        if not conv:
+            conv = models.Conversation(user_a_id=ua, user_b_id=ub)
+            db.add(conv)
+            db.commit()
+
 
     if msg_in.group_id:
         membership = db.query(models.GroupMember).filter(
