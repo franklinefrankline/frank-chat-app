@@ -277,14 +277,25 @@ class AppController {
         const openBtn = document.getElementById('openSidebarBtn');
         const overlay = document.getElementById('mobileOverlay');
 
+        const closeSidebar = () => {
+            sidebar?.classList.remove('open');
+            overlay?.classList.remove('show');
+        };
+
         openBtn?.addEventListener('click', () => {
             sidebar?.classList.add('open');
             overlay?.classList.add('show');
         });
 
-        overlay?.addEventListener('click', () => {
-            sidebar?.classList.remove('open');
-            overlay?.classList.remove('show');
+        overlay?.addEventListener('click', closeSidebar);
+
+        // Auto-close mobile drawer when tapping any link or button inside it
+        sidebar?.querySelectorAll('button, a').forEach(el => {
+            el.addEventListener('click', () => {
+                if (window.innerWidth <= 768 && !el.classList.contains('sidebar-user')) {
+                    closeSidebar();
+                }
+            });
         });
     }
 

@@ -354,6 +354,16 @@
     position: relative;
 }
 
+#activeChatView {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
 /* Chat Header */
 .chat-header {
     height: 68px;

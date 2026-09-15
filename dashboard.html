@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>FRANK — Think</title>
     <meta name="description" content="FRANK is a modern, premium real-time communication platform. Think.">
     <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
@@ -357,8 +357,9 @@
                             </svg>
                         </button>
 
-                        <!-- More Menu Popover -->
+                        <!-- More Menu Popover / Mobile Bottom Sheet (Section 10) -->
                         <div class="chat-more-menu" id="chatMoreMenu">
+                            <div class="chat-more-header" id="chatMoreHeader">Chat Options</div>
                             <button type="button" class="chat-more-item" id="moreGroupInfoBtn">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                                 Group / Chat Info
@@ -395,6 +396,9 @@
                             <button type="button" class="chat-more-item danger" id="moreLeaveGroupBtn">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                                 Leave Group
+                            </button>
+                            <button type="button" class="chat-more-item chat-more-cancel" id="moreCancelBtn">
+                                Cancel
                             </button>
                         </div>
                     </div>

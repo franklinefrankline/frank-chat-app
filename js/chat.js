@@ -96,10 +96,11 @@ class ChatController {
         this.updateDetailsDrawer(partner);
 
         // Mobile responsive switch
-        if (window.innerWidth <= 768) {
-            document.getElementById('chatWindow')?.classList.add('mobile-open');
-            const panel = document.getElementById('conversationPanel');
-            if (panel) panel.style.display = 'none';
+        document.getElementById('chatApp')?.classList.add('has-active-chat');
+        document.getElementById('chatWindow')?.classList.add('mobile-open');
+        const panel = document.getElementById('conversationPanel');
+        if (panel && window.innerWidth <= 768) {
+            panel.style.display = '';
         }
 
         // Highlight active conversation card in list
@@ -148,10 +149,11 @@ class ChatController {
         this.updateDetailsDrawer(group);
 
         // Mobile responsive switch
-        if (window.innerWidth <= 768) {
-            document.getElementById('chatWindow')?.classList.add('mobile-open');
-            const panel = document.getElementById('conversationPanel');
-            if (panel) panel.style.display = 'none';
+        document.getElementById('chatApp')?.classList.add('has-active-chat');
+        document.getElementById('chatWindow')?.classList.add('mobile-open');
+        const panel = document.getElementById('conversationPanel');
+        if (panel && window.innerWidth <= 768) {
+            panel.style.display = '';
         }
 
         // Highlight active group card
@@ -344,6 +346,21 @@ class ChatController {
 
         this.dom.sendBtn?.addEventListener('click', () => this.sendMessage());
         this.dom.cancelReplyBtn?.addEventListener('click', () => this.clearReplying());
+
+        // Mobile virtual keyboard handling: auto-scroll to latest message on focus
+        this.dom.textarea.addEventListener('focus', () => {
+            setTimeout(() => {
+                this.scrollToBottom();
+            }, 300);
+        });
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                if (document.activeElement === this.dom.textarea) {
+                    this.scrollToBottom();
+                }
+            });
+        }
     }
 
     autoResizeTextarea() {
@@ -504,6 +521,11 @@ class ChatController {
             }
         });
 
+        // Mobile cancel button
+        document.getElementById('moreCancelBtn')?.addEventListener('click', () => {
+            this.closeMoreMenu();
+        });
+
         // Group Action Buttons in More Menu
         document.getElementById('moreGroupInfoBtn')?.addEventListener('click', () => {
             this.closeMoreMenu();
@@ -604,9 +626,14 @@ class ChatController {
     // ---------------- MOBILE NAVIGATION & BACK ----------------
     setupMobileBack() {
         this.dom.mobileBackBtn?.addEventListener('click', () => {
+            document.getElementById('chatApp')?.classList.remove('has-active-chat');
             document.getElementById('chatWindow')?.classList.remove('mobile-open');
             const panel = document.getElementById('conversationPanel');
-            if (panel) panel.style.display = 'flex';
+            if (panel) panel.style.display = '';
+            // Reset active selection state locally so returning to screen 1 is clean
+            this.activeId = null;
+            this.activeType = null;
+            document.querySelectorAll('.conversation-card').forEach(card => card.classList.remove('active'));
         });
     }
 
