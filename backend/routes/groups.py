@@ -8,7 +8,7 @@ import models
 import schemas
 from security import get_current_user
 
-router = APIRouter(prefix="/api/groups", tags=["Groups"])
+router = APIRouter(prefix="/groups", tags=["Groups"])
 
 
 @router.get("", response_model=List[schemas.GroupResponse])

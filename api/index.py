@@ -29,6 +29,7 @@ except Exception as e:
     startup_error = str(e)
     startup_trace = traceback.format_exc()
 
+    @app.api_route("/", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
     @app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
     async def startup_error_fallback(full_path: str = ""):
         return JSONResponse(

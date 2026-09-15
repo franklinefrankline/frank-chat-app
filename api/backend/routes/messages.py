@@ -8,7 +8,7 @@ import models
 import schemas
 from security import get_current_user
 
-router = APIRouter(prefix="/api/messages", tags=["Messages"])
+router = APIRouter(prefix="/messages", tags=["Messages"])
 
 
 @router.get("/direct/{partner_id}", response_model=List[schemas.MessageResponse])

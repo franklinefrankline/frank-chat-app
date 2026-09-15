@@ -14,7 +14,7 @@ from security import (
     decode_token
 )
 
-router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post("/register", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)

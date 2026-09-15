@@ -169,20 +169,20 @@ async def ensure_api_prefix(request: Request, call_next):
     response = await call_next(request)
     return response
 
-# Include Routers
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(messages.router)
-app.include_router(groups.router)
-app.include_router(files.router)
+# Include Routers with both /api prefix and root prefix
+for r in [auth.router, users.router, messages.router, groups.router, files.router]:
+    app.include_router(r, prefix="/api")
+    app.include_router(r)
 
 
 # WebSocket Gateway
 @app.websocket("/ws/{token}")
+@app.websocket("/api/ws/{token}")
 async def websocket_endpoint(websocket: WebSocket, token: str):
     await handle_websocket_connection(websocket, token)
 
 
+@app.get("/")
 @app.get("/api")
 @app.get("/api/")
 @app.get("/api/index.py")

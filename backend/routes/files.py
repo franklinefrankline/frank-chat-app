@@ -13,7 +13,7 @@ import models
 import schemas
 from security import get_current_user, get_user_from_token, oauth2_scheme
 
-router = APIRouter(prefix="/api/files", tags=["Files & Documents"])
+router = APIRouter(prefix="/files", tags=["Files & Documents"])
 
 # Upload directory configuration
 BASE_DIR = Path(__file__).resolve().parent.parent
