@@ -28,50 +28,18 @@
 <body>
     <!-- Custom Desktop Cursor (Miniature FRANK F) -->
 
-    <!-- Application Loading Screen with 8-Step Animated FRANK Logo -->
+    <!-- Application Loading Screen with Official FRANK Brand Icon & Instant Fade-out -->
     <div class="app-loading-screen" id="appLoadingScreen">
         <div class="frank-logo-anim-stage splash">
-            <div class="frank-light-streak" aria-hidden="true"></div>
             <div class="frank-anim-glow" aria-hidden="true"></div>
-            <div class="frank-anim-emblem">
-                <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="splashSpineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stop-color="#2563EB" />
-                            <stop offset="45%" stop-color="#7C3AED" />
-                            <stop offset="100%" stop-color="#C026D3" />
-                        </linearGradient>
-                        <linearGradient id="splashTopGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stop-color="#2563EB" />
-                            <stop offset="50%" stop-color="#3B82F6" />
-                            <stop offset="100%" stop-color="#06B6D4" />
-                        </linearGradient>
-                        <linearGradient id="splashMidGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stop-color="#7C3AED" />
-                            <stop offset="60%" stop-color="#A855F7" />
-                            <stop offset="100%" stop-color="#F43F5E" />
-                        </linearGradient>
-                        <linearGradient id="splashBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#0B0F28" />
-                            <stop offset="100%" stop-color="#141B4D" />
-                        </linearGradient>
-                        <filter id="splashSparkGlow" x="-30%" y="-30%" width="160%" height="160%">
-                            <feGaussianBlur stdDeviation="2" result="blur" />
-                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                        </filter>
-                    </defs>
-                    <rect class="frank-svg-bg" x="6" y="6" width="88" height="88" rx="22" fill="url(#splashBgGrad)" stroke="rgba(59, 130, 246, 0.35)" stroke-width="1.6" />
-                    <!-- STEP 2: F symbol begins drawing (spine + chat notch) -->
-                    <path class="frank-draw-spine" d="M 30 26 L 30 70 L 21 80 L 29 80" stroke="url(#splashSpineGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                    <!-- STEP 3: F shape completes (top & mid beams) -->
-                    <path class="frank-draw-top" d="M 30 26 L 74 26" stroke="url(#splashTopGrad)" stroke-width="10" stroke-linecap="round" fill="none" />
-                    <path class="frank-draw-mid" d="M 30 48 L 58 48" stroke="url(#splashMidGrad)" stroke-width="10" stroke-linecap="round" fill="none" />
-                    <!-- STEP 5: Spark pulse dot -->
-                    <circle class="frank-svg-spark" cx="74" cy="26" r="3.5" fill="#22D3EE" filter="url(#splashSparkGlow)" />
-                </svg>
+            <div class="frank-anim-emblem" style="opacity: 1; transform: none; width: 84px; height: 84px; filter: drop-shadow(0 0 24px rgba(59, 130, 246, 0.45));">
+                <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="84" height="84" style="border-radius: 20px; display: block;">
             </div>
-            <div class="frank-anim-wordmark">FRANK</div>
-            <div class="frank-anim-tagline">Think</div>
+            <div class="frank-anim-wordmark" style="opacity: 1; transform: none; margin-top: 16px;">FRANK</div>
+            <div class="frank-anim-tagline" style="opacity: 1; transform: none; margin-top: 6px;">Think</div>
+            <div class="frank-loading-bar-wrap" style="width: 100px; height: 3px; background: rgba(255,255,255,0.08); border-radius: 9999px; margin-top: 20px; overflow: hidden; position: relative;">
+                <div class="frank-loading-bar-fill" style="width: 50%; height: 100%; background: linear-gradient(90deg, #2563EB, #7C3AED, #06B6D4); border-radius: 9999px; animation: frankBarShimmer 0.9s infinite ease-in-out;"></div>
+            </div>
         </div>
     </div>
 
@@ -709,5 +677,21 @@
     <script src="js/notifications.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- Guaranteed Instant Fade-out for App Loading Screen -->
+    <script>
+        (function() {
+            function dismissLoadingScreen() {
+                const loader = document.getElementById('appLoadingScreen');
+                if (loader && !loader.classList.contains('fade-out')) {
+                    loader.classList.add('fade-out');
+                    setTimeout(() => { if (loader && loader.parentNode) loader.remove(); }, 400);
+                }
+            }
+            // Auto dismiss smoothly after at most 600ms, or when window finishes loading
+            setTimeout(dismissLoadingScreen, 600);
+            window.addEventListener('load', () => setTimeout(dismissLoadingScreen, 150));
+        })();
+    </script>
 </body>
 </html>

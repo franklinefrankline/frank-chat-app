@@ -376,6 +376,37 @@
     width: 100px;
 }
 
+/* Instant Visibility & Smooth Loading Bar for Splash & Compact */
+.frank-logo-anim-stage.splash .frank-anim-emblem,
+.frank-logo-anim-stage.compact .frank-anim-emblem {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+}
+
+.frank-logo-anim-stage.splash .frank-anim-wordmark,
+.frank-logo-anim-stage.compact .frank-anim-wordmark {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+}
+
+.frank-logo-anim-stage.splash .frank-anim-tagline,
+.frank-logo-anim-stage.compact .frank-anim-tagline {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+}
+
+@keyframes frankBarShimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(200%);
+    }
+}
+
 /* Section 13: Dashboard Static Logo Hover Micro-Interaction */
 .sidebar-brand a.brand-text,
 .dashboard-brand-hover {

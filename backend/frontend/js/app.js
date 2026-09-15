@@ -49,14 +49,14 @@ class AppController {
                 window.location.href = 'login.html';
             }
         } finally {
-            // Section 11: Splash animation duration ~1.8-2.2s, dismiss smoothly
+            // Dismiss loading screen promptly and smoothly
             setTimeout(() => {
                 const loader = document.getElementById('appLoadingScreen');
-                if (loader) {
+                if (loader && !loader.classList.contains('fade-out')) {
                     loader.classList.add('fade-out');
-                    setTimeout(() => loader.remove(), 500);
+                    setTimeout(() => { if (loader && loader.parentNode) loader.remove(); }, 350);
                 }
-            }, 1800);
+            }, 300);
         }
     }
 
