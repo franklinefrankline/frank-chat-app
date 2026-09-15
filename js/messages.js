@@ -17,11 +17,13 @@ const messagesModule = {
         if (dateInput instanceof Date) return isNaN(dateInput.getTime()) ? null : dateInput;
         let s = String(dateInput).trim();
         if (!s) return null;
+        // Normalize space separator to 'T' for ISO compliance
+        if (s.includes(' ') && !s.includes('T')) {
+            s = s.replace(' ', 'T');
+        }
         // If string lacks timezone indicator (Z or +/-offset), append Z so browser treats as UTC
         if (!s.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(s)) {
-            if (s.includes('T')) {
-                s = s + 'Z';
-            }
+            s = s + 'Z';
         }
         const d = new Date(s);
         return isNaN(d.getTime()) ? null : d;
@@ -29,9 +31,9 @@ const messagesModule = {
 
     // Format clean 12-hour time: e.g. "7:42 PM" (no leading zero on hour, no seconds)
     formatTime(dateStr) {
-        const d = this.parseDate(dateStr);
+        const d = (dateStr instanceof Date) ? dateStr : this.parseDate(dateStr);
         if (!d) return '';
-        return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+        return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     },
 
     // Contextual message timestamp displaying BOTH date and time:
