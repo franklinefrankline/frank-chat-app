@@ -477,29 +477,19 @@
 }
 
 /* -------------------------------------------------------------------------
-   FRANK DESKTOP CUSTOM CURSOR (Section 37)
-   Miniature 18-24px FRANK F cursor with subtle glow and 1.15x hover scale.
-   Restricted to desktop fine pointers (@media (hover: hover) and (pointer: fine)).
-   Strict native text caret preserved on all form inputs and textareas.
+   STANDARD NATIVE SYSTEM CURSOR
+   Restored standard native operating system cursor.
    ------------------------------------------------------------------------- */
-@media (hover: hover) and (pointer: fine) {
-    html, body {
-        cursor: url("../assets/brand/frank-cursor.svg") 2 2, auto;
-    }
+html, body {
+    cursor: default;
+}
 
-    a, button, [role="button"], .btn, .conversation-card, .filter-chip, .clickable, .tab-btn, .action-btn {
-        cursor: url("../assets/brand/frank-cursor.svg") 2 2, pointer !important;
-        transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), filter 140ms ease;
-    }
+a, button, [role="button"], .btn, .conversation-card, .filter-chip, .clickable, .tab-btn, .action-btn {
+    cursor: pointer;
+}
 
-    a:hover, button:hover, .btn:hover {
-        filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.35));
-    }
-
-    /* Native text caret for inputs, textareas, and editable fields */
-    input, textarea, [contenteditable="true"], .composer-textarea, .form-input, .form-textarea {
-        cursor: text !important;
-    }
+input, textarea, [contenteditable="true"], .composer-textarea, .form-input, .form-textarea {
+    cursor: text;
 }
 
 
