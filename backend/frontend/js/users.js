@@ -95,15 +95,18 @@ const usersModule = {
     },
 
     resetModal() {
-        // Reset to Section 1 (Existing Contacts)
-        const tabContacts = document.getElementById('newChatTabContacts');
-        tabContacts?.click();
+        // Default to FRANK ID connect section as requested in spec
+        const tabFrankId = document.getElementById('newChatTabFrankId');
+        tabFrankId?.click();
 
         const searchInput = document.getElementById('userSearchQuery');
         if (searchInput) searchInput.value = '';
 
         const frankIdInput = document.getElementById('frankIdSearchInput');
-        if (frankIdInput) frankIdInput.value = '';
+        if (frankIdInput) {
+            frankIdInput.value = '';
+            setTimeout(() => frankIdInput.focus(), 150);
+        }
 
         this.clearPreview();
     },
@@ -185,16 +188,16 @@ const usersModule = {
     },
 
     async searchByFrankId(idInput) {
-        const cleanId = (idInput || '').trim().toUpperCase();
+        const cleanId = (idInput || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
         const loading = document.getElementById('frankIdSearchLoading');
         const error = document.getElementById('frankIdSearchError');
         const preview = document.getElementById('frankIdProfilePreview');
 
         if (!cleanId) return;
 
-        if (cleanId.length !== 6 || !/^[A-Z0-9]{6}$/.test(cleanId)) {
+        if (cleanId.length !== 6) {
             if (error) {
-                error.textContent = 'FRANK ID must be exactly 6 alphanumeric characters (e.g. F4M8Q1).';
+                error.textContent = 'FRANK ID must be exactly 6 characters (Letters A-Z, Numbers 0-9).';
                 error.style.display = 'block';
             }
             if (preview) preview.style.display = 'none';
@@ -247,7 +250,7 @@ const usersModule = {
         } catch (err) {
             if (loading) loading.style.display = 'none';
             if (error) {
-                error.textContent = `User with FRANK ID "${cleanId}" not found. Please verify the code.`;
+                error.textContent = 'FRANK ID not found';
                 error.style.display = 'block';
             }
             if (preview) preview.style.display = 'none';

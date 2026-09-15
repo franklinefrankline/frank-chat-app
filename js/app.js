@@ -27,6 +27,16 @@ class AppController {
             auth.logout();
         });
 
+        const dismissLoader = () => {
+            const loader = document.getElementById('appLoadingScreen');
+            if (loader && !loader.classList.contains('fade-out')) {
+                loader.classList.add('fade-out');
+                setTimeout(() => { if (loader && loader.parentNode) loader.remove(); }, 350);
+            }
+        };
+        // Safety timeout: loader never blocks UI beyond 800ms
+        setTimeout(dismissLoader, 800);
+
         try {
             this.currentUser = await api.getCurrentUser();
             auth.setUser(this.currentUser);
@@ -49,14 +59,7 @@ class AppController {
                 window.location.href = 'login.html';
             }
         } finally {
-            // Dismiss loading screen promptly and smoothly
-            setTimeout(() => {
-                const loader = document.getElementById('appLoadingScreen');
-                if (loader && !loader.classList.contains('fade-out')) {
-                    loader.classList.add('fade-out');
-                    setTimeout(() => { if (loader && loader.parentNode) loader.remove(); }, 350);
-                }
-            }, 300);
+            dismissLoader();
         }
     }
 
@@ -86,10 +89,15 @@ class AppController {
     updateSidebarUser(user) {
         const nameEl = document.getElementById('sidebarUserName');
         const initialsEl = document.getElementById('sidebarUserInitials');
+        const frankIdEl = document.getElementById('sidebarUserFrankId');
         if (nameEl) nameEl.textContent = user.full_name || user.username;
         if (initialsEl) {
             const name = user.full_name || user.username || '??';
             initialsEl.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        }
+        if (frankIdEl && user.frank_id) {
+            frankIdEl.textContent = user.frank_id;
+            frankIdEl.title = `Your permanent FRANK ID: ${user.frank_id} (Click to copy)`;
         }
     }
 

@@ -98,6 +98,17 @@ def check_and_migrate_db():
                     conn.execute(text("UPDATE users SET frank_id = :fid WHERE id = :uid"), {"fid": new_fid, "uid": uid})
 
                 conn.execute(text("UPDATE users SET bio = REPLACE(REPLACE(bio, 'ChatApp', 'FRANK'), 'QENVO', 'FRANK') WHERE bio LIKE '%ChatApp%' OR bio LIKE '%QENVO%'"))
+
+                try:
+                    conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_users_frank_id ON users(frank_id)"))
+                except Exception:
+                    pass
+
+            if "conversations" in tables:
+                try:
+                    conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_conversation_users ON conversations(user_a_id, user_b_id)"))
+                except Exception:
+                    pass
     except Exception as e:
         print(f"Migration note: {e}")
 

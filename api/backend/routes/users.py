@@ -68,7 +68,7 @@ def get_user_by_frank_id(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with FRANK ID '{clean_id}' not found."
+            detail="FRANK ID not found"
         )
 
     return user

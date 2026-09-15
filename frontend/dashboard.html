@@ -75,7 +75,7 @@
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                <span>New Chat</span>
+                <span>+ New Conversation</span>
             </button>
 
             <!-- Sidebar Navigation Sections -->
@@ -198,9 +198,12 @@
                     </div>
                     <div class="sidebar-user-info">
                         <div class="sidebar-user-name" id="sidebarUserName">Loading...</div>
-                        <div class="sidebar-user-status">
-                            <span style="width:6px; height:6px; border-radius:50%; background:currentColor;"></span>
-                            Online
+                        <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                            <div class="sidebar-user-status" style="display: inline-flex; align-items: center; gap: 4px;">
+                                <span style="width:6px; height:6px; border-radius:50%; background:currentColor;"></span>
+                                Online
+                            </div>
+                            <span id="sidebarUserFrankId" style="font-family: monospace; font-size: 11px; font-weight: 800; color: var(--accent-cyan); background: rgba(6, 182, 212, 0.12); padding: 1px 5px; border-radius: 4px; border: 1px solid rgba(6, 182, 212, 0.25); cursor: pointer;" title="Click to copy your permanent FRANK ID" onclick="event.stopPropagation(); const fid=this.textContent; if(fid && fid!=='------'){ navigator.clipboard.writeText(fid).then(()=>showToast('FRANK ID '+fid+' copied!','success')); }">------</span>
                         </div>
                     </div>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);">
@@ -250,11 +253,12 @@
 
                 <h1 class="conversation-header-title">Messages</h1>
 
-                <button type="button" class="btn btn-primary btn-icon" id="newChatModalBtn" data-open-modal="newChatModal" aria-label="Start New Chat" title="Start New Chat">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <button type="button" class="btn btn-primary btn-sm" id="newChatModalBtn" data-open-modal="newChatModal" aria-label="New Conversation" title="New Conversation" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; white-space: nowrap; padding: 6px 12px; font-size: 13px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
+                    <span>+ New Conversation</span>
                 </button>
             </div>
 
@@ -290,17 +294,24 @@
         <!-- ================= 3. ACTIVE CHAT WINDOW (Remaining Width) ================= -->
         <main class="chat-window" id="chatWindow">
 
-            <!-- Empty Chat State -->
-            <div class="empty-state" id="emptyChatPlaceholder">
-                <div class="empty-state-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
+            <!-- Empty Chat State (Official FRANK Brand Display) -->
+            <div class="empty-state" id="emptyChatPlaceholder" style="max-width: 480px; margin: auto; padding: 48px 24px; text-align: center;">
+                <div class="frank-logo-anim-stage compact" style="margin: 0 auto var(--space-4) auto;">
+                    <div class="frank-anim-glow" aria-hidden="true"></div>
+                    <div class="frank-anim-emblem" style="width: 72px; height: 72px; filter: drop-shadow(0 0 24px rgba(59, 130, 246, 0.45));">
+                        <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="72" height="72" style="border-radius: 18px; display: block;">
+                    </div>
+                    <div class="frank-anim-wordmark" style="margin-top: 14px; font-size: 26px; font-weight: 900; letter-spacing: 2px;">FRANK</div>
+                    <div class="frank-anim-tagline" style="margin-top: 4px; font-size: 14px; font-weight: 600; color: #94A3B8;">Think</div>
                 </div>
-                <h2 class="empty-state-title">Your conversations live here</h2>
-                <p class="empty-state-desc">Select an active chat or group on the left, or initiate a new conversation with a contact.</p>
-                <button type="button" class="btn btn-primary" data-open-modal="newChatModal">
-                    Start a New Chat
+                <h2 class="empty-state-title" style="font-size: 20px; font-weight: 800; color: var(--text); margin-top: 12px;">Start a new conversation</h2>
+                <p class="empty-state-desc" style="font-size: 14px; color: var(--text-muted); max-width: 380px; margin: 8px auto 24px auto; line-height: 1.5;">Connect with anyone using their permanent 6-character FRANK ID, or pick an existing conversation from your chat list.</p>
+                <button type="button" class="btn btn-primary btn-large" id="emptyStateNewChatBtn" data-open-modal="newChatModal" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 700; padding: 12px 28px; font-size: 15px; border-radius: var(--radius-full); box-shadow: 0 4px 18px rgba(37, 99, 235, 0.35);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span>+ New Conversation</span>
                 </button>
             </div>
 
@@ -704,41 +715,32 @@
 
     <!-- ================= MODALS ================= -->
 
-    <!-- New Chat Modal -->
+    <!-- New Conversation Modal -->
     <div class="modal-backdrop" id="newChatModal" role="dialog" aria-modal="true" aria-labelledby="newChatModalTitle">
         <div class="modal-card" style="max-width: 520px;">
             <div class="modal-header">
-                <h2 class="modal-title" id="newChatModalTitle">Start a Conversation</h2>
+                <h2 class="modal-title" id="newChatModalTitle">New Conversation</h2>
                 <button type="button" class="modal-close" data-close-modal="newChatModal" aria-label="Close modal">✕</button>
             </div>
             
             <div class="modal-body" style="padding: 0;">
                 <!-- Dual Section Switcher -->
                 <div style="display: flex; border-bottom: 1px solid var(--border); background: var(--surface);">
-                    <button type="button" id="newChatTabContacts" class="tab-btn active" style="flex: 1; padding: 12px; font-weight: 700; font-size: 13px; text-align: center; border-bottom: 2px solid var(--primary); background: transparent; color: var(--text); cursor: pointer; border-top: none; border-left: none; border-right: none;">
+                    <button type="button" id="newChatTabFrankId" class="tab-btn active" style="flex: 1; padding: 12px; font-weight: 700; font-size: 13px; text-align: center; border-bottom: 2px solid var(--primary); background: transparent; color: var(--text); cursor: pointer; border-top: none; border-left: none; border-right: none;">
+                        ⚡ Connect via FRANK ID
+                    </button>
+                    <button type="button" id="newChatTabContacts" class="tab-btn" style="flex: 1; padding: 12px; font-weight: 700; font-size: 13px; text-align: center; border-bottom: 2px solid transparent; background: transparent; color: var(--text-muted); cursor: pointer; border-top: none; border-left: none; border-right: none;">
                         👥 Existing Contacts
                     </button>
-                    <button type="button" id="newChatTabFrankId" class="tab-btn" style="flex: 1; padding: 12px; font-weight: 700; font-size: 13px; text-align: center; border-bottom: 2px solid transparent; background: transparent; color: var(--text-muted); cursor: pointer; border-top: none; border-left: none; border-right: none;">
-                        ⚡ New Person (FRANK ID)
-                    </button>
                 </div>
 
-                <!-- SECTION 1: Existing Contacts (Direct 1-click open, NO FRANK ID required) -->
-                <div id="newChatSectionContacts" style="padding: var(--space-4);">
-                    <div class="form-group" style="margin-bottom: var(--space-3);">
-                        <input type="text" class="form-input" id="userSearchQuery" placeholder="Filter existing contacts or chats..." autocomplete="off">
-                    </div>
-                    <div style="max-height: 280px; overflow-y: auto;" id="userSearchResults">
-                        <div class="empty-state" style="padding: var(--space-4);">
-                            <div class="spinner"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SECTION 2: New Person via Permanent 6-Character FRANK ID -->
-                <div id="newChatSectionFrankId" style="display: none; padding: var(--space-5);">
-                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5;">
-                        Connect with someone new using their permanent <strong>6-character FRANK ID</strong> (e.g. <code style="font-weight: 700; color: var(--accent-cyan);">F4M8Q1</code>).
+                <!-- SECTION 1: Connect via Permanent 6-Character FRANK ID (Default) -->
+                <div id="newChatSectionFrankId" style="display: block; padding: var(--space-5);">
+                    <label for="frankIdSearchInput" style="display: block; font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 8px;">
+                        Enter FRANK ID
+                    </label>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.4;">
+                        Enter a person's exact 6-character permanent FRANK ID (e.g. <code style="font-weight: 800; color: var(--accent-cyan); letter-spacing: 1px;">F4M8Q1</code>).
                     </div>
                     
                     <div style="display: flex; gap: 8px; margin-bottom: 14px;">
@@ -746,27 +748,28 @@
                             type="text" 
                             class="form-input" 
                             id="frankIdSearchInput" 
-                            placeholder="6-CHAR ID (e.g. F4M8Q1)" 
+                            placeholder="F4M8Q1" 
                             maxlength="6" 
-                            style="font-family: monospace; font-size: 17px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; text-align: center;"
+                            style="font-family: monospace; font-size: 18px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; text-align: center;"
                             autocomplete="off"
                             spellcheck="false"
+                            aria-label="Enter FRANK ID"
                         >
-                        <button type="button" class="btn btn-primary" id="frankIdSearchBtn" style="padding: 0 18px; font-weight: 700; white-space: nowrap;">
-                            Find Person
+                        <button type="button" class="btn btn-primary" id="frankIdSearchBtn" style="padding: 0 20px; font-weight: 700; white-space: nowrap;">
+                            Connect
                         </button>
                     </div>
 
                     <!-- FRANK ID Search Status / Spinner -->
                     <div id="frankIdSearchLoading" style="display: none; text-align: center; padding: 14px;">
                         <div class="spinner" style="margin: 0 auto 8px auto;"></div>
-                        <div style="font-size: 12px; color: var(--text-muted);">Searching directory for FRANK ID...</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">Finding user...</div>
                     </div>
 
                     <!-- FRANK ID Error Message -->
-                    <div id="frankIdSearchError" style="display: none; padding: 10px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); font-size: 13px; color: var(--danger); margin-bottom: 12px;"></div>
+                    <div id="frankIdSearchError" style="display: none; padding: 10px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); font-size: 13px; color: var(--danger); margin-bottom: 12px; font-weight: 600;"></div>
 
-                    <!-- Profile Preview Card -->
+                    <!-- Profile Preview Card (Safe Public Information) -->
                     <div id="frankIdProfilePreview" style="display: none; background: var(--surface-elevated); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: var(--radius-lg); padding: 16px; margin-top: 8px;">
                         <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
                             <div class="avatar avatar-lg" id="previewAvatar">
@@ -784,9 +787,21 @@
 
                         <p id="previewBio" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.4;"></p>
 
-                        <button type="button" class="btn btn-primary btn-full" id="previewStartChatBtn" style="font-weight: 700;">
+                        <button type="button" class="btn btn-primary btn-full" id="previewStartChatBtn" style="font-weight: 700; padding: 10px;">
                             💬 Message
                         </button>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: Existing Contacts (1-Click Direct Chat) -->
+                <div id="newChatSectionContacts" style="display: none; padding: var(--space-4);">
+                    <div class="form-group" style="margin-bottom: var(--space-3);">
+                        <input type="text" class="form-input" id="userSearchQuery" placeholder="Filter existing contacts or chats..." autocomplete="off">
+                    </div>
+                    <div style="max-height: 280px; overflow-y: auto;" id="userSearchResults">
+                        <div class="empty-state" style="padding: var(--space-4);">
+                            <div class="spinner"></div>
+                        </div>
                     </div>
                 </div>
             </div>

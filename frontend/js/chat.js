@@ -399,6 +399,14 @@ class ChatController {
     appendMessage(msg, currentUserId) {
         if (!this.dom.messagesContainer) return;
 
+        const msgId = Number(msg.id || msg.message_id);
+        if (msgId) {
+            // Deduplicate if already present in active array or rendered in DOM
+            if (this.activeMessages.some(m => Number(m.id || m.message_id) === msgId) || document.getElementById(`msgRow-${msgId}`)) {
+                return;
+            }
+        }
+
         const empty = this.dom.messagesContainer.querySelector('.empty-state');
         if (empty) empty.remove();
 
@@ -1076,28 +1084,33 @@ class ChatController {
             const currentUser = auth.getUser();
             const currentUserId = currentUser ? currentUser.id : null;
 
-            const isDirectForActiveChat = this.activeType === 'direct' &&
-                ((msg.sender_id === this.activeId && msg.recipient_id === currentUserId) ||
-                 (msg.sender_id === currentUserId && msg.recipient_id === this.activeId));
+            const senderId = Number(msg.sender_id);
+            const recipientId = Number(msg.recipient_id);
+            const activeId = Number(this.activeId);
+            const myId = Number(currentUserId);
 
-            const isGroupForActiveChat = this.activeType === 'group' && msg.group_id === this.activeId;
+            const isDirectForActiveChat = this.activeType === 'direct' &&
+                ((senderId === activeId && recipientId === myId) ||
+                 (senderId === myId && recipientId === activeId));
+
+            const isGroupForActiveChat = this.activeType === 'group' && Number(msg.group_id) === activeId;
 
             if (isDirectForActiveChat || isGroupForActiveChat) {
                 this.appendMessage(msg, currentUserId);
 
-                if (msg.sender_id === this.activeId) {
+                if (senderId === activeId) {
                     window.wsClient.sendRead([msg.id]);
                 }
             }
 
             // Notification for background incoming messages
-            if (msg.sender_id !== currentUserId) {
+            if (senderId !== myId) {
                 if (typeof window.notificationsModule !== 'undefined') {
                     window.notificationsModule.notifyIncoming(msg);
                 }
             }
 
-            // Refresh conversation preview
+            // Real-time conversation sync: updates last message snippet, timestamp, and unread badge instantly
             if (typeof window.appController !== 'undefined') {
                 window.appController.loadConversations(false);
             }
@@ -1116,8 +1129,8 @@ class ChatController {
 
         // 3. Typing Events
         window.wsClient.on('typing', (data) => {
-            const isDirect = this.activeType === 'direct' && data.sender_id === this.activeId;
-            const isGroup = this.activeType === 'group' && data.group_id === this.activeId && data.sender_id !== (auth.getUser()?.id);
+            const isDirect = this.activeType === 'direct' && Number(data.sender_id) === Number(this.activeId);
+            const isGroup = this.activeType === 'group' && Number(data.group_id) === Number(this.activeId) && Number(data.sender_id) !== Number(auth.getUser()?.id);
 
             if (isDirect || isGroup) {
                 if (data.is_typing) {
@@ -1130,9 +1143,9 @@ class ChatController {
             }
         });
 
-        // 3. Presence Updates
+        // 4. Presence Updates
         window.wsClient.on('presence', (data) => {
-            if (this.activeType === 'direct' && data.user_id === this.activeId) {
+            if (this.activeType === 'direct' && Number(data.user_id) === Number(this.activeId)) {
                 const isOnline = !!data.is_online;
                 if (this.dom.partnerPresence) {
                     this.dom.partnerPresence.textContent = isOnline ? 'Online' : 'Offline';
