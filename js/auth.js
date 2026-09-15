@@ -26,14 +26,20 @@ const auth = {
     },
 
     guard() {
-        const path = window.location.pathname;
+        const path = window.location.pathname.replace(/\/+$/, '') || '/';
         const isAuth = this.isAuthenticated();
 
-        const protectedPages = ['dashboard.html', 'chat.html', 'profile.html', 'settings.html'];
-        const guestOnlyPages = ['login.html', 'register.html'];
+        const protectedRoutes = [
+            'dashboard.html', 'chat.html', 'profile.html', 'settings.html',
+            '/dashboard', '/chat', '/profile', '/settings'
+        ];
+        const guestOnlyRoutes = [
+            'login.html', 'register.html',
+            '/login', '/register'
+        ];
 
-        const isProtected = protectedPages.some(page => path.endsWith(page));
-        const isGuestOnly = guestOnlyPages.some(page => path.endsWith(page));
+        const isProtected = protectedRoutes.some(route => path.endsWith(route) || path === route);
+        const isGuestOnly = guestOnlyRoutes.some(route => path.endsWith(route) || path === route);
 
         if (isProtected && !isAuth) {
             window.location.href = 'login.html';

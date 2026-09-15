@@ -10,6 +10,7 @@ const API_BASE = (window.FRANK_CONFIG && window.FRANK_CONFIG.API_BASE)
         : 'http://localhost:8000');
 
 const api = {
+    baseUrl: API_BASE,
     getToken() {
         return localStorage.getItem('chatapp_token');
     },

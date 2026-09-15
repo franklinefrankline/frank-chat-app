@@ -140,7 +140,7 @@ class ChatWebSocketClient {
             type: 'read',
             message_ids: Array.isArray(messageIds) ? messageIds : [messageIds]
         });
-    },
+    }
 
     sendEditMessage(messageId, content) {
         return this.send({

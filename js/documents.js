@@ -295,7 +295,7 @@ class DocumentsController {
             chat.clearReplying();
 
             if (window.wsClient && window.wsClient.isConnected) {
-                window.wsClient.ws.send(JSON.stringify({
+                window.wsClient.send({
                     type: 'message',
                     recipient_id: chat.activeType === 'direct' ? chat.activeId : null,
                     group_id: chat.activeType === 'group' ? chat.activeId : null,
@@ -304,7 +304,7 @@ class DocumentsController {
                     file_id: uploadedDoc.id,
                     filename: uploadedDoc.original_filename,
                     reply_to_id: replyId
-                }));
+                });
             } else {
                 // REST Fallback
                 const newMsg = await api.sendMessage({

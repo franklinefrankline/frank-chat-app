@@ -131,6 +131,7 @@ app = FastAPI(
 
 # CORS configuration
 default_origins = [
+    "https://frank-chat-app.vercel.app",
     "https://frank-chat-vercel.app",
     "https://frank-chat-vercel.vercel.app",
     "http://localhost:8000",
@@ -149,6 +150,7 @@ allowed_origins = list(set(default_origins + env_origins))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins if "*" not in env_origins else ["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

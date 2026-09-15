@@ -58,6 +58,7 @@ class ChatController {
         this.setupChatSearch();
         this.setupHeaderMoreMenu();
         this.setupWebSocketListeners();
+        this.setupPollingFallback();
     }
 
     // ---------------- DIRECT CHAT SELECTION ----------------
@@ -943,6 +944,35 @@ class ChatController {
                 }
             }
         });
+    }
+
+    setupPollingFallback() {
+        // Automatic REST sync fallback when WebSocket is offline or in serverless mode
+        setInterval(async () => {
+            if (!this.activeId || !auth.isAuthenticated()) return;
+            if (window.wsClient && window.wsClient.isConnected) return;
+
+            try {
+                let freshMessages = [];
+                if (this.activeType === 'direct') {
+                    freshMessages = await api.getDirectMessages(this.activeId);
+                } else if (this.activeType === 'group') {
+                    freshMessages = await api.getGroupMessages(this.activeId);
+                }
+
+                if (freshMessages && freshMessages.length > this.activeMessages.length) {
+                    const currentUser = auth.getUser();
+                    const currentUserId = currentUser ? currentUser.id : null;
+                    const existingIds = new Set(this.activeMessages.map(m => m.id));
+
+                    freshMessages.forEach(msg => {
+                        if (!existingIds.has(msg.id)) {
+                            this.appendMessage(msg, currentUserId);
+                        }
+                    });
+                }
+            } catch {}
+        }, 4000);
     }
 }
 
