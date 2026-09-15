@@ -162,14 +162,6 @@ app.add_middleware(SecurityHeadersMiddleware)
 @app.middleware("http")
 async def ensure_api_prefix(request: Request, call_next):
     path = request.url.path
-
-    # If Vercel rewrote /api/(.*) to /api, check x-matched-path or x-forwarded-uri
-    if path in ("/", "/api", "/api/"):
-        matched = request.headers.get("x-matched-path") or request.headers.get("x-forwarded-uri")
-        if matched and matched.startswith("/api/"):
-            request.scope["path"] = matched
-            path = matched
-
     for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health"]:
         if path.startswith(pfx):
             request.scope["path"] = "/api" + path
@@ -193,6 +185,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
 
 @app.get("/api")
 @app.get("/api/")
+@app.get("/api/index.py")
 @app.get("/api/health")
 @app.get("/health")
 def health_check():
