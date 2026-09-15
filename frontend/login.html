@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRANK — Think. Chat. Connect. Together.</title>
+    <title>FRANK — Think</title>
     <meta name="description" content="Sign in to your FRANK account to continue your real-time conversations.">
     <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
 
@@ -27,28 +27,32 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <div class="auth-wrapper">
-        <!-- Left Showcase -->
-        <div class="auth-showcase">
-            <div class="auth-showcase-header">
+        <!-- Left Showcase (Futuristic FRANK Branding Panel) -->
+        <div class="auth-showcase frank-showcase-bg">
+            <div class="frank-light-ring frank-light-ring-1" aria-hidden="true"></div>
+            <div class="frank-light-ring frank-light-ring-2" aria-hidden="true"></div>
+            <div class="frank-glow-streak" aria-hidden="true"></div>
+
+            <div class="auth-showcase-header" style="position: relative; z-index: 2;">
                 <a href="index.html" class="brand-link">
                     <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" style="width: 32px; height: 32px; border-radius: 8px;">
                     <span>FRANK</span>
                 </a>
             </div>
 
-            <div class="auth-showcase-content">
-                <!-- Official FRANK Brand Logo -->
+            <div class="auth-showcase-content" style="position: relative; z-index: 2;">
+                <!-- Official FRANK Brand Logo Lockup -->
                 <div class="frank-logo-anim-stage compact" style="margin-bottom: var(--space-4); align-items: flex-start;">
                     <div class="frank-anim-glow" aria-hidden="true"></div>
-                    <div class="frank-anim-emblem" style="opacity: 1; transform: none; width: 68px; height: 68px; filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.4));">
+                    <div class="frank-anim-emblem" style="width: 68px; height: 68px; filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.45));">
                         <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="68" height="68" style="border-radius: 17px; display: block;">
                     </div>
-                    <div class="frank-anim-wordmark" style="opacity: 1; transform: none; margin-top: 12px; font-size: 22px;">FRANK</div>
-                    <div class="frank-anim-tagline" style="opacity: 1; transform: none; margin-top: 4px;">Think. Chat. Connect. Together.</div>
+                    <div class="frank-anim-wordmark" style="margin-top: 12px; font-size: 24px; font-weight: 900; letter-spacing: 2px;">FRANK</div>
+                    <div class="frank-anim-tagline" style="margin-top: 4px; font-size: 14px; font-weight: 500; color: #94A3B8;">Think</div>
                 </div>
 
-                <h2 style="font-size: 34px; font-weight: 800; line-height: 1.2; margin-top: var(--space-4);">Welcome to FRANK</h2>
-                <p style="font-size: 17px; color: #cbd5e1; font-weight: 500; margin-bottom: var(--space-6);">"Think. Chat. Connect. Together."</p>
+                <h2 style="font-size: 32px; font-weight: 800; line-height: 1.2; margin-top: var(--space-4);">Welcome to FRANK</h2>
+                <p style="font-size: 16px; color: #cbd5e1; font-weight: 500; margin-bottom: var(--space-6);">Think</p>
 
                 <div class="auth-feature-list">
                     <div class="auth-feature-item">
@@ -78,17 +82,19 @@
                 </div>
             </div>
 
-            <div class="auth-showcase-footer">
-                &copy; 2026 FRANK. All rights reserved. &bull; Think
+            <div class="auth-showcase-footer" style="position: relative; z-index: 2;">
+                &copy; 2026 FRANK. All rights reserved.
             </div>
         </div>
 
-        <!-- Right Form Panel -->
+        <!-- Right Form Panel (Clean White Background) -->
         <div class="auth-form-container">
             <div class="auth-card">
                 <div class="auth-card-header">
-                    <div class="auth-card-logo" style="margin-bottom: var(--space-4); display: flex; justify-content: center; align-items: center;">
-                        <img src="assets/brand/frank-logo.svg" alt="FRANK Logo" style="height: 38px; width: auto;" class="auth-logo-img">
+                    <div class="auth-card-logo" style="margin-bottom: var(--space-4); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+                        <img src="assets/brand/frank-icon.svg" alt="FRANK Icon" style="height: 48px; width: 48px; border-radius: 12px; filter: drop-shadow(0 0 12px rgba(37, 99, 235, 0.35));" class="auth-logo-img">
+                        <div style="font-size: 20px; font-weight: 900; letter-spacing: 1.5px; color: var(--text);">FRANK</div>
+                        <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 1px;">Think</div>
                     </div>
                     <h1 class="auth-card-title">Sign in to FRANK</h1>
                     <p class="auth-card-subtitle">Think</p>
