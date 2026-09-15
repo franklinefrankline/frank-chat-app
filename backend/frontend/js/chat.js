@@ -25,6 +25,7 @@ class ChatController {
             typingUserText: document.getElementById('typingUserText'),
             textarea: document.getElementById('messageComposerTextarea'),
             sendBtn: document.getElementById('composerSendBtn'),
+            micBtn: document.getElementById('composerMicBtn'),
             emojiBtn: document.getElementById('emojiBtn'),
             emojiPopover: document.getElementById('emojiPickerPopover'),
             emojiGrid: document.getElementById('emojiPickerGrid'),
@@ -68,6 +69,9 @@ class ChatController {
         this.activePartner = partner;
         this.clearReplying();
         this.closeMoreMenu();
+        if (window.documentsController) window.documentsController.clearStagedFile();
+        if (window.voiceRecorder) window.voiceRecorder.cancelRecording();
+        this.updateComposerActionButton();
 
         // Update Header UI
         if (this.dom.partnerName) {
@@ -120,6 +124,9 @@ class ChatController {
         this.activePartner = group;
         this.clearReplying();
         this.closeMoreMenu();
+        if (window.documentsController) window.documentsController.clearStagedFile();
+        if (window.voiceRecorder) window.voiceRecorder.cancelRecording();
+        this.updateComposerActionButton();
 
         const currentUser = auth.getUser();
         const isCreator = group.created_by === (currentUser ? currentUser.id : null);
@@ -275,6 +282,7 @@ class ChatController {
         this.dom.textarea.value = '';
         this.autoResizeTextarea();
         this.clearReplying();
+        this.updateComposerActionButton();
 
         if (window.wsClient && window.wsClient.isConnected) {
             window.wsClient.sendChatMessage(
@@ -300,6 +308,92 @@ class ChatController {
                 showToast(err.message || 'Failed to send message', 'error');
             }
         }
+    }
+
+    // Dynamic Action Button (Microphone vs Send)
+    updateComposerActionButton() {
+        if (!this.dom.sendBtn) return;
+        const text = (this.dom.textarea?.value || '').trim();
+        const hasAttachment = !!(window.documentsController && window.documentsController.selectedFile);
+        const hasVoicePreview = !!(window.voiceRecorder && window.voiceRecorder.audioBlob);
+
+        if (text.length > 0 || hasAttachment || hasVoicePreview) {
+            this.dom.sendBtn.classList.remove('mode-mic');
+            this.dom.sendBtn.classList.add('mode-send');
+            this.dom.sendBtn.setAttribute('title', 'Send Message');
+            this.dom.sendBtn.setAttribute('aria-label', 'Send');
+        } else {
+            this.dom.sendBtn.classList.remove('mode-send');
+            this.dom.sendBtn.classList.add('mode-mic');
+            this.dom.sendBtn.setAttribute('title', 'Hold or click to record voice');
+            this.dom.sendBtn.setAttribute('aria-label', 'Record Voice');
+        }
+    }
+
+    async handleComposerActionButtonClick() {
+        if (this.dom.sendBtn?.classList.contains('mode-mic')) {
+            if (window.voiceRecorder) {
+                window.voiceRecorder.startRecording();
+            }
+            return;
+        }
+        await this.handleComposerSubmit();
+    }
+
+    async handleComposerSubmit() {
+        if (!this.activeId) {
+            showToast('Please select a conversation first.', 'info');
+            return;
+        }
+
+        // 1. If an attachment is staged in tray
+        if (window.documentsController && window.documentsController.selectedFile) {
+            const caption = (this.dom.textarea?.value || '').trim();
+            this.dom.textarea.value = '';
+            this.autoResizeTextarea();
+            await window.documentsController.uploadAndSendStagedFile(caption);
+            this.updateComposerActionButton();
+            return;
+        }
+
+        // 2. If a voice recording is staged in voice preview bar
+        if (window.voiceRecorder && window.voiceRecorder.audioBlob) {
+            await window.voiceRecorder.uploadAndSendVoiceNote();
+            this.updateComposerActionButton();
+            return;
+        }
+
+        // 3. Regular text message
+        await this.sendMessage();
+    }
+
+    setupDragAndDrop() {
+        const chatWindow = document.getElementById('chatWindow');
+        if (!chatWindow) return;
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            chatWindow.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                chatWindow.classList.add('drag-active');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            chatWindow.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                chatWindow.classList.remove('drag-active');
+            }, false);
+        });
+
+        chatWindow.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt ? dt.files : null;
+            if (files && files.length > 0 && window.documentsController) {
+                window.documentsController.stageSelectedFile(files[0]);
+            }
+        });
     }
 
     appendMessage(msg, currentUserId) {
@@ -335,16 +429,22 @@ class ChatController {
         this.dom.textarea.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                this.sendMessage();
+                this.handleComposerSubmit();
             }
         });
 
         this.dom.textarea.addEventListener('input', () => {
             this.autoResizeTextarea();
             this.emitTyping();
+            this.updateComposerActionButton();
         });
 
-        this.dom.sendBtn?.addEventListener('click', () => this.sendMessage());
+        this.dom.sendBtn?.addEventListener('click', () => this.handleComposerActionButtonClick());
+        this.dom.micBtn?.addEventListener('click', () => {
+            if (window.voiceRecorder) {
+                window.voiceRecorder.startRecording();
+            }
+        });
         this.dom.cancelReplyBtn?.addEventListener('click', () => this.clearReplying());
 
         // Mobile virtual keyboard handling: auto-scroll to latest message on focus
@@ -361,6 +461,9 @@ class ChatController {
                 }
             });
         }
+
+        this.setupDragAndDrop();
+        this.updateComposerActionButton();
     }
 
     autoResizeTextarea() {
@@ -454,13 +557,17 @@ class ChatController {
                 this.dom.attachmentPopover?.classList.remove('show');
                 const action = item.dataset.action;
 
-                if (window.documentsController) {
-                    if (action === 'doc') {
-                        window.documentsController.selectDocument('doc');
-                    } else if (action === 'photo') {
-                        window.documentsController.selectDocument('photo');
+                if (action === 'voice') {
+                    if (window.voiceRecorder) {
+                        window.voiceRecorder.startRecording();
+                    }
+                } else if (window.documentsController) {
+                    if (action === 'photo') {
+                        window.documentsController.triggerPhotoPicker();
+                    } else if (action === 'video') {
+                        window.documentsController.triggerVideoPicker();
                     } else {
-                        window.documentsController.selectDocument('all');
+                        window.documentsController.triggerDocPicker();
                     }
                 }
             });

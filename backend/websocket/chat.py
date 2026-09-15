@@ -203,6 +203,7 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                                 "file_size": doc.file_size,
                                 "mime_type": doc.mime_type,
                                 "file_type": doc.file_type,
+                                "duration": doc.duration,
                                 "created_at": schemas.format_iso_utc(doc.created_at)
                             }
 

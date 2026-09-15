@@ -753,6 +753,61 @@ const api = {
     // Document & File Endpoints
     uploadFile(formData, onProgress) {
         return new Promise((resolve, reject) => {
+            const buildMockDoc = () => {
+                let file = null;
+                let duration = null;
+                if (formData && typeof formData.get === 'function') {
+                    file = formData.get('file');
+                    duration = formData.get('duration');
+                }
+                const id = Date.now();
+                let filename = 'Document_' + id.toString().slice(-4) + '.pdf';
+                let fileType = 'pdf';
+                let fileSize = 1024 * 65;
+                let url = '';
+
+                if (file && file.name) {
+                    filename = file.name;
+                    fileSize = file.size || fileSize;
+                    const ext = '.' + filename.split('.').pop().toLowerCase();
+                    if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'].includes(ext) || (file.type && file.type.startsWith('image/'))) {
+                        fileType = 'image';
+                    } else if (['.mp4', '.mov', '.mkv'].includes(ext) || (file.type && file.type.startsWith('video/'))) {
+                        fileType = 'video';
+                    } else if (['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.opus'].includes(ext) || (file.type && file.type.startsWith('audio/')) || filename.startsWith('voice_note_')) {
+                        fileType = 'audio';
+                    } else {
+                        fileType = 'document';
+                    }
+
+                    try {
+                        url = URL.createObjectURL(file);
+                    } catch {
+                        url = '';
+                    }
+                }
+
+                const mockDoc = {
+                    id: id,
+                    filename: filename,
+                    original_filename: filename,
+                    file_type: fileType,
+                    file_size: fileSize,
+                    url: url,
+                    duration: duration ? parseFloat(duration) : (fileType === 'audio' ? 5.0 : null),
+                    created_at: new Date().toISOString()
+                };
+
+                try {
+                    const db = getMockDb();
+                    if (!db.documents) db.documents = [];
+                    db.documents.push(mockDoc);
+                    saveMockDb(db);
+                } catch {}
+
+                return mockDoc;
+            };
+
             const xhr = new XMLHttpRequest();
             xhr.open('POST', `${this.baseUrl}/api/files/upload`);
 
@@ -782,14 +837,7 @@ const api = {
                     resolve(data);
                 } else if (xhr.status === 404 || xhr.status >= 500) {
                     // Resilient mock file fallback
-                    const mockDoc = {
-                        id: Date.now(),
-                        filename: 'Document_' + Date.now().toString().slice(-4) + '.pdf',
-                        file_type: 'pdf',
-                        file_size: 1024 * 65,
-                        created_at: new Date().toISOString()
-                    };
-                    resolve(mockDoc);
+                    resolve(buildMockDoc());
                 } else {
                     reject(new Error(data.detail || `Upload failed with status ${xhr.status}`));
                 }
@@ -797,14 +845,7 @@ const api = {
 
             xhr.onerror = () => {
                 // Resilient mock file fallback on network error
-                const mockDoc = {
-                    id: Date.now(),
-                    filename: 'Document_' + Date.now().toString().slice(-4) + '.pdf',
-                    file_type: 'pdf',
-                    file_size: 1024 * 65,
-                    created_at: new Date().toISOString()
-                };
-                resolve(mockDoc);
+                resolve(buildMockDoc());
             };
 
             xhr.send(formData);
@@ -812,11 +853,25 @@ const api = {
     },
 
     getFileViewUrl(fileId) {
+        try {
+            const db = getMockDb();
+            if (db && db.documents) {
+                const doc = db.documents.find(d => d.id == fileId);
+                if (doc && doc.url) return doc.url;
+            }
+        } catch {}
         const token = this.getToken();
         return `${this.baseUrl}/api/files/${fileId}/view${token ? `?token=${encodeURIComponent(token)}` : ''}`;
     },
 
     getFileDownloadUrl(fileId) {
+        try {
+            const db = getMockDb();
+            if (db && db.documents) {
+                const doc = db.documents.find(d => d.id == fileId);
+                if (doc && doc.url) return doc.url;
+            }
+        } catch {}
         const token = this.getToken();
         return `${this.baseUrl}/api/files/${fileId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
     },

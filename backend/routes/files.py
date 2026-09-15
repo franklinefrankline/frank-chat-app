@@ -62,6 +62,13 @@ ALLOWED_EXTENSIONS = {
     ".mov": ("video/quicktime", "video"),
     ".webm": ("video/webm", "video"),
     ".mkv": ("video/x-matroska", "video"),
+    # Audio / Voice Messages
+    ".mp3": ("audio/mpeg", "audio"),
+    ".wav": ("audio/wav", "audio"),
+    ".ogg": ("audio/ogg", "audio"),
+    ".m4a": ("audio/mp4", "audio"),
+    ".aac": ("audio/aac", "audio"),
+    ".opus": ("audio/opus", "audio"),
 }
 
 # Optional S3-compatible Object Storage (AWS S3, Cloudflare R2, Supabase)
@@ -165,6 +172,7 @@ async def upload_file(
     file: UploadFile = File(...),
     partner_id: Optional[int] = Form(None),
     group_id: Optional[int] = Form(None),
+    duration: Optional[float] = Form(None),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -180,13 +188,17 @@ async def upload_file(
             detail="Executable or script files are strictly prohibited for security."
         )
 
-    if ext not in ALLOWED_EXTENSIONS:
+    # If mime is audio or video and ext is webm, detect audio vs video
+    if ext == ".webm" and file.content_type and "audio" in file.content_type:
+        expected_mime, file_type = ("audio/webm", "audio")
+    elif ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file type '{ext}'. Supported types: PDF, DOC, DOCX, XLS, PPT, TXT, CSV, ZIP, images."
+            detail=f"Unsupported file type '{ext}'. Supported types: PDF, DOC, DOCX, XLS, PPT, TXT, CSV, ZIP, photos, videos, audio."
         )
+    else:
+        expected_mime, file_type = ALLOWED_EXTENSIONS[ext]
 
-    expected_mime, file_type = ALLOWED_EXTENSIONS[ext]
     mime_type = file.content_type or expected_mime
 
     # Verify conversation target permissions
@@ -210,15 +222,28 @@ async def upload_file(
     if file_size == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The selected file is empty.")
 
-    max_limit = 100 * 1024 * 1024 if file_type == "video" else 50 * 1024 * 1024
-    max_label = "100 MB" if file_type == "video" else "50 MB"
+    # Configurable limits
+    if file_type == "video":
+        max_limit = int(os.getenv("MAX_VIDEO_SIZE_MB", "100")) * 1024 * 1024
+        max_label = f"{int(os.getenv('MAX_VIDEO_SIZE_MB', '100'))} MB"
+    elif file_type == "image":
+        max_limit = int(os.getenv("MAX_IMAGE_SIZE_MB", "10")) * 1024 * 1024
+        max_label = f"{int(os.getenv('MAX_IMAGE_SIZE_MB', '10'))} MB"
+    elif file_type == "audio":
+        max_limit = int(os.getenv("MAX_AUDIO_SIZE_MB", "25")) * 1024 * 1024
+        max_label = f"{int(os.getenv('MAX_AUDIO_SIZE_MB', '25'))} MB"
+    elif file_type == "archive":
+        max_limit = int(os.getenv("MAX_ARCHIVE_SIZE_MB", "50")) * 1024 * 1024
+        max_label = f"{int(os.getenv('MAX_ARCHIVE_SIZE_MB', '50'))} MB"
+    else:
+        max_limit = int(os.getenv("MAX_DOC_SIZE_MB", "25")) * 1024 * 1024
+        max_label = f"{int(os.getenv('MAX_DOC_SIZE_MB', '25'))} MB"
 
     if file_size > max_limit:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"File size ({file_size / (1024*1024):.1f} MB) exceeds the allowed limit of {max_label} for {file_type}s."
         )
-
 
     # Generate safe unique storage filename
     unique_name = f"{uuid.uuid4().hex}{ext}"
@@ -254,7 +279,8 @@ async def upload_file(
         stored_filename=unique_name,
         file_size=file_size,
         mime_type=mime_type,
-        file_type=file_type
+        file_type=file_type,
+        duration=duration
     )
     db.add(doc)
     db.commit()

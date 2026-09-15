@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, Float, String, Text, Boolean, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -19,6 +19,8 @@ class User(Base):
     full_name = Column(String(100), nullable=False)
     bio = Column(String(255), default="Hey there! I am using FRANK.")
     avatar_url = Column(String(255), default="")
+    theme = Column(String(20), default="light")
+    status = Column(String(20), default="offline")
     is_online = Column(Boolean, default=False)
     last_seen = Column(DateTime(timezone=True), default=get_utc_now)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
@@ -39,7 +41,7 @@ class Message(Base):
     recipient_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=True, index=True)
     content = Column(Text, nullable=False)
-    message_type = Column(String(20), default="text")  # text, document, image, file
+    message_type = Column(String(20), default="text")  # text, document, image, video, audio
     file_id = Column(Integer, ForeignKey("documents.id", use_alter=True, name="fk_message_document"), nullable=True)
     reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
     status = Column(String(20), default="sent")  # sent, delivered, read
@@ -66,7 +68,8 @@ class Document(Base):
     stored_filename = Column(String(255), nullable=False)
     file_size = Column(Integer, nullable=False)  # in bytes
     mime_type = Column(String(100), nullable=False)
-    file_type = Column(String(50), default="document")  # pdf, word, excel, ppt, text, archive, image, other
+    file_type = Column(String(50), default="document")  # pdf, word, excel, ppt, text, archive, image, video, audio, other
+    duration = Column(Float, nullable=True)  # in seconds for audio/voice and video
     created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
 
     uploader = relationship("User", back_populates="uploaded_documents")

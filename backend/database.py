@@ -74,6 +74,11 @@ def check_and_migrate_db():
                 if "updated_at" not in columns:
                     conn.execute(text("ALTER TABLE messages ADD COLUMN updated_at TIMESTAMP NULL"))
 
+            if "documents" in tables:
+                columns = [col["name"] for col in inspector.get_columns("documents")]
+                if "duration" not in columns:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN duration FLOAT NULL"))
+
             if "groups" in tables:
                 columns = [col["name"] for col in inspector.get_columns("groups")]
                 if "privacy" not in columns:

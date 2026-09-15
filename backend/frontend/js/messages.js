@@ -164,66 +164,105 @@ const messagesModule = {
 
         const safeContent = this.escapeHTML(msg.content);
 
-        // Document or regular text message
-        const isDocument = msg.message_type === 'document' || !!msg.file_id || !!msg.document;
+        // Attachment categorization
+        const isAudio = msg.message_type === 'audio' || (msg.document && msg.document.file_type === 'audio');
+        const isVideo = msg.message_type === 'video' || (msg.document && msg.document.file_type === 'video');
+        const isImage = msg.message_type === 'image' || (msg.document && msg.document.file_type === 'image');
+        const isDocAttachment = (msg.message_type === 'document' || !!msg.file_id || !!msg.document) && !isAudio && !isVideo && !isImage;
+        const hasAttachment = isAudio || isVideo || isImage || isDocAttachment;
+
         let bodyHtml = `<div class="message-text-content">${safeContent}</div>`;
         let docFilename = '';
         let docFileId = '';
         let docFileType = 'document';
 
-        if (isDocument) {
+        if (hasAttachment) {
             const doc = msg.document || {};
             docFileId = doc.id || msg.file_id || '';
-            docFilename = doc.original_filename || msg.content.replace(/^Shared a file: /, '') || 'Document';
-            docFileType = doc.file_type || (window.documentsController ? window.documentsController.getFileCategory(docFilename) : 'document');
-            const ext = docFilename.split('.').pop().toUpperCase();
-            const sizeStr = (doc.file_size && window.documentsController) ? window.documentsController.formatFileSize(doc.file_size) : `${ext} Document`;
-            const badgeHtml = window.documentsController ? window.documentsController.getFileBadgeMarkup(docFileType, ext) : `<div class="doc-badge-icon" style="background: rgba(99, 102, 241, 0.15); color: #6366F1;">📄</div>`;
-            let mediaEmbed = '';
+            docFilename = doc.original_filename || msg.filename || (isAudio ? 'voice-message.webm' : (isVideo ? 'video.mp4' : (isImage ? 'photo.jpg' : 'Document')));
+            docFileType = doc.file_type || (window.documentsController ? window.documentsController.getFileCategory(docFilename) : (isAudio ? 'audio' : (isVideo ? 'video' : (isImage ? 'image' : 'document'))));
             const viewUrl = api.getFileViewUrl(docFileId);
+            const ext = docFilename.split('.').pop().toUpperCase();
+            const sizeStr = (doc.file_size && window.documentsController) ? window.documentsController.formatFileSize(doc.file_size) : '';
 
-            if (docFileType === 'video') {
-                mediaEmbed = `
-                    <div class="message-video-wrap" style="margin-top: 10px; border-radius: 10px; overflow: hidden; background: #000; max-width: 380px;">
-                        <video controls playsinline preload="metadata" style="width: 100%; max-height: 260px; display: block;" src="${viewUrl}"></video>
+            if (isAudio) {
+                // 1. VOICE MESSAGE PLAYER
+                const rawDuration = msg.duration || doc.duration || 0;
+                const durationLabel = rawDuration > 0
+                    ? (window.voiceRecorder ? window.voiceRecorder.formatTime(Math.round(rawDuration)) : `${Math.round(rawDuration)}s`)
+                    : '00:12';
+
+                bodyHtml = `
+                    <div class="message-voice-card" data-file-id="${docFileId}">
+                        <div class="voice-card-header">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                            <span style="font-weight: 700; font-size: 13px;">Voice message</span>
+                        </div>
+                        <div class="voice-card-player">
+                            <button type="button" class="voice-play-toggle-btn" data-audio-url="${viewUrl}" aria-label="Play voice message">
+                                <svg class="play-svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                <svg class="pause-svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                            </button>
+                            <div class="voice-track-scrubber" data-audio-url="${viewUrl}">
+                                <div class="voice-track-fill" style="width: 0%;"></div>
+                            </div>
+                            <span class="voice-time-label">${durationLabel}</span>
+                        </div>
+                        ${(safeContent && safeContent !== 'Voice message' && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${safeContent}</div>` : ''}
                     </div>
                 `;
-            } else if (docFileType === 'image') {
-                mediaEmbed = `
-                    <div class="message-image-wrap" style="margin-top: 10px; border-radius: 10px; overflow: hidden; max-width: 380px;">
-                        <img loading="lazy" style="width: 100%; max-height: 260px; object-fit: cover; display: block; border-radius: 10px; cursor: pointer;" src="${viewUrl}" alt="${this.escapeHTML(docFilename)}" onclick="window.open('${viewUrl}', '_blank')">
+            } else if (isImage) {
+                // 2. PHOTO MESSAGE
+                bodyHtml = `
+                    <div class="message-photo-card" data-file-id="${docFileId}">
+                        <div class="msg-photo-wrap">
+                            <img loading="lazy" class="msg-photo-img" src="${viewUrl}" alt="${this.escapeHTML(docFilename)}" onclick="window.open('${viewUrl}', '_blank')">
+                        </div>
+                        ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${safeContent}</div>` : ''}
+                    </div>
+                `;
+            } else if (isVideo) {
+                // 3. VIDEO MESSAGE
+                bodyHtml = `
+                    <div class="message-video-card" data-file-id="${docFileId}">
+                        <div class="msg-video-wrap">
+                            <video controls playsinline preload="metadata" class="msg-video-player" src="${viewUrl}"></video>
+                        </div>
+                        ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${safeContent}</div>` : ''}
+                    </div>
+                `;
+            } else {
+                // 4. DOCUMENT MESSAGE
+                const badgeHtml = window.documentsController ? window.documentsController.getFileBadgeMarkup(docFileType, ext) : `<div class="doc-badge-icon">📄</div>`;
+                bodyHtml = `
+                    <div class="message-document-card" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
+                        <div class="message-doc-header">
+                            ${badgeHtml}
+                            <div class="message-doc-meta">
+                                <div class="message-doc-title" title="${this.escapeHTML(docFilename)}">${this.escapeHTML(docFilename)}</div>
+                                <div class="message-doc-sub">${sizeStr || ext} • ${ext}</div>
+                            </div>
+                        </div>
+                        ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${safeContent}</div>` : ''}
+                        <div class="message-doc-actions">
+                            <button type="button" class="btn btn-sm btn-primary msg-doc-open-btn" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                Open
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary msg-doc-download-btn" data-file-id="${docFileId}" data-filename="${this.escapeHTML(docFilename)}" title="Download">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Download
+                            </button>
+                        </div>
                     </div>
                 `;
             }
-
-            bodyHtml = `
-                <div class="message-document-card" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
-                    <div class="message-doc-header">
-                        ${badgeHtml}
-                        <div class="message-doc-meta">
-                            <div class="message-doc-title" title="${this.escapeHTML(docFilename)}">${this.escapeHTML(docFilename)}</div>
-                            <div class="message-doc-sub">${sizeStr} • ${ext}</div>
-                        </div>
-                    </div>
-                    ${mediaEmbed}
-                    <div class="message-doc-actions">
-                        <button type="button" class="btn btn-sm btn-primary msg-doc-open-btn" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                            ${docFileType === 'video' ? 'Play Video' : 'Open Document'}
-                        </button>
-                        <button type="button" class="btn btn-sm btn-secondary msg-doc-download-btn" data-file-id="${docFileId}" data-filename="${this.escapeHTML(docFilename)}" title="Download">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            Download
-                        </button>
-                    </div>
-                </div>
-            `;
         }
 
         const senderName = isSent ? 'You' : (msg.sender ? msg.sender.full_name : 'User');
 
         return `
-            <div class="message-row ${isSent ? 'sent' : 'received'} ${isDocument ? 'has-document' : ''}" id="msgRow-${msg.id}" data-message-id="${msg.id}">
+            <div class="message-row ${isSent ? 'sent' : 'received'} ${hasAttachment ? 'has-document' : ''}" id="msgRow-${msg.id}" data-message-id="${msg.id}">
                 <!-- Hover Action Toolbar -->
                 <div class="message-actions-toolbar">
                     <button type="button" class="action-tool-btn msg-action-reply" title="Reply" data-msg-id="${msg.id}" data-sender="${senderName}" data-content="${isDocument ? `[Document] ${this.escapeHTML(docFilename)}` : safeContent}">
@@ -399,4 +438,123 @@ document.addEventListener('click', async (e) => {
         }
         return;
     }
+
+    // 7. Voice message play/pause toggle
+    const voiceBtn = e.target.closest('.voice-play-toggle-btn');
+    if (voiceBtn) {
+        const audioUrl = voiceBtn.dataset.audioUrl;
+        if (!audioUrl) return;
+
+        const card = voiceBtn.closest('.message-voice-card');
+        const scrubber = card ? card.querySelector('.voice-track-scrubber') : null;
+        const fill = scrubber ? scrubber.querySelector('.voice-track-fill') : null;
+        const timeLabel = card ? card.querySelector('.voice-time-label') : null;
+        const playSvg = voiceBtn.querySelector('.play-svg');
+        const pauseSvg = voiceBtn.querySelector('.pause-svg');
+
+        // If clicking the currently playing audio button
+        if (currentChatAudio && currentChatAudioBtn === voiceBtn) {
+            if (!currentChatAudio.paused) {
+                currentChatAudio.pause();
+                if (playSvg) playSvg.style.display = 'block';
+                if (pauseSvg) pauseSvg.style.display = 'none';
+            } else {
+                currentChatAudio.play().then(() => {
+                    if (playSvg) playSvg.style.display = 'none';
+                    if (pauseSvg) pauseSvg.style.display = 'block';
+                }).catch(err => console.error('Audio play error:', err));
+            }
+            return;
+        }
+
+        // Stop previous audio if any
+        stopCurrentChatAudio();
+
+        // Create new Audio instance
+        const audio = new Audio(audioUrl);
+        currentChatAudio = audio;
+        currentChatAudioBtn = voiceBtn;
+        currentChatAudioScrubber = scrubber;
+        currentChatAudioTimeLabel = timeLabel;
+        if (timeLabel) currentChatAudioOriginalText = timeLabel.textContent;
+
+        if (playSvg) playSvg.style.display = 'none';
+        if (pauseSvg) pauseSvg.style.display = 'block';
+
+        audio.addEventListener('timeupdate', () => {
+            if (audio.duration && !isNaN(audio.duration)) {
+                const pct = Math.min(100, Math.max(0, (audio.currentTime / audio.duration) * 100));
+                if (fill) fill.style.width = `${pct}%`;
+                if (timeLabel) {
+                    const curM = Math.floor(audio.currentTime / 60);
+                    const curS = Math.floor(audio.currentTime % 60);
+                    timeLabel.textContent = `${curM}:${curS < 10 ? '0' : ''}${curS}`;
+                }
+            }
+        });
+
+        audio.addEventListener('ended', () => {
+            stopCurrentChatAudio();
+        });
+
+        audio.addEventListener('error', (err) => {
+            console.error('Audio load/playback error:', err);
+            stopCurrentChatAudio();
+            if (window.showToast) window.showToast('Unable to play audio message', 'error');
+        });
+
+        audio.play().catch(err => {
+            console.error('Audio play error:', err);
+            stopCurrentChatAudio();
+        });
+        return;
+    }
+
+    // 8. Voice scrubber seek
+    const voiceScrubber = e.target.closest('.voice-track-scrubber');
+    if (voiceScrubber) {
+        const card = voiceScrubber.closest('.message-voice-card');
+        const btn = card ? card.querySelector('.voice-play-toggle-btn') : null;
+        if (currentChatAudio && currentChatAudioBtn === btn && currentChatAudio.duration) {
+            const rect = voiceScrubber.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const pct = Math.max(0, Math.min(1, clickX / rect.width));
+            currentChatAudio.currentTime = pct * currentChatAudio.duration;
+            const fill = voiceScrubber.querySelector('.voice-track-fill');
+            if (fill) fill.style.width = `${pct * 100}%`;
+        }
+        return;
+    }
 });
+
+// Global Audio Playback State for Voice Messages
+let currentChatAudio = null;
+let currentChatAudioBtn = null;
+let currentChatAudioScrubber = null;
+let currentChatAudioTimeLabel = null;
+let currentChatAudioOriginalText = '';
+
+function stopCurrentChatAudio() {
+    if (currentChatAudio) {
+        currentChatAudio.pause();
+        currentChatAudio = null;
+    }
+    if (currentChatAudioBtn) {
+        const playSvg = currentChatAudioBtn.querySelector('.play-svg');
+        const pauseSvg = currentChatAudioBtn.querySelector('.pause-svg');
+        if (playSvg) playSvg.style.display = 'block';
+        if (pauseSvg) pauseSvg.style.display = 'none';
+        currentChatAudioBtn = null;
+    }
+    if (currentChatAudioScrubber) {
+        const fill = currentChatAudioScrubber.querySelector('.voice-track-fill');
+        if (fill) fill.style.width = '0%';
+        currentChatAudioScrubber = null;
+    }
+    if (currentChatAudioTimeLabel && currentChatAudioOriginalText) {
+        currentChatAudioTimeLabel.textContent = currentChatAudioOriginalText;
+        currentChatAudioTimeLabel = null;
+        currentChatAudioOriginalText = '';
+    }
+}
+

@@ -439,52 +439,158 @@
                         <button type="button" id="cancelReplyBtn" class="btn-ghost" style="padding: 2px 6px; border-radius: 4px; font-size: 11px;">✕</button>
                     </div>
 
+                    <!-- Hidden Native OS File Inputs (Immediately invoked, zero web viewer before selection) -->
+                    <input type="file" id="frankPhotoInput" accept="image/*" style="display: none;" aria-hidden="true">
+                    <input type="file" id="frankDocInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.json,.zip,.rar,.7z,.tar,.gz" style="display: none;" aria-hidden="true">
+                    <input type="file" id="frankVideoInput" accept="video/*,.mp4,.mov,.webm,.mkv" style="display: none;" aria-hidden="true">
+                    <input type="file" id="frankAudioInput" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.opus" style="display: none;" aria-hidden="true">
+
                     <!-- Popover: Emoji Picker -->
                     <div class="emoji-popover" id="emojiPickerPopover">
                         <div class="emoji-grid" id="emojiPickerGrid"></div>
                     </div>
 
-                    <!-- Popover: Attachments (Real Documents & Media) -->
+                    <!-- Popover / Mobile Bottom Sheet: Attachments (Real Native File Pickers) -->
                     <div class="attachment-popover" id="attachmentPopover">
+                        <div class="attachment-popover-title">Add to message</div>
                         <div class="attachment-menu-list">
-                            <button type="button" class="attachment-menu-item" data-action="doc">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                </svg>
-                                <span>Document (up to 50MB)</span>
-                            </button>
-                            <button type="button" class="attachment-menu-item" data-action="video">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                                </svg>
-                                <span>Video (up to 100MB)</span>
-                            </button>
-                            <button type="button" class="attachment-menu-item" data-action="photo">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                    <polyline points="21 15 16 10 5 21"></polyline>
-                                </svg>
-                                <span>Photos &amp; Images</span>
-                            </button>
-                            <button type="button" class="attachment-menu-item" data-action="file">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-                                </svg>
-                                <span>All Files</span>
+                            <button type="button" class="attachment-menu-item" data-action="photo" id="attachPhotoBtn">
+                                <span class="attach-item-icon photo">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                        <polyline points="21 15 16 10 5 21"></polyline>
+                                    </svg>
+                                </span>
+                                <div class="attach-item-info">
+                                    <span class="attach-item-title">Photo</span>
+                                    <span class="attach-item-sub">JPG, PNG, WEBP, GIF (up to 10MB)</span>
+                                </div>
                             </button>
 
+                            <button type="button" class="attachment-menu-item" data-action="doc" id="attachDocBtn">
+                                <span class="attach-item-icon doc">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    </svg>
+                                </span>
+                                <div class="attach-item-info">
+                                    <span class="attach-item-title">Document</span>
+                                    <span class="attach-item-sub">PDF, Word, Excel, ZIP (up to 50MB)</span>
+                                </div>
+                            </button>
+
+                            <button type="button" class="attachment-menu-item" data-action="video" id="attachVideoBtn">
+                                <span class="attach-item-icon video">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                                    </svg>
+                                </span>
+                                <div class="attach-item-info">
+                                    <span class="attach-item-title">Video</span>
+                                    <span class="attach-item-sub">MP4, MOV, WEBM (up to 100MB)</span>
+                                </div>
+                            </button>
+
+                            <button type="button" class="attachment-menu-item" data-action="voice" id="attachVoiceBtn">
+                                <span class="attach-item-icon voice" style="background: rgba(236, 72, 153, 0.15); color: #EC4899;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                                    </svg>
+                                </span>
+                                <div class="attach-item-info">
+                                    <span class="attach-item-title">Microphone / Voice</span>
+                                    <span class="attach-item-sub">Record voice message live</span>
+                                </div>
+                            </button>
+                        </div>
+                        <button type="button" class="attachment-menu-cancel" id="cancelAttachmentMenuBtn">Cancel</button>
+                    </div>
+
+                    <!-- Attachment Staging Tray (Appears AFTER file selection) -->
+                    <div class="composer-attachment-tray" id="composerAttachmentTray" style="display: none;">
+                        <div class="tray-preview-wrap" id="trayPreviewWrap"></div>
+                        <div class="tray-info">
+                            <div class="tray-filename" id="trayFilename">attachment.jpg</div>
+                            <div class="tray-meta" id="trayMeta">2.1 MB</div>
+                            <!-- Real Upload Progress Bar -->
+                            <div class="tray-progress-wrap" id="trayProgressWrap" style="display: none;">
+                                <div class="tray-progress-track">
+                                    <div class="tray-progress-fill" id="trayProgressBar" style="width: 0%;"></div>
+                                </div>
+                                <span class="tray-progress-text" id="trayProgressText">Uploading... 0%</span>
+                            </div>
+                        </div>
+                        <div class="tray-actions">
+                            <button type="button" class="tray-cancel-upload-btn" id="trayCancelUploadBtn" style="display: none;" title="Cancel Upload">Cancel</button>
+                            <button type="button" class="tray-remove-btn" id="trayRemoveBtn" aria-label="Remove attachment" title="Remove attachment">✕</button>
+                        </div>
+                    </div>
+
+                    <!-- Voice Recording Active Bar -->
+                    <div class="composer-recording-bar" id="composerRecordingBar" style="display: none;">
+                        <div class="recording-indicator">
+                            <span class="recording-pulse-dot"></span>
+                            <span class="recording-label">Recording</span>
+                        </div>
+                        <div class="recording-timer" id="recordingTimerText">00:00</div>
+                        <div class="recording-actions">
+                            <button type="button" class="btn btn-ghost btn-sm recording-cancel-btn" id="cancelRecordingBtn">Cancel</button>
+                            <button type="button" class="btn btn-primary btn-sm recording-stop-btn" id="stopRecordingBtn">
+                                <span class="stop-icon"></span>
+                                <span>Stop</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Voice Message Preview Bar -->
+                    <div class="composer-voice-preview-bar" id="composerVoicePreviewBar" style="display: none;">
+                        <div class="voice-preview-left">
+                            <button type="button" class="voice-preview-play-btn" id="voicePreviewPlayBtn" aria-label="Play recorded voice">
+                                <svg class="play-svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                <svg class="pause-svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                            </button>
+                            <div class="voice-preview-track-wrap">
+                                <div class="voice-preview-waveform" id="voicePreviewWaveform">
+                                    <div class="voice-preview-fill" id="voicePreviewFill" style="width: 0%;"></div>
+                                </div>
+                                <span class="voice-preview-timer" id="voicePreviewTimerText">00:00</span>
+                            </div>
+                        </div>
+                        <div class="voice-preview-actions">
+                            <button type="button" class="btn btn-ghost btn-sm" id="deleteVoicePreviewBtn" title="Delete recording">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                <span>Delete</span>
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm" id="sendVoicePreviewBtn" title="Send voice message">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                <span>Send</span>
+                            </button>
                         </div>
                     </div>
 
                     <!-- Composer Input Bar -->
-                    <div class="chat-composer">
-                        <!-- Attachment Trigger -->
-                        <button type="button" class="btn btn-ghost btn-icon" id="attachmentBtn" aria-label="Add document or attachment" title="Share Document or File">
+                    <div class="chat-composer" id="mainComposerBar">
+                        <!-- Attachment Trigger (opens menu/sheet with Photo, Document, Video, Mic) -->
+                        <button type="button" class="btn btn-ghost btn-icon" id="attachmentBtn" aria-label="Attach file" title="Attach file">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                            </svg>
+                        </button>
+
+                        <!-- Desktop Quick Photo Trigger (Immediate native file picker) -->
+                        <button type="button" class="btn btn-ghost btn-icon desktop-quick-photo" id="desktopQuickPhotoBtn" aria-label="Select photo" title="Select photo">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
                             </svg>
                         </button>
 
@@ -498,6 +604,16 @@
                             </svg>
                         </button>
 
+                        <!-- Dedicated Microphone (Mic) Button -->
+                        <button type="button" class="btn btn-ghost btn-icon composer-mic-btn" id="composerMicBtn" aria-label="Record voice message (Mic)" title="Record voice message (Mic)">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                            </svg>
+                        </button>
+
                         <!-- Textarea -->
                         <textarea 
                             class="composer-textarea" 
@@ -507,9 +623,17 @@
                             aria-label="Message Input"
                         ></textarea>
 
-                        <!-- Send Button -->
-                        <button type="button" class="composer-send-btn" id="composerSendBtn" aria-label="Send message" title="Send message">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <!-- Dynamic Action Button: Microphone (when empty) vs Send (when text or attachment) -->
+                        <button type="button" class="composer-action-btn mode-mic" id="composerSendBtn" aria-label="Record voice message" title="Record voice message">
+                            <!-- Microphone SVG -->
+                            <svg class="icon-mic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                            </svg>
+                            <!-- Send SVG -->
+                            <svg class="icon-send" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="22" y1="2" x2="11" y2="13"></line>
                                 <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                             </svg>
@@ -796,6 +920,7 @@
     <script src="js/auth.js"></script>
     <script src="js/websocket.js"></script>
     <script src="js/documents.js"></script>
+    <script src="js/voice.js"></script>
     <script src="js/messages.js"></script>
     <script src="js/chat.js"></script>
     <script src="js/groups.js"></script>

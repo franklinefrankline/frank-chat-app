@@ -104,6 +104,7 @@ class DocumentResponse(BaseModel):
     file_size: int
     mime_type: str
     file_type: str
+    duration: Optional[float] = None
     created_at: datetime
 
     class Config:

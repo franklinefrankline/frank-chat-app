@@ -748,3 +748,75 @@ html, body {
         transform: translateY(0);
     }
 }
+
+/* -------------------------------------------------------------------------
+   MEDIA & COMPOSER ATTACHMENTS RESPONSIVE ADJUSTMENTS
+   ------------------------------------------------------------------------- */
+@media (max-width: 600px) {
+    .composer-attachment-tray {
+        padding: 8px 10px;
+    }
+
+    .tray-preview-wrap {
+        width: 40px;
+        height: 40px;
+    }
+
+    .tray-filename {
+        font-size: 12px;
+    }
+
+    .composer-recording-bar {
+        padding: 8px 12px;
+    }
+
+    .recording-timer-label {
+        font-size: 13px;
+    }
+
+    .composer-voice-preview-bar {
+        padding: 6px 10px;
+        gap: 8px;
+    }
+
+    .message-voice-card {
+        min-width: unset;
+        width: 100%;
+        max-width: 260px;
+    }
+
+    .message-photo-card {
+        max-width: 100%;
+    }
+
+    .message-video-card {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 360px) {
+    .message-voice-card {
+        max-width: 215px;
+    }
+
+    .voice-card-player {
+        gap: 6px;
+        padding: 4px 6px;
+    }
+
+    .voice-play-toggle-btn {
+        width: 30px;
+        height: 30px;
+    }
+
+    .composer-action-btn {
+        min-width: 36px !important;
+        min-height: 36px !important;
+        width: 36px !important;
+        height: 36px !important;
+    }
+
+    .tray-file-card {
+        gap: 8px;
+    }
+}

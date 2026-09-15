@@ -1,95 +1,151 @@
 /* -------------------------------------------------------------------------
-   FRANK - DEDICATED DOCUMENT SHARING MODULE
-   System file picker, client validation, preview confirmation, progress tracker,
-   message sending, authenticated viewer & downloader.
+   FRANK - DEDICATED DOCUMENT, PHOTO & VIDEO SHARING MODULE
+   Direct Native OS File Picker triggers, client-side validation,
+   composer attachment staging tray with previews, real XHR upload progress,
+   cancellation, and authenticated viewer / downloader.
    ------------------------------------------------------------------------- */
 
 class DocumentsController {
     constructor() {
-        this.maxFileSizeMB = 25;
-        this.maxFileSizeBytes = this.maxFileSizeMB * 1024 * 1024;
         this.selectedFile = null;
+        this.stagedPreviewUrl = null;
         this.currentUploadXhr = null;
+        this.isUploading = false;
 
         this.disallowedExtensions = [
             '.exe', '.bat', '.cmd', '.sh', '.ps1', '.msi', '.dll', '.com',
             '.scr', '.vbs', '.py', '.js', '.php', '.phtml', '.jar', '.app'
         ];
 
+        this.dom = {
+            photoInput: document.getElementById('frankPhotoInput'),
+            docInput: document.getElementById('frankDocInput'),
+            videoInput: document.getElementById('frankVideoInput'),
+            audioInput: document.getElementById('frankAudioInput'),
+            attachmentPopover: document.getElementById('attachmentPopover'),
+            attachmentBtn: document.getElementById('attachmentBtn'),
+            desktopQuickPhotoBtn: document.getElementById('desktopQuickPhotoBtn'),
+            cancelMenuBtn: document.getElementById('cancelAttachmentMenuBtn'),
+            tray: document.getElementById('composerAttachmentTray'),
+            trayPreviewWrap: document.getElementById('trayPreviewWrap'),
+            trayFilename: document.getElementById('trayFilename'),
+            trayMeta: document.getElementById('trayMeta'),
+            trayProgressWrap: document.getElementById('trayProgressWrap'),
+            trayProgressBar: document.getElementById('trayProgressBar'),
+            trayProgressText: document.getElementById('trayProgressText'),
+            trayCancelUploadBtn: document.getElementById('trayCancelUploadBtn'),
+            trayRemoveBtn: document.getElementById('trayRemoveBtn')
+        };
+
         this.init();
     }
 
     init() {
-        // Create hidden OS file input
-        let fileInput = document.getElementById('frankFileInput') || document.getElementById('qenvoFileInput');
-        if (!fileInput) {
-            fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.id = 'frankFileInput';
-            fileInput.style.display = 'none';
-            document.body.appendChild(fileInput);
-        }
+        this.bindNativeInputs();
+        this.bindMenuTriggers();
+        this.bindTrayControls();
+    }
 
-        fileInput.addEventListener('change', (e) => {
+    // ---------------- NATIVE OS FILE PICKER TRIGGERS ----------------
+    // Rule: Clicking immediately opens device's native file chooser. Zero website viewer before selection.
+    triggerPhotoPicker() {
+        this.closeAttachmentMenu();
+        if (this.dom.photoInput) {
+            this.dom.photoInput.value = '';
+            this.dom.photoInput.click();
+        }
+    }
+
+    triggerDocPicker() {
+        this.closeAttachmentMenu();
+        if (this.dom.docInput) {
+            this.dom.docInput.value = '';
+            this.dom.docInput.click();
+        }
+    }
+
+    triggerVideoPicker() {
+        this.closeAttachmentMenu();
+        if (this.dom.videoInput) {
+            this.dom.videoInput.value = '';
+            this.dom.videoInput.click();
+        }
+    }
+
+    triggerAudioPicker() {
+        this.closeAttachmentMenu();
+        if (this.dom.audioInput) {
+            this.dom.audioInput.value = '';
+            this.dom.audioInput.click();
+        }
+    }
+
+    closeAttachmentMenu() {
+        if (this.dom.attachmentPopover) {
+            this.dom.attachmentPopover.classList.remove('show');
+        }
+    }
+
+    bindNativeInputs() {
+        const handleNativeSelection = (e) => {
             const files = e.target.files;
             if (files && files.length > 0) {
-                this.handleFileSelected(files[0]);
+                this.stageSelectedFile(files[0]);
             }
-            // Reset input value so re-selecting same file triggers change
-            fileInput.value = '';
+        };
+
+        this.dom.photoInput?.addEventListener('change', handleNativeSelection);
+        this.dom.docInput?.addEventListener('change', handleNativeSelection);
+        this.dom.videoInput?.addEventListener('change', handleNativeSelection);
+        this.dom.audioInput?.addEventListener('change', handleNativeSelection);
+    }
+
+    bindMenuTriggers() {
+        // Desktop quick photo button
+        this.dom.desktopQuickPhotoBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.triggerPhotoPicker();
+        });
+
+        // Attachment popover items
+        document.getElementById('attachPhotoBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.triggerPhotoPicker();
+        });
+
+        document.getElementById('attachDocBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.triggerDocPicker();
+        });
+
+        document.getElementById('attachVideoBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.triggerVideoPicker();
+        });
+
+        document.getElementById('attachVoiceBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.closeAttachmentMenu();
+            if (window.voiceRecorder) {
+                window.voiceRecorder.startRecording();
+            }
+        });
+
+        this.dom.cancelMenuBtn?.addEventListener('click', () => {
+            this.closeAttachmentMenu();
         });
     }
 
-    // ---------------- FILE SELECTION ----------------
-    selectDocument(type = 'doc') {
-        const fileInput = document.getElementById('frankFileInput') || document.getElementById('qenvoFileInput');
-        if (!fileInput) return;
+    bindTrayControls() {
+        // Remove button in staging tray
+        this.dom.trayRemoveBtn?.addEventListener('click', () => {
+            this.clearStagedFile();
+        });
 
-        if (type === 'video') {
-            fileInput.accept = 'video/*,.mp4,.mov,.webm,.mkv';
-        } else if (type === 'photo') {
-            fileInput.accept = 'image/*,video/*,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm,.mkv';
-        } else if (type === 'doc') {
-            fileInput.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.json,.zip,.rar,.7z,.tar,.gz';
-        } else {
-            fileInput.accept = '*/*';
-        }
-
-        fileInput.click();
-    }
-
-    // ---------------- VALIDATION & PREVIEW ----------------
-    handleFileSelected(file) {
-        if (!file) return;
-
-        const filename = file.name;
-        const ext = '.' + filename.split('.').pop().toLowerCase();
-
-        // 1. Extension check
-        if (this.disallowedExtensions.includes(ext)) {
-            showToast('Unsupported file type. Executables and scripts cannot be shared.', 'error');
-            return;
-        }
-
-        // 2. Size check (50MB for docs/files, 100MB for video)
-        const isVideo = ['.mp4', '.mov', '.webm', '.mkv'].includes(ext);
-        const maxLimitMB = isVideo ? 100 : 50;
-        const maxLimitBytes = maxLimitMB * 1024 * 1024;
-
-        if (file.size > maxLimitBytes) {
-            const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-            showToast(`File size (${sizeMb} MB) exceeds the allowed limit of ${maxLimitMB} MB for ${isVideo ? 'videos' : 'documents'}.`, 'error');
-            return;
-        }
-
-
-        if (file.size === 0) {
-            showToast('The selected file is empty.', 'error');
-            return;
-        }
-
-        this.selectedFile = file;
-        this.showPreviewDialog(file);
+        // Cancel upload button in staging tray
+        this.dom.trayCancelUploadBtn?.addEventListener('click', () => {
+            this.cancelUpload();
+        });
     }
 
     formatFileSize(bytes) {
@@ -103,12 +159,13 @@ class DocumentsController {
     getFileCategory(filename) {
         const ext = '.' + filename.split('.').pop().toLowerCase();
         if (['.mp4', '.mov', '.webm', '.mkv'].includes(ext)) return 'video';
+        if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'].includes(ext)) return 'image';
+        if (['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.opus'].includes(ext)) return 'audio';
         if (['.pdf'].includes(ext)) return 'pdf';
         if (['.doc', '.docx'].includes(ext)) return 'word';
         if (['.xls', '.xlsx', '.csv'].includes(ext)) return 'excel';
         if (['.ppt', '.pptx'].includes(ext)) return 'presentation';
         if (['.zip', '.rar', '.7z', '.tar', '.gz'].includes(ext)) return 'archive';
-        if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'].includes(ext)) return 'image';
         if (['.txt', '.json', '.md'].includes(ext)) return 'text';
         return 'document';
     }
@@ -118,26 +175,29 @@ class DocumentsController {
         let iconSvg = '';
 
         if (category === 'video') {
-            badgeColor = '#EC4899';
-            iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>`;
+            badgeColor = '#F59E0B';
+            iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>`;
         } else if (category === 'image') {
             badgeColor = '#06B6D4';
-            iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+            iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+        } else if (category === 'audio') {
+            badgeColor = '#EC4899';
+            iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>`;
         } else if (category === 'pdf') {
             badgeColor = '#EF4444';
-            iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+            iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`;
         } else if (category === 'word') {
             badgeColor = '#2563EB';
-            iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>`;
+            iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>`;
         } else if (category === 'excel') {
             badgeColor = '#10B981';
-            iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><line x1="12" y1="9" x2="12" y2="21"></line></svg>`;
+            iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>`;
         } else if (category === 'archive') {
             badgeColor = '#F59E0B';
-            iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>`;
+            iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>`;
         } else {
             badgeColor = '#8B5CF6';
-            iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
+            iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
         }
 
         return `
@@ -148,128 +208,148 @@ class DocumentsController {
         `;
     }
 
-    // ---------------- PREVIEW DIALOG ----------------
-    showPreviewDialog(file) {
-        // Remove existing preview modal if present
-        document.getElementById('documentPreviewModal')?.remove();
+    // ---------------- VALIDATION & STAGING (AFTER SELECTION) ----------------
+    stageSelectedFile(file) {
+        if (!file) return;
 
-        const category = this.getFileCategory(file.name);
-        const ext = file.name.split('.').pop().toUpperCase();
-        const sizeStr = this.formatFileSize(file.size);
-        const badgeHtml = this.getFileBadgeMarkup(category, ext);
-        const titleText = category === 'video' ? 'Send Video' : (category === 'image' ? 'Send Photo' : 'Send Document');
+        const filename = file.name;
+        const ext = '.' + filename.split('.').pop().toLowerCase();
 
-        let mediaPreviewHtml = '';
-        if (category === 'video') {
-            const objectUrl = URL.createObjectURL(file);
-            mediaPreviewHtml = `
-                <div style="margin-top: 14px; border-radius: 12px; overflow: hidden; background: #000; border: 1px solid var(--border);">
-                    <video controls playsinline preload="metadata" style="width: 100%; max-height: 220px; display: block;" src="${objectUrl}"></video>
-                </div>
-            `;
-        } else if (category === 'image') {
-            const objectUrl = URL.createObjectURL(file);
-            mediaPreviewHtml = `
-                <div style="margin-top: 14px; border-radius: 12px; overflow: hidden; background: #000; border: 1px solid var(--border);">
-                    <img style="width: 100%; max-height: 220px; object-fit: contain; display: block;" src="${objectUrl}" alt="Preview">
-                </div>
-            `;
+        // 1. Disallowed executables & scripts
+        if (this.disallowedExtensions.includes(ext)) {
+            showToast('File type is not supported.', 'error');
+            return;
         }
 
-        const modalHtml = `
-            <div class="modal-backdrop show" id="documentPreviewModal" role="dialog" aria-modal="true" aria-labelledby="previewModalTitle">
-                <div class="modal-card" style="max-width: 460px;">
-                    <div class="modal-header">
-                        <h2 class="modal-title" id="previewModalTitle">${titleText}</h2>
-                        <button type="button" class="modal-close" id="cancelDocPreviewCrossBtn" aria-label="Close">✕</button>
+        // 2. Empty check
+        if (file.size === 0) {
+            showToast('The selected file is empty.', 'error');
+            return;
+        }
+
+        // 3. Category limits
+        const category = this.getFileCategory(filename);
+        let maxLimitMB = 25; // default for documents
+        if (category === 'video') maxLimitMB = 100;
+        else if (category === 'image') maxLimitMB = 10;
+        else if (category === 'archive') maxLimitMB = 50;
+        else if (category === 'audio') maxLimitMB = 25;
+
+        const maxLimitBytes = maxLimitMB * 1024 * 1024;
+        if (file.size > maxLimitBytes) {
+            showToast('File is too large.', 'error');
+            return;
+        }
+
+        // Clean up previous staging URL
+        if (this.stagedPreviewUrl) {
+            URL.revokeObjectURL(this.stagedPreviewUrl);
+            this.stagedPreviewUrl = null;
+        }
+
+        this.selectedFile = file;
+        this.stagedPreviewUrl = URL.createObjectURL(file);
+
+        // Render preview inside composer tray
+        if (this.dom.trayFilename) {
+            this.dom.trayFilename.textContent = file.name;
+        }
+        if (this.dom.trayMeta) {
+            const extUpper = ext.replace('.', '').toUpperCase();
+            this.dom.trayMeta.textContent = `${this.formatFileSize(file.size)} • ${extUpper}`;
+        }
+
+        if (this.dom.trayPreviewWrap) {
+            if (category === 'image') {
+                this.dom.trayPreviewWrap.innerHTML = `
+                    <img src="${this.stagedPreviewUrl}" alt="Preview" class="tray-preview-thumb">
+                `;
+            } else if (category === 'video') {
+                this.dom.trayPreviewWrap.innerHTML = `
+                    <div class="tray-video-thumb">
+                        <video src="${this.stagedPreviewUrl}" preload="metadata" muted playsinline></video>
+                        <span class="tray-play-overlay">▶</span>
                     </div>
-                    <div class="modal-body" style="padding: var(--space-5);">
-                        <div class="document-preview-card">
-                            ${badgeHtml}
-                            <div class="document-preview-info">
-                                <div class="document-preview-filename" title="${messagesModule.escapeHTML(file.name)}">
-                                    ${messagesModule.escapeHTML(file.name)}
-                                </div>
-                                <div class="document-preview-meta">
-                                    ${sizeStr} • ${ext} File
-                                </div>
-                            </div>
-                        </div>
-                        ${mediaPreviewHtml}
+                `;
+            } else {
+                const extUpper = ext.replace('.', '').toUpperCase();
+                this.dom.trayPreviewWrap.innerHTML = this.getFileBadgeMarkup(category, extUpper);
+            }
+        }
 
-                        <!-- Progress Bar Container (hidden until user clicks Send) -->
-                        <div class="upload-progress-wrapper" id="uploadProgressWrapper" style="display: none; margin-top: 16px;">
-                            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">
-                                <span id="uploadStatusText">Preparing document...</span>
-                                <span id="uploadPercentText">0%</span>
-                            </div>
-                            <div class="progress-bar-track">
-                                <div class="progress-bar-fill" id="uploadProgressBar" style="width: 0%;"></div>
-                            </div>
-                        </div>
+        // Reset progress bar
+        if (this.dom.trayProgressWrap) this.dom.trayProgressWrap.style.display = 'none';
+        if (this.dom.trayProgressBar) this.dom.trayProgressBar.style.width = '0%';
+        if (this.dom.trayCancelUploadBtn) this.dom.trayCancelUploadBtn.style.display = 'none';
+        if (this.dom.trayRemoveBtn) this.dom.trayRemoveBtn.style.display = 'flex';
 
-                        <!-- Upload Error message if any -->
-                        <div id="uploadErrorBox" style="display: none; margin-top: 14px; padding: 10px 14px; border-radius: var(--radius-md); background: var(--danger-soft); color: var(--danger); font-size: 13px; font-weight: 500;">
-                            <div id="uploadErrorMessage">Document upload failed.</div>
-                        </div>
-                    </div>
-                    <div class="modal-footer" id="previewModalFooter">
-                        <button type="button" class="btn btn-secondary" id="cancelDocPreviewBtn">Cancel</button>
-                        <button type="button" class="btn btn-primary" id="confirmSendDocBtn">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
-                                <line x1="22" y1="2" x2="11" y2="13"></line>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                            </svg>
-                            Send Document
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
+        // Show staging tray
+        if (this.dom.tray) {
+            this.dom.tray.style.display = 'flex';
+        }
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        document.getElementById('cancelDocPreviewCrossBtn')?.addEventListener('click', () => this.closePreviewDialog());
-        document.getElementById('cancelDocPreviewBtn')?.addEventListener('click', () => this.closePreviewDialog());
-        document.getElementById('confirmSendDocBtn')?.addEventListener('click', () => this.startUploadAndSend());
+        // Focus textarea and update action button (switches mic to send)
+        if (window.chatController) {
+            window.chatController.updateComposerActionButton();
+            window.chatController.dom.textarea?.focus();
+        }
     }
 
-    closePreviewDialog() {
+    clearStagedFile() {
+        if (this.isUploading) {
+            this.cancelUpload();
+            return;
+        }
+
+        if (this.stagedPreviewUrl) {
+            URL.revokeObjectURL(this.stagedPreviewUrl);
+            this.stagedPreviewUrl = null;
+        }
+
+        this.selectedFile = null;
+        if (this.dom.tray) {
+            this.dom.tray.style.display = 'none';
+        }
+
+        // Reset inputs
+        if (this.dom.photoInput) this.dom.photoInput.value = '';
+        if (this.dom.docInput) this.dom.docInput.value = '';
+        if (this.dom.videoInput) this.dom.videoInput.value = '';
+        if (this.dom.audioInput) this.dom.audioInput.value = '';
+
+        if (window.chatController) {
+            window.chatController.updateComposerActionButton();
+        }
+    }
+
+    cancelUpload() {
         if (this.currentUploadXhr) {
             this.currentUploadXhr.abort();
             this.currentUploadXhr = null;
         }
-        document.getElementById('documentPreviewModal')?.remove();
-        this.selectedFile = null;
+        this.isUploading = false;
+        showToast('Upload cancelled.', 'info');
+        this.clearStagedFile();
     }
 
-    // ---------------- UPLOAD & SEND FLOW ----------------
-    async startUploadAndSend() {
-        if (!this.selectedFile) return;
+    // ---------------- UPLOAD & SEND STAGED FILE ----------------
+    async uploadAndSendStagedFile(optionalCaption = '') {
+        if (!this.selectedFile || this.isUploading) return false;
 
         const chat = window.chatController;
         if (!chat || !chat.activeId) {
             showToast('Please select a conversation first.', 'error');
-            this.closePreviewDialog();
-            return;
+            return false;
         }
 
-        const confirmBtn = document.getElementById('confirmSendDocBtn');
-        const cancelBtn = document.getElementById('cancelDocPreviewBtn');
-        const progressWrapper = document.getElementById('uploadProgressWrapper');
-        const progressBar = document.getElementById('uploadProgressBar');
-        const statusText = document.getElementById('uploadStatusText');
-        const percentText = document.getElementById('uploadPercentText');
-        const errorBox = document.getElementById('uploadErrorBox');
-        const errorMsg = document.getElementById('uploadErrorMessage');
+        this.isUploading = true;
 
-        if (confirmBtn) {
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = 'Uploading...';
-        }
-        if (cancelBtn) cancelBtn.style.display = 'none';
-        if (progressWrapper) progressWrapper.style.display = 'block';
-        if (errorBox) errorBox.style.display = 'none';
+        // Show progress UI in tray
+        if (this.dom.trayProgressWrap) this.dom.trayProgressWrap.style.display = 'block';
+        if (this.dom.trayProgressBar) this.dom.trayProgressBar.style.width = '0%';
+        if (this.dom.trayProgressText) this.dom.trayProgressText.textContent = 'Uploading... 0%';
+        if (this.dom.trayCancelUploadBtn) this.dom.trayCancelUploadBtn.style.display = 'inline-block';
+        if (this.dom.trayRemoveBtn) this.dom.trayRemoveBtn.style.display = 'none';
 
         const formData = new FormData();
         formData.append('file', this.selectedFile);
@@ -280,32 +360,33 @@ class DocumentsController {
             formData.append('group_id', chat.activeId);
         }
 
-        try {
-            if (statusText) statusText.textContent = 'Uploading document...';
+        const category = this.getFileCategory(this.selectedFile.name);
+        let messageType = 'document';
+        if (category === 'image') messageType = 'image';
+        else if (category === 'video') messageType = 'video';
+        else if (category === 'audio') messageType = 'audio';
 
+        try {
             const uploadedDoc = await api.uploadFile(formData, (percent) => {
-                if (progressBar) progressBar.style.width = `${percent}%`;
-                if (percentText) percentText.textContent = `${percent}%`;
-                if (statusText) {
-                    if (percent < 90) statusText.textContent = `Uploading document... ${percent}%`;
-                    else statusText.textContent = 'Processing & verifying file...';
-                }
+                if (this.dom.trayProgressBar) this.dom.trayProgressBar.style.width = `${percent}%`;
+                if (this.dom.trayProgressText) this.dom.trayProgressText.textContent = `Uploading... ${percent}%`;
             });
 
-            if (statusText) statusText.textContent = 'Sent!';
-            if (progressBar) progressBar.style.width = '100%';
+            if (this.dom.trayProgressBar) this.dom.trayProgressBar.style.width = '100%';
+            if (this.dom.trayProgressText) this.dom.trayProgressText.textContent = 'Completed!';
 
-            // Send message with document payload
             const replyId = chat.replyTo ? chat.replyTo.id : null;
             chat.clearReplying();
+
+            const contentText = optionalCaption.trim() || `Shared a file: ${uploadedDoc.original_filename}`;
 
             if (window.wsClient && window.wsClient.isConnected) {
                 window.wsClient.send({
                     type: 'message',
                     recipient_id: chat.activeType === 'direct' ? chat.activeId : null,
                     group_id: chat.activeType === 'group' ? chat.activeId : null,
-                    content: `Shared a file: ${uploadedDoc.original_filename}`,
-                    message_type: 'document',
+                    content: contentText,
+                    message_type: messageType,
                     file_id: uploadedDoc.id,
                     filename: uploadedDoc.original_filename,
                     reply_to_id: replyId
@@ -315,8 +396,8 @@ class DocumentsController {
                 const newMsg = await api.sendMessage({
                     recipient_id: chat.activeType === 'direct' ? chat.activeId : null,
                     group_id: chat.activeType === 'group' ? chat.activeId : null,
-                    content: `Shared a file: ${uploadedDoc.original_filename}`,
-                    message_type: 'document',
+                    content: contentText,
+                    message_type: messageType,
                     file_id: uploadedDoc.id,
                     reply_to_id: replyId
                 });
@@ -325,41 +406,42 @@ class DocumentsController {
                 chat.appendMessage(newMsg, currentUser ? currentUser.id : null);
             }
 
-            showToast('Document sent successfully!', 'success');
-            setTimeout(() => this.closePreviewDialog(), 400);
+            showToast(`${category.charAt(0).toUpperCase() + category.slice(1)} sent!`, 'success');
+            this.isUploading = false;
+            this.clearStagedFile();
+            return true;
 
         } catch (err) {
-            console.error('Upload error:', err);
-            if (statusText) statusText.textContent = 'Upload failed';
-            if (progressBar) progressBar.style.background = 'var(--danger)';
-            if (errorBox) {
-                errorBox.style.display = 'block';
-                if (errorMsg) errorMsg.textContent = err.message || 'Document upload failed. Please try again.';
+            console.error('File upload error:', err);
+            this.isUploading = false;
+            if (this.dom.trayProgressText) this.dom.trayProgressText.textContent = 'Upload failed';
+            if (this.dom.trayProgressBar) this.dom.trayProgressBar.style.background = 'var(--danger)';
+            if (this.dom.trayCancelUploadBtn) this.dom.trayCancelUploadBtn.style.display = 'none';
+            if (this.dom.trayRemoveBtn) this.dom.trayRemoveBtn.style.display = 'flex';
+
+            if (err.message && err.message.toLowerCase().includes('abort')) {
+                // Was cancelled
+                return false;
             }
 
-            if (confirmBtn) {
-                confirmBtn.disabled = false;
-                confirmBtn.textContent = 'Retry Upload';
-            }
-            if (cancelBtn) {
-                cancelBtn.style.display = 'inline-flex';
-                cancelBtn.textContent = 'Remove';
-            }
+            const friendlyError = err.message && err.message.includes('NetworkError')
+                ? 'Connection lost. Upload could not be completed.'
+                : (err.message || 'Upload failed. Please try again.');
+            showToast(friendlyError, 'error');
+            return false;
         }
     }
 
-    // ---------------- OPEN & DOWNLOAD ACTION HANDLERS ----------------
+    // ---------------- AUTHENTICATED VIEWER & DOWNLOADER ----------------
     openDocument(fileId, fileType, originalFilename) {
         if (!fileId) return;
 
-        const viewableTypes = ['pdf', 'image', 'text'];
+        const viewableTypes = ['pdf', 'image', 'video', 'text'];
         const viewUrl = api.getFileViewUrl(fileId);
 
         if (viewableTypes.includes(fileType)) {
-            // Open in new browser tab
             window.open(viewUrl, '_blank', 'noopener,noreferrer');
         } else {
-            // Browser cannot render docx/xlsx/zip directly inline; trigger download
             this.downloadDocument(fileId, originalFilename);
         }
     }
@@ -378,5 +460,9 @@ class DocumentsController {
     }
 }
 
-// Global singleton instance
-window.documentsController = new DocumentsController();
+// Global initialization
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('frankPhotoInput') || document.getElementById('mainComposerBar')) {
+        window.documentsController = new DocumentsController();
+    }
+});
