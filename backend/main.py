@@ -158,6 +158,17 @@ app.add_middleware(
 
 app.add_middleware(SecurityHeadersMiddleware)
 
+# Handle both /api/... and stripped paths in case of serverless path rewriting
+@app.middleware("http")
+async def ensure_api_prefix(request: Request, call_next):
+    path = request.url.path
+    for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health"]:
+        if path.startswith(pfx):
+            request.scope["path"] = "/api" + path
+            break
+    response = await call_next(request)
+    return response
+
 # Include Routers
 app.include_router(auth.router)
 app.include_router(users.router)

@@ -105,8 +105,7 @@ def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(ge
 
     return {
         "success": True,
-        "message": "If an account exists with this email, password reset instructions have been sent.",
-        "debug_token": reset_token  # Provided for seamless local demonstration
+        "message": "If an account exists with this email, password reset instructions have been sent."
     }
 
 

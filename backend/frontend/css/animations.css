@@ -397,91 +397,12 @@
    18-24px miniature FRANK F symbol with subtle glow, hover scale, click ripple,
    and 2-3 particle subtle trail.
    ------------------------------------------------------------------------- */
-@media (hover: hover) and (pointer: fine) {
-    .custom-cursor {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 22px;
-        height: 22px;
-        background-image: url('../assets/brand/frank-cursor.svg');
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-        pointer-events: none;
-        z-index: var(--z-cursor, 99999);
-        opacity: 0;
-        transform: translate3d(-11px, -11px, 0) scale(1);
-        filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.45));
-        transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
-                    filter 180ms ease,
-                    opacity 150ms ease;
-        will-change: transform, opacity;
-    }
-
-    /* Section 18: Cursor Hover Scale & Increased Glow */
-    .custom-cursor.hover {
-        transform: translate3d(-11px, -11px, 0) scale(1.15);
-        filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.85)) drop-shadow(0 0 16px rgba(124, 58, 237, 0.6));
-    }
-
-    /* Section 21 & 22: Hide custom cursor on text inputs, textareas, resize/drag */
-    .custom-cursor.hidden-for-input {
-        opacity: 0 !important;
-    }
-
-    /* Section 19: Cursor Click Effect (Expanding Ripple Ring) */
-    .frank-cursor-ripple {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        border: 2px solid #22D3EE;
-        box-shadow: 0 0 8px rgba(192, 38, 211, 0.7);
-        pointer-events: none;
-        z-index: calc(var(--z-cursor, 99999) - 1);
-        transform: translate3d(-50%, -50%, 0) scale(0.6);
-        animation: frankCursorRippleAnim 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    @keyframes frankCursorRippleAnim {
-        0% {
-            opacity: 0.95;
-            transform: translate3d(-50%, -50%, 0) scale(0.6);
-        }
-        100% {
-            opacity: 0;
-            transform: translate3d(-50%, -50%, 0) scale(2.8);
-        }
-    }
-
-    /* Section 20: Cursor Trail (Subtle, max 2-3 tiny particles) */
-    .frank-cursor-particle {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: calc(var(--z-cursor, 99999) - 2);
-        opacity: 0.55;
-        transform: translate3d(-50%, -50%, 0) scale(1);
-        animation: frankParticleFade 320ms cubic-bezier(0.2, 0, 0.3, 1) forwards;
-    }
-
-    @keyframes frankParticleFade {
-        0% {
-            opacity: 0.55;
-            transform: translate3d(-50%, -50%, 0) scale(1);
-        }
-        100% {
-            opacity: 0;
-            transform: translate3d(-50%, -50%, 0) scale(0.2);
-        }
-    }
+/* Custom Cursor Disabled - Default Normal OS Cursor */
+.custom-cursor,
+.custom-cursor-dot,
+.frank-cursor-ripple,
+.frank-cursor-particle {
+    display: none !important;
 }
 
 /* Accessibility: Respect Reduced Motion Preferences (Section 24) */
