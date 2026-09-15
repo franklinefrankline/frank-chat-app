@@ -168,8 +168,9 @@ const messagesModule = {
         const isAudio = msg.message_type === 'audio' || (msg.document && msg.document.file_type === 'audio');
         const isVideo = msg.message_type === 'video' || (msg.document && msg.document.file_type === 'video');
         const isImage = msg.message_type === 'image' || (msg.document && msg.document.file_type === 'image');
-        const isDocAttachment = (msg.message_type === 'document' || !!msg.file_id || !!msg.document) && !isAudio && !isVideo && !isImage;
-        const hasAttachment = isAudio || isVideo || isImage || isDocAttachment;
+        const isDocument = (msg.message_type === 'document' || !!msg.file_id || !!msg.document) && !isAudio && !isVideo && !isImage;
+        const isDocAttachment = isDocument;
+        const hasAttachment = isAudio || isVideo || isImage || isDocument;
 
         let bodyHtml = `<div class="message-text-content">${safeContent}</div>`;
         let docFilename = '';

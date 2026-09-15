@@ -282,6 +282,8 @@ class ChatController {
         this.dom.textarea.value = '';
         this.autoResizeTextarea();
         this.clearReplying();
+        this.dom.emojiPopover?.classList.remove('show');
+        this.dom.attachmentPopover?.classList.remove('show');
         this.updateComposerActionButton();
 
         if (window.wsClient && window.wsClient.isConnected) {
@@ -331,6 +333,17 @@ class ChatController {
     }
 
     async handleComposerActionButtonClick() {
+        const text = (this.dom.textarea?.value || '').trim();
+        const hasAttachment = !!(window.documentsController && window.documentsController.selectedFile);
+        const hasVoicePreview = !!(window.voiceRecorder && window.voiceRecorder.audioBlob);
+
+        // If any text, attachment, or voice preview exists, ALWAYS execute submit / send
+        if (text.length > 0 || hasAttachment || hasVoicePreview) {
+            this.updateComposerActionButton();
+            await this.handleComposerSubmit();
+            return;
+        }
+
         if (this.dom.sendBtn?.classList.contains('mode-mic')) {
             if (window.voiceRecorder) {
                 window.voiceRecorder.startRecording();
@@ -542,6 +555,8 @@ class ChatController {
                 this.dom.textarea.value += emoji;
                 this.dom.textarea.focus();
                 this.autoResizeTextarea();
+                this.updateComposerActionButton();
+                this.dom.textarea.dispatchEvent(new Event('input', { bubbles: true }));
             }
         });
 
