@@ -34,14 +34,13 @@ const messagesModule = {
         return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
     },
 
-    // Contextual message timestamp:
-    // Today: "7:42 PM"
-    // Yesterday: "Yesterday, 7:42 PM"
-    // Older this year: "Sep 12, 7:42 PM"
-    // Older other year: "Sep 12, 2025, 7:42 PM"
+    // Contextual message timestamp displaying BOTH date and time:
+    // Today: "Today, Sep 15 • 7:42 PM"
+    // Yesterday: "Yesterday, Sep 14 • 7:42 PM"
+    // Older this year: "Sep 12 • 7:42 PM"
+    // Older other year: "Sep 12, 2025 • 7:42 PM"
     formatMessageTimestamp(dateStr) {
-        const d = this.parseDate(dateStr);
-        if (!d) return '';
+        const d = this.parseDate(dateStr) || new Date();
         const now = new Date();
         const timeStr = this.formatTime(d);
 
@@ -53,23 +52,23 @@ const messagesModule = {
         const yesterday = new Date(now);
         yesterday.setDate(now.getDate() - 1);
 
+        const monthDay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
         if (isSameDay(d, now)) {
-            return timeStr;
+            return `Today, ${monthDay} • ${timeStr}`;
         } else if (isSameDay(d, yesterday)) {
-            return `Yesterday, ${timeStr}`;
+            return `Yesterday, ${monthDay} • ${timeStr}`;
         } else if (d.getFullYear() === now.getFullYear()) {
-            const monthDay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            return `${monthDay}, ${timeStr}`;
+            return `${monthDay} • ${timeStr}`;
         } else {
             const monthDayYear = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            return `${monthDayYear}, ${timeStr}`;
+            return `${monthDayYear} • ${timeStr}`;
         }
     },
 
-    // Format date divider: "Today", "Yesterday", or "Sep 12, 2026"
+    // Format date divider: "Today — September 15, 2026", "Yesterday — September 14, 2026", or "September 12, 2026"
     formatDividerDate(dateStr) {
-        const d = this.parseDate(dateStr);
-        if (!d) return '';
+        const d = this.parseDate(dateStr) || new Date();
         const now = new Date();
         const yesterday = new Date(now);
         yesterday.setDate(now.getDate() - 1);
@@ -79,12 +78,11 @@ const messagesModule = {
             d1.getMonth() === d2.getMonth() &&
             d1.getDate() === d2.getDate();
 
-        if (isSameDay(d, now)) return 'Today';
-        if (isSameDay(d, yesterday)) return 'Yesterday';
-        if (d.getFullYear() === now.getFullYear()) {
-            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
-        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const monthDayYear = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+        if (isSameDay(d, now)) return `Today — ${monthDayYear}`;
+        if (isSameDay(d, yesterday)) return `Yesterday — ${monthDayYear}`;
+        return monthDayYear;
     },
 
     formatRelativeTime(dateStr) {
@@ -120,10 +118,12 @@ const messagesModule = {
 
     renderMessageRow(msg, currentUserId) {
         const isSent = msg.sender_id === currentUserId;
-        const timeFormatted = this.formatMessageTimestamp(msg.created_at);
+        const msgDateObj = this.parseDate(msg.created_at) || new Date();
+        const timeFormatted = this.formatMessageTimestamp(msg.created_at || msgDateObj);
         const isEdited = !!msg.updated_at && msg.updated_at !== msg.created_at;
         const timeStr = `${timeFormatted}${isEdited ? ' <span class="message-edited-badge" style="font-size:10px; opacity:0.75; font-style:italic;" title="Edited">(Edited)</span>' : ''}`;
-        const fullTooltip = `Sent: ${this.formatMessageTimestamp(msg.created_at)}${isEdited ? ` · Edited: ${this.formatMessageTimestamp(msg.updated_at)}` : ''}`;
+        const fullDateStr = msgDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        const fullTooltip = `Sent: ${fullDateStr} at ${this.formatTime(msgDateObj)}${isEdited ? ` · Edited: ${this.formatMessageTimestamp(msg.updated_at)}` : ''}`;
         const statusIcon = isSent ? this.getStatusIcon(msg.status) : '';
 
 

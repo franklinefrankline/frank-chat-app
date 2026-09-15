@@ -246,7 +246,8 @@ class ChatController {
 
         let lastDate = null;
         messages.forEach(msg => {
-            const parsed = messagesModule.parseDate(msg.created_at);
+            if (!msg.created_at) msg.created_at = new Date().toISOString();
+            const parsed = messagesModule.parseDate(msg.created_at) || new Date();
             const msgDate = parsed ? parsed.toDateString() : '';
             if (msgDate && msgDate !== lastDate) {
                 lastDate = msgDate;
@@ -412,6 +413,10 @@ class ChatController {
     appendMessage(msg, currentUserId) {
         if (!this.dom.messagesContainer) return;
 
+        if (!msg.created_at) {
+            msg.created_at = new Date().toISOString();
+        }
+
         const msgId = Number(msg.id || msg.message_id);
         if (msgId) {
             // Deduplicate if already present in active array or rendered in DOM
@@ -425,8 +430,8 @@ class ChatController {
 
         // Check if date divider is needed
         const lastMsg = this.activeMessages[this.activeMessages.length - 1];
-        const newD = messagesModule.parseDate(msg.created_at);
-        const lastD = lastMsg ? messagesModule.parseDate(lastMsg.created_at) : null;
+        const newD = messagesModule.parseDate(msg.created_at) || new Date();
+        const lastD = lastMsg ? (messagesModule.parseDate(lastMsg.created_at) || new Date()) : null;
         const newDate = newD ? newD.toDateString() : '';
         const lastDate = lastD ? lastD.toDateString() : '';
 
