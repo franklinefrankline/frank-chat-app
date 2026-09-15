@@ -183,8 +183,6 @@ function handleMockRequest(endpoint, options = {}) {
         };
     }
 
-    }
-
     // 2. Auth: Register
     if (endpoint === '/api/auth/register' && method === 'POST') {
         const username = (body.username || '').trim().toLowerCase();
