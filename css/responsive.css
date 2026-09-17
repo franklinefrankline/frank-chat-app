@@ -93,36 +93,70 @@
         display: flex;
     }
 
+    body.mobile-chat-open .conversation-panel {
+        display: none !important;
+    }
+
     .chat-window {
         display: none;
-        position: absolute;
+        position: fixed;
         inset: 0;
         z-index: 100;
         width: 100%;
+        height: 100%;
+        height: var(--app-viewport-height, 100dvh);
+        background: var(--bg-dark);
     }
 
-    .chat-window.mobile-open {
-        display: flex;
+    .chat-window.mobile-open,
+    body.mobile-chat-open .chat-window {
+        display: flex !important;
+        flex-direction: column;
     }
 
     .mobile-back-btn {
-        display: flex;
+        display: flex !important;
         align-items: center;
         justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
     }
 
-    /* Messages container touch improvements */
+    /* Messages container touch improvements & keyboard handling */
     .messages-container {
-        padding: var(--space-4) var(--space-3);
+        padding: var(--space-3);
+        flex: 1 1 auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
     }
 
     .message-row {
-        max-width: 85%;
+        max-width: 88%;
+        margin-bottom: var(--space-2);
+        word-break: break-word;
     }
 
-    /* Composer adjustments */
+    .message-meta {
+        font-size: 11px;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 3px;
+        padding: 0 4px;
+    }
+
+    /* Composer adjustments - pinned & keyboard safe */
     .chat-composer-container {
         padding: var(--space-2) var(--space-3);
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+        position: relative;
+        z-index: 110;
     }
 
     .emoji-popover,
@@ -140,6 +174,7 @@
     /* Touch target minimum sizes */
     .btn,
     .composer-send-btn,
+    .composer-mic-btn,
     .nav-item,
     .conversation-card {
         min-height: 44px;
@@ -151,6 +186,7 @@
     }
 }
 
+/* Small to Medium Mobile (max-width: 480px) */
 @media (max-width: 480px) {
     .hero h1 {
         font-size: 32px;
@@ -161,7 +197,27 @@
         max-width: 90%;
     }
 
+    .message-meta {
+        font-size: 10.5px;
+    }
+
     .auth-card {
         padding: 0;
+    }
+}
+
+/* Extra Small Mobile (max-width: 375px) */
+@media (max-width: 375px) {
+    .message-row {
+        max-width: 92%;
+    }
+
+    .conversation-card {
+        padding: var(--space-2) var(--space-3);
+    }
+
+    .date-separator span {
+        font-size: 10px;
+        padding: 2px 8px;
     }
 }

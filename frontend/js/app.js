@@ -27,6 +27,17 @@ class AppController {
             auth.logout();
         });
 
+        const dismissLoader = () => {
+            const loader = document.getElementById('appLoadingScreen');
+            if (loader && !loader.classList.contains('fade-out')) {
+                loader.classList.add('fade-out');
+                setTimeout(() => loader.remove(), 500);
+            }
+        };
+
+        // Fail-safe: ensure splash loading screen is always dismissed within 2.2s
+        setTimeout(dismissLoader, 2200);
+
         try {
             this.currentUser = await api.getCurrentUser();
             auth.setUser(this.currentUser);
@@ -47,16 +58,11 @@ class AppController {
             console.error('Bootstrap error:', err);
             if (!auth.isAuthenticated()) {
                 window.location.href = 'login.html';
+                return;
             }
         } finally {
-            // Section 11: Splash animation duration ~1.8-2.2s, dismiss smoothly
-            setTimeout(() => {
-                const loader = document.getElementById('appLoadingScreen');
-                if (loader) {
-                    loader.classList.add('fade-out');
-                    setTimeout(() => loader.remove(), 500);
-                }
-            }, 1800);
+            // Splash animation finishes and dismisses smoothly
+            setTimeout(dismissLoader, 1600);
         }
     }
 
@@ -203,6 +209,7 @@ class AppController {
                     <div class="conversation-row">
                         <span class="conversation-name">
                             ${isGroup ? '<span class="group-prefix-badge">Group</span> ' : ''}${messagesModule.escapeHTML(conv.name)}
+                            ${conv.unread_count > 0 ? '<span class="unread-dot" title="Unread messages">🔵</span>' : ''}
                         </span>
                         <span class="conversation-time">${timeStr}</span>
                     </div>
@@ -223,10 +230,12 @@ class AppController {
                     // Mark as active
                     document.querySelectorAll('.conversation-card').forEach(c => c.classList.remove('active'));
                     card.classList.add('active');
-                    // Reset unread badge locally
+                    // Reset unread badge & dot locally
                     conv.unread_count = 0;
                     const badge = card.querySelector('.unread-badge');
                     if (badge) badge.remove();
+                    const dot = card.querySelector('.unread-dot');
+                    if (dot) dot.remove();
                     this.updateTotalUnread();
                 }
             });
@@ -238,7 +247,7 @@ class AppController {
     updateTotalUnread() {
         let total = 0;
         this.conversations.forEach(c => {
-            if (c.unread_count) total += c.unread_count;
+            if (c.unread_count) total += Number(c.unread_count);
         });
 
         const badge = document.getElementById('totalUnreadBadge');
@@ -249,6 +258,82 @@ class AppController {
             } else {
                 badge.style.display = 'none';
             }
+        }
+
+        // WhatsApp-style dynamic browser tab favicon badge + title + app badge
+        if (typeof window.notificationsModule !== 'undefined' && window.notificationsModule.updateUnreadBadge) {
+            window.notificationsModule.updateUnreadBadge(total);
+        }
+    }
+
+    // Handle real-time incoming message update to sidebar preview & unread count
+    handleIncomingMessageSidebar(msg, isActivelyViewing = false) {
+        if (!msg) return;
+        const senderId = Number(msg.sender_id);
+        const recipientId = msg.recipient_id ? Number(msg.recipient_id) : null;
+        const groupId = msg.group_id ? Number(msg.group_id) : null;
+        const currentUser = auth.getUser();
+        const currentUserId = currentUser ? Number(currentUser.id) : null;
+
+        const isGroup = !!groupId;
+        const partnerId = senderId === currentUserId ? recipientId : senderId;
+        const targetId = isGroup ? groupId : partnerId;
+
+        const index = this.conversations.findIndex(c => 
+            Number(c.id) === Number(targetId) && (c.type === 'group') === isGroup
+        );
+
+        if (index !== -1) {
+            const conv = this.conversations[index];
+            conv.last_message = {
+                id: msg.id,
+                content: msg.content,
+                message_type: msg.message_type || 'text',
+                sender_id: msg.sender_id,
+                sender_name: msg.sender_name || (msg.sender ? msg.sender.full_name : null),
+                created_at: msg.created_at,
+                status: msg.status || 'sent'
+            };
+
+            // Increment unread count only if user is not actively viewing this conversation
+            if (!isActivelyViewing && senderId !== currentUserId) {
+                conv.unread_count = (conv.unread_count || 0) + 1;
+            }
+
+            // Move updated conversation to top of list
+            this.conversations.splice(index, 1);
+            this.conversations.unshift(conv);
+
+            this.renderConversationList();
+            this.updateTotalUnread();
+        } else {
+            // New conversation partner not yet in list: fetch fresh from server
+            this.loadConversations(false);
+        }
+    }
+
+    // Open conversation from in-app toast or browser desktop notification click
+    openConversationFromNotification(targetId, isGroup = false, msg = null) {
+        const conv = this.conversations.find(c => 
+            Number(c.id) === Number(targetId) && (c.type === 'group') === isGroup
+        );
+
+        if (conv && window.chatController) {
+            if (isGroup) {
+                window.chatController.openGroupChat(conv);
+            } else {
+                window.chatController.openDirectChat(conv);
+            }
+            conv.unread_count = 0;
+            this.renderConversationList();
+            this.updateTotalUnread();
+        } else if (window.chatController) {
+            if (isGroup) {
+                window.chatController.openGroupChat({ id: targetId, name: (msg && msg.group_name) || 'Group Chat' });
+            } else {
+                window.chatController.openDirectChat({ id: targetId, full_name: (msg && msg.sender_name) || (msg && msg.sender && msg.sender.full_name) || 'User', username: '' });
+            }
+            this.loadConversations(false);
         }
     }
 

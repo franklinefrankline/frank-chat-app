@@ -194,6 +194,11 @@ class DocumentsController {
                         </div>
                         ${mediaPreviewHtml}
 
+                        <!-- Optional Caption Input -->
+                        <div style="margin-top: 14px;">
+                            <input type="text" id="docCaptionInput" class="form-input" placeholder="Add a caption... (optional)" style="width: 100%; border-radius: 8px; font-size: 13px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--border);">
+                        </div>
+
                         <!-- Progress Bar Container (hidden until user clicks Send) -->
                         <div class="upload-progress-wrapper" id="uploadProgressWrapper" style="display: none; margin-top: 16px;">
                             <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">
@@ -296,12 +301,16 @@ class DocumentsController {
             const replyId = chat.replyTo ? chat.replyTo.id : null;
             chat.clearReplying();
 
+            const captionInput = document.getElementById('docCaptionInput');
+            const captionText = captionInput ? captionInput.value.trim() : '';
+            const messageContent = captionText || `Shared a file: ${uploadedDoc.original_filename}`;
+
             if (window.wsClient && window.wsClient.isConnected) {
                 window.wsClient.ws.send(JSON.stringify({
                     type: 'message',
                     recipient_id: chat.activeType === 'direct' ? chat.activeId : null,
                     group_id: chat.activeType === 'group' ? chat.activeId : null,
-                    content: `Shared a file: ${uploadedDoc.original_filename}`,
+                    content: messageContent,
                     message_type: 'document',
                     file_id: uploadedDoc.id,
                     filename: uploadedDoc.original_filename,
@@ -312,7 +321,7 @@ class DocumentsController {
                 const newMsg = await api.sendMessage({
                     recipient_id: chat.activeType === 'direct' ? chat.activeId : null,
                     group_id: chat.activeType === 'group' ? chat.activeId : null,
-                    content: `Shared a file: ${uploadedDoc.original_filename}`,
+                    content: messageContent,
                     message_type: 'document',
                     file_id: uploadedDoc.id,
                     reply_to_id: replyId
@@ -349,14 +358,13 @@ class DocumentsController {
     openDocument(fileId, fileType, originalFilename) {
         if (!fileId) return;
 
-        const viewableTypes = ['pdf', 'image', 'text'];
-        const viewUrl = api.getFileViewUrl(fileId);
+        if (window.mediaViewer) {
+            window.mediaViewer.openDocument(fileId, fileType, originalFilename);
+            return;
+        }
 
-        if (viewableTypes.includes(fileType)) {
-            // Open in new browser tab
-            window.open(viewUrl, '_blank', 'noopener,noreferrer');
-        } else {
-            // Browser cannot render docx/xlsx/zip directly inline; trigger download
+        const viewableTypes = ['pdf', 'image', 'text'];
+        if (!viewableTypes.includes(fileType)) {
             this.downloadDocument(fileId, originalFilename);
         }
     }

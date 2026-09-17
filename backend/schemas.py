@@ -132,6 +132,7 @@ class MessageUpdate(BaseModel):
 
 class MessageResponse(BaseModel):
     id: int
+    conversation_id: Optional[int] = None
     sender_id: int
     recipient_id: Optional[int] = None
     group_id: Optional[int] = None

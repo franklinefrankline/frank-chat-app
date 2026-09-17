@@ -64,6 +64,7 @@ class ChatController {
         this.setupDrawer();
         this.setupChatSearch();
         this.setupHeaderMoreMenu();
+        this.setupMobileActionToolbar();
         this.setupWebSocketListeners();
     }
 
@@ -103,6 +104,7 @@ class ChatController {
 
         // Mobile responsive switch
         if (window.innerWidth <= 768) {
+            document.body.classList.add('mobile-chat-open');
             document.getElementById('chatWindow')?.classList.add('mobile-open');
             const panel = document.getElementById('conversationPanel');
             if (panel) panel.style.display = 'none';
@@ -115,6 +117,16 @@ class ChatController {
 
         // Load Messages
         await this.loadDirectMessages(partner.id);
+
+        // Reset unread count for this conversation in appController
+        if (typeof window.appController !== 'undefined' && window.appController.conversations) {
+            const conv = window.appController.conversations.find(c => Number(c.id) === Number(partner.id) && c.type !== 'group');
+            if (conv) {
+                conv.unread_count = 0;
+                window.appController.renderConversationList();
+                window.appController.updateTotalUnread();
+            }
+        }
         this.dom.textarea?.focus();
     }
 
@@ -155,6 +167,7 @@ class ChatController {
 
         // Mobile responsive switch
         if (window.innerWidth <= 768) {
+            document.body.classList.add('mobile-chat-open');
             document.getElementById('chatWindow')?.classList.add('mobile-open');
             const panel = document.getElementById('conversationPanel');
             if (panel) panel.style.display = 'none';
@@ -167,6 +180,16 @@ class ChatController {
 
         // Load Messages
         await this.loadGroupMessages(group.id);
+
+        // Reset unread count for this group in appController
+        if (typeof window.appController !== 'undefined' && window.appController.conversations) {
+            const conv = window.appController.conversations.find(c => Number(c.id) === Number(group.id) && c.type === 'group');
+            if (conv) {
+                conv.unread_count = 0;
+                window.appController.renderConversationList();
+                window.appController.updateTotalUnread();
+            }
+        }
         this.dom.textarea?.focus();
     }
 
@@ -267,6 +290,10 @@ class ChatController {
     scrollToBottom() {
         if (!this.dom.messagesContainer) return;
         this.dom.messagesContainer.scrollTop = this.dom.messagesContainer.scrollHeight;
+        const lastRow = this.dom.messagesContainer.querySelector('.message-row:last-child');
+        if (lastRow && typeof lastRow.scrollIntoView === 'function') {
+            lastRow.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
     }
 
     // ---------------- SEND MESSAGE ----------------
@@ -355,6 +382,27 @@ class ChatController {
             this.updateComposerButtons();
         });
 
+        // Mobile soft keyboard handling
+        this.dom.textarea.addEventListener('focus', () => {
+            if (window.innerWidth <= 768) {
+                setTimeout(() => {
+                    this.scrollToBottom();
+                }, 200);
+            }
+        });
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                if (window.innerWidth <= 768) {
+                    const vh = window.visualViewport.height;
+                    document.documentElement.style.setProperty('--app-viewport-height', `${vh}px`);
+                    if (this.activeId) {
+                        setTimeout(() => this.scrollToBottom(), 100);
+                    }
+                }
+            });
+        }
+
         this.dom.sendBtn?.addEventListener('click', () => this.sendMessage());
         this.dom.cancelReplyBtn?.addEventListener('click', () => this.clearReplying());
 
@@ -395,10 +443,22 @@ class ChatController {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             this.mediaStream = stream;
 
-            const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                ? { mimeType: 'audio/webm;codecs=opus' }
-                : (MediaRecorder.isTypeSupported('audio/webm') ? { mimeType: 'audio/webm' } : {});
+            let mimeType = '';
+            const candidates = [
+                'audio/webm;codecs=opus',
+                'audio/webm',
+                'audio/mp4',
+                'audio/aac',
+                'audio/ogg'
+            ];
+            for (const cand of candidates) {
+                if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(cand)) {
+                    mimeType = cand;
+                    break;
+                }
+            }
 
+            const options = mimeType ? { mimeType } : {};
             this.mediaRecorder = new MediaRecorder(stream, options);
             this.audioChunks = [];
 
@@ -467,8 +527,11 @@ class ChatController {
             }
 
             try {
-                showToast('Sending voice message...', 'info', 1000);
-                const filename = `voice_${Date.now()}.webm`;
+                let ext = 'webm';
+                if (mimeType.includes('mp4') || mimeType.includes('aac')) ext = 'm4a';
+                else if (mimeType.includes('ogg')) ext = 'ogg';
+                else if (mimeType.includes('wav')) ext = 'wav';
+                const filename = `voice_${Date.now()}.${ext}`;
                 const file = new File([audioBlob], filename, { type: mimeType });
 
                 const partnerId = this.activeType === 'direct' ? this.activeId : null;
@@ -750,8 +813,9 @@ class ChatController {
     setupMobileBack() {
         this.dom.mobileBackBtn?.addEventListener('click', () => {
             document.getElementById('chatWindow')?.classList.remove('mobile-open');
+            document.body.classList.remove('mobile-chat-open');
             const panel = document.getElementById('conversationPanel');
-            if (panel) panel.style.display = 'flex';
+            if (panel) panel.style.display = '';
         });
     }
 
@@ -1051,6 +1115,7 @@ class ChatController {
                  (senderId === currentUserId && recipientId === activeId));
 
             const isGroupForActiveChat = this.activeType === 'group' && groupId === activeId;
+            const isActivelyViewing = (isDirectForActiveChat || isGroupForActiveChat) && !document.hidden;
 
             if (isDirectForActiveChat || isGroupForActiveChat) {
                 this.appendMessage(msg, currentUserId);
@@ -1060,16 +1125,16 @@ class ChatController {
                 }
             }
 
-            // Notification for background incoming messages
+            // Notification for incoming messages from others
             if (senderId !== currentUserId) {
                 if (typeof window.notificationsModule !== 'undefined') {
-                    window.notificationsModule.notifyIncoming(msg);
+                    window.notificationsModule.notifyIncoming(msg, { isActivelyViewing });
                 }
             }
 
-            // Refresh conversation preview in sidebar
+            // Real-time update conversation preview and unread badge in sidebar
             if (typeof window.appController !== 'undefined') {
-                window.appController.loadConversations(false);
+                window.appController.handleIncomingMessageSidebar(msg, isActivelyViewing);
             }
         });
 
@@ -1129,25 +1194,7 @@ class ChatController {
 
         // 4. Reactions
         window.wsClient.on('reaction', (data) => {
-            const msgRow = document.getElementById(`msgRow-${data.message_id}`);
-            if (msgRow) {
-                let badgeTray = msgRow.querySelector('.reaction-badges');
-                if (!badgeTray) {
-                    badgeTray = document.createElement('div');
-                    badgeTray.className = 'reaction-badges';
-                    msgRow.appendChild(badgeTray);
-                }
-                if (data.action === 'added') {
-                    badgeTray.insertAdjacentHTML('beforeend', `
-                        <button type="button" class="reaction-pill user-reacted" data-msg-id="${data.message_id}" data-emoji="${data.emoji}">
-                            <span>${data.emoji}</span>
-                        </button>
-                    `);
-                } else {
-                    const pill = badgeTray.querySelector(`[data-emoji="${data.emoji}"]`);
-                    if (pill) pill.remove();
-                }
-            }
+            this.handleReactionEvent(data);
         });
 
         // 5. Read Receipts
@@ -1159,6 +1206,129 @@ class ChatController {
                     check.className = 'message-status-check read';
                     check.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 6 7 17 2 12"></polyline><polyline points="22 10 13 19 11 17"></polyline></svg>`;
                 }
+            }
+        });
+    }
+
+    handleReactionEvent(data) {
+        if (!data || !data.message_id) return;
+        const currentUserId = typeof auth !== 'undefined' && auth.getUser() ? auth.getUser().id : null;
+
+        // Update in-memory activeMessages if present
+        let msg = (this.activeMessages || []).find(m => m.id === data.message_id);
+        if (msg) {
+            msg.reactions = msg.reactions || [];
+            if (data.action === 'added') {
+                if (!msg.reactions.some(r => r.user_id === data.user_id && r.emoji === data.emoji)) {
+                    msg.reactions.push({ user_id: data.user_id, emoji: data.emoji, message_id: data.message_id });
+                }
+            } else {
+                msg.reactions = msg.reactions.filter(r => !(r.user_id === data.user_id && r.emoji === data.emoji));
+            }
+        }
+
+        // Update DOM badges
+        const msgRow = document.getElementById(`msgRow-${data.message_id}`);
+        if (msgRow) {
+            let badgeTray = msgRow.querySelector('.reaction-badges');
+            const reactions = msg ? (msg.reactions || []) : [];
+
+            if (!msg) {
+                if (!badgeTray && data.action === 'added') {
+                    badgeTray = document.createElement('div');
+                    badgeTray.className = 'reaction-badges';
+                    msgRow.appendChild(badgeTray);
+                }
+                if (badgeTray) {
+                    let pill = badgeTray.querySelector(`[data-emoji="${data.emoji}"]`);
+                    if (data.action === 'added') {
+                        if (pill) {
+                            const countSpan = pill.querySelector('.reaction-count');
+                            let count = countSpan ? parseInt(countSpan.textContent, 10) + 1 : 2;
+                            pill.innerHTML = `<span>${data.emoji}</span><span class="reaction-count" style="font-size:10px; font-weight:700;">${count}</span>`;
+                            if (data.user_id === currentUserId) pill.classList.add('user-reacted');
+                        } else {
+                            badgeTray.insertAdjacentHTML('beforeend', `
+                                <button type="button" class="reaction-pill ${data.user_id === currentUserId ? 'user-reacted' : ''}" data-msg-id="${data.message_id}" data-emoji="${data.emoji}">
+                                    <span>${data.emoji}</span>
+                                </button>
+                            `);
+                        }
+                    } else if (pill) {
+                        const countSpan = pill.querySelector('.reaction-count');
+                        if (countSpan && parseInt(countSpan.textContent, 10) > 2) {
+                            let count = parseInt(countSpan.textContent, 10) - 1;
+                            pill.innerHTML = `<span>${data.emoji}</span><span class="reaction-count" style="font-size:10px; font-weight:700;">${count}</span>`;
+                            if (data.user_id === currentUserId) pill.classList.remove('user-reacted');
+                        } else if (countSpan && parseInt(countSpan.textContent, 10) === 2) {
+                            pill.innerHTML = `<span>${data.emoji}</span>`;
+                            if (data.user_id === currentUserId) pill.classList.remove('user-reacted');
+                        } else {
+                            pill.remove();
+                            if (badgeTray.children.length === 0) badgeTray.remove();
+                        }
+                    }
+                }
+                return;
+            }
+
+            // Clean render using updated in-memory reactions array
+            const counts = {};
+            let hasUserReacted = {};
+            reactions.forEach(r => {
+                counts[r.emoji] = (counts[r.emoji] || 0) + 1;
+                if (r.user_id === currentUserId) hasUserReacted[r.emoji] = true;
+            });
+
+            const entries = Object.entries(counts);
+            if (entries.length === 0) {
+                if (badgeTray) badgeTray.remove();
+            } else {
+                if (!badgeTray) {
+                    badgeTray = document.createElement('div');
+                    badgeTray.className = 'reaction-badges';
+                    msgRow.appendChild(badgeTray);
+                }
+                badgeTray.innerHTML = entries.map(([emoji, count]) => `
+                    <button type="button" class="reaction-pill ${hasUserReacted[emoji] ? 'user-reacted' : ''}" data-msg-id="${data.message_id}" data-emoji="${emoji}">
+                        <span>${emoji}</span>
+                        ${count > 1 ? `<span class="reaction-count" style="font-size:10px; font-weight:700;">${count}</span>` : ''}
+                    </button>
+                `).join('');
+            }
+        }
+    }
+
+    setupMobileActionToolbar() {
+        // Toggle action bar on mobile message tap
+        this.dom.messagesContainer?.addEventListener('click', (e) => {
+            // Ignore if clicked directly on an action button, form control, media, link
+            if (e.target.closest('.action-tool-btn, .reaction-pill, .btn, img, video, audio, a, input, textarea')) {
+                return;
+            }
+
+            const row = e.target.closest('.message-row');
+            if (row) {
+                const wasOpen = row.classList.contains('show-actions');
+                document.querySelectorAll('.message-row.show-actions').forEach(r => r.classList.remove('show-actions'));
+                if (!wasOpen) {
+                    row.classList.add('show-actions');
+                    const toolbar = row.querySelector('.message-actions-toolbar');
+                    if (toolbar) {
+                        const rect = toolbar.getBoundingClientRect();
+                        if (rect.top < 70) toolbar.classList.add('position-bottom');
+                        else toolbar.classList.remove('position-bottom');
+                    }
+                }
+            }
+        });
+
+        // Click outside closes message action toolbar without navigating or reloading
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.message-actions-toolbar') && !e.target.closest('.message-row')) {
+                document.querySelectorAll('.message-row.show-actions').forEach(row => {
+                    row.classList.remove('show-actions');
+                });
             }
         });
     }

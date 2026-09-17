@@ -56,10 +56,16 @@ const usersModule = {
         const searchBtn = document.getElementById('searchFrankIdBtn');
         const previewChatBtn = document.getElementById('previewUserChatBtn');
 
-        // Force uppercase and sanitize alphanumeric only (maxlength 6)
+        // Force uppercase, strip special chars/spaces, enable Connect on exactly 6 chars
         input?.addEventListener('input', (e) => {
             const clean = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
             e.target.value = clean;
+
+            // Exactly 6 characters required to enable Connect button
+            if (searchBtn) {
+                searchBtn.disabled = clean.length !== 6;
+            }
+
             // Clear previous errors/previews on change
             const previewContainer = document.getElementById('frankIdPreviewContainer');
             const errorContainer = document.getElementById('frankIdErrorContainer');
@@ -68,7 +74,7 @@ const usersModule = {
         });
 
         input?.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && e.target.value.length === 6) {
                 e.preventDefault();
                 this.lookupFrankId();
             }
@@ -96,26 +102,31 @@ const usersModule = {
 
     resetModal() {
         const input = document.getElementById('newPersonFrankIdInput');
+        const searchBtn = document.getElementById('searchFrankIdBtn');
         const queryInput = document.getElementById('userSearchQuery');
         const previewContainer = document.getElementById('frankIdPreviewContainer');
         const errorContainer = document.getElementById('frankIdErrorContainer');
 
-        if (input) input.value = '';
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+        if (searchBtn) searchBtn.disabled = true;
         if (queryInput) queryInput.value = '';
         if (previewContainer) previewContainer.style.display = 'none';
         if (errorContainer) errorContainer.style.display = 'none';
         this.searchedUser = null;
 
-        // Default to Existing Chats tab
+        // Default to Enter FRANK ID tab
         const tabExisting = document.getElementById('tabExistingChatsBtn');
         const tabNewPerson = document.getElementById('tabNewPersonBtn');
         const sectionExisting = document.getElementById('sectionExistingChats');
         const sectionNewPerson = document.getElementById('sectionNewPerson');
 
-        tabExisting?.classList.add('active');
-        tabNewPerson?.classList.remove('active');
-        if (sectionExisting) sectionExisting.style.display = 'block';
-        if (sectionNewPerson) sectionNewPerson.style.display = 'none';
+        tabNewPerson?.classList.add('active');
+        tabExisting?.classList.remove('active');
+        if (sectionNewPerson) sectionNewPerson.style.display = 'block';
+        if (sectionExisting) sectionExisting.style.display = 'none';
     },
 
     async lookupFrankId() {
@@ -142,7 +153,7 @@ const usersModule = {
 
         if (searchBtn) {
             searchBtn.disabled = true;
-            searchBtn.textContent = 'Searching...';
+            searchBtn.textContent = 'Connecting...';
         }
 
         try {
@@ -183,8 +194,8 @@ const usersModule = {
             }
         } finally {
             if (searchBtn) {
-                searchBtn.disabled = false;
-                searchBtn.textContent = 'Lookup ID';
+                searchBtn.disabled = (input?.value || '').length !== 6;
+                searchBtn.textContent = 'Connect';
             }
         }
     },

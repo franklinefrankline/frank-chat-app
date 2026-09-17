@@ -63,8 +63,10 @@ const settingsModule = {
         const toggleIds = [
             'settingAnimations',
             'settingCustomCursor',
+            'settingMessageNotifs',
             'settingDesktopNotifs',
             'settingSound',
+            'settingVibration',
             'settingGroupNotifs',
             'settingReadReceipts',
             'settingTyping',
@@ -83,6 +85,18 @@ const settingsModule = {
             el.addEventListener('change', () => {
                 localStorage.setItem(`pref_${id}`, el.checked);
                 showToast('Preference updated', 'info', 1500);
+
+                if (id === 'settingDesktopNotifs' && el.checked) {
+                    if ('Notification' in window && Notification.permission === 'default') {
+                        Notification.requestPermission().then(permission => {
+                            if (permission === 'granted') {
+                                showToast('Browser notifications enabled', 'success', 2000);
+                            } else {
+                                showToast('Browser notifications blocked in browser settings', 'warning', 3000);
+                            }
+                        }).catch(() => {});
+                    }
+                }
 
                 if (id === 'settingCustomCursor') {
                     const cursor = document.getElementById('customCursor');

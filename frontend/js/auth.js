@@ -43,6 +43,9 @@ const auth = {
     },
 
     logout() {
+        if (typeof window.notificationsModule !== 'undefined' && window.notificationsModule) {
+            window.notificationsModule.updateUnreadBadge(0);
+        }
         if (typeof window.wsClient !== 'undefined' && window.wsClient) {
             window.wsClient.disconnect();
         }

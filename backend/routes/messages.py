@@ -127,26 +127,31 @@ async def send_message(
 
     msg_payload = {
         "type": "message",
-        "id": msg.id,
-        "conversation_id": msg.conversation_id,
-        "sender_id": msg.sender_id,
-        "recipient_id": msg.recipient_id,
-        "group_id": msg.group_id,
-        "content": msg.content,
-        "message_type": msg.message_type or "text",
-        "file_id": msg.file_id,
-        "reply_to_id": msg.reply_to_id,
-        "status": msg.status,
-        "created_at": msg.created_at.isoformat() if msg.created_at else None,
-        "sender": {
-            "id": current_user.id,
-            "name": current_user.name,
-            "email": current_user.email,
-            "avatar_url": current_user.avatar_url,
-            "frank_id": current_user.frank_id
-        },
-        "document": doc_payload,
-        "reactions": []
+        "message": {
+            "id": msg.id,
+            "message_id": msg.id,
+            "conversation_id": msg.conversation_id,
+            "sender_id": msg.sender_id,
+            "recipient_id": msg.recipient_id,
+            "group_id": msg.group_id,
+            "content": msg.content,
+            "message_type": msg.message_type or "text",
+            "file_id": msg.file_id,
+            "reply_to_id": msg.reply_to_id,
+            "status": msg.status,
+            "created_at": schemas.format_iso_utc(msg.created_at),
+            "updated_at": schemas.format_iso_utc(msg.updated_at) if msg.updated_at else None,
+            "sender": {
+                "id": current_user.id,
+                "username": current_user.username,
+                "full_name": current_user.full_name,
+                "email": current_user.email,
+                "avatar_url": current_user.avatar_url,
+                "frank_id": current_user.frank_id
+            },
+            "document": doc_payload,
+            "reactions": []
+        }
     }
 
     try:
@@ -284,7 +289,7 @@ async def edit_message(
                 "type": "message_edited",
                 "message_id": msg.id,
                 "content": msg.content,
-                "updated_at": msg.updated_at.isoformat() if msg.updated_at else None
+                "updated_at": schemas.format_iso_utc(msg.updated_at)
             },
             sender_id=current_user.id,
             recipient_id=msg.recipient_id,

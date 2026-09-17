@@ -52,6 +52,10 @@ class ChatWebSocketClient {
                     const type = data.type;
                     if (type) {
                         this.notify(type, data);
+                        if (type === 'message') this.notify('message:new', data);
+                        if (type === 'message:new') this.notify('message', data);
+                        if (type === 'message_edited') this.notify('message_edit', data);
+                        if (type === 'message_edit') this.notify('message_edited', data);
                     }
                 } catch (err) {
                     console.error('Error parsing WebSocket message:', err);
@@ -140,7 +144,7 @@ class ChatWebSocketClient {
             type: 'read',
             message_ids: Array.isArray(messageIds) ? messageIds : [messageIds]
         });
-    },
+    }
 
     sendEditMessage(messageId, content) {
         return this.send({
