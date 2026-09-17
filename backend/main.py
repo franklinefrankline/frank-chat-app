@@ -57,6 +57,7 @@ def seed_demo_users():
                     "frank_id": "F4M8Q1",
                     "username": "alex",
                     "email": "alex@frank.app",
+                    "frank_id": "F4M8Q1",
                     "full_name": "Alex Morgan",
                     "bio": "Product Designer & Tech Enthusiast 🚀",
                     "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
@@ -66,6 +67,7 @@ def seed_demo_users():
                     "frank_id": "K7P2X9",
                     "username": "sarah",
                     "email": "sarah@frank.app",
+                    "frank_id": "K7P2X9",
                     "full_name": "Sarah Connor",
                     "bio": "Building the future of real-time communication.",
                     "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
@@ -75,6 +77,7 @@ def seed_demo_users():
                     "frank_id": "B3N8R5",
                     "username": "david",
                     "email": "david@frank.app",
+                    "frank_id": "B3N8R5",
                     "full_name": "David Chen",
                     "bio": "Software Architect & Open Source Contributor.",
                     "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
@@ -88,6 +91,7 @@ def seed_demo_users():
                     frank_id=u["frank_id"],
                     username=u["username"],
                     email=u["email"],
+                    frank_id=u["frank_id"],
                     full_name=u["full_name"],
                     bio=u["bio"],
                     avatar_url=u["avatar_url"],
@@ -135,6 +139,7 @@ app = FastAPI(
 
 # CORS configuration
 default_origins = [
+    "https://frank-chat-app.vercel.app",
     "https://frank-chat-vercel.app",
     "https://frank-chat-vercel.vercel.app",
     "http://localhost:8000",
@@ -153,6 +158,7 @@ allowed_origins = list(set(default_origins + env_origins))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins if "*" not in env_origins else ["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -160,6 +166,7 @@ app.add_middleware(
 
 app.add_middleware(SecurityHeadersMiddleware)
 
+<<<<<<< HEAD
 # Include Routers
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -167,15 +174,38 @@ app.include_router(conversations.router)
 app.include_router(messages.router)
 app.include_router(groups.router)
 app.include_router(files.router)
+=======
+# Handle both /api/... and stripped paths in case of serverless path rewriting
+@app.middleware("http")
+async def ensure_api_prefix(request: Request, call_next):
+    path = request.url.path
+    for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health"]:
+        if path.startswith(pfx):
+            request.scope["path"] = "/api" + path
+            break
+    response = await call_next(request)
+    return response
+
+# Include Routers with both /api prefix and root prefix
+for r in [auth.router, users.router, messages.router, groups.router, files.router]:
+    app.include_router(r, prefix="/api")
+    app.include_router(r)
+>>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
 
 # WebSocket Gateway
 @app.websocket("/ws/{token}")
+@app.websocket("/api/ws/{token}")
 async def websocket_endpoint(websocket: WebSocket, token: str):
     await handle_websocket_connection(websocket, token)
 
 
+@app.get("/")
+@app.get("/api")
+@app.get("/api/")
+@app.get("/api/index.py")
 @app.get("/api/health")
+@app.get("/health")
 def health_check():
     return {
         "status": "healthy",

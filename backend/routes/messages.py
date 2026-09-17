@@ -9,7 +9,7 @@ import schemas
 from security import get_current_user
 from websocket.chat import manager
 
-router = APIRouter(prefix="/api/messages", tags=["Messages"])
+router = APIRouter(prefix="/messages", tags=["Messages"])
 
 
 @router.get("/direct/{partner_id}", response_model=List[schemas.MessageResponse])
@@ -58,6 +58,7 @@ async def send_message(
         partner = db.query(models.User).filter(models.User.id == msg_in.recipient_id).first()
         if not partner:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipient not found")
+<<<<<<< HEAD
         u_a = min(current_user.id, partner.id)
         u_b = max(current_user.id, partner.id)
         conv = db.query(models.Conversation).filter(
@@ -78,6 +79,20 @@ async def send_message(
             conv.updated_at = datetime.now(timezone.utc)
             db.commit()
         conv_id = conv.id
+=======
+        
+        # Enforce canonical single conversation guarantee
+        ua = min(current_user.id, msg_in.recipient_id)
+        ub = max(current_user.id, msg_in.recipient_id)
+        conv = db.query(models.Conversation).filter(
+            models.Conversation.user_a_id == ua,
+            models.Conversation.user_b_id == ub
+        ).first()
+        if not conv:
+            conv = models.Conversation(user_a_id=ua, user_b_id=ub)
+            db.add(conv)
+            db.commit()
+>>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
     if msg_in.group_id:
         membership = db.query(models.GroupMember).filter(
@@ -103,6 +118,7 @@ async def send_message(
     db.commit()
     db.refresh(msg)
 
+    doc_data = None
     if msg_in.file_id:
         doc = db.query(models.Document).filter(models.Document.id == msg_in.file_id).first()
         if doc:
@@ -113,6 +129,51 @@ async def send_message(
                 doc.conversation_id = msg_in.recipient_id
             db.commit()
             db.refresh(msg)
+            doc_data = {
+                "id": doc.id,
+                "original_filename": doc.original_filename,
+                "file_size": doc.file_size,
+                "mime_type": doc.mime_type,
+                "file_type": doc.file_type,
+                "duration": doc.duration,
+                "created_at": schemas.format_iso_utc(doc.created_at)
+            }
+
+    # Real-time WebSocket broadcast so User B receives message immediately without refresh
+    try:
+        from websocket.chat import manager
+        msg_payload = {
+            "type": "message",
+            "message": {
+                "id": msg.id,
+                "message_id": msg.id,
+                "sender_id": msg.sender_id,
+                "recipient_id": msg.recipient_id,
+                "group_id": msg.group_id,
+                "content": msg.content,
+                "message_type": msg.message_type,
+                "file_id": msg.file_id,
+                "document": doc_data,
+                "reply_to_id": msg.reply_to_id,
+                "status": msg.status,
+                "created_at": schemas.format_iso_utc(msg.created_at),
+                "updated_at": schemas.format_iso_utc(msg.updated_at) if msg.updated_at else None,
+                "sender": {
+                    "id": current_user.id,
+                    "username": current_user.username,
+                    "full_name": current_user.full_name,
+                    "avatar_url": current_user.avatar_url
+                },
+                "reactions": []
+            }
+        }
+        if msg.group_id:
+            await manager.broadcast_to_group(msg.group_id, msg_payload, sender_id=current_user.id)
+        elif msg.recipient_id:
+            await manager.send_to_user(msg.recipient_id, msg_payload)
+            await manager.send_to_user(current_user.id, msg_payload)
+    except Exception:
+        pass
 
     # Real-time WebSocket broadcasting
     doc_payload = None

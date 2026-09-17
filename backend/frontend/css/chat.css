@@ -368,6 +368,16 @@
     position: relative;
 }
 
+#activeChatView {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
 /* Chat Header */
 .chat-header {
     height: 68px;
@@ -494,9 +504,16 @@
     align-items: center;
     gap: 4px;
     margin-top: 4px;
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-muted);
     padding: 0 4px;
+}
+
+.message-time {
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
 }
 
 .message-status-check {
@@ -1497,10 +1514,11 @@ body.dark .connection-banner.connected {
     z-index: 99999;
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.5s ease;
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s ease;
 }
 
 .app-loading-screen.fade-out {
+<<<<<<< HEAD
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -1586,17 +1604,153 @@ body.dark .connection-banner.connected {
     color: #fff;
     font-size: 13px;
     font-weight: 700;
+=======
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* ---------------- 11. DYNAMIC COMPOSER ACTION BUTTON (MIC vs SEND) ---------------- */
+.composer-action-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+}
+
+.composer-action-btn.mode-mic {
+    background: var(--surface-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+.composer-action-btn.mode-mic:hover {
+    background: var(--primary-soft);
+    color: var(--primary);
+    border-color: var(--primary);
+    transform: scale(1.06);
+}
+
+.composer-action-btn.mode-mic .icon-send {
+    display: none !important;
+}
+
+.composer-action-btn.mode-mic .icon-mic {
+    display: block !important;
+}
+
+.composer-action-btn.mode-send {
+    background: linear-gradient(135deg, #0A58CA 0%, #0D6EFD 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(13, 110, 253, 0.35);
+}
+
+.composer-action-btn.mode-send:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 18px rgba(13, 110, 253, 0.5);
+}
+
+.composer-action-btn.mode-send .icon-mic {
+    display: none !important;
+}
+
+.composer-action-btn.mode-send .icon-send {
+    display: block !important;
+}
+
+.composer-mic-btn {
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+}
+
+.composer-mic-btn:hover {
+    color: #EC4899;
+    background: rgba(236, 72, 153, 0.12);
+    transform: scale(1.08);
+}
+
+/* ---------------- 12. COMPOSER ATTACHMENT STAGING TRAY ---------------- */
+.composer-attachment-tray {
+    margin-bottom: 8px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: var(--shadow-sm);
+    animation: slideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tray-file-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tray-preview-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+>>>>>>> 36f90df20e059503643acd212a167333da206ab6
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
 }
 
+<<<<<<< HEAD
 .message-toast-content {
+=======
+.tray-preview-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.tray-video-thumb {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: #000;
+}
+
+.tray-video-thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.8;
+}
+
+.tray-play-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    font-size: 14px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+
+.tray-info {
+>>>>>>> 36f90df20e059503643acd212a167333da206ab6
     flex: 1;
     min-width: 0;
 }
 
+<<<<<<< HEAD
 .message-toast-header {
     display: flex;
     align-items: center;
@@ -1892,4 +2046,357 @@ body.media-viewer-open {
         width: 42px;
         height: 42px;
     }
+=======
+.tray-filename {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tray-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.tray-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tray-progress-wrap {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.tray-progress-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+/* ---------------- 13. COMPOSER ACTIVE RECORDING BAR ---------------- */
+.composer-recording-bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface-elevated);
+    border: 1.5px solid #EF4444;
+    border-radius: var(--radius-xl);
+    padding: 10px 16px;
+    margin-bottom: 8px;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.15);
+    animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.recording-indicator-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.recording-pulse-dot {
+    width: 12px;
+    height: 12px;
+    background: #EF4444;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    animation: pulseRecording 1.4s infinite;
+}
+
+@keyframes pulseRecording {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    70% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
+.recording-timer-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #EF4444;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.5px;
+}
+
+.recording-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-stop-record {
+    background: #EF4444 !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+}
+
+/* ---------------- 14. COMPOSER VOICE PREVIEW BAR ---------------- */
+.composer-voice-preview-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 8px 14px;
+    margin-bottom: 8px;
+    box-shadow: var(--shadow-sm);
+    animation: slideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.voice-preview-player {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.voice-preview-play-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
+
+.voice-preview-play-btn:hover {
+    transform: scale(1.08);
+}
+
+.voice-preview-scrubber {
+    flex: 1;
+    height: 6px;
+    background: var(--surface-muted);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+}
+
+.voice-preview-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366F1, #8B5CF6);
+    border-radius: var(--radius-full);
+    transition: width 0.1s linear;
+}
+
+.voice-preview-time {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    min-width: 36px;
+}
+
+.voice-preview-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ---------------- 15. VOICE, PHOTO & VIDEO MESSAGE CARDS ---------------- */
+.message-voice-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 240px;
+    max-width: 320px;
+}
+
+.voice-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.voice-card-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(236, 72, 153, 0.15);
+    color: #EC4899;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.message-row.sent .voice-card-badge {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
+
+.voice-card-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+
+.message-row.sent .voice-card-title {
+    color: #ffffff;
+}
+
+.message-row.received .voice-card-title {
+    color: var(--text);
+}
+
+.voice-card-player {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.04);
+    padding: 6px 10px;
+    border-radius: var(--radius-lg);
+}
+
+.message-row.sent .voice-card-player {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.voice-play-toggle-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
+
+.message-row.sent .voice-play-toggle-btn {
+    background: #ffffff;
+    color: var(--primary);
+}
+
+.voice-play-toggle-btn:hover {
+    transform: scale(1.08);
+}
+
+.voice-track-scrubber {
+    flex: 1;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+}
+
+.message-row.sent .voice-track-scrubber {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.voice-track-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: var(--radius-full);
+    transition: width 0.1s linear;
+}
+
+.message-row.sent .voice-track-fill {
+    background: #ffffff;
+}
+
+.voice-time-label {
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.85;
+}
+
+/* Photo Message Card */
+.message-photo-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 340px;
+}
+
+.msg-photo-wrap {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--surface-muted);
+}
+
+.msg-photo-img {
+    width: 100%;
+    height: auto;
+    max-height: 320px;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.2s ease;
+}
+
+.msg-photo-img:hover {
+    transform: scale(1.02);
+}
+
+/* Video Message Card */
+.message-video-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 360px;
+}
+
+.msg-video-wrap {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: #000000;
+}
+
+.msg-video-player {
+    width: 100%;
+    max-height: 280px;
+    display: block;
+    outline: none;
+}
+
+.message-caption {
+    font-size: 13px;
+    margin-top: 4px;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+/* Drag Active State for Chat Window */
+#chatWindow.drag-active {
+    box-shadow: inset 0 0 0 3px var(--primary);
+    background: rgba(99, 102, 241, 0.03);
+>>>>>>> 36f90df20e059503643acd212a167333da206ab6
 }

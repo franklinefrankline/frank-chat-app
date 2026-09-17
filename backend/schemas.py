@@ -37,7 +37,11 @@ class UserUpdate(BaseModel):
 
 class UserResponse(UserBase):
     id: int
+<<<<<<< HEAD
     frank_id: Optional[str] = None
+=======
+    frank_id: str
+>>>>>>> 36f90df20e059503643acd212a167333da206ab6
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     is_online: bool = False
@@ -48,9 +52,28 @@ class UserResponse(UserBase):
         from_attributes = True
 
 
+<<<<<<< HEAD
 # ---------------- CONVERSATION SCHEMAS ----------------
 
 class PrivateConversationCreate(BaseModel):
+=======
+class UserPreviewResponse(BaseModel):
+    id: int
+    username: str
+    full_name: str
+    frank_id: str
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    is_online: bool = False
+
+    class Config:
+        from_attributes = True
+
+
+# ---------------- CONVERSATION SCHEMAS ----------------
+
+class ConversationCreate(BaseModel):
+>>>>>>> 36f90df20e059503643acd212a167333da206ab6
     target_user_id: Optional[int] = None
     frank_id: Optional[str] = None
 
@@ -59,11 +82,17 @@ class ConversationResponse(BaseModel):
     id: int
     user_a_id: int
     user_b_id: int
+<<<<<<< HEAD
     partner: Optional[UserResponse] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     last_message: Optional[dict] = None
     unread_count: int = 0
+=======
+    created_at: datetime
+    updated_at: datetime
+    other_user: Optional[UserResponse] = None
+>>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
     class Config:
         from_attributes = True
@@ -93,6 +122,7 @@ class DocumentResponse(BaseModel):
     file_size: int
     mime_type: str
     file_type: str
+    duration: Optional[float] = None
     created_at: datetime
 
     class Config:
@@ -161,7 +191,11 @@ class GroupCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = ""
     avatar_url: Optional[str] = ""
+<<<<<<< HEAD
     is_private: Optional[bool] = True
+=======
+    privacy: Optional[str] = "private"  # private by default
+>>>>>>> 36f90df20e059503643acd212a167333da206ab6
     member_ids: List[int] = []
 
 
@@ -169,14 +203,22 @@ class GroupUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     avatar_url: Optional[str] = None
+<<<<<<< HEAD
     is_private: Optional[bool] = None
+=======
+    privacy: Optional[str] = None
+>>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
 
 class GroupMemberAdd(BaseModel):
     user_ids: List[int] = []
 
 
+<<<<<<< HEAD
 class GroupMemberRoleUpdate(BaseModel):
+=======
+class GroupRoleUpdate(BaseModel):
+>>>>>>> 36f90df20e059503643acd212a167333da206ab6
     role: str = Field(..., pattern="^(admin|member)$")
 
 
@@ -196,7 +238,11 @@ class GroupResponse(BaseModel):
     name: str
     description: Optional[str] = None
     avatar_url: Optional[str] = None
+<<<<<<< HEAD
     is_private: bool = True
+=======
+    privacy: str = "private"
+>>>>>>> 36f90df20e059503643acd212a167333da206ab6
     created_by: int
     created_at: datetime
     members_count: int = 0
@@ -206,6 +252,7 @@ class GroupResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 
 # ---------------- PASSWORD RESET SCHEMAS ----------------
