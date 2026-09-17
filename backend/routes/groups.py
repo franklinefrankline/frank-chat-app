@@ -8,20 +8,7 @@ import models
 import schemas
 from security import get_current_user
 
-router = APIRouter(prefix="/groups", tags=["Groups"])
-
-
-def get_user_role_in_group(group_id: int, user_id: int, db: Session) -> Optional[str]:
-    mem = db.query(models.GroupMember).filter(
-        models.GroupMember.group_id == group_id,
-        models.GroupMember.user_id == user_id
-    ).first()
-    if not mem:
-        return None
-    group = db.query(models.Group).filter(models.Group.id == group_id).first()
-    if group and group.created_by == user_id:
-        return "owner"
-    return mem.role
+router = APIRouter(prefix="/api/groups", tags=["Groups"])
 
 ROLE_RANKS = {
     "owner": 3,
@@ -54,12 +41,7 @@ def get_user_groups(
     result = []
     for g in groups:
         count = db.query(models.GroupMember).filter(models.GroupMember.group_id == g.id).count()
-<<<<<<< HEAD
         
-=======
-
-        # Last message
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
         last_msg = db.query(models.Message).filter(
             models.Message.group_id == g.id
         ).order_by(desc(models.Message.created_at)).first()
@@ -82,11 +64,7 @@ def get_user_groups(
             name=g.name,
             description=g.description,
             avatar_url=g.avatar_url,
-<<<<<<< HEAD
             is_private=getattr(g, "is_private", True),
-=======
-            privacy=g.privacy or "private",
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
             created_by=g.created_by,
             created_at=g.created_at,
             members_count=count,
@@ -113,18 +91,12 @@ def get_group_details(
         models.GroupMember.user_id == current_user.id
     ).first()
 
-<<<<<<< HEAD
     is_private = getattr(group, "is_private", True)
     if is_private and not membership:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to access this private group."
         )
-=======
-    # Private groups must not be visible to non-members
-    if (group.privacy == "private" or not group.privacy) and not membership:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied. Private group.")
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
     count = db.query(models.GroupMember).filter(models.GroupMember.group_id == group.id).count()
     return schemas.GroupResponse(
@@ -132,11 +104,7 @@ def get_group_details(
         name=group.name,
         description=group.description,
         avatar_url=group.avatar_url,
-<<<<<<< HEAD
         is_private=is_private,
-=======
-        privacy=group.privacy or "private",
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
         created_by=group.created_by,
         created_at=group.created_at,
         members_count=count,
@@ -154,11 +122,7 @@ def create_group(
         name=group_in.name.strip(),
         description=(group_in.description or "").strip(),
         avatar_url=group_in.avatar_url or "",
-<<<<<<< HEAD
         is_private=group_in.is_private if group_in.is_private is not None else True,
-=======
-        privacy=group_in.privacy or "private",
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
         created_by=current_user.id,
         created_at=datetime.now(timezone.utc)
     )
@@ -166,11 +130,7 @@ def create_group(
     db.commit()
     db.refresh(group)
 
-<<<<<<< HEAD
     # Add creator automatically as OWNER
-=======
-    # Add creator as owner member
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
     owner_member = models.GroupMember(
         group_id=group.id,
         user_id=current_user.id,
@@ -208,11 +168,7 @@ def create_group(
         name=group.name,
         description=group.description,
         avatar_url=group.avatar_url,
-<<<<<<< HEAD
         is_private=group.is_private,
-=======
-        privacy=group.privacy or "private",
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
         created_by=group.created_by,
         created_at=group.created_at,
         members_count=count,
@@ -231,15 +187,9 @@ def update_group(
     if not group:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
 
-<<<<<<< HEAD
     caller_role = get_member_role(group_id, current_user.id, db)
     if not caller_role:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group.")
-=======
-    actor_role = get_user_role_in_group(group_id, current_user.id, db)
-    if actor_role not in ["owner", "admin"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owners and admins can update group settings.")
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
     # Only OWNER or ADMIN can edit group information
     if caller_role not in ["owner", "admin"]:
@@ -251,16 +201,11 @@ def update_group(
         group.description = group_in.description.strip()
     if group_in.avatar_url is not None:
         group.avatar_url = group_in.avatar_url.strip()
-<<<<<<< HEAD
     if group_in.is_private is not None:
         # Only OWNER can toggle group privacy
         if caller_role != "owner":
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only group Owner can change group privacy.")
         group.is_private = group_in.is_private
-=======
-    if group_in.privacy is not None:
-        group.privacy = group_in.privacy
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
     db.commit()
     db.refresh(group)
@@ -271,11 +216,7 @@ def update_group(
         name=group.name,
         description=group.description,
         avatar_url=group.avatar_url,
-<<<<<<< HEAD
         is_private=group.is_private,
-=======
-        privacy=group.privacy or "private",
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
         created_by=group.created_by,
         created_at=group.created_at,
         members_count=count,
@@ -293,14 +234,9 @@ def delete_group(
     if not group:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
 
-<<<<<<< HEAD
     caller_role = get_member_role(group_id, current_user.id, db)
     if caller_role != "owner":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the group Owner can delete this group.")
-=======
-    if group.created_by != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the group owner can delete this group.")
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
     db.delete(group)
     db.commit()
@@ -358,13 +294,6 @@ def add_group_members(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-<<<<<<< HEAD
-=======
-    actor_role = get_user_role_in_group(group_id, current_user.id, db)
-    if actor_role not in ["owner", "admin"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owners and admins can add members to this group.")
-
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
     group = db.query(models.Group).filter(models.Group.id == group_id).first()
     if not group:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
@@ -409,37 +338,6 @@ def add_group_members(
     return db.query(models.GroupMember).filter(models.GroupMember.group_id == group_id).all()
 
 
-@router.patch("/{group_id}/members/{user_id}/role", response_model=schemas.GroupMemberResponse)
-def update_member_role(
-    group_id: int,
-    user_id: int,
-    role_in: schemas.GroupRoleUpdate,
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    group = db.query(models.Group).filter(models.Group.id == group_id).first()
-    if not group:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
-
-    if group.created_by != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the group owner can modify member roles.")
-
-    if user_id == current_user.id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot alter the role of the group owner.")
-
-    target_membership = db.query(models.GroupMember).filter(
-        models.GroupMember.group_id == group_id,
-        models.GroupMember.user_id == user_id
-    ).first()
-    if not target_membership:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found in this group.")
-
-    target_membership.role = role_in.role
-    db.commit()
-    db.refresh(target_membership)
-    return target_membership
-
-
 @router.delete("/{group_id}/members/{user_id}")
 def remove_group_member(
     group_id: int,
@@ -451,13 +349,10 @@ def remove_group_member(
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
 
-<<<<<<< HEAD
     caller_role = get_member_role(group_id, current_user.id, db)
     if not caller_role:
         raise HTTPException(status_code=403, detail="Not a member of this group.")
 
-=======
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
     target_membership = db.query(models.GroupMember).filter(
         models.GroupMember.group_id == group_id,
         models.GroupMember.user_id == user_id
@@ -466,7 +361,6 @@ def remove_group_member(
     if not target_membership:
         raise HTTPException(status_code=404, detail="Member not found in this group.")
 
-<<<<<<< HEAD
     target_role = target_membership.role
 
     # Case 1: Leaving group voluntarily
@@ -506,42 +400,6 @@ def remove_group_member(
 
     db.delete(target_membership)
 
-=======
-    # If leaving the group voluntarily
-    if current_user.id == user_id:
-        if group.created_by == current_user.id:
-            # Owner leaving: transfer or delete
-            remaining = db.query(models.GroupMember).filter(
-                models.GroupMember.group_id == group_id,
-                models.GroupMember.user_id != current_user.id
-            ).all()
-            if remaining:
-                new_owner = next((m for m in remaining if m.role == "admin"), remaining[0])
-                group.created_by = new_owner.user_id
-                new_owner.role = "owner"
-            else:
-                db.delete(group)
-                db.commit()
-                return {"success": True, "message": "Group deleted as owner left."}
-    else:
-        # Removing someone else
-        actor_role = get_user_role_in_group(group_id, current_user.id, db)
-        if actor_role not in ["owner", "admin"]:
-            raise HTTPException(status_code=403, detail="Not authorized to remove members from this group.")
-
-        target_role = get_user_role_in_group(group_id, user_id, db)
-        if target_role == "owner":
-            raise HTTPException(status_code=403, detail="Cannot remove the group owner.")
-        if actor_role == "admin" and target_role == "admin":
-            raise HTTPException(status_code=403, detail="Admins cannot remove other admins.")
-
-    target_user = db.query(models.User).filter(models.User.id == user_id).first()
-    user_name = target_user.full_name if target_user else "User"
-
-    db.delete(target_membership)
-
-    action_text = f"{user_name} left the group." if user_id == current_user.id else f"{current_user.full_name} removed {user_name} from the group."
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
     sys_msg = models.Message(
         sender_id=current_user.id,
         group_id=group_id,
@@ -554,7 +412,6 @@ def remove_group_member(
 
     return {"success": True, "message": action_text}
 
-<<<<<<< HEAD
 
 @router.patch("/{group_id}/members/{user_id}/role", response_model=schemas.GroupMemberResponse)
 def update_group_member_role(
@@ -606,5 +463,3 @@ def update_group_member_role(
     db.commit()
 
     return target_membership
-=======
->>>>>>> 36f90df20e059503643acd212a167333da206ab6

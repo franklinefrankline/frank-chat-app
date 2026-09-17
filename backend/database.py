@@ -83,13 +83,8 @@ def generate_unique_frank_id(db_session=None) -> str:
 
 def check_and_migrate_db():
     try:
-        import secrets
         from sqlalchemy import inspect, text
-        # Ensure any new tables (like conversations) are created
-        Base.metadata.create_all(bind=engine)
-
         inspector = inspect(engine)
-<<<<<<< HEAD
         table_names = inspector.get_table_names()
 
         # 1. Migrate users table
@@ -183,57 +178,3 @@ try:
     check_and_migrate_db()
 except Exception as e:
     print(f"Initial migration note: {e}")
-=======
-        tables = inspector.get_table_names()
-
-        with engine.begin() as conn:
-            if "messages" in tables:
-                columns = [col["name"] for col in inspector.get_columns("messages")]
-                if "message_type" not in columns:
-                    conn.execute(text("ALTER TABLE messages ADD COLUMN message_type VARCHAR(20) DEFAULT 'text'"))
-                if "file_id" not in columns:
-                    conn.execute(text("ALTER TABLE messages ADD COLUMN file_id INTEGER NULL"))
-                if "updated_at" not in columns:
-                    conn.execute(text("ALTER TABLE messages ADD COLUMN updated_at TIMESTAMP NULL"))
-
-            if "documents" in tables:
-                columns = [col["name"] for col in inspector.get_columns("documents")]
-                if "duration" not in columns:
-                    conn.execute(text("ALTER TABLE documents ADD COLUMN duration FLOAT NULL"))
-
-            if "groups" in tables:
-                columns = [col["name"] for col in inspector.get_columns("groups")]
-                if "privacy" not in columns:
-                    conn.execute(text("ALTER TABLE groups ADD COLUMN privacy VARCHAR(20) DEFAULT 'private'"))
-                    conn.execute(text("UPDATE groups SET privacy = 'private' WHERE privacy IS NULL"))
-
-            if "users" in tables:
-                columns = [col["name"] for col in inspector.get_columns("users")]
-                if "frank_id" not in columns:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN frank_id VARCHAR(6) NULL"))
-
-                result = conn.execute(text("SELECT id FROM users WHERE frank_id IS NULL OR frank_id = ''")).fetchall()
-                alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-                for row in result:
-                    uid = row[0]
-                    new_fid = "".join(secrets.choice(alphabet) for _ in range(6))
-                    conn.execute(text("UPDATE users SET frank_id = :fid WHERE id = :uid"), {"fid": new_fid, "uid": uid})
-
-                conn.execute(text("UPDATE users SET bio = REPLACE(REPLACE(bio, 'ChatApp', 'FRANK'), 'QENVO', 'FRANK') WHERE bio LIKE '%ChatApp%' OR bio LIKE '%QENVO%'"))
-
-                try:
-                    conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_users_frank_id ON users(frank_id)"))
-                except Exception:
-                    pass
-
-            if "conversations" in tables:
-                try:
-                    conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_conversation_users ON conversations(user_a_id, user_b_id)"))
-                except Exception:
-                    pass
-    except Exception as e:
-        print(f"Migration note: {e}")
-
-check_and_migrate_db()
-
->>>>>>> 36f90df20e059503643acd212a167333da206ab6

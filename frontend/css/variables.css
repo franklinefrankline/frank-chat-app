@@ -5,31 +5,20 @@
    ------------------------------------------------------------------------- */
 
 :root {
-    /* FRANK Official Brand Color Palette (Section 15) */
-    --navy-deep: #050817;
-    --navy-dark: #0B1026;
-    --indigo: #312E81;
-    --electric-blue: #2563EB;
-    --bright-blue: #3B82F6;
-    --cyan: #06B6D4;
-    --cyan-bright: #22D3EE;
-    --violet: #7C3AED;
-    --magenta: #D946EF;
-
-    /* Gradients */
-    --gradient-frank: linear-gradient(135deg, #2563EB 0%, #7C3AED 50%, #D946EF 100%);
-    --gradient-cyan-blue: linear-gradient(135deg, #06B6D4 0%, #2563EB 100%);
-    --gradient-showcase: linear-gradient(160deg, #050817 0%, #0B1026 50%, #151c45 100%);
-
-    --primary: #2563eb;         /* Electric Blue */
-    --primary-dark: #1d4ed8;
-    --primary-hover: #1e40af;
-    --primary-soft: rgba(37, 99, 235, 0.12);
-    --primary-glow: rgba(37, 99, 235, 0.35);
+    /* FRANK Official Brand Color Palette */
+    --primary: #4f46e5;         /* Deep Indigo */
+    --primary-dark: #4338ca;
+    --primary-hover: #3730a3;
+    --primary-soft: rgba(79, 70, 229, 0.12);
+    --primary-glow: rgba(79, 70, 229, 0.35);
 
     --accent: #7c3aed;          /* Violet */
     --accent-dark: #6d28d9;
     --accent-soft: rgba(124, 58, 237, 0.12);
+
+    --electric-blue: #2563eb;   /* Electric Blue */
+    --cyan: #22d3ee;            /* Cyan */
+    --magenta: #d946ef;         /* Magenta */
 
     /* Semantic Status Colors */
     --success: #22c55e;

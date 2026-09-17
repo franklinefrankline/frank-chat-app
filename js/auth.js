@@ -26,7 +26,6 @@ const auth = {
     },
 
     guard() {
-<<<<<<< HEAD
         const path = window.location.pathname.toLowerCase();
         const isAuth = this.isAuthenticated();
 
@@ -35,22 +34,6 @@ const auth = {
 
         const isProtected = protectedPages.some(page => path.endsWith('/' + page) || path.endsWith(page));
         const isGuestOnly = guestOnlyPages.some(page => path.endsWith('/' + page) || path.endsWith(page));
-=======
-        const path = window.location.pathname.replace(/\/+$/, '') || '/';
-        const isAuth = this.isAuthenticated();
-
-        const protectedRoutes = [
-            'dashboard.html', 'chat.html', 'profile.html', 'settings.html',
-            '/dashboard', '/chat', '/profile', '/settings'
-        ];
-        const guestOnlyRoutes = [
-            'login.html', 'register.html',
-            '/login', '/register'
-        ];
-
-        const isProtected = protectedRoutes.some(route => path.endsWith(route) || path === route);
-        const isGuestOnly = guestOnlyRoutes.some(route => path.endsWith(route) || path === route);
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
         if (isProtected && !isAuth) {
             window.location.replace('login.html');

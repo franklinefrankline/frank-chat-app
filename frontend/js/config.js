@@ -15,10 +15,8 @@
     const isHttps = window.location.protocol === 'https:';
 
     // Production backend defaults (can be overridden via localStorage or window.__FRANK_CONFIG__)
-    // If you have deployed a separate Render/Railway WebSocket backend, specify it here or via localStorage.
-    // Otherwise, when hosted on Vercel, it uses same-origin (window.location.origin) to hit the Vercel API.
-    const DEFAULT_PROD_API = '';
-    const DEFAULT_PROD_WS = '';
+    const DEFAULT_PROD_API = 'https://frank-chat-app.onrender.com';
+    const DEFAULT_PROD_WS = 'wss://frank-chat-app.onrender.com';
 
     let apiBase = '';
     let wsBase = '';
@@ -32,11 +30,9 @@
         apiBase = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
             ? window.location.origin
             : 'http://localhost:8000';
-    } else if (DEFAULT_PROD_API) {
-        apiBase = DEFAULT_PROD_API;
     } else {
-        // Production host (e.g., frank-chat-app.vercel.app)
-        apiBase = window.location.origin;
+        // Production host (e.g., frank-chat-vercel.app)
+        apiBase = DEFAULT_PROD_API;
     }
 
     if (injectedConfig.WS_BASE) {
@@ -49,11 +45,8 @@
             ? window.location.host
             : 'localhost:8000';
         wsBase = `${wsProtocol}//${wsHost}`;
-    } else if (DEFAULT_PROD_WS) {
-        wsBase = DEFAULT_PROD_WS;
     } else {
-        const wsProtocol = isHttps ? 'wss:' : 'ws:';
-        wsBase = `${wsProtocol}//${window.location.host}`;
+        wsBase = DEFAULT_PROD_WS;
     }
 
     // Ensure no trailing slashes

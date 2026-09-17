@@ -26,14 +26,11 @@ class ChatController {
             textarea: document.getElementById('messageComposerTextarea'),
             sendBtn: document.getElementById('composerSendBtn'),
             micBtn: document.getElementById('composerMicBtn'),
-<<<<<<< HEAD
             voiceBar: document.getElementById('composerVoiceBar'),
             voiceTimer: document.getElementById('voiceRecordingTimer'),
             voiceCancelBtn: document.getElementById('voiceCancelBtn'),
             voiceSendBtn: document.getElementById('voiceSendBtn'),
             composerBar: document.querySelector('.chat-composer'),
-=======
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
             emojiBtn: document.getElementById('emojiBtn'),
             emojiPopover: document.getElementById('emojiPickerPopover'),
             emojiGrid: document.getElementById('emojiPickerGrid'),
@@ -69,7 +66,6 @@ class ChatController {
         this.setupHeaderMoreMenu();
         this.setupMobileActionToolbar();
         this.setupWebSocketListeners();
-        this.setupPollingFallback();
     }
 
     // ---------------- DIRECT CHAT SELECTION ----------------
@@ -79,9 +75,6 @@ class ChatController {
         this.activePartner = partner;
         this.clearReplying();
         this.closeMoreMenu();
-        if (window.documentsController) window.documentsController.clearStagedFile();
-        if (window.voiceRecorder) window.voiceRecorder.cancelRecording();
-        this.updateComposerActionButton();
 
         // Update Header UI
         if (this.dom.partnerName) {
@@ -110,19 +103,11 @@ class ChatController {
         this.updateDetailsDrawer(partner);
 
         // Mobile responsive switch
-<<<<<<< HEAD
         if (window.innerWidth <= 768) {
             document.body.classList.add('mobile-chat-open');
             document.getElementById('chatWindow')?.classList.add('mobile-open');
             const panel = document.getElementById('conversationPanel');
             if (panel) panel.style.display = 'none';
-=======
-        document.getElementById('chatApp')?.classList.add('has-active-chat');
-        document.getElementById('chatWindow')?.classList.add('mobile-open');
-        const panel = document.getElementById('conversationPanel');
-        if (panel && window.innerWidth <= 768) {
-            panel.style.display = '';
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
         }
 
         // Highlight active conversation card in list
@@ -152,9 +137,6 @@ class ChatController {
         this.activePartner = group;
         this.clearReplying();
         this.closeMoreMenu();
-        if (window.documentsController) window.documentsController.clearStagedFile();
-        if (window.voiceRecorder) window.voiceRecorder.cancelRecording();
-        this.updateComposerActionButton();
 
         const currentUser = auth.getUser();
         const isCreator = group.created_by === (currentUser ? currentUser.id : null);
@@ -184,19 +166,11 @@ class ChatController {
         this.updateDetailsDrawer(group);
 
         // Mobile responsive switch
-<<<<<<< HEAD
         if (window.innerWidth <= 768) {
             document.body.classList.add('mobile-chat-open');
             document.getElementById('chatWindow')?.classList.add('mobile-open');
             const panel = document.getElementById('conversationPanel');
             if (panel) panel.style.display = 'none';
-=======
-        document.getElementById('chatApp')?.classList.add('has-active-chat');
-        document.getElementById('chatWindow')?.classList.add('mobile-open');
-        const panel = document.getElementById('conversationPanel');
-        if (panel && window.innerWidth <= 768) {
-            panel.style.display = '';
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
         }
 
         // Highlight active group card
@@ -292,8 +266,7 @@ class ChatController {
 
         let lastDate = null;
         messages.forEach(msg => {
-            if (!msg.created_at) msg.created_at = new Date().toISOString();
-            const parsed = messagesModule.parseDate(msg.created_at) || new Date();
+            const parsed = messagesModule.parseDate(msg.created_at);
             const msgDate = parsed ? parsed.toDateString() : '';
             if (msgDate && msgDate !== lastDate) {
                 lastDate = msgDate;
@@ -333,13 +306,7 @@ class ChatController {
         this.dom.textarea.value = '';
         this.autoResizeTextarea();
         this.clearReplying();
-<<<<<<< HEAD
         this.updateComposerButtons();
-=======
-        this.dom.emojiPopover?.classList.remove('show');
-        this.dom.attachmentPopover?.classList.remove('show');
-        this.updateComposerActionButton();
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
         if (window.wsClient && window.wsClient.isConnected) {
             window.wsClient.sendChatMessage(
@@ -367,122 +334,12 @@ class ChatController {
         }
     }
 
-    // Dynamic Action Button (Microphone vs Send)
-    updateComposerActionButton() {
-        if (!this.dom.sendBtn) return;
-        const text = (this.dom.textarea?.value || '').trim();
-        const hasAttachment = !!(window.documentsController && window.documentsController.selectedFile);
-        const hasVoicePreview = !!(window.voiceRecorder && window.voiceRecorder.audioBlob);
-
-        if (text.length > 0 || hasAttachment || hasVoicePreview) {
-            this.dom.sendBtn.classList.remove('mode-mic');
-            this.dom.sendBtn.classList.add('mode-send');
-            this.dom.sendBtn.setAttribute('title', 'Send Message');
-            this.dom.sendBtn.setAttribute('aria-label', 'Send');
-        } else {
-            this.dom.sendBtn.classList.remove('mode-send');
-            this.dom.sendBtn.classList.add('mode-mic');
-            this.dom.sendBtn.setAttribute('title', 'Hold or click to record voice');
-            this.dom.sendBtn.setAttribute('aria-label', 'Record Voice');
-        }
-    }
-
-    async handleComposerActionButtonClick() {
-        const text = (this.dom.textarea?.value || '').trim();
-        const hasAttachment = !!(window.documentsController && window.documentsController.selectedFile);
-        const hasVoicePreview = !!(window.voiceRecorder && window.voiceRecorder.audioBlob);
-
-        // If any text, attachment, or voice preview exists, ALWAYS execute submit / send
-        if (text.length > 0 || hasAttachment || hasVoicePreview) {
-            this.updateComposerActionButton();
-            await this.handleComposerSubmit();
-            return;
-        }
-
-        if (this.dom.sendBtn?.classList.contains('mode-mic')) {
-            if (window.voiceRecorder) {
-                window.voiceRecorder.startRecording();
-            }
-            return;
-        }
-        await this.handleComposerSubmit();
-    }
-
-    async handleComposerSubmit() {
-        if (!this.activeId) {
-            showToast('Please select a conversation first.', 'info');
-            return;
-        }
-
-        // 1. If an attachment is staged in tray
-        if (window.documentsController && window.documentsController.selectedFile) {
-            const caption = (this.dom.textarea?.value || '').trim();
-            this.dom.textarea.value = '';
-            this.autoResizeTextarea();
-            await window.documentsController.uploadAndSendStagedFile(caption);
-            this.updateComposerActionButton();
-            return;
-        }
-
-        // 2. If a voice recording is staged in voice preview bar
-        if (window.voiceRecorder && window.voiceRecorder.audioBlob) {
-            await window.voiceRecorder.uploadAndSendVoiceNote();
-            this.updateComposerActionButton();
-            return;
-        }
-
-        // 3. Regular text message
-        await this.sendMessage();
-    }
-
-    setupDragAndDrop() {
-        const chatWindow = document.getElementById('chatWindow');
-        if (!chatWindow) return;
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            chatWindow.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                chatWindow.classList.add('drag-active');
-            }, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            chatWindow.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                chatWindow.classList.remove('drag-active');
-            }, false);
-        });
-
-        chatWindow.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const files = dt ? dt.files : null;
-            if (files && files.length > 0 && window.documentsController) {
-                window.documentsController.stageSelectedFile(files[0]);
-            }
-        });
-    }
-
     appendMessage(msg, currentUserId) {
         if (!this.dom.messagesContainer) return;
 
-<<<<<<< HEAD
         // Prevent duplicates
         if (msg.id && this.dom.messagesContainer.querySelector(`[data-message-id="${msg.id}"]`)) {
             return;
-=======
-        if (!msg.created_at) {
-            msg.created_at = new Date().toISOString();
-        }
-
-        const msgId = Number(msg.id || msg.message_id);
-        if (msgId) {
-            // Deduplicate if already present in active array or rendered in DOM
-            if (this.activeMessages.some(m => Number(m.id || m.message_id) === msgId) || document.getElementById(`msgRow-${msgId}`)) {
-                return;
-            }
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
         }
 
         const empty = this.dom.messagesContainer.querySelector('.empty-state');
@@ -490,8 +347,8 @@ class ChatController {
 
         // Check if date divider is needed
         const lastMsg = this.activeMessages[this.activeMessages.length - 1];
-        const newD = messagesModule.parseDate(msg.created_at) || new Date();
-        const lastD = lastMsg ? (messagesModule.parseDate(lastMsg.created_at) || new Date()) : null;
+        const newD = messagesModule.parseDate(msg.created_at);
+        const lastD = lastMsg ? messagesModule.parseDate(lastMsg.created_at) : null;
         const newDate = newD ? newD.toDateString() : '';
         const lastDate = lastD ? lastD.toDateString() : '';
 
@@ -515,14 +372,13 @@ class ChatController {
         this.dom.textarea.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                this.handleComposerSubmit();
+                this.sendMessage();
             }
         });
 
         this.dom.textarea.addEventListener('input', () => {
             this.autoResizeTextarea();
             this.emitTyping();
-<<<<<<< HEAD
             this.updateComposerButtons();
         });
 
@@ -696,36 +552,6 @@ class ChatController {
         };
 
         this.mediaRecorder.stop();
-=======
-            this.updateComposerActionButton();
-        });
-
-        this.dom.sendBtn?.addEventListener('click', () => this.handleComposerActionButtonClick());
-        this.dom.micBtn?.addEventListener('click', () => {
-            if (window.voiceRecorder) {
-                window.voiceRecorder.startRecording();
-            }
-        });
-        this.dom.cancelReplyBtn?.addEventListener('click', () => this.clearReplying());
-
-        // Mobile virtual keyboard handling: auto-scroll to latest message on focus
-        this.dom.textarea.addEventListener('focus', () => {
-            setTimeout(() => {
-                this.scrollToBottom();
-            }, 300);
-        });
-
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', () => {
-                if (document.activeElement === this.dom.textarea) {
-                    this.scrollToBottom();
-                }
-            });
-        }
-
-        this.setupDragAndDrop();
-        this.updateComposerActionButton();
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
     }
 
     autoResizeTextarea() {
@@ -796,8 +622,6 @@ class ChatController {
                 this.dom.textarea.value += emoji;
                 this.dom.textarea.focus();
                 this.autoResizeTextarea();
-                this.updateComposerActionButton();
-                this.dom.textarea.dispatchEvent(new Event('input', { bubbles: true }));
             }
         });
 
@@ -821,17 +645,13 @@ class ChatController {
                 this.dom.attachmentPopover?.classList.remove('show');
                 const action = item.dataset.action;
 
-                if (action === 'voice') {
-                    if (window.voiceRecorder) {
-                        window.voiceRecorder.startRecording();
-                    }
-                } else if (window.documentsController) {
-                    if (action === 'photo') {
-                        window.documentsController.triggerPhotoPicker();
-                    } else if (action === 'video') {
-                        window.documentsController.triggerVideoPicker();
+                if (window.documentsController) {
+                    if (action === 'doc') {
+                        window.documentsController.selectDocument('doc');
+                    } else if (action === 'photo') {
+                        window.documentsController.selectDocument('photo');
                     } else {
-                        window.documentsController.triggerDocPicker();
+                        window.documentsController.selectDocument('all');
                     }
                 }
             });
@@ -890,11 +710,6 @@ class ChatController {
             if (!e.target.closest('.chat-more-menu') && !e.target.closest('#chatMoreBtn')) {
                 this.closeMoreMenu();
             }
-        });
-
-        // Mobile cancel button
-        document.getElementById('moreCancelBtn')?.addEventListener('click', () => {
-            this.closeMoreMenu();
         });
 
         // Group Action Buttons in More Menu
@@ -997,18 +812,10 @@ class ChatController {
     // ---------------- MOBILE NAVIGATION & BACK ----------------
     setupMobileBack() {
         this.dom.mobileBackBtn?.addEventListener('click', () => {
-            document.getElementById('chatApp')?.classList.remove('has-active-chat');
             document.getElementById('chatWindow')?.classList.remove('mobile-open');
             document.body.classList.remove('mobile-chat-open');
             const panel = document.getElementById('conversationPanel');
             if (panel) panel.style.display = '';
-<<<<<<< HEAD
-=======
-            // Reset active selection state locally so returning to screen 1 is clean
-            this.activeId = null;
-            this.activeType = null;
-            document.querySelectorAll('.conversation-card').forEach(card => card.classList.remove('active'));
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
         });
     }
 
@@ -1085,20 +892,15 @@ class ChatController {
         }
 
         if (isGroup) {
-            const privacyLabel = (target.privacy === 'public') ? '🌐 Public Group' : '🔒 Private Group';
-            if (subtitleEl) subtitleEl.textContent = `${privacyLabel} • ${target.members_count || 1} members`;
+            if (subtitleEl) subtitleEl.textContent = `${target.members_count || 1} members`;
             if (bioEl) bioEl.textContent = target.description || 'No group description provided.';
             if (tabsBar) tabsBar.style.display = 'flex';
             if (membersSec) membersSec.style.display = 'block';
+            if (leaveBtn) leaveBtn.style.display = 'block';
 
             this.loadGroupMembersList(target.id);
         } else {
-<<<<<<< HEAD
             if (subtitleEl) subtitleEl.textContent = target.frank_id ? `@${target.username || 'user'} • ID: ${target.frank_id}` : `@${target.username || 'user'}`;
-=======
-            const frankBadge = target.frank_id ? ` • ID: ${target.frank_id}` : '';
-            if (subtitleEl) subtitleEl.textContent = `@${target.username || 'user'}${frankBadge}`;
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
             let bio = target.bio || 'Productive conversations powered by FRANK.';
             if (bioEl) bioEl.textContent = bio;
             if (tabsBar) tabsBar.style.display = 'flex';
@@ -1112,14 +914,9 @@ class ChatController {
 
     async loadGroupMembersList(groupId) {
         const listContainer = document.getElementById('drawerMembersList');
-        const addMemberActionBtn = document.getElementById('drawerAddMemberActionBtn');
-        const leaveSection = document.getElementById('drawerLeaveGroupSection');
         if (!listContainer) return;
 
         listContainer.innerHTML = '<div class="spinner" style="margin: 15px auto;"></div>';
-
-        const currentUser = auth.getUser();
-        const currentUserId = currentUser ? currentUser.id : null;
 
         try {
             const members = await api.getGroupMembers(groupId);
@@ -1130,7 +927,6 @@ class ChatController {
                 return;
             }
 
-<<<<<<< HEAD
             const currentUser = auth.getUser() || {};
             const myMembership = members.find(m => m.user_id === currentUser.id);
             const myRole = myMembership ? myMembership.role : 'member';
@@ -1144,46 +940,11 @@ class ChatController {
             } else {
                 if (deleteGroupBtn) deleteGroupBtn.style.display = 'none';
                 if (leaveGroupBtn) leaveGroupBtn.style.display = 'block';
-=======
-            // Find current user role
-            const myMembership = members.find(m => m.user_id === currentUserId);
-            const myRole = myMembership ? myMembership.role : 'member';
-
-            // Only owners and admins can add members
-            if (addMemberActionBtn) {
-                addMemberActionBtn.style.display = (myRole === 'owner' || myRole === 'admin') ? 'inline-block' : 'none';
-            }
-
-            // Render delete or leave group buttons
-            if (leaveSection) {
-                if (myRole === 'owner') {
-                    leaveSection.innerHTML = `
-                        <button type="button" class="btn btn-danger btn-full btn-sm" id="drawerDeleteGroupBtn" style="font-weight: 700;">
-                            🗑️ Delete Group
-                        </button>
-                    `;
-                    document.getElementById('drawerDeleteGroupBtn')?.addEventListener('click', () => {
-                        const grpName = document.getElementById('drawerName')?.textContent || 'this group';
-                        if (window.groupsModule) window.groupsModule.deleteGroup(groupId, grpName);
-                    });
-                } else {
-                    leaveSection.innerHTML = `
-                        <button type="button" class="btn btn-danger btn-full btn-sm" id="drawerLeaveGroupBtn">
-                            Leave Group
-                        </button>
-                    `;
-                    document.getElementById('drawerLeaveGroupBtn')?.addEventListener('click', () => {
-                        const grpName = document.getElementById('drawerName')?.textContent || 'this group';
-                        if (window.groupsModule) window.groupsModule.leaveGroup(groupId, grpName);
-                    });
-                }
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
             }
 
             members.forEach(m => {
                 const u = m.user || {};
                 const initials = (u.full_name || u.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-<<<<<<< HEAD
                 const isSelf = u.id === currentUser.id;
 
                 let roleBadge = '<span class="badge-member">Member</span>';
@@ -1206,48 +967,12 @@ class ChatController {
                     } else if (myRole === 'admin' && m.role === 'member') {
                         controlsHtml = `
                             <button type="button" class="btn btn-ghost btn-sm" style="color:var(--danger); padding:2px 6px; font-size:11px;" title="Remove from group" onclick="window.groupsModule.removeMember(${groupId}, ${u.id}, '${messagesModule.escapeHTML(u.full_name)}')">✕</button>
-=======
-                const role = m.role || 'member';
-
-                let roleBadge = '';
-                if (role === 'owner') {
-                    roleBadge = '<span class="member-role-badge" style="background: rgba(245, 158, 11, 0.15); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.3);">👑 Owner</span>';
-                } else if (role === 'admin') {
-                    roleBadge = '<span class="member-role-badge" style="background: rgba(99, 102, 241, 0.15); color: #6366F1; border: 1px solid rgba(99, 102, 241, 0.3);">🛡️ Admin</span>';
-                } else {
-                    roleBadge = '<span style="font-size:11px; color:var(--text-muted);">Member</span>';
-                }
-
-                // Role actions
-                let actionsHtml = '';
-                if (m.user_id !== currentUserId) {
-                    if (myRole === 'owner') {
-                        if (role === 'admin') {
-                            actionsHtml = `
-                                <div style="display: flex; gap: 4px;">
-                                    <button type="button" class="btn btn-ghost btn-xs demote-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Demote to Member" style="font-size: 11px; padding: 2px 6px;">Demote</button>
-                                    <button type="button" class="btn btn-ghost btn-xs danger remove-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Remove member" style="font-size: 11px; padding: 2px 6px; color: var(--danger);">✕</button>
-                                </div>
-                            `;
-                        } else if (role === 'member') {
-                            actionsHtml = `
-                                <div style="display: flex; gap: 4px;">
-                                    <button type="button" class="btn btn-ghost btn-xs promote-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Promote to Admin" style="font-size: 11px; padding: 2px 6px;">Make Admin</button>
-                                    <button type="button" class="btn btn-ghost btn-xs danger remove-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Remove member" style="font-size: 11px; padding: 2px 6px; color: var(--danger);">✕</button>
-                                </div>
-                            `;
-                        }
-                    } else if (myRole === 'admin' && role === 'member') {
-                        actionsHtml = `
-                            <button type="button" class="btn btn-ghost btn-xs danger remove-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Remove member" style="font-size: 11px; padding: 2px 6px; color: var(--danger);">✕</button>
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
                         `;
                     }
                 }
 
                 const row = document.createElement('div');
                 row.className = 'drawer-member-row';
-<<<<<<< HEAD
                 row.style.display = 'flex';
                 row.style.alignItems = 'center';
                 row.style.justifyContent = 'space-between';
@@ -1255,9 +980,6 @@ class ChatController {
                 row.style.padding = '6px 0';
                 row.style.borderBottom = '1px solid var(--border-light, rgba(255,255,255,0.05))';
 
-=======
-                row.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border);';
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
                 row.innerHTML = `
                     <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
                         <div class="avatar avatar-sm">
@@ -1274,48 +996,17 @@ class ChatController {
                             </div>
                         </div>
                     </div>
-<<<<<<< HEAD
                     <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
                         ${roleBadge}
                         ${controlsHtml}
-=======
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-size:13px; font-weight:700; color:var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${messagesModule.escapeHTML(u.full_name)}</div>
-                        <div style="font-size:11px; color:var(--text-muted);">@${messagesModule.escapeHTML(u.username)}${u.frank_id ? ` • ${u.frank_id}` : ''}</div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-                        ${roleBadge}
-                        ${actionsHtml}
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
                     </div>
                 `;
-
-                // Wire action listeners
-                row.querySelector('.promote-action')?.addEventListener('click', (e) => {
-                    const uid = parseInt(e.currentTarget.dataset.uid, 10);
-                    const uname = e.currentTarget.dataset.name;
-                    if (window.groupsModule) window.groupsModule.updateMemberRole(groupId, uid, 'admin', uname);
-                });
-
-                row.querySelector('.demote-action')?.addEventListener('click', (e) => {
-                    const uid = parseInt(e.currentTarget.dataset.uid, 10);
-                    const uname = e.currentTarget.dataset.name;
-                    if (window.groupsModule) window.groupsModule.updateMemberRole(groupId, uid, 'member', uname);
-                });
-
-                row.querySelector('.remove-action')?.addEventListener('click', (e) => {
-                    const uid = parseInt(e.currentTarget.dataset.uid, 10);
-                    const uname = e.currentTarget.dataset.name;
-                    if (window.groupsModule) window.groupsModule.removeMember(groupId, uid, uname);
-                });
-
                 listContainer.appendChild(row);
             });
         } catch {
             listContainer.innerHTML = '<div style="font-size:12px; color:var(--danger); text-align:center;">Failed to load members</div>';
         }
     }
-
 
     async loadSharedDocuments() {
         const docsContainer = document.getElementById('drawerDocsList');
@@ -1419,25 +1110,12 @@ class ChatController {
             const activeId = this.activeId ? Number(this.activeId) : null;
             const groupId = msg.group_id ? Number(msg.group_id) : null;
 
-<<<<<<< HEAD
             const isDirectForActiveChat = this.activeType === 'direct' &&
                 ((senderId === activeId && recipientId === currentUserId) ||
                  (senderId === currentUserId && recipientId === activeId));
 
             const isGroupForActiveChat = this.activeType === 'group' && groupId === activeId;
             const isActivelyViewing = (isDirectForActiveChat || isGroupForActiveChat) && !document.hidden;
-=======
-            const senderId = Number(msg.sender_id);
-            const recipientId = Number(msg.recipient_id);
-            const activeId = Number(this.activeId);
-            const myId = Number(currentUserId);
-
-            const isDirectForActiveChat = this.activeType === 'direct' &&
-                ((senderId === activeId && recipientId === myId) ||
-                 (senderId === myId && recipientId === activeId));
-
-            const isGroupForActiveChat = this.activeType === 'group' && Number(msg.group_id) === activeId;
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
             if (isDirectForActiveChat || isGroupForActiveChat) {
                 this.appendMessage(msg, currentUserId);
@@ -1447,23 +1125,14 @@ class ChatController {
                 }
             }
 
-<<<<<<< HEAD
             // Notification for incoming messages from others
             if (senderId !== currentUserId) {
-=======
-            // Notification for background incoming messages
-            if (senderId !== myId) {
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
                 if (typeof window.notificationsModule !== 'undefined') {
                     window.notificationsModule.notifyIncoming(msg, { isActivelyViewing });
                 }
             }
 
-<<<<<<< HEAD
             // Real-time update conversation preview and unread badge in sidebar
-=======
-            // Real-time conversation sync: updates last message snippet, timestamp, and unread badge instantly
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
             if (typeof window.appController !== 'undefined') {
                 window.appController.handleIncomingMessageSidebar(msg, isActivelyViewing);
             }
@@ -1495,8 +1164,8 @@ class ChatController {
 
         // 3. Typing Events
         window.wsClient.on('typing', (data) => {
-            const isDirect = this.activeType === 'direct' && Number(data.sender_id) === Number(this.activeId);
-            const isGroup = this.activeType === 'group' && Number(data.group_id) === Number(this.activeId) && Number(data.sender_id) !== Number(auth.getUser()?.id);
+            const isDirect = this.activeType === 'direct' && data.sender_id === this.activeId;
+            const isGroup = this.activeType === 'group' && data.group_id === this.activeId && data.sender_id !== (auth.getUser()?.id);
 
             if (isDirect || isGroup) {
                 if (data.is_typing) {
@@ -1509,9 +1178,9 @@ class ChatController {
             }
         });
 
-        // 4. Presence Updates
+        // 3. Presence Updates
         window.wsClient.on('presence', (data) => {
-            if (this.activeType === 'direct' && Number(data.user_id) === Number(this.activeId)) {
+            if (this.activeType === 'direct' && data.user_id === this.activeId) {
                 const isOnline = !!data.is_online;
                 if (this.dom.partnerPresence) {
                     this.dom.partnerPresence.textContent = isOnline ? 'Online' : 'Offline';
@@ -1541,7 +1210,6 @@ class ChatController {
         });
     }
 
-<<<<<<< HEAD
     handleReactionEvent(data) {
         if (!data || !data.message_id) return;
         const currentUserId = typeof auth !== 'undefined' && auth.getUser() ? auth.getUser().id : null;
@@ -1663,35 +1331,6 @@ class ChatController {
                 });
             }
         });
-=======
-    setupPollingFallback() {
-        // Automatic REST sync fallback when WebSocket is offline or in serverless mode
-        setInterval(async () => {
-            if (!this.activeId || !auth.isAuthenticated()) return;
-            if (window.wsClient && window.wsClient.isConnected) return;
-
-            try {
-                let freshMessages = [];
-                if (this.activeType === 'direct') {
-                    freshMessages = await api.getDirectMessages(this.activeId);
-                } else if (this.activeType === 'group') {
-                    freshMessages = await api.getGroupMessages(this.activeId);
-                }
-
-                if (freshMessages && freshMessages.length > this.activeMessages.length) {
-                    const currentUser = auth.getUser();
-                    const currentUserId = currentUser ? currentUser.id : null;
-                    const existingIds = new Set(this.activeMessages.map(m => m.id));
-
-                    freshMessages.forEach(msg => {
-                        if (!existingIds.has(msg.id)) {
-                            this.appendMessage(msg, currentUserId);
-                        }
-                    });
-                }
-            } catch {}
-        }, 4000);
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
     }
 }
 

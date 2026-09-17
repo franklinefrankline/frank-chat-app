@@ -4,7 +4,6 @@
   "trailingSlash": false,
   "framework": null,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/chat", "destination": "/dashboard.html" },
     { "source": "/groups", "destination": "/dashboard.html" },

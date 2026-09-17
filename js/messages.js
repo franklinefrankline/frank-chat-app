@@ -17,13 +17,11 @@ const messagesModule = {
         if (dateInput instanceof Date) return isNaN(dateInput.getTime()) ? null : dateInput;
         let s = String(dateInput).trim();
         if (!s) return null;
-        // Normalize space separator to 'T' for ISO compliance
-        if (s.includes(' ') && !s.includes('T')) {
-            s = s.replace(' ', 'T');
-        }
         // If string lacks timezone indicator (Z or +/-offset), append Z so browser treats as UTC
         if (!s.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(s)) {
-            s = s + 'Z';
+            if (s.includes('T')) {
+                s = s + 'Z';
+            }
         }
         const d = new Date(s);
         return isNaN(d.getTime()) ? null : d;
@@ -31,18 +29,19 @@ const messagesModule = {
 
     // Format clean 12-hour time: e.g. "7:42 PM" (no leading zero on hour, no seconds)
     formatTime(dateStr) {
-        const d = (dateStr instanceof Date) ? dateStr : this.parseDate(dateStr);
+        const d = this.parseDate(dateStr);
         if (!d) return '';
-        return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
     },
 
-    // Contextual message timestamp displaying BOTH date and time:
-    // Today: "Today, Sep 15 • 7:42 PM"
-    // Yesterday: "Yesterday, Sep 14 • 7:42 PM"
-    // Older this year: "Sep 12 • 7:42 PM"
-    // Older other year: "Sep 12, 2025 • 7:42 PM"
+    // Contextual message timestamp:
+    // Today: "7:42 PM"
+    // Yesterday: "Yesterday, 7:42 PM"
+    // Older this year: "Sep 12, 7:42 PM"
+    // Older other year: "Sep 12, 2025, 7:42 PM"
     formatMessageTimestamp(dateStr) {
-        const d = this.parseDate(dateStr) || new Date();
+        const d = this.parseDate(dateStr);
+        if (!d) return '';
         const now = new Date();
         const timeStr = this.formatTime(d);
 
@@ -54,23 +53,23 @@ const messagesModule = {
         const yesterday = new Date(now);
         yesterday.setDate(now.getDate() - 1);
 
-        const monthDay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
         if (isSameDay(d, now)) {
-            return `Today, ${monthDay} • ${timeStr}`;
+            return timeStr;
         } else if (isSameDay(d, yesterday)) {
-            return `Yesterday, ${monthDay} • ${timeStr}`;
+            return `Yesterday, ${timeStr}`;
         } else if (d.getFullYear() === now.getFullYear()) {
-            return `${monthDay} • ${timeStr}`;
+            const monthDay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return `${monthDay}, ${timeStr}`;
         } else {
             const monthDayYear = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            return `${monthDayYear} • ${timeStr}`;
+            return `${monthDayYear}, ${timeStr}`;
         }
     },
 
-    // Format date divider: "Today — September 15, 2026", "Yesterday — September 14, 2026", or "September 12, 2026"
+    // Format date divider: "Today", "Yesterday", or "Sep 12, 2026"
     formatDividerDate(dateStr) {
-        const d = this.parseDate(dateStr) || new Date();
+        const d = this.parseDate(dateStr);
+        if (!d) return '';
         const now = new Date();
         const yesterday = new Date(now);
         yesterday.setDate(now.getDate() - 1);
@@ -80,11 +79,12 @@ const messagesModule = {
             d1.getMonth() === d2.getMonth() &&
             d1.getDate() === d2.getDate();
 
-        const monthDayYear = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-        if (isSameDay(d, now)) return `Today — ${monthDayYear}`;
-        if (isSameDay(d, yesterday)) return `Yesterday — ${monthDayYear}`;
-        return monthDayYear;
+        if (isSameDay(d, now)) return 'Today';
+        if (isSameDay(d, yesterday)) return 'Yesterday';
+        if (d.getFullYear() === now.getFullYear()) {
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     },
 
     formatRelativeTime(dateStr) {
@@ -180,14 +180,11 @@ const messagesModule = {
 
     renderMessageRow(msg, currentUserId) {
         const isSent = msg.sender_id === currentUserId;
-        const msgDateObj = this.parseDate(msg.created_at) || new Date();
-        const timeFormatted = this.formatMessageTimestamp(msg.created_at || msgDateObj);
-        const isEdited = !!msg.updated_at && msg.updated_at !== msg.created_at;
-        const timeStr = `${timeFormatted}${isEdited ? ' <span class="message-edited-badge" style="font-size:10px; opacity:0.75; font-style:italic;" title="Edited">(Edited)</span>' : ''}`;
-        const fullDateStr = msgDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        const fullTooltip = `Sent: ${fullDateStr} at ${this.formatTime(msgDateObj)}${isEdited ? ` · Edited: ${this.formatMessageTimestamp(msg.updated_at)}` : ''}`;
+        const timeFormatted = this.formatMessageTimestamp(msg.created_at);
+        const isEdited = !!msg.updated_at;
+        const timeStr = `${timeFormatted}${isEdited ? ' · Edited' : ''}`;
+        const fullTooltip = `Sent: ${this.formatMessageTimestamp(msg.created_at)}${isEdited ? ` · Edited: ${this.formatMessageTimestamp(msg.updated_at)}` : ''}`;
         const statusIcon = isSent ? this.getStatusIcon(msg.status) : '';
-
 
         // Reaction badges aggregation
         const reactionCounts = {};
@@ -240,7 +237,6 @@ const messagesModule = {
 
         const safeContent = this.escapeHTML(msg.content);
 
-<<<<<<< HEAD
         // Determine message type
         const doc = msg.document || {};
         let docFileId = doc.id || msg.file_id || '';
@@ -323,121 +319,17 @@ const messagesModule = {
                     </div>
                 </div>
             `;
-=======
-        // Attachment categorization
-        const isAudio = msg.message_type === 'audio' || (msg.document && msg.document.file_type === 'audio');
-        const isVideo = msg.message_type === 'video' || (msg.document && msg.document.file_type === 'video');
-        const isImage = msg.message_type === 'image' || (msg.document && msg.document.file_type === 'image');
-        const isDocument = (msg.message_type === 'document' || !!msg.file_id || !!msg.document) && !isAudio && !isVideo && !isImage;
-        const isDocAttachment = isDocument;
-        const hasAttachment = isAudio || isVideo || isImage || isDocument;
-
-        let bodyHtml = `<div class="message-text-content">${safeContent}</div>`;
-        let docFilename = '';
-        let docFileId = '';
-        let docFileType = 'document';
-
-        if (hasAttachment) {
-            const doc = msg.document || {};
-            docFileId = doc.id || msg.file_id || '';
-            docFilename = doc.original_filename || msg.filename || (isAudio ? 'voice-message.webm' : (isVideo ? 'video.mp4' : (isImage ? 'photo.jpg' : 'Document')));
-            docFileType = doc.file_type || (window.documentsController ? window.documentsController.getFileCategory(docFilename) : (isAudio ? 'audio' : (isVideo ? 'video' : (isImage ? 'image' : 'document'))));
-            const viewUrl = api.getFileViewUrl(docFileId);
-            const ext = docFilename.split('.').pop().toUpperCase();
-            const sizeStr = (doc.file_size && window.documentsController) ? window.documentsController.formatFileSize(doc.file_size) : '';
-
-            if (isAudio) {
-                // 1. VOICE MESSAGE PLAYER
-                const rawDuration = msg.duration || doc.duration || 0;
-                const durationLabel = rawDuration > 0
-                    ? (window.voiceRecorder ? window.voiceRecorder.formatTime(Math.round(rawDuration)) : `${Math.round(rawDuration)}s`)
-                    : '00:12';
-
-                bodyHtml = `
-                    <div class="message-voice-card" data-file-id="${docFileId}">
-                        <div class="voice-card-header">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-                            <span style="font-weight: 700; font-size: 13px;">Voice message</span>
-                        </div>
-                        <div class="voice-card-player">
-                            <button type="button" class="voice-play-toggle-btn" data-audio-url="${viewUrl}" aria-label="Play voice message">
-                                <svg class="play-svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                                <svg class="pause-svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-                            </button>
-                            <div class="voice-track-scrubber" data-audio-url="${viewUrl}">
-                                <div class="voice-track-fill" style="width: 0%;"></div>
-                            </div>
-                            <span class="voice-time-label">${durationLabel}</span>
-                        </div>
-                        ${(safeContent && safeContent !== 'Voice message' && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${safeContent}</div>` : ''}
-                    </div>
-                `;
-            } else if (isImage) {
-                // 2. PHOTO MESSAGE
-                bodyHtml = `
-                    <div class="message-photo-card" data-file-id="${docFileId}">
-                        <div class="msg-photo-wrap">
-                            <img loading="lazy" class="msg-photo-img" src="${viewUrl}" alt="${this.escapeHTML(docFilename)}" onclick="window.open('${viewUrl}', '_blank')">
-                        </div>
-                        ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${safeContent}</div>` : ''}
-                    </div>
-                `;
-            } else if (isVideo) {
-                // 3. VIDEO MESSAGE
-                bodyHtml = `
-                    <div class="message-video-card" data-file-id="${docFileId}">
-                        <div class="msg-video-wrap">
-                            <video controls playsinline preload="metadata" class="msg-video-player" src="${viewUrl}"></video>
-                        </div>
-                        ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${safeContent}</div>` : ''}
-                    </div>
-                `;
-            } else {
-                // 4. DOCUMENT MESSAGE
-                const badgeHtml = window.documentsController ? window.documentsController.getFileBadgeMarkup(docFileType, ext) : `<div class="doc-badge-icon">📄</div>`;
-                bodyHtml = `
-                    <div class="message-document-card" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
-                        <div class="message-doc-header">
-                            ${badgeHtml}
-                            <div class="message-doc-meta">
-                                <div class="message-doc-title" title="${this.escapeHTML(docFilename)}">${this.escapeHTML(docFilename)}</div>
-                                <div class="message-doc-sub">${sizeStr || ext} • ${ext}</div>
-                            </div>
-                        </div>
-                        ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${safeContent}</div>` : ''}
-                        <div class="message-doc-actions">
-                            <button type="button" class="btn btn-sm btn-primary msg-doc-open-btn" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                                Open
-                            </button>
-                            <button type="button" class="btn btn-sm btn-secondary msg-doc-download-btn" data-file-id="${docFileId}" data-filename="${this.escapeHTML(docFilename)}" title="Download">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                Download
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
         }
 
         const senderName = isSent ? 'You' : (msg.sender ? (msg.sender.full_name || msg.sender.username) : 'User');
         const replySnippetText = plainUserText || (isMedia ? `[${docFileType.toUpperCase()}] ${docFilename}` : (msg.content || 'Message'));
 
         return `
-<<<<<<< HEAD
             <div class="message-row ${isSent ? 'sent' : 'received'} ${isDocument ? 'has-document' : ''}" id="msgRow-${msg.id}" data-message-id="${msg.id}">
                 <!-- Message Actions Toolbar -->
                 <div class="message-actions-toolbar" role="toolbar" aria-label="Message actions">
                     <button type="button" class="action-tool-btn msg-action-reply" title="Reply" aria-label="Reply" data-msg-id="${msg.id}" data-sender="${this.escapeHTML(senderName)}" data-content="${this.escapeHTML(replySnippetText)}">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
-=======
-            <div class="message-row ${isSent ? 'sent' : 'received'} ${hasAttachment ? 'has-document' : ''}" id="msgRow-${msg.id}" data-message-id="${msg.id}">
-                <!-- Hover Action Toolbar -->
-                <div class="message-actions-toolbar">
-                    <button type="button" class="action-tool-btn msg-action-reply" title="Reply" data-msg-id="${msg.id}" data-sender="${senderName}" data-content="${isDocument ? `[Document] ${this.escapeHTML(docFilename)}` : safeContent}">
-                        ↩
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
                     </button>
                     <button type="button" class="action-tool-btn msg-action-react" title="React with heart" aria-label="React with heart" data-msg-id="${msg.id}" data-emoji="❤️">❤️</button>
                     <button type="button" class="action-tool-btn msg-action-react" title="React with like" aria-label="React with like" data-msg-id="${msg.id}" data-emoji="👍">👍</button>
@@ -684,161 +576,4 @@ document.addEventListener('click', async (e) => {
         }
         return;
     }
-<<<<<<< HEAD
-=======
-
-    // 5. Reply to message
-    const replyBtn = e.target.closest('.msg-action-reply');
-    if (replyBtn) {
-        const messageId = parseInt(replyBtn.dataset.msgId, 10);
-        const sender = replyBtn.dataset.sender;
-        const content = replyBtn.dataset.content;
-        if (window.chatController) {
-            window.chatController.setReplying(messageId, sender, content);
-        }
-        return;
-    }
-
-    // 5. Open document
-    const openDocBtn = e.target.closest('.msg-doc-open-btn, .msg-action-open-doc');
-    if (openDocBtn) {
-        const fileId = parseInt(openDocBtn.dataset.fileId, 10);
-        const fileType = openDocBtn.dataset.fileType;
-        const filename = openDocBtn.dataset.filename;
-        if (window.documentsController) {
-            window.documentsController.openDocument(fileId, fileType, filename);
-        }
-        return;
-    }
-
-    // 6. Download document
-    const downloadDocBtn = e.target.closest('.msg-doc-download-btn, .msg-action-download-doc');
-    if (downloadDocBtn) {
-        const fileId = parseInt(downloadDocBtn.dataset.fileId, 10);
-        const filename = downloadDocBtn.dataset.filename;
-        if (window.documentsController) {
-            window.documentsController.downloadDocument(fileId, filename);
-        }
-        return;
-    }
-
-    // 7. Voice message play/pause toggle
-    const voiceBtn = e.target.closest('.voice-play-toggle-btn');
-    if (voiceBtn) {
-        const audioUrl = voiceBtn.dataset.audioUrl;
-        if (!audioUrl) return;
-
-        const card = voiceBtn.closest('.message-voice-card');
-        const scrubber = card ? card.querySelector('.voice-track-scrubber') : null;
-        const fill = scrubber ? scrubber.querySelector('.voice-track-fill') : null;
-        const timeLabel = card ? card.querySelector('.voice-time-label') : null;
-        const playSvg = voiceBtn.querySelector('.play-svg');
-        const pauseSvg = voiceBtn.querySelector('.pause-svg');
-
-        // If clicking the currently playing audio button
-        if (currentChatAudio && currentChatAudioBtn === voiceBtn) {
-            if (!currentChatAudio.paused) {
-                currentChatAudio.pause();
-                if (playSvg) playSvg.style.display = 'block';
-                if (pauseSvg) pauseSvg.style.display = 'none';
-            } else {
-                currentChatAudio.play().then(() => {
-                    if (playSvg) playSvg.style.display = 'none';
-                    if (pauseSvg) pauseSvg.style.display = 'block';
-                }).catch(err => console.error('Audio play error:', err));
-            }
-            return;
-        }
-
-        // Stop previous audio if any
-        stopCurrentChatAudio();
-
-        // Create new Audio instance
-        const audio = new Audio(audioUrl);
-        currentChatAudio = audio;
-        currentChatAudioBtn = voiceBtn;
-        currentChatAudioScrubber = scrubber;
-        currentChatAudioTimeLabel = timeLabel;
-        if (timeLabel) currentChatAudioOriginalText = timeLabel.textContent;
-
-        if (playSvg) playSvg.style.display = 'none';
-        if (pauseSvg) pauseSvg.style.display = 'block';
-
-        audio.addEventListener('timeupdate', () => {
-            if (audio.duration && !isNaN(audio.duration)) {
-                const pct = Math.min(100, Math.max(0, (audio.currentTime / audio.duration) * 100));
-                if (fill) fill.style.width = `${pct}%`;
-                if (timeLabel) {
-                    const curM = Math.floor(audio.currentTime / 60);
-                    const curS = Math.floor(audio.currentTime % 60);
-                    timeLabel.textContent = `${curM}:${curS < 10 ? '0' : ''}${curS}`;
-                }
-            }
-        });
-
-        audio.addEventListener('ended', () => {
-            stopCurrentChatAudio();
-        });
-
-        audio.addEventListener('error', (err) => {
-            console.error('Audio load/playback error:', err);
-            stopCurrentChatAudio();
-            if (window.showToast) window.showToast('Unable to play audio message', 'error');
-        });
-
-        audio.play().catch(err => {
-            console.error('Audio play error:', err);
-            stopCurrentChatAudio();
-        });
-        return;
-    }
-
-    // 8. Voice scrubber seek
-    const voiceScrubber = e.target.closest('.voice-track-scrubber');
-    if (voiceScrubber) {
-        const card = voiceScrubber.closest('.message-voice-card');
-        const btn = card ? card.querySelector('.voice-play-toggle-btn') : null;
-        if (currentChatAudio && currentChatAudioBtn === btn && currentChatAudio.duration) {
-            const rect = voiceScrubber.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const pct = Math.max(0, Math.min(1, clickX / rect.width));
-            currentChatAudio.currentTime = pct * currentChatAudio.duration;
-            const fill = voiceScrubber.querySelector('.voice-track-fill');
-            if (fill) fill.style.width = `${pct * 100}%`;
-        }
-        return;
-    }
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 });
-
-// Global Audio Playback State for Voice Messages
-let currentChatAudio = null;
-let currentChatAudioBtn = null;
-let currentChatAudioScrubber = null;
-let currentChatAudioTimeLabel = null;
-let currentChatAudioOriginalText = '';
-
-function stopCurrentChatAudio() {
-    if (currentChatAudio) {
-        currentChatAudio.pause();
-        currentChatAudio = null;
-    }
-    if (currentChatAudioBtn) {
-        const playSvg = currentChatAudioBtn.querySelector('.play-svg');
-        const pauseSvg = currentChatAudioBtn.querySelector('.pause-svg');
-        if (playSvg) playSvg.style.display = 'block';
-        if (pauseSvg) pauseSvg.style.display = 'none';
-        currentChatAudioBtn = null;
-    }
-    if (currentChatAudioScrubber) {
-        const fill = currentChatAudioScrubber.querySelector('.voice-track-fill');
-        if (fill) fill.style.width = '0%';
-        currentChatAudioScrubber = null;
-    }
-    if (currentChatAudioTimeLabel && currentChatAudioOriginalText) {
-        currentChatAudioTimeLabel.textContent = currentChatAudioOriginalText;
-        currentChatAudioTimeLabel = null;
-        currentChatAudioOriginalText = '';
-    }
-}
-

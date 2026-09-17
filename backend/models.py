@@ -1,9 +1,5 @@
 from datetime import datetime, timezone
-<<<<<<< HEAD
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, UniqueConstraint
-=======
-from sqlalchemy import Column, Integer, Float, String, Text, Boolean, DateTime, ForeignKey, UniqueConstraint
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -19,13 +15,10 @@ class User(Base):
     frank_id = Column(String(6), unique=True, index=True, nullable=False)
     username = Column(String(50), unique=True, index=True, nullable=False)
     email = Column(String(120), unique=True, index=True, nullable=False)
-    frank_id = Column(String(6), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(100), nullable=False)
     bio = Column(String(255), default="Hey there! I am using FRANK.")
     avatar_url = Column(String(255), default="")
-    theme = Column(String(20), default="light")
-    status = Column(String(20), default="offline")
     is_online = Column(Boolean, default=False)
     last_seen = Column(DateTime(timezone=True), default=get_utc_now)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
@@ -65,11 +58,7 @@ class Message(Base):
     recipient_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=True, index=True)
     content = Column(Text, nullable=False)
-<<<<<<< HEAD
     message_type = Column(String(20), default="text")  # text, document, image, file, video
-=======
-    message_type = Column(String(20), default="text")  # text, document, image, video, audio
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
     file_id = Column(Integer, ForeignKey("documents.id", use_alter=True, name="fk_message_document"), nullable=True)
     reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
     status = Column(String(20), default="sent")  # sent, delivered, read
@@ -97,8 +86,7 @@ class Document(Base):
     stored_filename = Column(String(255), nullable=False)
     file_size = Column(Integer, nullable=False)  # in bytes
     mime_type = Column(String(100), nullable=False)
-    file_type = Column(String(50), default="document")  # pdf, word, excel, ppt, text, archive, image, video, audio, other
-    duration = Column(Float, nullable=True)  # in seconds for audio/voice and video
+    file_type = Column(String(50), default="document")  # pdf, word, excel, ppt, text, archive, image, other
     created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
 
     uploader = relationship("User", back_populates="uploaded_documents")
@@ -124,11 +112,7 @@ class Group(Base):
     name = Column(String(100), nullable=False)
     description = Column(String(255), default="")
     avatar_url = Column(String(255), default="")
-<<<<<<< HEAD
     is_private = Column(Boolean, default=True)
-=======
-    privacy = Column(String(20), default="private", nullable=False)  # private, public
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
 
@@ -143,25 +127,8 @@ class GroupMember(Base):
     id = Column(Integer, primary_key=True, index=True)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    role = Column(String(20), default="member")  # owner, admin, member
+    role = Column(String(20), default="member")  # admin, member
     joined_at = Column(DateTime(timezone=True), default=get_utc_now)
 
     group = relationship("Group", back_populates="members")
     user = relationship("User", back_populates="group_memberships")
-
-
-class Conversation(Base):
-    __tablename__ = "conversations"
-    __table_args__ = (
-        UniqueConstraint("user_a_id", "user_b_id", name="uq_conversation_users"),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_a_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    user_b_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    created_at = Column(DateTime(timezone=True), default=get_utc_now)
-    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
-
-    user_a = relationship("User", foreign_keys=[user_a_id])
-    user_b = relationship("User", foreign_keys=[user_b_id])
-

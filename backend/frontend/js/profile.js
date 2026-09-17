@@ -44,7 +44,6 @@ const profileModule = {
 
             const nameEl = document.getElementById('profileDisplayName');
             const usernameEl = document.getElementById('profileUsername');
-            const frankIdEl = document.getElementById('profileFrankId');
             const bioEl = document.getElementById('profileBioText');
             const emailEl = document.getElementById('profileEmail');
             const joinedEl = document.getElementById('profileJoined');
@@ -52,54 +51,8 @@ const profileModule = {
 
             if (nameEl) nameEl.textContent = user.full_name;
             if (usernameEl) usernameEl.textContent = `@${user.username}`;
-            if (frankIdEl) frankIdEl.textContent = user.frank_id || '------';
             if (bioEl) bioEl.textContent = bioText;
             if (emailEl) emailEl.textContent = user.email;
-
-            // Wire Copy & Share buttons
-            const copyBtn = document.getElementById('copyFrankIdBtn');
-            if (copyBtn && !copyBtn.dataset.wired) {
-                copyBtn.dataset.wired = 'true';
-                copyBtn.addEventListener('click', async () => {
-                    const fid = user.frank_id;
-                    if (fid) {
-                        try {
-                            await navigator.clipboard.writeText(fid);
-                            showToast(`FRANK ID ${fid} copied to clipboard!`, 'success');
-                        } catch (_) {
-                            showToast(`FRANK ID: ${fid}`, 'info');
-                        }
-                    }
-                });
-            }
-
-            const shareBtn = document.getElementById('shareFrankIdBtn');
-            if (shareBtn && !shareBtn.dataset.wired) {
-                shareBtn.dataset.wired = 'true';
-                shareBtn.addEventListener('click', async () => {
-                    const fid = user.frank_id;
-                    if (fid) {
-                        const shareText = `Connect with me on FRANK! My permanent FRANK ID is: ${fid}`;
-                        if (navigator.share) {
-                            try {
-                                await navigator.share({
-                                    title: 'FRANK ID',
-                                    text: shareText,
-                                    url: window.location.origin
-                                });
-                            } catch (_) {}
-                        } else {
-                            try {
-                                await navigator.clipboard.writeText(shareText);
-                                showToast('Share text & FRANK ID copied to clipboard!', 'success');
-                            } catch (_) {
-                                showToast(shareText, 'info');
-                            }
-                        }
-                    }
-                });
-            }
-
             if (joinedEl && user.created_at) {
                 const parsedDate = window.messagesModule ? window.messagesModule.parseDate(user.created_at) : new Date(user.created_at);
                 joinedEl.textContent = parsedDate ? parsedDate.toLocaleDateString([], { month: 'long', year: 'numeric' }) : '';

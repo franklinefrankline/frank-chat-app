@@ -6,52 +6,23 @@
    ------------------------------------------------------------------------- */
 
 const groupsModule = {
-<<<<<<< HEAD
     addedUsersFromFrankId: new Map(), // userId -> User object
-=======
-    addedFrankIdUsers: new Map(),
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
     init() {
         const createGroupForm = document.getElementById('createGroupForm');
-        const frankIdInput = document.getElementById('groupFrankIdInput');
-        const frankIdAddBtn = document.getElementById('groupFrankIdAddBtn');
 
         createGroupForm?.addEventListener('submit', async (e) => {
             e.preventDefault();
             await this.handleCreateGroup();
         });
 
-<<<<<<< HEAD
         // Setup add by FRANK ID in create group modal
         this.setupFrankIdMemberAdder();
-=======
-        // Add member via FRANK ID in group creation
-        frankIdInput?.addEventListener('input', (e) => {
-            e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-        });
-
-        frankIdInput?.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.addMemberByFrankId();
-            }
-        });
-
-        frankIdAddBtn?.addEventListener('click', () => {
-            this.addMemberByFrankId();
-        });
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
         // Populate members checklist when opening modal
         document.querySelectorAll('[data-open-modal="createGroupModal"], #navCreateGroupBtn').forEach(btn => {
             btn.addEventListener('click', () => {
-<<<<<<< HEAD
                 this.resetCreateGroupModal();
-=======
-                this.addedFrankIdUsers.clear();
-                this.renderSelectedPills();
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
                 this.populateMembersChecklist();
             });
         });
@@ -148,56 +119,6 @@ const groupsModule = {
         }
     },
 
-    async addMemberByFrankId() {
-        const input = document.getElementById('groupFrankIdInput');
-        const fid = (input?.value || '').trim().toUpperCase();
-        if (!fid || fid.length !== 6) {
-            showToast('Enter a valid 6-character FRANK ID', 'warning');
-            return;
-        }
-
-        const currentUser = auth.getUser();
-        if (currentUser && (currentUser.frank_id || '').toUpperCase() === fid) {
-            showToast('You are already the creator of this group!', 'info');
-            return;
-        }
-
-        try {
-            const user = await api.getUserByFrankId(fid);
-            if (this.addedFrankIdUsers.has(user.id)) {
-                showToast(`${user.full_name} is already added.`, 'info');
-                return;
-            }
-
-            this.addedFrankIdUsers.set(user.id, user);
-            this.renderSelectedPills();
-            if (input) input.value = '';
-            showToast(`Added ${user.full_name} to group list!`, 'success');
-        } catch (err) {
-            showToast(err.message || `User with FRANK ID "${fid}" not found`, 'error');
-        }
-    },
-
-    renderSelectedPills() {
-        const container = document.getElementById('groupSelectedPills');
-        if (!container) return;
-        container.innerHTML = '';
-
-        this.addedFrankIdUsers.forEach(user => {
-            const pill = document.createElement('div');
-            pill.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(6, 182, 212, 0.12); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 16px; font-size: 12px; font-weight: 600; color: var(--text);';
-            pill.innerHTML = `
-                <span>${messagesModule.escapeHTML(user.full_name)} (${messagesModule.escapeHTML(user.frank_id || '')})</span>
-                <button type="button" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px;">✕</button>
-            `;
-            pill.querySelector('button').addEventListener('click', () => {
-                this.addedFrankIdUsers.delete(user.id);
-                this.renderSelectedPills();
-            });
-            container.appendChild(pill);
-        });
-    },
-
     async populateMembersChecklist() {
         const container = document.getElementById('groupMembersChecklist');
         if (!container) return;
@@ -217,11 +138,7 @@ const groupsModule = {
                 const label = document.createElement('label');
                 label.className = 'group-member-checkbox-row';
                 const initials = (user.full_name || user.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-<<<<<<< HEAD
                 const isPreselected = this.addedUsersFromFrankId.has(user.id);
-=======
-                const frankBadge = user.frank_id ? `<span style="font-family: monospace; font-size: 10px; color: var(--accent-cyan); margin-left: 4px;">[${user.frank_id}]</span>` : '';
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
                 label.innerHTML = `
                     <input type="checkbox" name="groupMember" value="${user.id}" ${isPreselected ? 'checked' : ''}>
@@ -230,16 +147,11 @@ const groupsModule = {
                         <span class="avatar-status ${user.is_online ? 'online' : 'offline'}"></span>
                     </div>
                     <div style="flex: 1; min-width: 0;">
-<<<<<<< HEAD
                         <div style="font-weight: 600; font-size: 13px; color: var(--text);">${messagesModule.escapeHTML(user.full_name)}</div>
                         <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
                             <span>@${messagesModule.escapeHTML(user.username)}</span>
                             ${user.frank_id ? `<span style="font-family: monospace; font-size: 10px; color: var(--primary);">${user.frank_id}</span>` : ''}
                         </div>
-=======
-                        <div style="font-weight: 600; font-size: 13px; color: var(--text);">${messagesModule.escapeHTML(user.full_name)}${frankBadge}</div>
-                        <div style="font-size: 11px; color: var(--text-muted);">@${messagesModule.escapeHTML(user.username)}</div>
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
                     </div>
                 `;
                 container.appendChild(label);
@@ -257,11 +169,7 @@ const groupsModule = {
 
         const name = nameInput.value.trim();
         const description = (descInput?.value || '').trim();
-<<<<<<< HEAD
         const is_private = privacyRadio ? privacyRadio.value === 'private' : true;
-=======
-        const privacy = privacyRadio ? privacyRadio.value : 'private';
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
         if (!name) {
             showToast('Please enter a group name', 'error');
@@ -269,7 +177,6 @@ const groupsModule = {
         }
 
         const checkedBoxes = document.querySelectorAll('input[name="groupMember"]:checked');
-<<<<<<< HEAD
         const memberIdsSet = new Set(Array.from(checkedBoxes).map(cb => parseInt(cb.value, 10)));
 
         // Include any added from the FRANK ID chip adder
@@ -278,11 +185,6 @@ const groupsModule = {
         }
 
         const member_ids = Array.from(memberIdsSet);
-=======
-        const member_ids_set = new Set(Array.from(checkedBoxes).map(cb => parseInt(cb.value, 10)));
-        this.addedFrankIdUsers.forEach(u => member_ids_set.add(u.id));
-        const member_ids = Array.from(member_ids_set);
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
         submitBtn.disabled = true;
         submitBtn.textContent = 'Creating...';
@@ -291,11 +193,7 @@ const groupsModule = {
             const group = await api.createGroup({
                 name,
                 description,
-<<<<<<< HEAD
                 is_private,
-=======
-                privacy,
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
                 member_ids
             });
 
@@ -303,12 +201,7 @@ const groupsModule = {
             showToast(`Group "${group.name}" created!`, 'success');
             nameInput.value = '';
             if (descInput) descInput.value = '';
-<<<<<<< HEAD
             this.resetCreateGroupModal();
-=======
-            this.addedFrankIdUsers.clear();
-            this.renderSelectedPills();
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
             // Refresh conversations and open newly created group
             if (window.appController) {
@@ -327,12 +220,7 @@ const groupsModule = {
         }
     },
 
-<<<<<<< HEAD
     // ---------------- ADD MEMBERS MODAL (WITH FRANK ID & CONTACTS) ----------------
-=======
-
-    // ---------------- ADD MEMBERS MODAL ----------------
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
     async openAddMembersModal(groupId) {
         let modal = document.getElementById('addMembersModal');
         if (!modal) {
@@ -540,7 +428,6 @@ const groupsModule = {
         );
     },
 
-<<<<<<< HEAD
     // ---------------- DELETE GROUP (OWNER ONLY) ----------------
     confirmDeleteGroup(groupId, groupName = 'this group') {
         createConfirmModal(
@@ -551,46 +438,6 @@ const groupsModule = {
                     await api.deleteGroup(groupId);
                     showToast(`Group "${groupName}" has been deleted.`, 'success');
 
-=======
-    async updateMemberRole(groupId, userId, newRole, userName = 'member') {
-        try {
-            await api.updateMemberRole(groupId, userId, newRole);
-            showToast(`Updated ${userName}'s role to ${newRole}.`, 'success');
-            if (window.chatController) {
-                window.chatController.loadGroupMembersList(groupId);
-            }
-        } catch (err) {
-            showToast(err.message || 'Failed to update member role', 'error');
-        }
-    },
-
-    removeMember(groupId, userId, userName = 'member') {
-        createConfirmModal(
-            'Remove Member',
-            `Are you sure you want to remove ${userName} from this group?`,
-            async () => {
-                try {
-                    await api.removeGroupMember(groupId, userId);
-                    showToast(`Removed ${userName} from the group.`, 'info');
-                    if (window.chatController) {
-                        window.chatController.loadGroupMembersList(groupId);
-                    }
-                } catch (err) {
-                    showToast(err.message || 'Failed to remove member', 'error');
-                }
-            }
-        );
-    },
-
-    deleteGroup(groupId, groupName = 'this group') {
-        createConfirmModal(
-            'Delete Group',
-            `Are you sure you want to permanently delete "${groupName}"? This action cannot be undone.`,
-            async () => {
-                try {
-                    await api.deleteGroup(groupId);
-                    showToast(`Group "${groupName}" deleted.`, 'info');
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
                     if (window.chatController && window.chatController.activeId === groupId) {
                         window.chatController.closeActiveChat();
                     }
@@ -602,15 +449,7 @@ const groupsModule = {
                 }
             }
         );
-<<<<<<< HEAD
-=======
-    },
-
-    setupGroupActionListeners() {
-        // Additional UI listeners can be wired here
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
     }
-
 };
 
 document.addEventListener('DOMContentLoaded', () => {

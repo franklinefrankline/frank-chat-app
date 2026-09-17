@@ -31,20 +31,12 @@ class AppController {
             const loader = document.getElementById('appLoadingScreen');
             if (loader && !loader.classList.contains('fade-out')) {
                 loader.classList.add('fade-out');
-<<<<<<< HEAD
                 setTimeout(() => loader.remove(), 500);
             }
         };
 
         // Fail-safe: ensure splash loading screen is always dismissed within 2.2s
         setTimeout(dismissLoader, 2200);
-=======
-                setTimeout(() => { if (loader && loader.parentNode) loader.remove(); }, 350);
-            }
-        };
-        // Safety timeout: loader never blocks UI beyond 800ms
-        setTimeout(dismissLoader, 800);
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
 
         try {
             this.currentUser = await api.getCurrentUser();
@@ -69,12 +61,8 @@ class AppController {
                 return;
             }
         } finally {
-<<<<<<< HEAD
             // Splash animation finishes and dismisses smoothly
             setTimeout(dismissLoader, 1600);
-=======
-            dismissLoader();
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
         }
     }
 
@@ -104,22 +92,15 @@ class AppController {
     updateSidebarUser(user) {
         const nameEl = document.getElementById('sidebarUserName');
         const initialsEl = document.getElementById('sidebarUserInitials');
-        const frankIdEl = document.getElementById('sidebarUserFrankId');
         if (nameEl) nameEl.textContent = user.full_name || user.username;
         if (initialsEl) {
             const name = user.full_name || user.username || '??';
             initialsEl.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
         }
-<<<<<<< HEAD
         const statusEl = document.querySelector('.sidebar-user-status');
         if (statusEl && user.frank_id) {
             statusEl.innerHTML = `<span style="font-family:monospace; font-weight:700; color:var(--primary); letter-spacing:0.8px;">ID: ${user.frank_id}</span>`;
             statusEl.title = `Your unique FRANK ID: ${user.frank_id}`;
-=======
-        if (frankIdEl && user.frank_id) {
-            frankIdEl.textContent = user.frank_id;
-            frankIdEl.title = `Your permanent FRANK ID: ${user.frank_id} (Click to copy)`;
->>>>>>> 36f90df20e059503643acd212a167333da206ab6
         }
     }
 
@@ -391,25 +372,14 @@ class AppController {
         const openBtn = document.getElementById('openSidebarBtn');
         const overlay = document.getElementById('mobileOverlay');
 
-        const closeSidebar = () => {
-            sidebar?.classList.remove('open');
-            overlay?.classList.remove('show');
-        };
-
         openBtn?.addEventListener('click', () => {
             sidebar?.classList.add('open');
             overlay?.classList.add('show');
         });
 
-        overlay?.addEventListener('click', closeSidebar);
-
-        // Auto-close mobile drawer when tapping any link or button inside it
-        sidebar?.querySelectorAll('button, a').forEach(el => {
-            el.addEventListener('click', () => {
-                if (window.innerWidth <= 768 && !el.classList.contains('sidebar-user')) {
-                    closeSidebar();
-                }
-            });
+        overlay?.addEventListener('click', () => {
+            sidebar?.classList.remove('open');
+            overlay?.classList.remove('show');
         });
     }
 
