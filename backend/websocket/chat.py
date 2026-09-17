@@ -8,6 +8,7 @@ from database import SessionLocal
 import models
 import schemas
 from security import get_user_from_token
+from routes.conversations import get_or_create_private_conversation
 
 logger = logging.getLogger("chatapp.websocket")
 
@@ -131,9 +132,10 @@ class ConnectionManager:
             await self.broadcast_to_group(int(group_id), msg_payload, sender_id=s_id)
         elif recipient_id is not None:
             r_id = int(recipient_id)
-            if r_id in self.active_connections:
-                msg_payload["message"]["status"] = "delivered"
-            await self.send_to_user(r_id, msg_payload)
+            if r_id != s_id:
+                if r_id in self.active_connections and isinstance(msg_payload.get("message"), dict):
+                    msg_payload["message"]["status"] = "delivered"
+                await self.send_to_user(r_id, msg_payload)
 
 
 manager = ConnectionManager()
@@ -202,25 +204,7 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
 
                     conv_id = None
                     if recipient_id:
-                        u_a = min(user_id, recipient_id)
-                        u_b = max(user_id, recipient_id)
-                        conv = db_session.query(models.Conversation).filter(
-                            models.Conversation.user_a_id == u_a,
-                            models.Conversation.user_b_id == u_b
-                        ).first()
-                        if not conv:
-                            conv = models.Conversation(
-                                user_a_id=u_a,
-                                user_b_id=u_b,
-                                created_at=datetime.now(timezone.utc),
-                                updated_at=datetime.now(timezone.utc)
-                            )
-                            db_session.add(conv)
-                            db_session.commit()
-                            db_session.refresh(conv)
-                        else:
-                            conv.updated_at = datetime.now(timezone.utc)
-                            db_session.commit()
+                        conv, _ = get_or_create_private_conversation(user_id, recipient_id, db_session)
                         conv_id = conv.id
 
                     msg = models.Message(
@@ -280,6 +264,7 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                                 "id": sender_user.id,
                                 "username": sender_user.username,
                                 "full_name": sender_user.full_name,
+                                "frank_id": sender_user.frank_id,
                                 "avatar_url": sender_user.avatar_url
                             },
                             "reactions": []
@@ -291,14 +276,16 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
 
                     if group_id:
                         await manager.broadcast_to_group(group_id, msg_payload, sender_id=user_id)
-                    elif recipient_id:
-                        # Update status to delivered if recipient is online
+                    elif recipient_id and not is_self:
+                        # Regular DM: update status to delivered if recipient is online
                         if recipient_id in manager.active_connections:
                             msg.status = "delivered"
                             db_session.commit()
                             msg_payload["message"]["status"] = "delivered"
 
                         await manager.send_to_user(recipient_id, msg_payload)
+                    # Self-chat: already echoed to sender above, nothing more needed
+
 
                 finally:
                     db_session.close()

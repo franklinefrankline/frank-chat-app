@@ -325,16 +325,16 @@ class MediaViewerController {
             const card = document.createElement('div');
             card.className = 'media-viewer-fallback-card';
             card.innerHTML = `
-                <div style="font-size: 54px; margin-bottom: 12px;">📁</div>
-                <div style="font-size: 18px; font-weight: 700; margin-bottom: 6px; word-break: break-all;">${this.escapeHTML(filename)}</div>
-                <div style="font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 20px;">${ext} Document • Safe in-app viewer</div>
-                <button type="button" class="btn btn-primary btn-large" style="width: 100%; justify-content: center; gap: 8px;" onclick="window.mediaViewer.downloadCurrent()">
+                <div style="font-size: 54px; margin-bottom: 14px;">📄</div>
+                <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px; word-break: break-all;">${this.escapeHTML(filename)}</div>
+                <div style="font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 22px; line-height: 1.5;">Preview unavailable<br>for this file type.</div>
+                <button type="button" class="btn btn-primary btn-large" style="width: 100%; max-width: 260px; justify-content: center; gap: 8px; margin: 0 auto;" onclick="window.mediaViewer.downloadCurrent()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="7 10 12 15 17 10"></polyline>
                         <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
-                    Download ${ext} File
+                    Download
                 </button>
             `;
             this.dom.content.appendChild(card);
@@ -384,6 +384,11 @@ class MediaViewerController {
         if (!this.currentMedia) return;
         const fileId = this.currentMedia.fileId;
         const filename = this.currentMedia.filename || 'media';
+
+        if (fileId && api.downloadFileBlob) {
+            api.downloadFileBlob(fileId, filename);
+            return;
+        }
 
         if (window.documentsController && fileId) {
             window.documentsController.downloadDocument(fileId, filename);

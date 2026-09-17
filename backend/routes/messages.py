@@ -8,6 +8,7 @@ import models
 import schemas
 from security import get_current_user
 from websocket.chat import manager
+from routes.conversations import get_or_create_private_conversation
 
 router = APIRouter(prefix="/api/messages", tags=["Messages"])
 
@@ -18,25 +19,41 @@ def get_direct_messages(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Verify partner exists
-    partner = db.query(models.User).filter(models.User.id == partner_id).first()
-    if not partner:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    # Allow self-chat: partner_id == current_user.id
+    is_self_chat = (partner_id == current_user.id)
 
-    # Fetch messages between current_user and partner
-    messages = db.query(models.Message).filter(
-        models.Message.group_id.is_(None),
-        or_(
-            and_(models.Message.sender_id == current_user.id, models.Message.recipient_id == partner_id),
-            and_(models.Message.sender_id == partner_id, models.Message.recipient_id == current_user.id)
-        )
-    ).order_by(models.Message.created_at.asc()).limit(100).all()
+    if not is_self_chat:
+        # Verify partner exists for regular chats
+        partner = db.query(models.User).filter(models.User.id == partner_id).first()
+        if not partner:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    # Automatically mark incoming messages as read
-    for msg in messages:
-        if msg.recipient_id == current_user.id and msg.status != "read":
-            msg.status = "read"
-    db.commit()
+    if is_self_chat:
+        # Fetch self-chat messages via the self-conversation
+        self_conv = db.query(models.Conversation).filter(
+            models.Conversation.user_a_id == current_user.id,
+            models.Conversation.user_b_id == current_user.id
+        ).first()
+        if not self_conv:
+            return []
+        messages = db.query(models.Message).filter(
+            models.Message.conversation_id == self_conv.id
+        ).order_by(models.Message.created_at.asc()).limit(200).all()
+    else:
+        # Fetch messages between current_user and partner
+        messages = db.query(models.Message).filter(
+            models.Message.group_id.is_(None),
+            or_(
+                and_(models.Message.sender_id == current_user.id, models.Message.recipient_id == partner_id),
+                and_(models.Message.sender_id == partner_id, models.Message.recipient_id == current_user.id)
+            )
+        ).order_by(models.Message.created_at.asc()).limit(100).all()
+
+        # Automatically mark incoming messages as read
+        for msg in messages:
+            if msg.recipient_id == current_user.id and msg.status != "read":
+                msg.status = "read"
+        db.commit()
 
     return messages
 
@@ -53,30 +70,15 @@ async def send_message(
             detail="Either recipient_id or group_id is required."
         )
 
+    is_self_chat = (msg_in.recipient_id is not None and msg_in.recipient_id == current_user.id)
     conv_id = None
+
     if msg_in.recipient_id:
-        partner = db.query(models.User).filter(models.User.id == msg_in.recipient_id).first()
-        if not partner:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipient not found")
-        u_a = min(current_user.id, partner.id)
-        u_b = max(current_user.id, partner.id)
-        conv = db.query(models.Conversation).filter(
-            models.Conversation.user_a_id == u_a,
-            models.Conversation.user_b_id == u_b
-        ).first()
-        if not conv:
-            conv = models.Conversation(
-                user_a_id=u_a,
-                user_b_id=u_b,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc)
-            )
-            db.add(conv)
-            db.commit()
-            db.refresh(conv)
-        else:
-            conv.updated_at = datetime.now(timezone.utc)
-            db.commit()
+        if not is_self_chat:
+            partner = db.query(models.User).filter(models.User.id == msg_in.recipient_id).first()
+            if not partner:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipient not found")
+        conv, _ = get_or_create_private_conversation(current_user.id, msg_in.recipient_id, db)
         conv_id = conv.id
 
     if msg_in.group_id:
@@ -155,12 +157,21 @@ async def send_message(
     }
 
     try:
-        await manager.broadcast_message_event(
-            msg_payload,
-            sender_id=current_user.id,
-            recipient_id=msg_in.recipient_id,
-            group_id=msg_in.group_id
-        )
+        if is_self_chat:
+            # Self-chat: only echo back to sender, no external broadcast
+            await manager.broadcast_message_event(
+                msg_payload,
+                sender_id=current_user.id,
+                recipient_id=None,
+                group_id=None
+            )
+        else:
+            await manager.broadcast_message_event(
+                msg_payload,
+                sender_id=current_user.id,
+                recipient_id=msg_in.recipient_id,
+                group_id=msg_in.group_id
+            )
     except Exception as e:
         print(f"WebSocket broadcast error: {e}")
 

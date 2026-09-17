@@ -144,10 +144,41 @@ const usersModule = {
             return;
         }
 
+        const previewChatBtn = document.getElementById('previewUserChatBtn');
+
         // Check if looking up self
         const currentUser = auth.getUser();
         if (currentUser && currentUser.frank_id === frankId) {
-            showToast('This is your own FRANK ID!', 'info');
+            this.searchedUser = currentUser;
+            if (errorContainer) errorContainer.style.display = 'none';
+            if (previewContainer) {
+                previewContainer.style.display = 'block';
+
+                const nameEl = document.getElementById('previewUserName');
+                const handleEl = document.getElementById('previewUserHandle');
+                const idBadgeEl = document.getElementById('previewUserFrankIdBadge');
+                const bioEl = document.getElementById('previewUserBio');
+                const avatarEl = document.getElementById('previewUserAvatar');
+                const initialsEl = document.getElementById('previewUserInitials');
+
+                if (nameEl) nameEl.innerHTML = `${currentUser.full_name || currentUser.username} <span class="self-prefix-badge">You</span>`;
+                if (handleEl) handleEl.textContent = `@${currentUser.username}`;
+                if (idBadgeEl) idBadgeEl.textContent = `ID: ${currentUser.frank_id}`;
+                if (bioEl) bioEl.textContent = 'This is your FRANK account. Send yourself notes, links, and reminders.';
+
+                if (avatarEl && initialsEl) {
+                    if (currentUser.avatar_url) {
+                        avatarEl.innerHTML = `<img src="${currentUser.avatar_url}" alt="${currentUser.full_name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                    } else {
+                        const initials = (currentUser.full_name || currentUser.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                        initialsEl.textContent = initials;
+                    }
+                }
+
+                if (previewChatBtn) {
+                    previewChatBtn.innerHTML = `<span>Message Myself</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+                }
+            }
             return;
         }
 
@@ -184,6 +215,10 @@ const usersModule = {
                         initialsEl.textContent = initials;
                     }
                 }
+
+                if (previewChatBtn) {
+                    previewChatBtn.innerHTML = `<span>Start Chat</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+                }
             }
         } catch (err) {
             this.searchedUser = null;
@@ -202,23 +237,154 @@ const usersModule = {
 
     async startConversationWithUser(user) {
         try {
-            // Deduplicate at database level via dedicated endpoint
-            await api.createPrivateConversation(user.id);
+            const currentUser = auth.getUser();
+            const isSelf = currentUser && (Number(user.id) === Number(currentUser.id) || (user.frank_id && user.frank_id === currentUser.frank_id));
 
             closeModal('newChatModal');
-            showToast(`Conversation started with ${user.full_name}`, 'success');
 
-            // Refresh conversations list in sidebar
-            if (window.appController) {
-                await window.appController.loadConversations(false);
+            if (isSelf) {
+                let selfConv = null;
+                try {
+                    selfConv = await api.createSelfConversation();
+                } catch (e) {
+                    try {
+                        selfConv = await api.getSelfConversation();
+                    } catch (err) {}
+                }
+
+                if (!selfConv) {
+                    selfConv = {
+                        id: currentUser.id,
+                        type: 'self',
+                        name: 'My Notes',
+                        username: currentUser.username,
+                        full_name: currentUser.full_name,
+                        avatar_url: currentUser.avatar_url,
+                        frank_id: currentUser.frank_id,
+                        is_online: true
+                    };
+                }
+
+                if (window.appController) {
+                    const existingIdx = window.appController.conversations.findIndex(c => c.type === 'self');
+                    if (existingIdx !== -1) {
+                        window.appController.conversations[existingIdx] = { ...window.appController.conversations[existingIdx], ...selfConv };
+                    } else {
+                        window.appController.conversations.unshift(selfConv);
+                    }
+                    window.appController.renderConversationList();
+                }
+
+                if (window.chatController) {
+                    window.chatController.openDirectChat(selfConv);
+                }
+
+                if (window.appController) {
+                    window.appController.loadConversations(false);
+                }
+                return;
             }
 
-            // Open chat window
+            // Deduplicate / create at database level via dedicated endpoint
+            const res = await api.createPrivateConversation(
+                user.frank_id ? { frank_id: user.frank_id } : { target_user_id: user.id }
+            );
+
+            const convId = res.id || res.conversation_id;
+            const partnerUser = res.partner || res.other_user || user;
+            const convObj = {
+                id: partnerUser.id,
+                conv_id: convId,
+                type: 'direct',
+                name: partnerUser.full_name || partnerUser.username,
+                username: partnerUser.username,
+                frank_id: partnerUser.frank_id,
+                avatar_url: partnerUser.avatar_url || '',
+                is_online: !!partnerUser.is_online,
+                last_seen: partnerUser.last_seen || null,
+                last_message: res.last_message || null,
+                unread_count: 0
+            };
+
+            // Immediately ensure partner is in sidebar chat list
+            if (window.appController) {
+                const existingIdx = window.appController.conversations.findIndex(c => 
+                    (Number(c.id) === Number(convObj.id) && c.type === 'direct') || (convId && c.conv_id === convId)
+                );
+                if (existingIdx !== -1) {
+                    window.appController.conversations[existingIdx] = {
+                        ...window.appController.conversations[existingIdx],
+                        ...convObj
+                    };
+                } else {
+                    window.appController.conversations.unshift(convObj);
+                }
+                window.appController.renderConversationList();
+            }
+
+            // Open chat window immediately
             if (window.chatController) {
-                window.chatController.openDirectChat(user);
+                window.chatController.openDirectChat(convObj);
+            }
+
+            showToast(`Connected with ${partnerUser.full_name || partnerUser.username}`, 'success');
+
+            // Refresh conversations list in background to ensure database sync
+            if (window.appController) {
+                window.appController.loadConversations(false);
             }
         } catch (err) {
             showToast(err.message || 'Failed to start conversation', 'error');
+        }
+    },
+
+    async openSelfChat() {
+        try {
+            closeModal('newChatModal');
+            const currentUser = auth.getUser();
+            if (!currentUser) return;
+
+            let selfConv = null;
+            try {
+                selfConv = await api.createSelfConversation();
+            } catch (e) {
+                try {
+                    selfConv = await api.getSelfConversation();
+                } catch (err) {}
+            }
+
+            if (!selfConv) {
+                selfConv = {
+                    id: currentUser.id,
+                    type: 'self',
+                    name: 'My Notes',
+                    username: currentUser.username,
+                    full_name: currentUser.full_name,
+                    avatar_url: currentUser.avatar_url,
+                    frank_id: currentUser.frank_id,
+                    is_online: true
+                };
+            }
+
+            if (window.appController) {
+                const existingIdx = window.appController.conversations.findIndex(c => c.type === 'self');
+                if (existingIdx !== -1) {
+                    window.appController.conversations[existingIdx] = { ...window.appController.conversations[existingIdx], ...selfConv };
+                } else {
+                    window.appController.conversations.unshift(selfConv);
+                }
+                window.appController.renderConversationList();
+            }
+
+            if (window.chatController) {
+                window.chatController.openDirectChat(selfConv);
+            }
+
+            if (window.appController) {
+                window.appController.loadConversations(false);
+            }
+        } catch (err) {
+            console.error('Error opening self chat:', err);
         }
     },
 

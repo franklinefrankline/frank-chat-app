@@ -38,6 +38,13 @@ def check_and_migrate_db():
                     conn.execute(text("ALTER TABLE messages ADD COLUMN file_id INTEGER NULL"))
                 if "updated_at" not in columns:
                     conn.execute(text("ALTER TABLE messages ADD COLUMN updated_at TIMESTAMP NULL"))
+                # Clean up any legacy seeded demo users
+                try:
+                    conn.execute(text("DELETE FROM messages WHERE sender_id IN (SELECT id FROM users WHERE email IN ('alex@frank.app', 'sarah@frank.app', 'david@frank.app')) OR recipient_id IN (SELECT id FROM users WHERE email IN ('alex@frank.app', 'sarah@frank.app', 'david@frank.app'))"))
+                    conn.execute(text("DELETE FROM conversations WHERE user_a_id IN (SELECT id FROM users WHERE email IN ('alex@frank.app', 'sarah@frank.app', 'david@frank.app')) OR user_b_id IN (SELECT id FROM users WHERE email IN ('alex@frank.app', 'sarah@frank.app', 'david@frank.app'))"))
+                    conn.execute(text("DELETE FROM users WHERE email IN ('alex@frank.app', 'sarah@frank.app', 'david@frank.app')"))
+                except Exception as del_err:
+                    print(f"Demo cleanup note: {del_err}")
     except Exception as e:
         print(f"Migration note: {e}")
 
@@ -45,76 +52,6 @@ try:
     check_and_migrate_db()
 except Exception as e:
     print(f"Migration init note: {e}")
-
-
-# Seed initial demo users if database is newly initialized
-def seed_demo_users():
-    db = SessionLocal()
-    try:
-        if db.query(models.User).count() == 0:
-            demo_users = [
-                {
-                    "frank_id": "F4M8Q1",
-                    "username": "alex",
-                    "email": "alex@frank.app",
-                    "full_name": "Alex Morgan",
-                    "bio": "Product Designer & Tech Enthusiast 🚀",
-                    "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-                    "is_online": True
-                },
-                {
-                    "frank_id": "K7P2X9",
-                    "username": "sarah",
-                    "email": "sarah@frank.app",
-                    "full_name": "Sarah Connor",
-                    "bio": "Building the future of real-time communication.",
-                    "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-                    "is_online": True
-                },
-                {
-                    "frank_id": "B3N8R5",
-                    "username": "david",
-                    "email": "david@frank.app",
-                    "full_name": "David Chen",
-                    "bio": "Software Architect & Open Source Contributor.",
-                    "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-                    "is_online": False
-                }
-            ]
-
-            created = []
-            for u in demo_users:
-                user = models.User(
-                    frank_id=u["frank_id"],
-                    username=u["username"],
-                    email=u["email"],
-                    full_name=u["full_name"],
-                    bio=u["bio"],
-                    avatar_url=u["avatar_url"],
-                    hashed_password=hash_password("password123"),
-                    is_online=u["is_online"]
-                )
-                db.add(user)
-                created.append(user)
-            db.commit()
-
-            # Seed an introductory welcome message from Alex to Sarah
-            if len(created) >= 2:
-                intro_msg = models.Message(
-                    sender_id=created[0].id,
-                    recipient_id=created[1].id,
-                    content="Welcome to FRANK! Feel free to test real-time messaging, emoji reactions, and reply threads.",
-                    status="read"
-                )
-                db.add(intro_msg)
-                db.commit()
-
-    except Exception as e:
-        print(f"Seed note: {e}")
-    finally:
-        db.close()
-
-seed_demo_users()
 
 
 # Security Headers Middleware

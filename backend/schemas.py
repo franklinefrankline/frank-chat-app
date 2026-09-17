@@ -35,6 +35,21 @@ class UserUpdate(BaseModel):
     avatar_url: Optional[str] = None
 
 
+class UserPublicProfile(BaseModel):
+    id: int
+    username: str
+    full_name: str
+    frank_id: str
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    is_online: bool = False
+    last_seen: Optional[datetime] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class UserResponse(UserBase):
     id: int
     frank_id: Optional[str] = None
@@ -57,13 +72,16 @@ class PrivateConversationCreate(BaseModel):
 
 class ConversationResponse(BaseModel):
     id: int
+    conversation_id: Optional[int] = None
     user_a_id: int
     user_b_id: int
     partner: Optional[UserResponse] = None
+    other_user: Optional[UserResponse] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     last_message: Optional[dict] = None
     unread_count: int = 0
+    is_new: bool = False
 
     class Config:
         from_attributes = True

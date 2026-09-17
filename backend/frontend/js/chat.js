@@ -76,19 +76,39 @@ class ChatController {
         this.clearReplying();
         this.closeMoreMenu();
 
+        const currentUser = auth.getUser();
+        const isSelf = partner.type === 'self' || (currentUser && Number(partner.id) === Number(currentUser.id));
+
         // Update Header UI
         if (this.dom.partnerName) {
-            this.dom.partnerName.textContent = partner.name || partner.full_name || partner.username;
+            if (isSelf) {
+                this.dom.partnerName.innerHTML = `Message Myself <span class="self-prefix-badge" style="margin-left:6px;">You</span>`;
+            } else {
+                this.dom.partnerName.textContent = partner.name || partner.full_name || partner.username;
+            }
         }
         if (this.dom.partnerInitials) {
-            const name = partner.name || partner.full_name || partner.username || '??';
-            this.dom.partnerInitials.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            if (isSelf) {
+                if (partner.avatar_url) {
+                    this.dom.partnerInitials.innerHTML = `<img src="${messagesModule.escapeHTML(partner.avatar_url)}" alt="You" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                } else {
+                    this.dom.partnerInitials.textContent = '📌';
+                }
+            } else {
+                const name = partner.name || partner.full_name || partner.username || '??';
+                this.dom.partnerInitials.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            }
         }
 
-        const isOnline = !!partner.is_online;
+        const isOnline = isSelf ? true : !!partner.is_online;
         if (this.dom.partnerPresence) {
-            this.dom.partnerPresence.textContent = isOnline ? 'Online' : (partner.last_seen ? `Last seen ${messagesModule.formatRelativeTime(partner.last_seen)}` : 'Offline');
-            this.dom.partnerPresence.className = `chat-partner-presence ${isOnline ? 'online' : ''}`;
+            if (isSelf) {
+                this.dom.partnerPresence.textContent = 'Save messages, notes & reminders for yourself';
+                this.dom.partnerPresence.className = 'chat-partner-presence online';
+            } else {
+                this.dom.partnerPresence.textContent = isOnline ? 'Online' : (partner.last_seen ? `Last seen ${messagesModule.formatRelativeTime(partner.last_seen)}` : 'Offline');
+                this.dom.partnerPresence.className = `chat-partner-presence ${isOnline ? 'online' : ''}`;
+            }
         }
         if (this.dom.partnerStatusDot) {
             this.dom.partnerStatusDot.style.display = 'block';
@@ -208,14 +228,40 @@ class ChatController {
         this.dom.messagesContainer.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
 
         try {
-            const messages = await api.getDirectMessages(partnerId);
-            this.activeMessages = (messages || []).sort((a, b) => {
-                const da = messagesModule.parseDate(a.created_at);
-                const db = messagesModule.parseDate(b.created_at);
+            const rawMessages = await api.getDirectMessages(partnerId);
+            const messages = Array.isArray(rawMessages)
+                ? rawMessages
+                : (rawMessages && Array.isArray(rawMessages.messages) ? rawMessages.messages : []);
+
+            this.activeMessages = messages.sort((a, b) => {
+                const da = window.messagesModule ? window.messagesModule.parseDate(a.created_at) : new Date(a.created_at);
+                const db = window.messagesModule ? window.messagesModule.parseDate(b.created_at) : new Date(b.created_at);
                 return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
             });
             this.renderMessagesList(this.activeMessages);
         } catch (err) {
+            console.error('loadDirectMessages error:', err);
+            // Local fallback attempt from local database if network or endpoint had a glitch
+            try {
+                const raw = localStorage.getItem('frank_mock_db_v2');
+                if (raw) {
+                    const mockDb = JSON.parse(raw);
+                    const currentU = auth.getUser();
+                    const cId = currentU ? currentU.id : null;
+                    if (mockDb && Array.isArray(mockDb.messages)) {
+                        const fallbackMsgs = mockDb.messages.filter(m =>
+                            (Number(m.sender_id) === Number(cId) && Number(m.recipient_id) === Number(partnerId)) ||
+                            (Number(m.sender_id) === Number(partnerId) && Number(m.recipient_id) === Number(cId))
+                        );
+                        this.activeMessages = fallbackMsgs;
+                        this.renderMessagesList(this.activeMessages);
+                        return;
+                    }
+                }
+            } catch (fallbackErr) {
+                console.warn('Local messages fallback failed:', fallbackErr);
+            }
+
             this.dom.messagesContainer.innerHTML = `
                 <div class="empty-state" style="margin: auto;">
                     <div style="color: var(--danger); font-size: 14px; font-weight: 600;">Failed to load messages</div>
@@ -230,14 +276,35 @@ class ChatController {
         this.dom.messagesContainer.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
 
         try {
-            const messages = await api.getGroupMessages(groupId);
-            this.activeMessages = (messages || []).sort((a, b) => {
-                const da = messagesModule.parseDate(a.created_at);
-                const db = messagesModule.parseDate(b.created_at);
+            const rawMessages = await api.getGroupMessages(groupId);
+            const messages = Array.isArray(rawMessages)
+                ? rawMessages
+                : (rawMessages && Array.isArray(rawMessages.messages) ? rawMessages.messages : []);
+
+            this.activeMessages = messages.sort((a, b) => {
+                const da = window.messagesModule ? window.messagesModule.parseDate(a.created_at) : new Date(a.created_at);
+                const db = window.messagesModule ? window.messagesModule.parseDate(b.created_at) : new Date(b.created_at);
                 return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
             });
             this.renderMessagesList(this.activeMessages);
         } catch (err) {
+            console.error('loadGroupMessages error:', err);
+            // Local fallback attempt from local database
+            try {
+                const raw = localStorage.getItem('frank_mock_db_v2');
+                if (raw) {
+                    const mockDb = JSON.parse(raw);
+                    if (mockDb && Array.isArray(mockDb.messages)) {
+                        const fallbackMsgs = mockDb.messages.filter(m => Number(m.group_id) === Number(groupId));
+                        this.activeMessages = fallbackMsgs;
+                        this.renderMessagesList(this.activeMessages);
+                        return;
+                    }
+                }
+            } catch (fallbackErr) {
+                console.warn('Local group messages fallback failed:', fallbackErr);
+            }
+
             this.dom.messagesContainer.innerHTML = `
                 <div class="empty-state" style="margin: auto;">
                     <div style="color: var(--danger); font-size: 14px; font-weight: 600;">Failed to load group messages</div>
@@ -254,13 +321,24 @@ class ChatController {
         this.dom.messagesContainer.innerHTML = '';
 
         if (!messages || messages.length === 0) {
-            this.dom.messagesContainer.innerHTML = `
-                <div class="empty-state" style="margin: auto;">
-                    <div style="font-size: 36px; margin-bottom: 8px;">💬</div>
-                    <h3 class="empty-state-title">Start the conversation</h3>
-                    <p class="empty-state-desc">Send a message or share a document below to connect.</p>
-                </div>
-            `;
+            const isSelf = this.activePartner?.type === 'self' || (currentUser && Number(this.activeId) === Number(currentUser.id) && this.activeType === 'direct');
+            if (isSelf) {
+                this.dom.messagesContainer.innerHTML = `
+                    <div class="empty-state" style="margin: auto; text-align: center;">
+                        <div style="font-size: 36px; margin-bottom: 8px;">📌</div>
+                        <h3 class="empty-state-title">Your Personal Notes</h3>
+                        <p class="empty-state-desc" style="max-width: 320px;">Send messages to yourself, keep track of ideas, save links, voice memos, or store documents securely.</p>
+                    </div>
+                `;
+            } else {
+                this.dom.messagesContainer.innerHTML = `
+                    <div class="empty-state" style="margin: auto;">
+                        <div style="font-size: 36px; margin-bottom: 8px;">💬</div>
+                        <h3 class="empty-state-title">Start the conversation</h3>
+                        <p class="empty-state-desc">Send a message or share a document below to connect.</p>
+                    </div>
+                `;
+            }
             return;
         }
 
@@ -328,6 +406,9 @@ class ChatController {
 
                 const currentUser = auth.getUser();
                 this.appendMessage(newMsg, currentUser ? currentUser.id : null);
+                if (typeof window.appController !== 'undefined') {
+                    window.appController.handleIncomingMessageSidebar(newMsg, true);
+                }
             } catch (err) {
                 showToast(err.message || 'Failed to send message', 'error');
             }
@@ -376,10 +457,12 @@ class ChatController {
             }
         });
 
-        this.dom.textarea.addEventListener('input', () => {
-            this.autoResizeTextarea();
-            this.emitTyping();
-            this.updateComposerButtons();
+        ['input', 'keyup', 'change', 'paste'].forEach(evt => {
+            this.dom.textarea.addEventListener(evt, () => {
+                this.autoResizeTextarea();
+                if (evt === 'input') this.emitTyping();
+                this.updateComposerButtons();
+            });
         });
 
         // Mobile soft keyboard handling
@@ -622,6 +705,8 @@ class ChatController {
                 this.dom.textarea.value += emoji;
                 this.dom.textarea.focus();
                 this.autoResizeTextarea();
+                this.dom.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                this.updateComposerButtons();
             }
         });
 
@@ -650,6 +735,8 @@ class ChatController {
                         window.documentsController.selectDocument('doc');
                     } else if (action === 'photo') {
                         window.documentsController.selectDocument('photo');
+                    } else if (action === 'video') {
+                        window.documentsController.selectDocument('video');
                     } else {
                         window.documentsController.selectDocument('all');
                     }
@@ -885,10 +972,28 @@ class ChatController {
         const membersSec = document.getElementById('drawerMembersSection');
         const leaveBtn = document.getElementById('drawerLeaveGroupBtn');
 
-        const name = target.name || target.full_name || target.username || 'Conversation';
-        if (nameEl) nameEl.textContent = name;
+        const currentUser = auth.getUser();
+        const isSelf = !isGroup && (target.type === 'self' || (currentUser && Number(target.id) === Number(currentUser.id)));
+
+        const name = isSelf ? 'Message Myself' : (target.name || target.full_name || target.username || 'Conversation');
+        if (nameEl) {
+            if (isSelf) {
+                nameEl.innerHTML = `Message Myself <span class="self-prefix-badge" style="margin-left:6px;">You</span>`;
+            } else {
+                nameEl.textContent = name;
+            }
+        }
         if (initialsEl) {
-            initialsEl.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            if (isSelf) {
+                if (target.avatar_url || currentUser?.avatar_url) {
+                    const av = target.avatar_url || currentUser.avatar_url;
+                    initialsEl.innerHTML = `<img src="${messagesModule.escapeHTML(av)}" alt="You" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                } else {
+                    initialsEl.textContent = '📌';
+                }
+            } else {
+                initialsEl.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            }
         }
 
         if (isGroup) {
@@ -899,6 +1004,13 @@ class ChatController {
             if (leaveBtn) leaveBtn.style.display = 'block';
 
             this.loadGroupMembersList(target.id);
+        } else if (isSelf) {
+            const fid = target.frank_id || (currentUser ? currentUser.frank_id : '');
+            if (subtitleEl) subtitleEl.textContent = fid ? `Personal Notes • ID: ${fid}` : 'Personal Notes & Cloud Storage';
+            if (bioEl) bioEl.textContent = 'Save private notes, to-dos, voice memos, links, and documents accessible only to you.';
+            if (tabsBar) tabsBar.style.display = 'flex';
+            if (membersSec) membersSec.style.display = 'none';
+            if (leaveBtn) leaveBtn.style.display = 'none';
         } else {
             if (subtitleEl) subtitleEl.textContent = target.frank_id ? `@${target.username || 'user'} • ID: ${target.frank_id}` : `@${target.username || 'user'}`;
             let bio = target.bio || 'Productive conversations powered by FRANK.';
@@ -1206,6 +1318,34 @@ class ChatController {
                     check.className = 'message-status-check read';
                     check.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 6 7 17 2 12"></polyline><polyline points="22 10 13 19 11 17"></polyline></svg>`;
                 }
+            }
+        });
+
+        // 6. Real-time New Conversation / Connection Event
+        window.wsClient.on('conversation_created', (data) => {
+            const conv = data.conversation;
+            if (conv && window.appController) {
+                const partnerId = Number(conv.id);
+                const convId = conv.conv_id;
+                const existingIdx = window.appController.conversations.findIndex(c => 
+                    (Number(c.id) === partnerId && c.type === 'direct') || (convId && c.conv_id === convId)
+                );
+                if (existingIdx !== -1) {
+                    window.appController.conversations[existingIdx] = {
+                        ...window.appController.conversations[existingIdx],
+                        ...conv
+                    };
+                } else {
+                    // Prepend new connection to the top of direct conversations
+                    window.appController.conversations.unshift(conv);
+                }
+                window.appController.renderConversationList();
+
+                if (data.notification && typeof showToast === 'function') {
+                    showToast(data.notification.body || `${conv.name} connected with you on FRANK.`, 'info');
+                }
+            } else if (window.appController) {
+                window.appController.loadConversations(false);
             }
         });
     }

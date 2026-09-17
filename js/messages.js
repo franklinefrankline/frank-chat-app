@@ -328,29 +328,27 @@ const messagesModule = {
             <div class="message-row ${isSent ? 'sent' : 'received'} ${isDocument ? 'has-document' : ''}" id="msgRow-${msg.id}" data-message-id="${msg.id}">
                 <!-- Message Actions Toolbar -->
                 <div class="message-actions-toolbar" role="toolbar" aria-label="Message actions">
-                    <button type="button" class="action-tool-btn msg-action-reply" title="Reply" aria-label="Reply" data-msg-id="${msg.id}" data-sender="${this.escapeHTML(senderName)}" data-content="${this.escapeHTML(replySnippetText)}">
+                    <button type="button" class="action-tool-btn msg-action-reply" title="Reply" aria-label="Reply to message" data-msg-id="${msg.id}" data-sender="${this.escapeHTML(senderName)}" data-content="${this.escapeHTML(replySnippetText)}">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
                     </button>
-                    <button type="button" class="action-tool-btn msg-action-react" title="React with heart" aria-label="React with heart" data-msg-id="${msg.id}" data-emoji="❤️">❤️</button>
-                    <button type="button" class="action-tool-btn msg-action-react" title="React with like" aria-label="React with like" data-msg-id="${msg.id}" data-emoji="👍">👍</button>
-                    <button type="button" class="action-tool-btn msg-action-react" title="React with laugh" aria-label="React with laugh" data-msg-id="${msg.id}" data-emoji="😂">😂</button>
-                    <button type="button" class="action-tool-btn msg-action-react" title="React with fire" aria-label="React with fire" data-msg-id="${msg.id}" data-emoji="🔥">🔥</button>
-                    <button type="button" class="action-tool-btn msg-action-copy" title="Copy message" aria-label="Copy message" data-text="${this.escapeHTML(plainUserText)}">
+                    <button type="button" class="action-tool-btn msg-action-react" title="Heart" aria-label="React with heart" data-msg-id="${msg.id}" data-emoji="❤️">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    </button>
+                    <button type="button" class="action-tool-btn msg-action-react" title="Like" aria-label="React with like" data-msg-id="${msg.id}" data-emoji="👍">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                    </button>
+                    <button type="button" class="action-tool-btn msg-action-react" title="Laugh" aria-label="React with laugh" data-msg-id="${msg.id}" data-emoji="😂">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                    </button>
+                    <button type="button" class="action-tool-btn msg-action-react" title="Fire" aria-label="React with fire" data-msg-id="${msg.id}" data-emoji="🔥">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+                    </button>
+                    <button type="button" class="action-tool-btn msg-action-copy" title="Copy message text" aria-label="Copy message text" data-text="${this.escapeHTML(plainUserText)}">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                     </button>
                     ${isMedia && docFileId ? `
-                        <button type="button" class="action-tool-btn msg-action-download" title="Download" aria-label="Download attachment" data-file-id="${docFileId}" data-filename="${this.escapeHTML(docFilename)}">
+                        <button type="button" class="action-tool-btn msg-action-download" title="Download attachment" aria-label="Download attachment" data-file-id="${docFileId}" data-filename="${this.escapeHTML(docFilename)}">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        </button>
-                    ` : ''}
-                    ${isSent && !isMedia ? `
-                        <button type="button" class="action-tool-btn msg-action-edit" title="Edit message" aria-label="Edit message" data-msg-id="${msg.id}">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                        </button>
-                    ` : ''}
-                    ${isSent ? `
-                        <button type="button" class="action-tool-btn msg-action-delete" title="Delete message" aria-label="Delete message" data-msg-id="${msg.id}" style="color:var(--danger);">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
                     ` : ''}
                 </div>

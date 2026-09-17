@@ -52,7 +52,10 @@ const profileModule = {
             if (nameEl) nameEl.textContent = user.full_name;
             if (usernameEl) usernameEl.textContent = `@${user.username}`;
             if (bioEl) bioEl.textContent = bioText;
-            if (emailEl) emailEl.textContent = user.email;
+            if (emailEl) {
+                emailEl.textContent = user.email || 'user@example.com';
+                emailEl.title = user.email || '';
+            }
             if (joinedEl && user.created_at) {
                 const parsedDate = window.messagesModule ? window.messagesModule.parseDate(user.created_at) : new Date(user.created_at);
                 joinedEl.textContent = parsedDate ? parsedDate.toLocaleDateString([], { month: 'long', year: 'numeric' }) : '';

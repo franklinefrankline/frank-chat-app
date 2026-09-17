@@ -109,8 +109,30 @@ class AppController {
         if (!listContainer) return;
 
         try {
-            const conversations = await api.getConversations();
-            this.conversations = conversations || [];
+            let conversations = await api.getConversations();
+            conversations = conversations || [];
+
+            // Ensure self-conversation exists in the list
+            const hasSelf = conversations.some(c => c.type === 'self' || (this.currentUser && Number(c.id) === Number(this.currentUser.id) && c.type !== 'group'));
+            if (!hasSelf && this.currentUser) {
+                try {
+                    const selfConv = await api.getSelfConversation();
+                    if (selfConv) {
+                        conversations.unshift(selfConv);
+                    }
+                } catch (e) {
+                    console.warn('Self-conversation fallback:', e);
+                }
+            }
+
+            // Always ensure self-conversation is at the very top
+            const selfIndex = conversations.findIndex(c => c.type === 'self' || (this.currentUser && Number(c.id) === Number(this.currentUser.id) && c.type !== 'group'));
+            if (selfIndex > 0) {
+                const [selfItem] = conversations.splice(selfIndex, 1);
+                conversations.unshift(selfItem);
+            }
+
+            this.conversations = conversations;
             this.renderConversationList();
 
             // Auto-select first conversation if on desktop and none selected
@@ -156,6 +178,23 @@ class AppController {
             return true;
         });
 
+        if (this.conversations.length === 0) {
+            listContainer.innerHTML = `
+                <div class="empty-state" style="padding: var(--space-6) var(--space-4); text-align: center;">
+                    <div class="empty-state-icon" style="width:48px; height:48px; margin: 0 auto var(--space-3);">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    </div>
+                    <div style="font-size:15px; font-weight:700; color:var(--text); margin-bottom:4px;">No conversations yet</div>
+                    <p class="empty-state-desc" style="font-size:12px; margin-bottom:16px;">Connect with someone using their FRANK ID or write notes to yourself.</p>
+                    <div style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:200px; margin:0 auto;">
+                        <button type="button" class="btn btn-primary btn-sm" id="emptyStateNewChatBtn" onclick="if(window.usersModule){usersModule.resetModal();openModal('newChatModal');}">+ New Conversation</button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="emptyStateSelfChatBtn" onclick="if(window.usersModule){usersModule.openSelfChat();}">Message Myself</button>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
         if (filtered.length === 0) {
             listContainer.innerHTML = `
                 <div class="empty-state">
@@ -163,7 +202,7 @@ class AppController {
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </div>
                     <div style="font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px;">No conversations found</div>
-                    <p class="empty-state-desc" style="font-size:12px;">Start a new chat using the button above.</p>
+                    <p class="empty-state-desc" style="font-size:12px;">Try adjusting your filter or search query.</p>
                 </div>
             `;
             return;
@@ -172,11 +211,14 @@ class AppController {
         listContainer.innerHTML = '';
         filtered.forEach(conv => {
             const isGroup = conv.type === 'group';
-            const initials = (conv.name || conv.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-            const isOnline = !!conv.is_online;
+            const isSelf = conv.type === 'self' || (this.currentUser && Number(conv.id) === Number(this.currentUser.id) && conv.type !== 'group');
+            const initials = isSelf
+                ? '📌'
+                : (conv.name || conv.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            const isOnline = isSelf ? true : !!conv.is_online;
             const timeStr = conv.last_message ? messagesModule.formatRelativeTime(conv.last_message.created_at) : '';
             
-            let previewText = 'No messages yet';
+            let previewText = isSelf ? 'Message yourself, notes & reminders' : 'No messages yet';
             if (conv.last_message) {
                 if (conv.last_message.message_type === 'audio') {
                     previewText = '🎤 Voice message';
@@ -190,27 +232,65 @@ class AppController {
             }
             previewText = messagesModule.escapeHTML(previewText);
 
-            const isActive = window.chatController && Number(window.chatController.activeId) === Number(conv.id) && window.chatController.activeType === conv.type;
+            const isActive = window.chatController && Number(window.chatController.activeId) === Number(conv.id) && (isSelf ? (window.chatController.activePartner?.type === 'self' || window.chatController.activeType === 'direct') : window.chatController.activeType === conv.type);
             if (isActive) {
                 conv.unread_count = 0;
             }
 
             const card = document.createElement('div');
-            card.className = `conversation-card ${isActive ? 'active' : ''} ${isGroup ? 'is-group' : ''}`;
+            card.className = `conversation-card ${isActive ? 'active' : ''} ${isGroup ? 'is-group' : ''} ${isSelf ? 'is-self' : ''}`;
             card.dataset.id = conv.id;
-            card.dataset.type = conv.type || 'direct';
+            card.dataset.type = isSelf ? 'self' : (conv.type || 'direct');
+
+            // Avatar markup
+            let avatarHtml = '';
+            if (isSelf) {
+                if (conv.avatar_url) {
+                    avatarHtml = `
+                        <div class="avatar avatar-md self-avatar">
+                            <img src="${messagesModule.escapeHTML(conv.avatar_url)}" alt="Me" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                            <span class="avatar-status self-badge-icon" title="You">📌</span>
+                        </div>
+                    `;
+                } else {
+                    avatarHtml = `
+                        <div class="avatar avatar-md self-avatar" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #fff; font-size: 16px;">
+                            <span>📌</span>
+                            <span class="avatar-status online" title="You"></span>
+                        </div>
+                    `;
+                }
+            } else if (isGroup) {
+                avatarHtml = `
+                    <div class="avatar avatar-md group-avatar">
+                        <span>${initials}</span>
+                        <span class="group-indicator-dot">👥</span>
+                    </div>
+                `;
+            } else {
+                avatarHtml = `
+                    <div class="avatar avatar-md">
+                        <span>${initials}</span>
+                        <span class="avatar-status ${isOnline ? 'online' : 'offline'}"></span>
+                    </div>
+                `;
+            }
+
+            // Name markup
+            let nameHtml = '';
+            if (isSelf) {
+                nameHtml = `<span class="conversation-name">Message Myself <span class="self-prefix-badge">You</span></span>`;
+            } else if (isGroup) {
+                nameHtml = `<span class="conversation-name"><span class="group-prefix-badge">Group</span> ${messagesModule.escapeHTML(conv.name)} ${conv.unread_count > 0 ? '<span class="unread-dot" title="Unread messages">🔵</span>' : ''}</span>`;
+            } else {
+                nameHtml = `<span class="conversation-name">${messagesModule.escapeHTML(conv.name || conv.full_name || conv.username)} ${conv.unread_count > 0 ? '<span class="unread-dot" title="Unread messages">🔵</span>' : ''}</span>`;
+            }
 
             card.innerHTML = `
-                <div class="avatar avatar-md ${isGroup ? 'group-avatar' : ''}">
-                    <span>${initials}</span>
-                    ${isGroup ? '<span class="group-indicator-dot">👥</span>' : `<span class="avatar-status ${isOnline ? 'online' : 'offline'}"></span>`}
-                </div>
+                ${avatarHtml}
                 <div class="conversation-details">
                     <div class="conversation-row">
-                        <span class="conversation-name">
-                            ${isGroup ? '<span class="group-prefix-badge">Group</span> ' : ''}${messagesModule.escapeHTML(conv.name)}
-                            ${conv.unread_count > 0 ? '<span class="unread-dot" title="Unread messages">🔵</span>' : ''}
-                        </span>
+                        ${nameHtml}
                         <span class="conversation-time">${timeStr}</span>
                     </div>
                     <div class="conversation-row">
@@ -276,12 +356,15 @@ class AppController {
         const currentUserId = currentUser ? Number(currentUser.id) : null;
 
         const isGroup = !!groupId;
-        const partnerId = senderId === currentUserId ? recipientId : senderId;
+        const isSelf = (senderId === currentUserId && recipientId === currentUserId);
+        const partnerId = isSelf ? currentUserId : (senderId === currentUserId ? recipientId : senderId);
         const targetId = isGroup ? groupId : partnerId;
 
-        const index = this.conversations.findIndex(c => 
-            Number(c.id) === Number(targetId) && (c.type === 'group') === isGroup
-        );
+        const index = this.conversations.findIndex(c => {
+            if (isGroup) return c.type === 'group' && Number(c.id) === Number(targetId);
+            if (isSelf) return c.type === 'self' || (Number(c.id) === Number(currentUserId) && c.type !== 'group');
+            return c.type !== 'group' && c.type !== 'self' && Number(c.id) === Number(targetId);
+        });
 
         if (index !== -1) {
             const conv = this.conversations[index];
@@ -295,19 +378,60 @@ class AppController {
                 status: msg.status || 'sent'
             };
 
-            // Increment unread count only if user is not actively viewing this conversation
+            // Increment unread count only if user is not actively viewing this conversation (never for self)
             if (!isActivelyViewing && senderId !== currentUserId) {
                 conv.unread_count = (conv.unread_count || 0) + 1;
             }
 
-            // Move updated conversation to top of list
+            // Keep self-chat pinned at index 0, or if self-chat is at 0, place updated chat at index 1
             this.conversations.splice(index, 1);
-            this.conversations.unshift(conv);
+            if (conv.type === 'self' || isSelf) {
+                this.conversations.unshift(conv);
+            } else {
+                const selfIdx = this.conversations.findIndex(c => c.type === 'self' || (Number(c.id) === Number(currentUserId) && c.type !== 'group'));
+                if (selfIdx === 0) {
+                    this.conversations.splice(1, 0, conv);
+                } else {
+                    this.conversations.unshift(conv);
+                }
+            }
 
             this.renderConversationList();
             this.updateTotalUnread();
         } else {
-            // New conversation partner not yet in list: fetch fresh from server
+            // New conversation partner not yet in list: create card immediately and sync from server
+            const partnerUser = msg.sender || {};
+            const newConv = {
+                id: targetId,
+                conv_id: msg.conversation_id,
+                type: isGroup ? 'group' : 'direct',
+                name: partnerUser.full_name || partnerUser.username || (isGroup ? 'Group' : 'User'),
+                username: partnerUser.username || '',
+                frank_id: partnerUser.frank_id || '',
+                avatar_url: partnerUser.avatar_url || '',
+                is_online: true,
+                last_seen: null,
+                last_message: {
+                    id: msg.id,
+                    content: msg.content,
+                    message_type: msg.message_type || 'text',
+                    sender_id: msg.sender_id,
+                    sender_name: msg.sender_name || (msg.sender ? msg.sender.full_name : null),
+                    created_at: msg.created_at,
+                    status: msg.status || 'sent'
+                },
+                unread_count: (!isActivelyViewing && senderId !== currentUserId) ? 1 : 0
+            };
+
+            const selfIdx = this.conversations.findIndex(c => c.type === 'self' || (Number(c.id) === Number(currentUserId) && c.type !== 'group'));
+            if (selfIdx === 0) {
+                this.conversations.splice(1, 0, newConv);
+            } else {
+                this.conversations.unshift(newConv);
+            }
+            this.renderConversationList();
+            this.updateTotalUnread();
+
             this.loadConversations(false);
         }
     }

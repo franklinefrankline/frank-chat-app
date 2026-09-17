@@ -93,9 +93,14 @@ def check_and_migrate_db():
             with engine.begin() as conn:
                 if "frank_id" not in user_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN frank_id VARCHAR(6) NULL"))
+                # Normalize all existing emails to lowercase trimmed
+                try:
+                    conn.execute(text("UPDATE users SET email = LOWER(TRIM(email)) WHERE email IS NOT NULL AND email != LOWER(TRIM(email))"))
+                except Exception as e:
+                    print(f"Email normalization note: {e}")
                 conn.execute(text("UPDATE users SET bio = REPLACE(REPLACE(bio, 'ChatApp', 'FRANK'), 'QENVO', 'FRANK') WHERE bio LIKE '%ChatApp%' OR bio LIKE '%QENVO%'"))
 
-            # Backfill any users missing frank_id
+            # Backfill any users missing frank_id (NEVER replace existing frank_id)
             db_session = SessionLocal()
             try:
                 users_missing_fid = db_session.execute(text("SELECT id, username FROM users WHERE frank_id IS NULL OR frank_id = ''")).fetchall()
@@ -112,10 +117,14 @@ def check_and_migrate_db():
             finally:
                 db_session.close()
 
-            # Create unique index on users(frank_id) if not exists
+            # Create unique indexes on users(frank_id) and users(email) if not exists
             with engine.begin() as conn:
                 try:
                     conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_user_frank_id ON users (frank_id)"))
+                except Exception:
+                    pass
+                try:
+                    conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_user_email ON users (email)"))
                 except Exception:
                     pass
 

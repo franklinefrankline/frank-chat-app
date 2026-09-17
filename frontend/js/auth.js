@@ -169,7 +169,7 @@ if (registerForm) {
 
         const full_name = fullNameInput.value.trim();
         const username = usernameInput.value.trim();
-        const email = emailInput.value.trim();
+        const email = emailInput.value.trim().toLowerCase();
         const password = passwordInput.value;
         const confirmPass = confirmInput.value;
         const terms = termsInput.checked;

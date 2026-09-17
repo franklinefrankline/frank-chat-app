@@ -35,8 +35,10 @@ class UserUpdate(BaseModel):
     avatar_url: Optional[str] = None
 
 
-class UserResponse(UserBase):
+class UserPublicProfile(BaseModel):
     id: int
+    username: str
+    full_name: str
     frank_id: str
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
@@ -48,14 +50,14 @@ class UserResponse(UserBase):
         from_attributes = True
 
 
-class UserPreviewResponse(BaseModel):
+class UserResponse(UserBase):
     id: int
-    username: str
-    full_name: str
-    frank_id: str
+    frank_id: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     is_online: bool = False
+    last_seen: Optional[datetime] = None
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -63,18 +65,23 @@ class UserPreviewResponse(BaseModel):
 
 # ---------------- CONVERSATION SCHEMAS ----------------
 
-class ConversationCreate(BaseModel):
+class PrivateConversationCreate(BaseModel):
     target_user_id: Optional[int] = None
     frank_id: Optional[str] = None
 
 
 class ConversationResponse(BaseModel):
     id: int
+    conversation_id: Optional[int] = None
     user_a_id: int
     user_b_id: int
-    created_at: datetime
-    updated_at: datetime
+    partner: Optional[UserResponse] = None
     other_user: Optional[UserResponse] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    last_message: Optional[dict] = None
+    unread_count: int = 0
+    is_new: bool = False
 
     class Config:
         from_attributes = True
@@ -104,7 +111,6 @@ class DocumentResponse(BaseModel):
     file_size: int
     mime_type: str
     file_type: str
-    duration: Optional[float] = None
     created_at: datetime
 
     class Config:
@@ -144,6 +150,7 @@ class MessageUpdate(BaseModel):
 
 class MessageResponse(BaseModel):
     id: int
+    conversation_id: Optional[int] = None
     sender_id: int
     recipient_id: Optional[int] = None
     group_id: Optional[int] = None
@@ -172,7 +179,7 @@ class GroupCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = ""
     avatar_url: Optional[str] = ""
-    privacy: Optional[str] = "private"  # private by default
+    is_private: Optional[bool] = True
     member_ids: List[int] = []
 
 
@@ -180,21 +187,21 @@ class GroupUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     avatar_url: Optional[str] = None
-    privacy: Optional[str] = None
+    is_private: Optional[bool] = None
 
 
 class GroupMemberAdd(BaseModel):
     user_ids: List[int] = []
 
 
-class GroupRoleUpdate(BaseModel):
+class GroupMemberRoleUpdate(BaseModel):
     role: str = Field(..., pattern="^(admin|member)$")
 
 
 class GroupMemberResponse(BaseModel):
     id: int
     user_id: int
-    role: str
+    role: str  # owner, admin, member
     joined_at: datetime
     user: UserResponse
 
@@ -207,16 +214,16 @@ class GroupResponse(BaseModel):
     name: str
     description: Optional[str] = None
     avatar_url: Optional[str] = None
-    privacy: str = "private"
+    is_private: bool = True
     created_by: int
     created_at: datetime
     members_count: int = 0
+    current_user_role: Optional[str] = None
     last_message: Optional[dict] = None
     unread_count: int = 0
 
     class Config:
         from_attributes = True
-
 
 
 # ---------------- PASSWORD RESET SCHEMAS ----------------

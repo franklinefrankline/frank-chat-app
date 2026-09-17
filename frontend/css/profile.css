@@ -110,8 +110,8 @@
 
 .profile-meta-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: var(--space-5) var(--space-6);
     padding: var(--space-6) 0;
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
@@ -121,18 +121,32 @@
 .meta-box {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
+    min-width: 0;
 }
 
 .meta-label {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
 }
 
 .meta-value {
     font-size: 14px;
     font-weight: 600;
     color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+@media (max-width: 680px) {
+    .profile-meta-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
 }

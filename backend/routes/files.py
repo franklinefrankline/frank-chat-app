@@ -147,9 +147,14 @@ def verify_document_access(doc: models.Document, user: models.User, db: Session)
         if membership:
             return True
 
-    # If direct conversation
+    # If direct conversation (partner_id or conversation_id)
     if doc.conversation_id == user.id:
         return True
+
+    if doc.conversation_id:
+        conv = db.query(models.Conversation).filter(models.Conversation.id == doc.conversation_id).first()
+        if conv and (conv.user_a_id == user.id or conv.user_b_id == user.id):
+            return True
 
     # If linked to a message, check message sender/recipient
     if doc.message_id:
@@ -163,6 +168,10 @@ def verify_document_access(doc: models.Document, user: models.User, db: Session)
                     models.GroupMember.user_id == user.id
                 ).first()
                 if membership:
+                    return True
+            if msg.conversation_id:
+                conv = db.query(models.Conversation).filter(models.Conversation.id == msg.conversation_id).first()
+                if conv and (conv.user_a_id == user.id or conv.user_b_id == user.id):
                     return True
 
     return False

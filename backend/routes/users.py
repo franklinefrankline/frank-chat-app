@@ -28,6 +28,11 @@ def get_users(
     return query.order_by(models.User.full_name).limit(50).all()
 
 
+@router.get("/me", response_model=schemas.UserResponse)
+def get_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
+
+
 @router.get("/profile", response_model=schemas.UserResponse)
 def get_profile(current_user: models.User = Depends(get_current_user)):
     return current_user
@@ -155,7 +160,7 @@ def get_conversations(
     return conv_list
 
 
-@router.get("/frank/{frank_id}", response_model=schemas.UserResponse)
+@router.get("/frank/{frank_id}", response_model=schemas.UserPublicProfile)
 def get_user_by_frank_id(
     frank_id: str,
     current_user: models.User = Depends(get_current_user),
