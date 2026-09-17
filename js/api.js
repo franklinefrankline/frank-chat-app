@@ -13,6 +13,28 @@ const API_BASE = (window.FRANK_CONFIG && window.FRANK_CONFIG.API_BASE)
 // ─── Resilient Offline / Demo Database ───────────────────────────────────────
 const MOCK_STORAGE_KEY = 'frank_offline_db';
 
+/**
+ * Deterministic 6-char FRANK ID from a username/email.
+ * The same input always produces the same ID on every browser/device.
+ */
+function generateFrankId(username) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+    const str = (username || 'user').toLowerCase().trim();
+    // djb2 hash
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
+        hash |= 0; // force 32-bit int
+    }
+    let n = Math.abs(hash);
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+        result += chars[n % chars.length];
+        n = Math.floor(n / chars.length);
+    }
+    return result;
+}
+
 function getMockDb() {
     let db = null;
     try {
@@ -25,7 +47,7 @@ function getMockDb() {
                 {
                     id: 1,
                     username: 'alex',
-                    frank_id: 'ALEX01',
+                    frank_id: generateFrankId('alex'),
                     email: 'alex@frank.app',
                     full_name: 'Alex Morgan',
                     bio: 'Product Designer & Tech Enthusiast 🚀',
@@ -36,7 +58,7 @@ function getMockDb() {
                 {
                     id: 2,
                     username: 'sarah',
-                    frank_id: 'SARA02',
+                    frank_id: generateFrankId('sarah'),
                     email: 'sarah@frank.app',
                     full_name: 'Sarah Connor',
                     bio: 'Building the future of real-time communication.',
@@ -47,7 +69,7 @@ function getMockDb() {
                 {
                     id: 3,
                     username: 'david',
-                    frank_id: 'DAVI03',
+                    frank_id: generateFrankId('david'),
                     email: 'david@frank.app',
                     full_name: 'David Chen',
                     bio: 'Software Architect & Open Source Contributor.',
@@ -127,19 +149,25 @@ function handleMockRequest(endpoint, options = {}) {
         const username = (body.username || '').trim().toLowerCase();
         let user = db.users.find(u => u.username.toLowerCase() === username || u.email.toLowerCase() === username);
         if (!user) {
-            // Create user on first login (demo mode)
+            // Create user on first login — use deterministic frank_id so it's the same on every device
+            const uname = body.username || 'user';
+            const frankId = generateFrankId(username); // same username → same ID everywhere
             user = {
                 id: db.users.length + 1,
-                username: body.username || 'user',
-                frank_id: (body.username || 'user').toUpperCase().slice(0, 4) + String(db.users.length + 1).padStart(2, '0'),
-                email: `${body.username || 'user'}@frank.app`,
-                full_name: (body.username ? body.username.charAt(0).toUpperCase() + body.username.slice(1) : 'FRANK User'),
+                username: uname,
+                frank_id: frankId,
+                email: username.includes('@') ? username : `${uname}@frank.app`,
+                full_name: (uname.charAt(0).toUpperCase() + uname.slice(1)),
                 bio: 'Hey there! I am using FRANK.',
                 avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
                 is_online: true,
                 created_at: new Date().toISOString()
             };
             db.users.push(user);
+            saveMockDb(db);
+        } else if (!user.frank_id) {
+            // Existing user without a frank_id — assign deterministically and save
+            user.frank_id = generateFrankId(user.username || user.email);
             saveMockDb(db);
         }
         return {
@@ -161,7 +189,7 @@ function handleMockRequest(endpoint, options = {}) {
         user = {
             id: db.users.length + 1,
             username: body.username,
-            frank_id: (body.username || 'user').toUpperCase().slice(0, 4) + String(db.users.length + 1).padStart(2, '0'),
+            frank_id: generateFrankId(username), // deterministic — same on every device
             email: body.email || `${body.username}@frank.app`,
             full_name: body.full_name || body.username,
             bio: 'Hey there! I am using FRANK.',
