@@ -14,19 +14,21 @@ logger = logging.getLogger("chatapp.websocket")
 
 class ConnectionManager:
     def __init__(self):
-        # Maps user_id -> List[WebSocket]
+        # Maps user_id (int) -> List[WebSocket]
         self.active_connections: Dict[int, List[WebSocket]] = {}
 
     async def connect(self, user_id: int, websocket: WebSocket):
         await websocket.accept()
-        if user_id not in self.active_connections:
-            self.active_connections[user_id] = []
-        self.active_connections[user_id].append(websocket)
+        uid = int(user_id)
+        if uid not in self.active_connections:
+            self.active_connections[uid] = []
+        if websocket not in self.active_connections[uid]:
+            self.active_connections[uid].append(websocket)
 
         # Update user status to online in database
         db = SessionLocal()
         try:
-            user = db.query(models.User).filter(models.User.id == user_id).first()
+            user = db.query(models.User).filter(models.User.id == uid).first()
             if user:
                 user.is_online = True
                 user.last_seen = datetime.now(timezone.utc)
@@ -37,22 +39,23 @@ class ConnectionManager:
         # Broadcast presence change to other users
         await self.broadcast({
             "type": "presence",
-            "user_id": user_id,
+            "user_id": uid,
             "is_online": True,
             "last_seen": schemas.format_iso_utc(datetime.now(timezone.utc))
-        }, exclude_user_id=user_id)
+        }, exclude_user_id=uid)
 
     async def disconnect(self, user_id: int, websocket: WebSocket):
-        if user_id in self.active_connections:
-            if websocket in self.active_connections[user_id]:
-                self.active_connections[user_id].remove(websocket)
-            if not self.active_connections[user_id]:
-                del self.active_connections[user_id]
+        uid = int(user_id)
+        if uid in self.active_connections:
+            if websocket in self.active_connections[uid]:
+                self.active_connections[uid].remove(websocket)
+            if not self.active_connections[uid]:
+                del self.active_connections[uid]
 
-                # Mark user as offline in database
+                # Mark user as offline in database only when no active connections remain
                 db = SessionLocal()
                 try:
-                    user = db.query(models.User).filter(models.User.id == user_id).first()
+                    user = db.query(models.User).filter(models.User.id == uid).first()
                     if user:
                         user.is_online = False
                         user.last_seen = datetime.now(timezone.utc)
@@ -63,28 +66,34 @@ class ConnectionManager:
                 # Broadcast offline status
                 await self.broadcast({
                     "type": "presence",
-                    "user_id": user_id,
+                    "user_id": uid,
                     "is_online": False,
                     "last_seen": schemas.format_iso_utc(datetime.now(timezone.utc))
-                }, exclude_user_id=user_id)
+                }, exclude_user_id=uid)
 
     async def send_to_user(self, user_id: int, data: dict):
-        if user_id in self.active_connections:
+        if user_id is None:
+            return
+        uid = int(user_id)
+        if uid in self.active_connections:
             message_text = json.dumps(data)
             dead_sockets = []
-            for ws in self.active_connections[user_id]:
+            for ws in list(self.active_connections[uid]):
                 try:
                     await ws.send_text(message_text)
                 except Exception:
                     dead_sockets.append(ws)
             for ws in dead_sockets:
-                if ws in self.active_connections[user_id]:
-                    self.active_connections[user_id].remove(ws)
+                if uid in self.active_connections and ws in self.active_connections[uid]:
+                    self.active_connections[uid].remove(ws)
+            if uid in self.active_connections and not self.active_connections[uid]:
+                del self.active_connections[uid]
 
     async def broadcast(self, data: dict, exclude_user_id: int = None):
         message_text = json.dumps(data)
+        ex_uid = int(exclude_user_id) if exclude_user_id is not None else None
         for uid, sockets in list(self.active_connections.items()):
-            if exclude_user_id is not None and uid == exclude_user_id:
+            if ex_uid is not None and uid == ex_uid:
                 continue
             for ws in list(sockets):
                 try:
@@ -93,21 +102,38 @@ class ConnectionManager:
                     pass
 
     async def broadcast_to_group(self, group_id: int, data: dict, sender_id: int = None):
+        if not group_id:
+            return
+        gid = int(group_id)
         db = SessionLocal()
         try:
-            members = db.query(models.GroupMember).filter(models.GroupMember.group_id == group_id).all()
+            members = db.query(models.GroupMember).filter(models.GroupMember.group_id == gid).all()
             member_ids = [m.user_id for m in members]
         finally:
             db.close()
 
         message_text = json.dumps(data)
         for member_id in member_ids:
-            if member_id in self.active_connections:
-                for ws in self.active_connections[member_id]:
+            mid = int(member_id)
+            if mid in self.active_connections:
+                for ws in list(self.active_connections[mid]):
                     try:
                         await ws.send_text(message_text)
                     except Exception:
                         pass
+
+    async def broadcast_message_event(self, msg_payload: dict, sender_id: int, recipient_id: int = None, group_id: int = None):
+        s_id = int(sender_id) if sender_id is not None else None
+        if s_id is not None:
+            await self.send_to_user(s_id, msg_payload)
+
+        if group_id is not None:
+            await self.broadcast_to_group(int(group_id), msg_payload, sender_id=s_id)
+        elif recipient_id is not None:
+            r_id = int(recipient_id)
+            if r_id in self.active_connections:
+                msg_payload["message"]["status"] = "delivered"
+            await self.send_to_user(r_id, msg_payload)
 
 
 manager = ConnectionManager()
@@ -139,8 +165,21 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
 
             # 1. SEND DIRECT OR GROUP MESSAGE
             if event_type == "message":
-                recipient_id = data.get("recipient_id")
-                group_id = data.get("group_id")
+                raw_recip = data.get("recipient_id")
+                raw_group = data.get("group_id")
+                recipient_id = None
+                group_id = None
+                if raw_recip is not None and str(raw_recip).strip():
+                    try:
+                        recipient_id = int(raw_recip)
+                    except (ValueError, TypeError):
+                        pass
+                if raw_group is not None and str(raw_group).strip():
+                    try:
+                        group_id = int(raw_group)
+                    except (ValueError, TypeError):
+                        pass
+
                 content = (data.get("content") or "").strip()
                 message_type = data.get("message_type", "text")
                 file_id = data.get("file_id")
@@ -151,7 +190,41 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
 
                 db_session = SessionLocal()
                 try:
+                    # Enforce group membership authorization
+                    if group_id:
+                        membership = db_session.query(models.GroupMember).filter(
+                            models.GroupMember.group_id == group_id,
+                            models.GroupMember.user_id == user_id
+                        ).first()
+                        if not membership:
+                            logger.warning(f"Unauthorized group message attempt from user {user_id} to group {group_id}")
+                            continue
+
+                    conv_id = None
+                    if recipient_id:
+                        u_a = min(user_id, recipient_id)
+                        u_b = max(user_id, recipient_id)
+                        conv = db_session.query(models.Conversation).filter(
+                            models.Conversation.user_a_id == u_a,
+                            models.Conversation.user_b_id == u_b
+                        ).first()
+                        if not conv:
+                            conv = models.Conversation(
+                                user_a_id=u_a,
+                                user_b_id=u_b,
+                                created_at=datetime.now(timezone.utc),
+                                updated_at=datetime.now(timezone.utc)
+                            )
+                            db_session.add(conv)
+                            db_session.commit()
+                            db_session.refresh(conv)
+                        else:
+                            conv.updated_at = datetime.now(timezone.utc)
+                            db_session.commit()
+                        conv_id = conv.id
+
                     msg = models.Message(
+                        conversation_id=conv_id,
                         sender_id=user_id,
                         recipient_id=recipient_id,
                         group_id=group_id,
@@ -245,6 +318,16 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                 }
 
                 if group_id:
+                    db_session = SessionLocal()
+                    try:
+                        mem = db_session.query(models.GroupMember).filter(
+                            models.GroupMember.group_id == group_id,
+                            models.GroupMember.user_id == user_id
+                        ).first()
+                        if not mem:
+                            continue
+                    finally:
+                        db_session.close()
                     await manager.broadcast_to_group(group_id, typing_payload, sender_id=user_id)
                 elif recipient_id:
                     await manager.send_to_user(recipient_id, typing_payload)

@@ -91,6 +91,7 @@ def get_conversations(
                 "name": partner.full_name,
                 "username": partner.username,
                 "avatar_url": partner.avatar_url,
+                "frank_id": partner.frank_id,
                 "is_online": partner.is_online,
                 "last_seen": schemas.format_iso_utc(partner.last_seen) if partner.last_seen else None,
                 "last_message": {
@@ -152,6 +153,30 @@ def get_conversations(
         reverse=True
     )
     return conv_list
+
+
+@router.get("/frank/{frank_id}", response_model=schemas.UserResponse)
+def get_user_by_frank_id(
+    frank_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    clean_id = (frank_id or "").strip().upper()
+    import re
+    if len(clean_id) != 6 or not re.match(r"^[A-Z0-9]{6}$", clean_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Enter a valid 6-character FRANK ID."
+        )
+
+    user = db.query(models.User).filter(models.User.frank_id == clean_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No user found with this FRANK ID."
+        )
+
+    return user
 
 
 @router.get("/{user_id}", response_model=schemas.UserResponse)

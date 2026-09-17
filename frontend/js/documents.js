@@ -21,7 +21,7 @@ class DocumentsController {
 
     init() {
         // Create hidden OS file input
-        let fileInput = document.getElementById('frankFileInput') || document.getElementById('qenvoFileInput');
+        let fileInput = document.getElementById('frankFileInput');
         if (!fileInput) {
             fileInput = document.createElement('input');
             fileInput.type = 'file';
@@ -42,10 +42,12 @@ class DocumentsController {
 
     // ---------------- FILE SELECTION ----------------
     selectDocument(type = 'doc') {
-        const fileInput = document.getElementById('frankFileInput') || document.getElementById('qenvoFileInput');
+        const fileInput = document.getElementById('frankFileInput');
         if (!fileInput) return;
 
-        if (type === 'video') {
+        if (type === 'audio') {
+            fileInput.accept = 'audio/*,.mp3,.wav,.ogg,.m4a,.webm,.aac,.flac';
+        } else if (type === 'video') {
             fileInput.accept = 'video/*,.mp4,.mov,.webm,.mkv';
         } else if (type === 'photo') {
             fileInput.accept = 'image/*,video/*,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm,.mkv';

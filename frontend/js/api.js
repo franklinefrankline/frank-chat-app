@@ -117,8 +117,28 @@ const api = {
         return this.request(`/api/users/${id}`);
     },
 
+    async getUserByFrankId(frankId) {
+        const cleanId = (frankId || '').toString().trim().toUpperCase();
+        return this.request(`/api/users/frank/${encodeURIComponent(cleanId)}`);
+    },
+
+    async getUnifiedConversations() {
+        return this.request('/api/conversations');
+    },
+
+    async getConversationById(id) {
+        return this.request(`/api/conversations/${id}`);
+    },
+
+    async createPrivateConversation(targetUserId) {
+        return this.request('/api/conversations/private', {
+            method: 'POST',
+            body: JSON.stringify({ target_user_id: targetUserId })
+        });
+    },
+
     async getConversations() {
-        return this.request('/api/users/conversations');
+        return this.request('/api/conversations');
     },
 
     async updateProfile(profileData) {
@@ -183,6 +203,12 @@ const api = {
         });
     },
 
+    async deleteGroup(groupId) {
+        return this.request(`/api/groups/${groupId}`, {
+            method: 'DELETE'
+        });
+    },
+
     async getGroupMessages(groupId) {
         return this.request(`/api/groups/${groupId}/messages`);
     },
@@ -198,17 +224,29 @@ const api = {
         });
     },
 
+    async updateGroupMemberRole(groupId, userId, role) {
+        return this.request(`/api/groups/${groupId}/members/${userId}/role`, {
+            method: 'PATCH',
+            body: JSON.stringify({ role })
+        });
+    },
+
     async removeGroupMember(groupId, userId) {
         return this.request(`/api/groups/${groupId}/members/${userId}`, {
             method: 'DELETE'
         });
     },
 
+    async leaveGroup(groupId) {
+        const currentUser = JSON.parse(localStorage.getItem('chatapp_user') || '{}');
+        return this.removeGroupMember(groupId, currentUser.id);
+    },
+
     // Document & File Endpoints
     uploadFile(formData, onProgress) {
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', `${this.baseUrl}/api/files/upload`);
+            xhr.open('POST', `${API_BASE}/api/files/upload`);
 
             const token = this.getToken();
             if (token) {
@@ -249,12 +287,12 @@ const api = {
 
     getFileViewUrl(fileId) {
         const token = this.getToken();
-        return `${this.baseUrl}/api/files/${fileId}/view${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+        return `${API_BASE}/api/files/${fileId}/view${token ? `?token=${encodeURIComponent(token)}` : ''}`;
     },
 
     getFileDownloadUrl(fileId) {
         const token = this.getToken();
-        return `${this.baseUrl}/api/files/${fileId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+        return `${API_BASE}/api/files/${fileId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
     },
 
     async getFileMetadata(fileId) {

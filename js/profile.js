@@ -57,6 +57,45 @@ const profileModule = {
                 const parsedDate = window.messagesModule ? window.messagesModule.parseDate(user.created_at) : new Date(user.created_at);
                 joinedEl.textContent = parsedDate ? parsedDate.toLocaleDateString([], { month: 'long', year: 'numeric' }) : '';
             }
+
+            const frankIdEl = document.getElementById('profileFrankId');
+            if (frankIdEl) {
+                frankIdEl.textContent = user.frank_id || '------';
+            }
+
+            const copyFrankIdBtn = document.getElementById('copyFrankIdBtn');
+            if (copyFrankIdBtn) {
+                copyFrankIdBtn.onclick = () => {
+                    if (user.frank_id) {
+                        navigator.clipboard.writeText(user.frank_id).then(() => {
+                            showToast(`FRANK ID ${user.frank_id} copied to clipboard!`, 'success');
+                        }).catch(() => {
+                            showToast(`Your FRANK ID is: ${user.frank_id}`, 'info');
+                        });
+                    }
+                };
+            }
+
+            const shareFrankIdBtn = document.getElementById('shareFrankIdBtn');
+            if (shareFrankIdBtn) {
+                shareFrankIdBtn.onclick = () => {
+                    if (user.frank_id) {
+                        const shareData = {
+                            title: 'Chat with me on FRANK',
+                            text: `Add me on FRANK with my unique FRANK ID: ${user.frank_id}`,
+                            url: window.location.origin
+                        };
+                        if (navigator.share) {
+                            navigator.share(shareData).catch(() => {});
+                        } else {
+                            navigator.clipboard.writeText(`Add me on FRANK! My unique FRANK ID is: ${user.frank_id}`).then(() => {
+                                showToast('Share message copied to clipboard!', 'success');
+                            });
+                        }
+                    }
+                };
+            }
+
             if (avatarEl) {
                 if (user.avatar_url) {
                     avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${user.full_name}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;"><span class="avatar-status online" id="profileStatusDot"></span>`;

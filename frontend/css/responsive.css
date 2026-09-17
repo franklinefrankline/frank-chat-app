@@ -140,6 +140,7 @@
     /* Touch target minimum sizes */
     .btn,
     .composer-send-btn,
+    .composer-mic-btn,
     .nav-item,
     .conversation-card {
         min-height: 44px;

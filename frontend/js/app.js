@@ -91,6 +91,11 @@ class AppController {
             const name = user.full_name || user.username || '??';
             initialsEl.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
         }
+        const statusEl = document.querySelector('.sidebar-user-status');
+        if (statusEl && user.frank_id) {
+            statusEl.innerHTML = `<span style="font-family:monospace; font-weight:700; color:var(--primary); letter-spacing:0.8px;">ID: ${user.frank_id}</span>`;
+            statusEl.title = `Your unique FRANK ID: ${user.frank_id}`;
+        }
     }
 
     async loadConversations(autoSelectFirst = false) {
@@ -167,7 +172,9 @@ class AppController {
             
             let previewText = 'No messages yet';
             if (conv.last_message) {
-                if (conv.last_message.message_type === 'document') {
+                if (conv.last_message.message_type === 'audio') {
+                    previewText = '🎤 Voice message';
+                } else if (conv.last_message.message_type === 'document') {
                     previewText = '📎 Document shared';
                 } else if (conv.last_message.sender_name && isGroup) {
                     previewText = `${conv.last_message.sender_name}: ${conv.last_message.content}`;
@@ -177,7 +184,10 @@ class AppController {
             }
             previewText = messagesModule.escapeHTML(previewText);
 
-            const isActive = window.chatController && window.chatController.activeId === conv.id && window.chatController.activeType === conv.type;
+            const isActive = window.chatController && Number(window.chatController.activeId) === Number(conv.id) && window.chatController.activeType === conv.type;
+            if (isActive) {
+                conv.unread_count = 0;
+            }
 
             const card = document.createElement('div');
             card.className = `conversation-card ${isActive ? 'active' : ''} ${isGroup ? 'is-group' : ''}`;

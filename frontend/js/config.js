@@ -56,7 +56,7 @@
     window.FRANK_CONFIG = {
         BRAND_NAME: 'FRANK',
         TAGLINE: 'Think',
-        FRONTEND_URL: 'https://frank-chat-vercel.app',
+        FRONTEND_URL: 'https://frank-chat-app.vercel.app',
         API_BASE: apiBase,
         WS_BASE: wsBase,
         IS_LOCAL: isLocal,

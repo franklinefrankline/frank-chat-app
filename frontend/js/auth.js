@@ -26,19 +26,19 @@ const auth = {
     },
 
     guard() {
-        const path = window.location.pathname;
+        const path = window.location.pathname.toLowerCase();
         const isAuth = this.isAuthenticated();
 
-        const protectedPages = ['dashboard.html', 'chat.html', 'profile.html', 'settings.html'];
-        const guestOnlyPages = ['login.html', 'register.html'];
+        const protectedPages = ['dashboard', 'dashboard.html', 'chat', 'chat.html', 'profile', 'profile.html', 'settings', 'settings.html'];
+        const guestOnlyPages = ['login', 'login.html', 'register', 'register.html'];
 
-        const isProtected = protectedPages.some(page => path.endsWith(page));
-        const isGuestOnly = guestOnlyPages.some(page => path.endsWith(page));
+        const isProtected = protectedPages.some(page => path.endsWith('/' + page) || path.endsWith(page));
+        const isGuestOnly = guestOnlyPages.some(page => path.endsWith('/' + page) || path.endsWith(page));
 
         if (isProtected && !isAuth) {
-            window.location.href = 'login.html';
+            window.location.replace('login.html');
         } else if (isGuestOnly && isAuth) {
-            window.location.href = 'dashboard.html';
+            window.location.replace('dashboard.html');
         }
     },
 
@@ -110,10 +110,8 @@ if (loginForm) {
             api.setToken(data.access_token);
             auth.setUser(data.user);
 
-            showToast(`Welcome back, ${data.user.full_name}!`, 'success');
-            setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 500);
+            showToast(`Welcome back, ${data.user.full_name}!`, 'success', 1000);
+            window.location.replace('dashboard.html');
         } catch (err) {
             showToast(err.message || 'Invalid username or password.', 'error');
             submitBtn.disabled = false;
@@ -227,10 +225,8 @@ if (registerForm) {
             api.setToken(data.access_token);
             auth.setUser(data.user);
 
-            showToast('Account created successfully!', 'success');
-            setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 500);
+            showToast('Account created successfully!', 'success', 1000);
+            window.location.replace('dashboard.html');
         } catch (err) {
             showToast(err.message || 'Registration failed.', 'error');
             submitBtn.disabled = false;

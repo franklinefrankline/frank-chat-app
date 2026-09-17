@@ -687,11 +687,195 @@
     flex-shrink: 0;
     transition: transform var(--transition-fast), background var(--transition-fast);
     box-shadow: 0 2px 8px var(--primary-glow);
+    border: none;
+    cursor: pointer;
 }
 
 .composer-send-btn:hover {
     transform: scale(1.06);
     background: var(--primary-hover);
+}
+
+.composer-mic-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.composer-mic-btn:hover {
+    color: var(--primary);
+    background: var(--primary-soft);
+    border-color: var(--primary);
+    transform: scale(1.06);
+}
+
+/* Voice Recording Bar */
+.composer-voice-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface-card);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-xl);
+    padding: 8px 14px;
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.voice-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.voice-record-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--danger);
+    animation: recordPulse 1s infinite alternate;
+}
+
+@keyframes recordPulse {
+    from { transform: scale(0.85); opacity: 0.6; }
+    to { transform: scale(1.2); opacity: 1; box-shadow: 0 0 8px rgba(239, 68, 68, 0.7); }
+}
+
+.voice-timer {
+    font-family: monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.voice-soundwave {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 20px;
+}
+
+.voice-soundwave span {
+    width: 3px;
+    height: 6px;
+    background: var(--primary);
+    border-radius: 2px;
+    animation: soundWaveAnim 0.8s infinite ease-in-out alternate;
+}
+
+.voice-soundwave span:nth-child(2) { height: 14px; animation-delay: 0.15s; }
+.voice-soundwave span:nth-child(3) { height: 20px; animation-delay: 0.3s; }
+.voice-soundwave span:nth-child(4) { height: 10px; animation-delay: 0.45s; }
+.voice-soundwave span:nth-child(5) { height: 16px; animation-delay: 0.6s; }
+.voice-soundwave span:nth-child(6) { height: 8px; animation-delay: 0.25s; }
+.voice-soundwave span:nth-child(7) { height: 12px; animation-delay: 0.4s; }
+
+@keyframes soundWaveAnim {
+    0% { height: 4px; }
+    100% { height: 20px; }
+}
+
+.voice-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Audio Message Bubble Card */
+.message-audio-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    min-width: 240px;
+    max-width: 320px;
+}
+
+.message-row.sent .message-audio-card {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.audio-play-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+}
+
+.audio-play-btn:hover {
+    transform: scale(1.08);
+}
+
+.message-row.sent .audio-play-btn {
+    background: #ffffff;
+    color: var(--primary);
+}
+
+.audio-waveform-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.audio-waveform-bars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 16px;
+}
+
+.audio-waveform-bars span {
+    flex: 1;
+    height: 6px;
+    background: var(--border-strong);
+    border-radius: 1px;
+    transition: height 0.2s, background 0.2s;
+}
+
+.audio-waveform-bars.playing span {
+    background: var(--primary);
+    animation: barPulse 0.6s infinite alternate;
+}
+
+.message-row.sent .audio-waveform-bars span {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.message-row.sent .audio-waveform-bars.playing span {
+    background: #ffffff;
+}
+
+.audio-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.message-row.sent .audio-meta {
+    color: rgba(255, 255, 255, 0.8);
 }
 
 /* Popovers: Emoji Picker & Attachments */

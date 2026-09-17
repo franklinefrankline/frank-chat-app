@@ -25,6 +25,12 @@ class ChatController {
             typingUserText: document.getElementById('typingUserText'),
             textarea: document.getElementById('messageComposerTextarea'),
             sendBtn: document.getElementById('composerSendBtn'),
+            micBtn: document.getElementById('composerMicBtn'),
+            voiceBar: document.getElementById('composerVoiceBar'),
+            voiceTimer: document.getElementById('voiceRecordingTimer'),
+            voiceCancelBtn: document.getElementById('voiceCancelBtn'),
+            voiceSendBtn: document.getElementById('voiceSendBtn'),
+            composerBar: document.querySelector('.chat-composer'),
             emojiBtn: document.getElementById('emojiBtn'),
             emojiPopover: document.getElementById('emojiPickerPopover'),
             emojiGrid: document.getElementById('emojiPickerGrid'),
@@ -51,6 +57,7 @@ class ChatController {
 
     init() {
         this.setupComposer();
+        this.setupVoiceRecording();
         this.setupEmojiPicker();
         this.setupAttachments();
         this.setupMobileBack();
@@ -272,6 +279,7 @@ class ChatController {
         this.dom.textarea.value = '';
         this.autoResizeTextarea();
         this.clearReplying();
+        this.updateComposerButtons();
 
         if (window.wsClient && window.wsClient.isConnected) {
             window.wsClient.sendChatMessage(
@@ -301,6 +309,11 @@ class ChatController {
 
     appendMessage(msg, currentUserId) {
         if (!this.dom.messagesContainer) return;
+
+        // Prevent duplicates
+        if (msg.id && this.dom.messagesContainer.querySelector(`[data-message-id="${msg.id}"]`)) {
+            return;
+        }
 
         const empty = this.dom.messagesContainer.querySelector('.empty-state');
         if (empty) empty.remove();
@@ -339,10 +352,143 @@ class ChatController {
         this.dom.textarea.addEventListener('input', () => {
             this.autoResizeTextarea();
             this.emitTyping();
+            this.updateComposerButtons();
         });
 
         this.dom.sendBtn?.addEventListener('click', () => this.sendMessage());
         this.dom.cancelReplyBtn?.addEventListener('click', () => this.clearReplying());
+
+        this.updateComposerButtons();
+    }
+
+    updateComposerButtons() {
+        const hasText = (this.dom.textarea?.value || '').trim().length > 0;
+        if (this.dom.sendBtn) this.dom.sendBtn.style.display = hasText ? 'flex' : 'none';
+        if (this.dom.micBtn) this.dom.micBtn.style.display = hasText ? 'none' : 'flex';
+    }
+
+    // ---------------- VOICE RECORDING ----------------
+    setupVoiceRecording() {
+        this.mediaRecorder = null;
+        this.audioChunks = [];
+        this.mediaStream = null;
+        this.recordingTimer = null;
+        this.recordingDuration = 0;
+
+        this.dom.micBtn?.addEventListener('click', () => this.startVoiceRecording());
+        this.dom.voiceCancelBtn?.addEventListener('click', () => this.cancelVoiceRecording());
+        this.dom.voiceSendBtn?.addEventListener('click', () => this.stopAndSendVoiceRecording());
+    }
+
+    async startVoiceRecording() {
+        if (!this.activeId) {
+            showToast('Please select a conversation first', 'info');
+            return;
+        }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showToast('Voice recording is not supported in this browser', 'warning');
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.mediaStream = stream;
+
+            const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                ? { mimeType: 'audio/webm;codecs=opus' }
+                : (MediaRecorder.isTypeSupported('audio/webm') ? { mimeType: 'audio/webm' } : {});
+
+            this.mediaRecorder = new MediaRecorder(stream, options);
+            this.audioChunks = [];
+
+            this.mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) {
+                    this.audioChunks.push(e.data);
+                }
+            };
+
+            this.mediaRecorder.start(100);
+
+            // Toggle recording UI
+            if (this.dom.composerBar) this.dom.composerBar.style.display = 'none';
+            if (this.dom.voiceBar) this.dom.voiceBar.style.display = 'flex';
+
+            this.recordingDuration = 0;
+            if (this.dom.voiceTimer) this.dom.voiceTimer.textContent = '00:00';
+
+            this.recordingTimer = setInterval(() => {
+                this.recordingDuration++;
+                const mins = Math.floor(this.recordingDuration / 60).toString().padStart(2, '0');
+                const secs = (this.recordingDuration % 60).toString().padStart(2, '0');
+                if (this.dom.voiceTimer) this.dom.voiceTimer.textContent = `${mins}:${secs}`;
+            }, 1000);
+
+        } catch (err) {
+            console.error('Microphone access error:', err);
+            showToast('Microphone access is required to record voice messages', 'warning');
+        }
+    }
+
+    cleanupRecordingUI() {
+        if (this.recordingTimer) {
+            clearInterval(this.recordingTimer);
+            this.recordingTimer = null;
+        }
+        if (this.mediaStream) {
+            this.mediaStream.getTracks().forEach(track => track.stop());
+            this.mediaStream = null;
+        }
+        if (this.dom.voiceBar) this.dom.voiceBar.style.display = 'none';
+        if (this.dom.composerBar) this.dom.composerBar.style.display = 'flex';
+        if (this.dom.voiceTimer) this.dom.voiceTimer.textContent = '00:00';
+    }
+
+    cancelVoiceRecording() {
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.stop();
+        }
+        this.audioChunks = [];
+        this.cleanupRecordingUI();
+        showToast('Voice recording cancelled', 'info', 1500);
+    }
+
+    async stopAndSendVoiceRecording() {
+        if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') return;
+
+        this.mediaRecorder.onstop = async () => {
+            const mimeType = this.mediaRecorder.mimeType || 'audio/webm';
+            const audioBlob = new Blob(this.audioChunks, { type: mimeType });
+            this.cleanupRecordingUI();
+
+            if (audioBlob.size < 500) {
+                showToast('Voice message too short', 'info');
+                return;
+            }
+
+            try {
+                showToast('Sending voice message...', 'info', 1000);
+                const filename = `voice_${Date.now()}.webm`;
+                const file = new File([audioBlob], filename, { type: mimeType });
+
+                const partnerId = this.activeType === 'direct' ? this.activeId : null;
+                const groupId = this.activeType === 'group' ? this.activeId : null;
+
+                const doc = await api.uploadFile(file, partnerId, groupId);
+                await api.sendMessage({
+                    recipient_id: partnerId,
+                    group_id: groupId,
+                    content: 'Voice message',
+                    message_type: 'audio',
+                    file_id: doc.id
+                });
+            } catch (err) {
+                console.error('Voice send error:', err);
+                showToast(err.message || 'Failed to send voice message', 'error');
+            }
+        };
+
+        this.mediaRecorder.stop();
     }
 
     autoResizeTextarea() {
@@ -690,9 +836,8 @@ class ChatController {
 
             this.loadGroupMembersList(target.id);
         } else {
-            if (subtitleEl) subtitleEl.textContent = `@${target.username || 'user'}`;
+            if (subtitleEl) subtitleEl.textContent = target.frank_id ? `@${target.username || 'user'} • ID: ${target.frank_id}` : `@${target.username || 'user'}`;
             let bio = target.bio || 'Productive conversations powered by FRANK.';
-            if (bio.includes('ChatApp') || bio.includes('QENVO')) bio = bio.replace(/ChatApp|QENVO/gi, 'FRANK');
             if (bioEl) bioEl.textContent = bio;
             if (tabsBar) tabsBar.style.display = 'flex';
             if (membersSec) membersSec.style.display = 'none';
@@ -718,23 +863,79 @@ class ChatController {
                 return;
             }
 
+            const currentUser = auth.getUser() || {};
+            const myMembership = members.find(m => m.user_id === currentUser.id);
+            const myRole = myMembership ? myMembership.role : 'member';
+
+            const deleteGroupBtn = document.getElementById('drawerDeleteGroupBtn');
+            const leaveGroupBtn = document.getElementById('drawerLeaveGroupBtn');
+
+            if (myRole === 'owner') {
+                if (deleteGroupBtn) deleteGroupBtn.style.display = 'block';
+                if (leaveGroupBtn) leaveGroupBtn.style.display = 'none';
+            } else {
+                if (deleteGroupBtn) deleteGroupBtn.style.display = 'none';
+                if (leaveGroupBtn) leaveGroupBtn.style.display = 'block';
+            }
+
             members.forEach(m => {
                 const u = m.user || {};
                 const initials = (u.full_name || u.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-                const isAdmin = m.role === 'admin';
+                const isSelf = u.id === currentUser.id;
+
+                let roleBadge = '<span class="badge-member">Member</span>';
+                if (m.role === 'owner') {
+                    roleBadge = '<span class="badge-owner">Owner</span>';
+                } else if (m.role === 'admin') {
+                    roleBadge = '<span class="badge-admin">Admin</span>';
+                }
+
+                let controlsHtml = '';
+                if (!isSelf) {
+                    if (myRole === 'owner') {
+                        controlsHtml = `
+                            <select class="member-role-select" onchange="window.groupsModule.changeMemberRole(${groupId}, ${u.id}, this.value, '${messagesModule.escapeHTML(u.full_name)}')">
+                                <option value="member" ${m.role === 'member' ? 'selected' : ''}>Member</option>
+                                <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                            <button type="button" class="btn btn-ghost btn-sm" style="color:var(--danger); padding:2px 6px; font-size:11px;" title="Remove from group" onclick="window.groupsModule.removeMember(${groupId}, ${u.id}, '${messagesModule.escapeHTML(u.full_name)}')">✕</button>
+                        `;
+                    } else if (myRole === 'admin' && m.role === 'member') {
+                        controlsHtml = `
+                            <button type="button" class="btn btn-ghost btn-sm" style="color:var(--danger); padding:2px 6px; font-size:11px;" title="Remove from group" onclick="window.groupsModule.removeMember(${groupId}, ${u.id}, '${messagesModule.escapeHTML(u.full_name)}')">✕</button>
+                        `;
+                    }
+                }
 
                 const row = document.createElement('div');
                 row.className = 'drawer-member-row';
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.justifyContent = 'space-between';
+                row.style.gap = '8px';
+                row.style.padding = '6px 0';
+                row.style.borderBottom = '1px solid var(--border-light, rgba(255,255,255,0.05))';
+
                 row.innerHTML = `
-                    <div class="avatar avatar-sm">
-                        <span>${initials}</span>
-                        <span class="avatar-status ${u.is_online ? 'online' : 'offline'}"></span>
+                    <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
+                        <div class="avatar avatar-sm">
+                            <span>${initials}</span>
+                            <span class="avatar-status ${u.is_online ? 'online' : 'offline'}"></span>
+                        </div>
+                        <div style="min-width:0; flex:1;">
+                            <div style="font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                ${messagesModule.escapeHTML(u.full_name)} ${isSelf ? '<span style="font-size:10px; color:var(--text-muted); font-weight:normal;">(You)</span>' : ''}
+                            </div>
+                            <div style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
+                                <span>@${messagesModule.escapeHTML(u.username)}</span>
+                                ${u.frank_id ? `<span style="font-family:monospace; font-size:9px; color:var(--primary);">${u.frank_id}</span>` : ''}
+                            </div>
+                        </div>
                     </div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-size:13px; font-weight:700; color:var(--text);">${messagesModule.escapeHTML(u.full_name)}</div>
-                        <div style="font-size:11px; color:var(--text-muted);">@${messagesModule.escapeHTML(u.username)}</div>
+                    <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                        ${roleBadge}
+                        ${controlsHtml}
                     </div>
-                    ${isAdmin ? '<span class="member-role-badge">Admin</span>' : '<span style="font-size:11px; color:var(--text-muted);">Member</span>'}
                 `;
                 listContainer.appendChild(row);
             });
@@ -835,34 +1036,38 @@ class ChatController {
 
         // 1. Incoming Messages
         window.wsClient.on('message', (data) => {
-            const msg = data.message;
+            const msg = data.message || (data.id ? data : null);
             if (!msg) return;
 
             const currentUser = auth.getUser();
-            const currentUserId = currentUser ? currentUser.id : null;
+            const currentUserId = currentUser ? Number(currentUser.id) : null;
+            const senderId = Number(msg.sender_id);
+            const recipientId = msg.recipient_id ? Number(msg.recipient_id) : null;
+            const activeId = this.activeId ? Number(this.activeId) : null;
+            const groupId = msg.group_id ? Number(msg.group_id) : null;
 
             const isDirectForActiveChat = this.activeType === 'direct' &&
-                ((msg.sender_id === this.activeId && msg.recipient_id === currentUserId) ||
-                 (msg.sender_id === currentUserId && msg.recipient_id === this.activeId));
+                ((senderId === activeId && recipientId === currentUserId) ||
+                 (senderId === currentUserId && recipientId === activeId));
 
-            const isGroupForActiveChat = this.activeType === 'group' && msg.group_id === this.activeId;
+            const isGroupForActiveChat = this.activeType === 'group' && groupId === activeId;
 
             if (isDirectForActiveChat || isGroupForActiveChat) {
                 this.appendMessage(msg, currentUserId);
 
-                if (msg.sender_id === this.activeId) {
+                if (senderId === activeId) {
                     window.wsClient.sendRead([msg.id]);
                 }
             }
 
             // Notification for background incoming messages
-            if (msg.sender_id !== currentUserId) {
+            if (senderId !== currentUserId) {
                 if (typeof window.notificationsModule !== 'undefined') {
                     window.notificationsModule.notifyIncoming(msg);
                 }
             }
 
-            // Refresh conversation preview
+            // Refresh conversation preview in sidebar
             if (typeof window.appController !== 'undefined') {
                 window.appController.loadConversations(false);
             }
@@ -870,9 +1075,22 @@ class ChatController {
 
         // 2. Message Edit Events
         window.wsClient.on('message_edit', (data) => {
-            const msg = data.message;
+            const msg = data.message || (data.message_id ? data : null);
             if (msg) {
                 this.handleMessageEdited(msg);
+                if (typeof window.appController !== 'undefined') {
+                    window.appController.loadConversations(false);
+                }
+            }
+        });
+
+        // Message Deleted Events
+        window.wsClient.on('message_deleted', (data) => {
+            const msgId = data.message_id;
+            if (msgId) {
+                const row = document.getElementById(`msgRow-${msgId}`);
+                if (row) row.remove();
+                this.activeMessages = this.activeMessages.filter(m => m.id !== msgId);
                 if (typeof window.appController !== 'undefined') {
                     window.appController.loadConversations(false);
                 }

@@ -163,22 +163,47 @@ const messagesModule = {
 
         const safeContent = this.escapeHTML(msg.content);
 
-        // Document or regular text message
-        const isDocument = msg.message_type === 'document' || !!msg.file_id || !!msg.document;
-        let bodyHtml = `<div class="message-text-content">${safeContent}</div>`;
-        let docFilename = '';
-        let docFileId = '';
-        let docFileType = 'document';
+        // Determine message type
+        const doc = msg.document || {};
+        let docFileId = doc.id || msg.file_id || '';
+        let docFilename = doc.original_filename || (msg.content && msg.content.startsWith('Shared a file: ') ? msg.content.replace(/^Shared a file: /, '') : '') || '';
+        let docFileType = doc.file_type || (window.documentsController && docFilename ? window.documentsController.getFileCategory(docFilename) : 'document');
 
-        if (isDocument) {
-            const doc = msg.document || {};
-            docFileId = doc.id || msg.file_id || '';
-            docFilename = doc.original_filename || msg.content.replace(/^Shared a file: /, '') || 'Document';
-            docFileType = doc.file_type || (window.documentsController ? window.documentsController.getFileCategory(docFilename) : 'document');
+        const isAudio = msg.message_type === 'audio' || docFileType === 'audio' || (docFilename && /\.(webm|mp3|wav|ogg|m4a|aac|flac)$/i.test(docFilename));
+        const isDocument = !isAudio && (msg.message_type === 'document' || !!msg.file_id || !!msg.document);
+
+        let bodyHtml = `<div class="message-text-content">${safeContent}</div>`;
+
+        if (isAudio) {
+            const viewUrl = docFileId ? api.getFileViewUrl(docFileId) : '';
+            bodyHtml = `
+                <div class="message-audio-card" data-file-id="${docFileId}">
+                    <button type="button" class="audio-play-btn" aria-label="Play voice message" onclick="messagesModule.toggleAudio(this, '${viewUrl}')">
+                        <svg class="icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        <svg class="icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                    </button>
+                    <div class="audio-waveform-container">
+                        <div class="audio-waveform-bars">
+                            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        </div>
+                        <div class="audio-meta">
+                            <span class="audio-timer">Voice message</span>
+                            <span class="audio-ext">AUDIO</span>
+                        </div>
+                    </div>
+                    <audio class="msg-audio-el" src="${viewUrl}" preload="metadata" style="display:none;"></audio>
+                </div>
+            `;
+        } else if (isDocument) {
+            docFilename = docFilename || msg.content || 'Document';
             const ext = docFilename.split('.').pop().toUpperCase();
             const sizeStr = (doc.file_size && window.documentsController) ? window.documentsController.formatFileSize(doc.file_size) : `${ext} Document`;
             let mediaEmbed = '';
             const viewUrl = api.getFileViewUrl(docFileId);
+            const badgeHtml = window.documentsController 
+                ? window.documentsController.getDocumentBadgeHtml(docFileType)
+                : '<div class="file-icon-badge" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--surface-elevated);border-radius:var(--radius-md);">📄</div>';
+
             if (docFileType === 'video') {
                 mediaEmbed = `
                     <div class="message-video-wrap" style="margin-top: 10px; border-radius: 10px; overflow: hidden; background: #000; max-width: 380px;">
@@ -273,6 +298,64 @@ const messagesModule = {
                 ${reactionsHtml}
             </div>
         `;
+    },
+
+    toggleAudio(btn, src) {
+        const card = btn.closest('.message-audio-card');
+        if (!card) return;
+        let audio = card.querySelector('audio');
+        if (!audio) return;
+
+        const playIcon = btn.querySelector('.icon-play');
+        const pauseIcon = btn.querySelector('.icon-pause');
+        const waveform = card.querySelector('.audio-waveform-bars');
+
+        if (audio.paused) {
+            // Pause any other playing audios
+            document.querySelectorAll('audio.msg-audio-el').forEach(a => {
+                if (a !== audio && !a.paused) {
+                    a.pause();
+                    const otherCard = a.closest('.message-audio-card');
+                    if (otherCard) {
+                        const otherPlay = otherCard.querySelector('.icon-play');
+                        const otherPause = otherCard.querySelector('.icon-pause');
+                        if (otherPlay) otherPlay.style.display = 'block';
+                        if (otherPause) otherPause.style.display = 'none';
+                        otherCard.querySelector('.audio-waveform-bars')?.classList.remove('playing');
+                    }
+                }
+            });
+
+            audio.play().then(() => {
+                if (playIcon) playIcon.style.display = 'none';
+                if (pauseIcon) pauseIcon.style.display = 'block';
+                if (waveform) waveform.classList.add('playing');
+            }).catch(e => console.log('Audio playback error:', e));
+
+            audio.ontimeupdate = () => {
+                const timer = card.querySelector('.audio-timer');
+                if (timer && audio.duration) {
+                    const curM = Math.floor(audio.currentTime / 60);
+                    const curS = Math.floor(audio.currentTime % 60).toString().padStart(2, '0');
+                    const durM = Math.floor(audio.duration / 60);
+                    const durS = Math.floor(audio.duration % 60).toString().padStart(2, '0');
+                    timer.textContent = `${curM}:${curS} / ${durM}:${durS}`;
+                }
+            };
+
+            audio.onended = () => {
+                if (playIcon) playIcon.style.display = 'block';
+                if (pauseIcon) pauseIcon.style.display = 'none';
+                if (waveform) waveform.classList.remove('playing');
+                const timer = card.querySelector('.audio-timer');
+                if (timer) timer.textContent = 'Voice message';
+            };
+        } else {
+            audio.pause();
+            if (playIcon) playIcon.style.display = 'block';
+            if (pauseIcon) pauseIcon.style.display = 'none';
+            if (waveform) waveform.classList.remove('playing');
+        }
     }
 };
 

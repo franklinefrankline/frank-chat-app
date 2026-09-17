@@ -45,7 +45,7 @@ const contactsModule = {
                     </div>
                     <div class="conversation-details">
                         <div class="conversation-name">${messagesModule.escapeHTML(user.full_name)}</div>
-                        <div class="conversation-snippet">@${messagesModule.escapeHTML(user.username)} &bull; ${messagesModule.escapeHTML((user.bio || 'FRANK User').replace(/ChatApp|QENVO/gi, 'FRANK'))}</div>
+                        <div class="conversation-snippet">@${messagesModule.escapeHTML(user.username)} &bull; ${messagesModule.escapeHTML(user.bio || 'FRANK User')}</div>
                     </div>
                 `;
 

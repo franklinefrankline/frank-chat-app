@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -12,6 +12,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    frank_id = Column(String(6), unique=True, index=True, nullable=False)
     username = Column(String(50), unique=True, index=True, nullable=False)
     email = Column(String(120), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
@@ -30,15 +31,34 @@ class User(Base):
     uploaded_documents = relationship("Document", back_populates="uploader")
 
 
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_a_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_b_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+    user_a = relationship("User", foreign_keys=[user_a_id])
+    user_b = relationship("User", foreign_keys=[user_b_id])
+    messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint("user_a_id", "user_b_id", name="uq_conversation_pair"),
+    )
+
+
 class Message(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=True, index=True)
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     recipient_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=True, index=True)
     content = Column(Text, nullable=False)
-    message_type = Column(String(20), default="text")  # text, document, image, file
+    message_type = Column(String(20), default="text")  # text, document, image, file, video
     file_id = Column(Integer, ForeignKey("documents.id", use_alter=True, name="fk_message_document"), nullable=True)
     reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
     status = Column(String(20), default="sent")  # sent, delivered, read
@@ -46,6 +66,7 @@ class Message(Base):
     updated_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
+    conversation = relationship("Conversation", back_populates="messages")
     sender = relationship("User", back_populates="sent_messages", foreign_keys=[sender_id])
     recipient = relationship("User", back_populates="received_messages", foreign_keys=[recipient_id])
     group = relationship("Group", back_populates="messages")
@@ -91,6 +112,7 @@ class Group(Base):
     name = Column(String(100), nullable=False)
     description = Column(String(255), default="")
     avatar_url = Column(String(255), default="")
+    is_private = Column(Boolean, default=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
 

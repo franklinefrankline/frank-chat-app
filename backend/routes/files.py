@@ -62,6 +62,14 @@ ALLOWED_EXTENSIONS = {
     ".mov": ("video/quicktime", "video"),
     ".webm": ("video/webm", "video"),
     ".mkv": ("video/x-matroska", "video"),
+    # Audio
+    ".mp3": ("audio/mpeg", "audio"),
+    ".wav": ("audio/wav", "audio"),
+    ".ogg": ("audio/ogg", "audio"),
+    ".m4a": ("audio/mp4", "audio"),
+    ".weba": ("audio/webm", "audio"),
+    ".aac": ("audio/aac", "audio"),
+    ".flac": ("audio/flac", "audio"),
 }
 
 # Optional S3-compatible Object Storage (AWS S3, Cloudflare R2, Supabase)

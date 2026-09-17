@@ -16,7 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from database import engine, Base, SessionLocal
 import models
 from security import hash_password
-from routes import auth, users, messages, groups, files
+from routes import auth, users, messages, groups, files, conversations
 from websocket.chat import handle_websocket_connection
 
 # Create database tables automatically
@@ -54,6 +54,7 @@ def seed_demo_users():
         if db.query(models.User).count() == 0:
             demo_users = [
                 {
+                    "frank_id": "F4M8Q1",
                     "username": "alex",
                     "email": "alex@frank.app",
                     "full_name": "Alex Morgan",
@@ -62,6 +63,7 @@ def seed_demo_users():
                     "is_online": True
                 },
                 {
+                    "frank_id": "K7P2X9",
                     "username": "sarah",
                     "email": "sarah@frank.app",
                     "full_name": "Sarah Connor",
@@ -70,6 +72,7 @@ def seed_demo_users():
                     "is_online": True
                 },
                 {
+                    "frank_id": "B3N8R5",
                     "username": "david",
                     "email": "david@frank.app",
                     "full_name": "David Chen",
@@ -82,6 +85,7 @@ def seed_demo_users():
             created = []
             for u in demo_users:
                 user = models.User(
+                    frank_id=u["frank_id"],
                     username=u["username"],
                     email=u["email"],
                     full_name=u["full_name"],
@@ -159,6 +163,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 # Include Routers
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(conversations.router)
 app.include_router(messages.router)
 app.include_router(groups.router)
 app.include_router(files.router)

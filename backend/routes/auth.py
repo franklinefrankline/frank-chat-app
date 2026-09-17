@@ -33,8 +33,12 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
             detail="Email address already registered."
         )
 
+    from database import generate_unique_frank_id
+    fid = generate_unique_frank_id(db)
+
     # Create user
     user = models.User(
+        frank_id=fid,
         username=user_in.username.strip(),
         email=user_in.email.strip().lower(),
         full_name=user_in.full_name.strip(),

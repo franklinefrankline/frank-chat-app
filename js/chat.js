@@ -718,23 +718,79 @@ class ChatController {
                 return;
             }
 
+            const currentUser = auth.getUser() || {};
+            const myMembership = members.find(m => m.user_id === currentUser.id);
+            const myRole = myMembership ? myMembership.role : 'member';
+
+            const deleteGroupBtn = document.getElementById('drawerDeleteGroupBtn');
+            const leaveGroupBtn = document.getElementById('drawerLeaveGroupBtn');
+
+            if (myRole === 'owner') {
+                if (deleteGroupBtn) deleteGroupBtn.style.display = 'block';
+                if (leaveGroupBtn) leaveGroupBtn.style.display = 'none';
+            } else {
+                if (deleteGroupBtn) deleteGroupBtn.style.display = 'none';
+                if (leaveGroupBtn) leaveGroupBtn.style.display = 'block';
+            }
+
             members.forEach(m => {
                 const u = m.user || {};
                 const initials = (u.full_name || u.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-                const isAdmin = m.role === 'admin';
+                const isSelf = u.id === currentUser.id;
+
+                let roleBadge = '<span class="badge-member">Member</span>';
+                if (m.role === 'owner') {
+                    roleBadge = '<span class="badge-owner">Owner</span>';
+                } else if (m.role === 'admin') {
+                    roleBadge = '<span class="badge-admin">Admin</span>';
+                }
+
+                let controlsHtml = '';
+                if (!isSelf) {
+                    if (myRole === 'owner') {
+                        controlsHtml = `
+                            <select class="member-role-select" onchange="window.groupsModule.changeMemberRole(${groupId}, ${u.id}, this.value, '${messagesModule.escapeHTML(u.full_name)}')">
+                                <option value="member" ${m.role === 'member' ? 'selected' : ''}>Member</option>
+                                <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                            <button type="button" class="btn btn-ghost btn-sm" style="color:var(--danger); padding:2px 6px; font-size:11px;" title="Remove from group" onclick="window.groupsModule.removeMember(${groupId}, ${u.id}, '${messagesModule.escapeHTML(u.full_name)}')">✕</button>
+                        `;
+                    } else if (myRole === 'admin' && m.role === 'member') {
+                        controlsHtml = `
+                            <button type="button" class="btn btn-ghost btn-sm" style="color:var(--danger); padding:2px 6px; font-size:11px;" title="Remove from group" onclick="window.groupsModule.removeMember(${groupId}, ${u.id}, '${messagesModule.escapeHTML(u.full_name)}')">✕</button>
+                        `;
+                    }
+                }
 
                 const row = document.createElement('div');
                 row.className = 'drawer-member-row';
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.justifyContent = 'space-between';
+                row.style.gap = '8px';
+                row.style.padding = '6px 0';
+                row.style.borderBottom = '1px solid var(--border-light, rgba(255,255,255,0.05))';
+
                 row.innerHTML = `
-                    <div class="avatar avatar-sm">
-                        <span>${initials}</span>
-                        <span class="avatar-status ${u.is_online ? 'online' : 'offline'}"></span>
+                    <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
+                        <div class="avatar avatar-sm">
+                            <span>${initials}</span>
+                            <span class="avatar-status ${u.is_online ? 'online' : 'offline'}"></span>
+                        </div>
+                        <div style="min-width:0; flex:1;">
+                            <div style="font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                ${messagesModule.escapeHTML(u.full_name)} ${isSelf ? '<span style="font-size:10px; color:var(--text-muted); font-weight:normal;">(You)</span>' : ''}
+                            </div>
+                            <div style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
+                                <span>@${messagesModule.escapeHTML(u.username)}</span>
+                                ${u.frank_id ? `<span style="font-family:monospace; font-size:9px; color:var(--primary);">${u.frank_id}</span>` : ''}
+                            </div>
+                        </div>
                     </div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-size:13px; font-weight:700; color:var(--text);">${messagesModule.escapeHTML(u.full_name)}</div>
-                        <div style="font-size:11px; color:var(--text-muted);">@${messagesModule.escapeHTML(u.username)}</div>
+                    <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                        ${roleBadge}
+                        ${controlsHtml}
                     </div>
-                    ${isAdmin ? '<span class="member-role-badge">Admin</span>' : '<span style="font-size:11px; color:var(--text-muted);">Member</span>'}
                 `;
                 listContainer.appendChild(row);
             });

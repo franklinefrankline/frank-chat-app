@@ -9,7 +9,7 @@
 
     <!-- Open Graph Meta -->
     <meta property="og:title" content="FRANK — Think">
-    <meta property="og:description" content="Think">
+    <meta property="og:description" content="FRANK is a modern, premium real-time communication platform. Think.">
     <meta property="og:image" content="assets/brand/frank-logo.svg">
 
     <!-- Fonts -->
@@ -527,13 +527,44 @@
                             aria-label="Message Input"
                         ></textarea>
 
-                        <!-- Send Button -->
-                        <button type="button" class="composer-send-btn" id="composerSendBtn" aria-label="Send message" title="Send message">
+                        <!-- Send Button (visible when text is typed) -->
+                        <button type="button" class="composer-send-btn" id="composerSendBtn" aria-label="Send message" title="Send message" style="display: none;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="22" y1="2" x2="11" y2="13"></line>
                                 <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                             </svg>
                         </button>
+
+                        <!-- Mic Button (visible when input is empty) -->
+                        <button type="button" class="composer-mic-btn" id="composerMicBtn" aria-label="Record voice message" title="Record Voice Message">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Voice Recording Status Bar -->
+                    <div class="composer-voice-bar" id="composerVoiceBar" style="display: none;">
+                        <div class="voice-bar-left">
+                            <span class="voice-record-dot"></span>
+                            <span class="voice-timer" id="voiceRecordingTimer">00:00</span>
+                            <div class="voice-soundwave">
+                                <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                            </div>
+                        </div>
+                        <div class="voice-bar-actions">
+                            <button type="button" class="btn btn-ghost btn-sm voice-cancel-btn" id="voiceCancelBtn" title="Cancel Recording">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                Cancel
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm voice-send-btn" id="voiceSendBtn" title="Send Voice Message">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                Send
+                            </button>
+                        </div>
                     </div>
                 </footer>
             </div>
@@ -588,10 +619,13 @@
                     </div>
                 </div>
 
-                <!-- Danger Action: Leave Group -->
-                <div class="drawer-section" id="drawerLeaveGroupSection">
-                    <button type="button" class="btn btn-danger btn-full btn-sm" id="drawerLeaveGroupBtn" style="display:none;" onclick="if(window.groupsModule && window.chatController) window.groupsModule.leaveGroup(window.chatController.activeId, window.chatController.activePartner?.name);">
+                <!-- Danger Action: Group Actions (Leave / Delete) -->
+                <div class="drawer-section" id="drawerGroupActionsSection">
+                    <button type="button" class="btn btn-outline btn-full btn-sm" id="drawerLeaveGroupBtn" style="display:none; color: var(--danger); border-color: var(--danger); margin-bottom: 8px;" onclick="if(window.groupsModule && window.chatController) window.groupsModule.leaveGroup(window.chatController.activeId, window.chatController.activePartner?.name);">
                         Leave Group
+                    </button>
+                    <button type="button" class="btn btn-danger btn-full btn-sm" id="drawerDeleteGroupBtn" style="display:none;" onclick="if(window.groupsModule && window.chatController) window.groupsModule.confirmDeleteGroup(window.chatController.activeId, window.chatController.activePartner?.name);">
+                        Delete Group
                     </button>
                 </div>
             </div>
@@ -602,19 +636,66 @@
 
     <!-- New Chat Modal -->
     <div class="modal-backdrop" id="newChatModal" role="dialog" aria-modal="true" aria-labelledby="newChatModalTitle">
-        <div class="modal-card">
+        <div class="modal-card" style="max-width: 480px;">
             <div class="modal-header">
                 <h2 class="modal-title" id="newChatModalTitle">New Conversation</h2>
                 <button type="button" class="modal-close" data-close-modal="newChatModal" aria-label="Close modal">✕</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label" for="userSearchQuery">Search Users</label>
-                    <input type="text" class="form-input" id="userSearchQuery" placeholder="Search by name or username...">
+                <!-- Navigation Tabs -->
+                <div class="modal-tabs">
+                    <button type="button" class="modal-tab-btn active" id="tabNewPersonBtn">Enter FRANK ID</button>
+                    <button type="button" class="modal-tab-btn" id="tabExistingChatsBtn">Existing Contacts</button>
                 </div>
-                <div style="max-height: 260px; overflow-y: auto;" id="userSearchResults">
-                    <div class="empty-state" style="padding: var(--space-4);">
-                        <div style="font-size: 13px; color: var(--text-muted);">Type above to find contacts</div>
+
+                <!-- Section 1: Connect via FRANK ID -->
+                <div id="sectionNewPerson">
+                    <label class="form-label" for="newPersonFrankIdInput" style="font-weight: 700; margin-bottom: 8px; display: block;">Enter FRANK ID</label>
+                    <div class="frank-id-input-box" style="display: flex; gap: 8px;">
+                        <input type="text" class="form-input frank-id-input-field" id="newPersonFrankIdInput" placeholder="F4M8Q1" maxlength="6" autocomplete="off" spellcheck="false" style="font-family: monospace; font-size: 16px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">
+                        <button type="button" class="btn btn-primary" id="searchFrankIdBtn" disabled style="white-space: nowrap; padding: 0 20px; font-weight: 600;">
+                            Connect
+                        </button>
+                    </div>
+
+                    <!-- Search Result User Preview Card -->
+                    <div id="frankIdPreviewContainer" style="margin-top: 14px; display: none;">
+                        <div class="user-preview-card" id="frankIdPreviewCard" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                            <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+                                <div class="avatar avatar-md" id="previewUserAvatar">
+                                    <span id="previewUserInitials">??</span>
+                                    <span class="avatar-status online" id="previewUserStatus"></span>
+                                </div>
+                                <div style="min-width: 0;">
+                                    <div style="font-weight: 700; font-size: 14px; color: var(--text);" id="previewUserName">User Name</div>
+                                    <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                                        <span id="previewUserHandle">@handle</span>
+                                        <span class="badge-member" id="previewUserFrankIdBadge">ID: ------</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-sm" id="previewUserChatBtn" style="flex-shrink: 0; padding: 6px 16px; font-weight: 600;">
+                                Message
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Not Found / Error Message -->
+                    <div id="frankIdErrorContainer" style="display: none; padding: 14px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-md); text-align: center; margin-top: 14px;">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--danger);" id="frankIdErrorText">No user found with this FRANK ID.</div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Please check the 6-character code and try again.</div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Existing Contacts -->
+                <div id="sectionExistingChats" style="display: none;">
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <input type="text" class="form-input" id="userSearchQuery" placeholder="Filter existing contacts or users...">
+                    </div>
+                    <div style="max-height: 280px; overflow-y: auto;" id="userSearchResults">
+                        <div class="empty-state" style="padding: var(--space-4);">
+                            <div style="font-size: 13px; color: var(--text-muted);">Loading contacts...</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -623,27 +704,60 @@
 
     <!-- Create Group Modal -->
     <div class="modal-backdrop" id="createGroupModal" role="dialog" aria-modal="true" aria-labelledby="createGroupModalTitle">
-        <div class="modal-card">
+        <div class="modal-card" style="max-width: 500px;">
             <div class="modal-header">
-                <h2 class="modal-title" id="createGroupModalTitle">Create a Group</h2>
+                <h2 class="modal-title" id="createGroupModalTitle">Create a Group Channel</h2>
                 <button type="button" class="modal-close" data-close-modal="createGroupModal" aria-label="Close modal">✕</button>
             </div>
             <div class="modal-body">
                 <form id="createGroupForm">
                     <div class="form-group">
-                        <label class="form-label" for="groupNameInput">Group Name</label>
-                        <input type="text" class="form-input" id="groupNameInput" placeholder="e.g. FRANK Engineering" required>
+                        <label class="form-label" for="groupNameInput">Group Name *</label>
+                        <input type="text" class="form-input" id="groupNameInput" placeholder="e.g. FRANK Design &amp; Engineering" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="groupDescInput">Description (Optional)</label>
-                        <textarea class="form-textarea" id="groupDescInput" placeholder="What is this group about?" rows="2"></textarea>
+                        <textarea class="form-textarea" id="groupDescInput" placeholder="What is this group channel about?" rows="2"></textarea>
                     </div>
+
+                    <!-- Privacy Mode Toggle -->
                     <div class="form-group">
-                        <label class="form-label">Select Initial Members</label>
-                        <div id="groupMembersChecklist" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px;">
+                        <label class="form-label">Group Privacy</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <label style="display: flex; align-items: flex-start; gap: 8px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; background: var(--surface-elevated);">
+                                <input type="radio" name="groupPrivacy" value="private" checked style="margin-top: 3px;">
+                                <div>
+                                    <div style="font-size: 13px; font-weight: 700; color: var(--text);">Private (Default)</div>
+                                    <div style="font-size: 11px; color: var(--text-muted); line-height: 1.3;">Only invited members can view messages and participate.</div>
+                                </div>
+                            </label>
+                            <label style="display: flex; align-items: flex-start; gap: 8px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer;">
+                                <input type="radio" name="groupPrivacy" value="public" style="margin-top: 3px;">
+                                <div>
+                                    <div style="font-size: 13px; font-weight: 700; color: var(--text);">Public Channel</div>
+                                    <div style="font-size: 11px; color: var(--text-muted); line-height: 1.3;">Open channel visible to all members in your workspace.</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Add by FRANK ID in Group Creation -->
+                    <div class="form-group">
+                        <label class="form-label">Add Member by FRANK ID</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" class="form-input" id="groupAddFrankIdInput" placeholder="Enter 6-char FRANK ID" maxlength="6" style="text-transform: uppercase; font-family: monospace; font-weight: 700; letter-spacing: 1px;">
+                            <button type="button" class="btn btn-secondary btn-sm" id="groupAddFrankIdBtn">Add ID</button>
+                        </div>
+                        <div id="groupAddedChipsContainer" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Select from Existing Contacts</label>
+                        <div id="groupMembersChecklist" style="max-height: 160px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px;">
                             <!-- Injected by groups.js -->
                         </div>
                     </div>
+
                     <div class="modal-footer" style="padding: 0; background: transparent; border: none; margin-top: var(--space-4);">
                         <button type="button" class="btn btn-secondary" data-close-modal="createGroupModal">Cancel</button>
                         <button type="submit" class="btn btn-primary" id="createGroupSubmitBtn">Create Group</button>
