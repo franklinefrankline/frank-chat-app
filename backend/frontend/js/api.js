@@ -213,7 +213,7 @@ function handleMockRequest(endpoint, options = {}) {
         return list;
     }
 
-    // 6. Conversations (unified)
+    // 6. Conversations (unified) — returns flat shape matching what the frontend expects
     if (endpoint === '/api/conversations' || endpoint === '/api/users/conversations') {
         const partners = db.users.filter(u => u.id !== currentUser.id);
         return partners.map(p => {
@@ -224,8 +224,22 @@ function handleMockRequest(endpoint, options = {}) {
             const lastMsg = chatMsgs.length > 0 ? chatMsgs[chatMsgs.length - 1] : null;
             return {
                 id: p.id,
-                user: p,
-                last_message: lastMsg ? lastMsg.content : 'Started a conversation',
+                type: 'direct',
+                // Flat user fields (what renderConversationList reads directly)
+                name: p.full_name || p.username,
+                username: p.username,
+                full_name: p.full_name,
+                avatar_url: p.avatar_url || null,
+                is_online: !!p.is_online,
+                frank_id: p.frank_id || '',
+                // last_message as object (what renderConversationList reads .content / .created_at from)
+                last_message: lastMsg ? {
+                    id: lastMsg.id,
+                    content: lastMsg.content,
+                    created_at: lastMsg.created_at,
+                    message_type: lastMsg.message_type || 'text',
+                    sender_id: lastMsg.sender_id
+                } : null,
                 last_message_time: lastMsg ? lastMsg.created_at : p.created_at,
                 unread_count: 0
             };
@@ -233,18 +247,39 @@ function handleMockRequest(endpoint, options = {}) {
     }
 
     // 7. Conversation by ID
-    if (endpoint.startsWith('/api/conversations/') && method === 'GET') {
+    if (endpoint.startsWith('/api/conversations/') && !endpoint.includes('/private') && method === 'GET') {
         const convId = Number(endpoint.split('/api/conversations/')[1]);
-        const p = db.users.find(u => u.id === convId);
-        if (p) return { id: p.id, user: p, last_message: '', unread_count: 0 };
-        return { id: convId, user: db.users[0], last_message: '', unread_count: 0 };
+        const p = db.users.find(u => u.id === convId) || db.users[0];
+        return {
+            id: p.id,
+            type: 'direct',
+            name: p.full_name || p.username,
+            username: p.username,
+            full_name: p.full_name,
+            avatar_url: p.avatar_url || null,
+            is_online: !!p.is_online,
+            frank_id: p.frank_id || '',
+            last_message: null,
+            unread_count: 0
+        };
     }
 
     // 8. Create private conversation
     if (endpoint === '/api/conversations/private' && method === 'POST') {
         const targetId = body.target_user_id;
         const p = db.users.find(u => u.id === targetId) || db.users[0];
-        return { id: p.id, user: p, last_message: '', unread_count: 0 };
+        return {
+            id: p.id,
+            type: 'direct',
+            name: p.full_name || p.username,
+            username: p.username,
+            full_name: p.full_name,
+            avatar_url: p.avatar_url || null,
+            is_online: !!p.is_online,
+            frank_id: p.frank_id || '',
+            last_message: null,
+            unread_count: 0
+        };
     }
 
     // 9. Direct Messages
