@@ -183,10 +183,11 @@ const settingsModule = {
                 }
 
                 if (id === 'settingCustomCursor') {
-                    const cursor = document.getElementById('customCursor');
-                    const dot = document.getElementById('customCursorDot');
-                    if (cursor) cursor.style.display = el.checked ? 'block' : 'none';
-                    if (dot) dot.style.display = el.checked ? 'block' : 'none';
+                    if (el.checked) {
+                        document.documentElement.classList.remove('no-custom-cursor');
+                    } else {
+                        document.documentElement.classList.add('no-custom-cursor');
+                    }
                 }
             });
         });
