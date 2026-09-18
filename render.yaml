@@ -11,8 +11,8 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.8
@@ -25,8 +25,8 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: FRONTEND_URL
-        value: https://frank-chat-vercel.app
+        value: https://frank-chat-app.vercel.app
       - key: CORS_ORIGINS
-        value: https://frank-chat-vercel.app,https://frank-chat-vercel.vercel.app,http://localhost:8000
+        value: https://frank-chat-app.vercel.app,https://frank-chat-vercel.app,https://frank-chat-vercel.vercel.app,http://localhost:8000
       - key: MAX_FILE_SIZE_MB
         value: "25"
