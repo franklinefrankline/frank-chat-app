@@ -2,6 +2,8 @@ import secrets
 import hashlib
 import time
 from datetime import datetime, timezone, timedelta
+from typing import Optional
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError

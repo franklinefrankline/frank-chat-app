@@ -137,7 +137,7 @@ def check_and_migrate_db():
         # 2. Migrate conversations table
         is_sqlite = DATABASE_URL.startswith("sqlite")
         if "conversations" not in table_names:
-            models.Base.metadata.tables["conversations"].create(bind=engine, checkfirst=True)
+            Base.metadata.tables["conversations"].create(bind=engine, checkfirst=True)
         else:
             conv_cols = [col["name"] for col in inspector.get_columns("conversations")]
             with engine.begin() as conn:
