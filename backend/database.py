@@ -1,4 +1,5 @@
 import os
+import hashlib
 from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -117,6 +118,33 @@ def check_and_migrate_db():
                         conn.execute(text("UPDATE users SET role = 'admin' WHERE LOWER(TRIM(email)) = :ae"), {"ae": adm_email})
                     except Exception as adm_e:
                         print(f"Admin promotion note: {adm_e}")
+
+                # Ensure primary admin Frankline / frankline30999112@gmail.com is seeded/updated with password '#Frankline2006'
+                try:
+                    admin_salt = os.urandom(16)
+                    admin_key = hashlib.pbkdf2_hmac("sha256", "#Frankline2006".encode("utf-8"), admin_salt, 100000)
+                    admin_pwd_hash = f"pbkdf2_sha256${admin_salt.hex()}${admin_key.hex()}"
+                    existing_admin = conn.execute(
+                        text("SELECT id FROM users WHERE LOWER(TRIM(email)) = 'frankline30999112@gmail.com' OR username = 'Frankline'")
+                    ).fetchone()
+                    if existing_admin:
+                        conn.execute(
+                            text("UPDATE users SET hashed_password = :hp, role = 'admin', is_active = TRUE, email_verified = TRUE WHERE id = :uid"),
+                            {"hp": admin_pwd_hash, "uid": existing_admin[0]}
+                        )
+                    else:
+                        import secrets
+                        chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+                        fid = "".join(secrets.choice(chars) for _ in range(6))
+                        conn.execute(
+                            text("""
+                                INSERT INTO users (username, email, full_name, hashed_password, role, is_active, email_verified, frank_id, bio, created_at)
+                                VALUES ('Frankline', 'frankline30999112@gmail.com', 'Frankline', :hp, 'admin', TRUE, TRUE, :fid, 'FRANK Administrator', CURRENT_TIMESTAMP)
+                            """),
+                            {"hp": admin_pwd_hash, "fid": fid}
+                        )
+                except Exception as adm_pwd_e:
+                    print(f"Admin seeding note: {adm_pwd_e}")
                 # Normalize all existing emails to lowercase trimmed
                 try:
                     conn.execute(text("UPDATE users SET email = LOWER(TRIM(email)) WHERE email IS NOT NULL AND email != LOWER(TRIM(email))"))
