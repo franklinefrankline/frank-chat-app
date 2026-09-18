@@ -211,6 +211,14 @@
                     <span>Privacy</span>
                 </a>
 
+                <a href="profile.html" class="nav-item" id="navProfileBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span>Profile</span>
+                </a>
+
                 <a href="settings.html" class="nav-item">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="3"></circle>
@@ -222,6 +230,32 @@
 
             <!-- Bottom Profile & Utilities -->
             <div class="sidebar-footer">
+                <!-- Dedicated Permanent Unique FRANK ID Card -->
+                <div class="sidebar-frank-id-card" id="sidebarFrankIdCard" style="margin-bottom: 12px; padding: 10px 12px; background: linear-gradient(135deg, rgba(37,99,235,0.14) 0%, rgba(6,182,212,0.06) 100%); border: 1px solid rgba(59,130,246,0.32); border-radius: var(--radius-lg); box-shadow: 0 4px 16px rgba(0,0,0,0.2);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                        <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--primary); display: flex; align-items: center; gap: 5px;">
+                            <span style="display:inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px var(--primary);"></span>
+                            UNIQUE FRANK ID
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <div style="font-family: 'JetBrains Mono', monospace, Consolas; font-size: 18px; font-weight: 900; letter-spacing: 2px; color: var(--text);" id="sidebarFrankIdCode">
+                            ------
+                        </div>
+                        <div style="display: flex; gap: 4px;">
+                            <button type="button" class="btn btn-secondary btn-sm" id="sidebarCopyFrankIdBtn" title="Copy FRANK ID" style="padding: 3px 8px; font-size: 11px; height: 26px;">
+                                Copy
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm" id="sidebarShareFrankIdBtn" title="Share FRANK ID" style="padding: 3px 8px; font-size: 11px; height: 26px;">
+                                Share
+                            </button>
+                        </div>
+                    </div>
+                    <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px; line-height: 1.2;">
+                        Permanent 6-char ID. Share to connect.
+                    </div>
+                </div>
+
                 <!-- User Profile Card -->
                 <div class="sidebar-user" id="sidebarUserCard" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="User profile menu">
                     <div class="avatar avatar-md" id="sidebarUserAvatar">
@@ -657,7 +691,29 @@
 
                 <!-- Section 1: Connect via FRANK ID -->
                 <div id="sectionNewPerson">
-                    <label class="form-label" for="newPersonFrankIdInput" style="font-weight: 700; margin-bottom: 8px; display: block;">Enter FRANK ID</label>
+                    <!-- Your Own Unique FRANK ID Card -->
+                    <div class="user-my-frank-id-banner" style="margin-bottom: 16px; padding: 12px 14px; background: linear-gradient(135deg, rgba(37,99,235,0.14) 0%, rgba(6,182,212,0.06) 100%); border: 1px solid rgba(59,130,246,0.32); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                        <div>
+                            <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--primary); display: flex; align-items: center; gap: 5px;">
+                                <span style="display:inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px var(--primary);"></span>
+                                YOUR UNIQUE FRANK ID
+                            </div>
+                            <div style="font-family: 'JetBrains Mono', monospace, Consolas; font-size: 19px; font-weight: 900; letter-spacing: 2px; color: var(--text); margin-top: 3px;" id="modalMyFrankIdCode">
+                                ------
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Share with friends so they can add you</div>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" class="btn btn-secondary btn-sm" id="modalCopyMyFrankIdBtn" title="Copy Your FRANK ID">
+                                Copy ID
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm" id="modalShareMyFrankIdBtn" title="Share Your FRANK ID">
+                                Share
+                            </button>
+                        </div>
+                    </div>
+
+                    <label class="form-label" for="newPersonFrankIdInput" style="font-weight: 700; margin-bottom: 8px; display: block;">Enter Friend's FRANK ID</label>
                     <div class="frank-id-input-box" style="display: flex; gap: 8px;">
                         <input type="text" class="form-input frank-id-input-field" id="newPersonFrankIdInput" placeholder="F4M8Q1" maxlength="6" autocomplete="off" spellcheck="false" style="font-family: monospace; font-size: 16px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">
                         <button type="button" class="btn btn-primary" id="searchFrankIdBtn" disabled style="white-space: nowrap; padding: 0 20px; font-weight: 600;">

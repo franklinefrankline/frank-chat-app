@@ -32,53 +32,106 @@ const profileModule = {
         await this.loadProfileData();
     },
 
+    renderUserData(user) {
+        if (!user) return;
+        let bioText = user.bio || 'Hey there! I am using FRANK.';
+        if (bioText.includes('ChatApp') || bioText.includes('QENVO')) {
+            bioText = bioText.replace(/ChatApp|QENVO/gi, 'FRANK');
+            user.bio = bioText;
+        }
+
+        const nameEl = document.getElementById('profileDisplayName');
+        const usernameEl = document.getElementById('profileUsername');
+        const bioEl = document.getElementById('profileBioText');
+        const emailEl = document.getElementById('profileEmail');
+        const joinedEl = document.getElementById('profileJoined');
+        const avatarEl = document.getElementById('profileAvatar');
+        const frankIdEl = document.getElementById('profileFrankId');
+
+        if (nameEl) nameEl.textContent = user.full_name || user.username || 'FRANK User';
+        if (usernameEl) usernameEl.textContent = `@${user.username || 'user'}`;
+        if (bioEl) bioEl.textContent = bioText;
+        if (emailEl) {
+            emailEl.textContent = user.email || 'user@example.com';
+            emailEl.title = user.email || '';
+        }
+        if (joinedEl && user.created_at) {
+            const parsedDate = window.messagesModule ? window.messagesModule.parseDate(user.created_at) : new Date(user.created_at);
+            joinedEl.textContent = parsedDate ? parsedDate.toLocaleDateString([], { month: 'long', year: 'numeric' }) : '';
+        }
+
+        if (frankIdEl) {
+            frankIdEl.textContent = user.frank_id || '------';
+        }
+
+        const copyFrankIdBtn = document.getElementById('copyFrankIdBtn');
+        if (copyFrankIdBtn) {
+            copyFrankIdBtn.onclick = () => {
+                if (user.frank_id) {
+                    navigator.clipboard.writeText(user.frank_id).then(() => {
+                        showToast(`FRANK ID ${user.frank_id} copied to clipboard!`, 'success');
+                    }).catch(() => {
+                        showToast(`Your FRANK ID is: ${user.frank_id}`, 'info');
+                    });
+                }
+            };
+        }
+
+        const shareFrankIdBtn = document.getElementById('shareFrankIdBtn');
+        if (shareFrankIdBtn) {
+            shareFrankIdBtn.onclick = () => {
+                if (user.frank_id) {
+                    const shareData = {
+                        title: 'Chat with me on FRANK',
+                        text: `Add me on FRANK with my unique FRANK ID: ${user.frank_id}`,
+                        url: window.location.origin
+                    };
+                    if (navigator.share) {
+                        navigator.share(shareData).catch(() => {});
+                    } else {
+                        navigator.clipboard.writeText(`Add me on FRANK! My unique FRANK ID is: ${user.frank_id}`).then(() => {
+                            showToast('Share message copied to clipboard!', 'success');
+                        });
+                    }
+                }
+            };
+        }
+
+        if (avatarEl) {
+            if (user.avatar_url) {
+                avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${user.full_name || 'User'}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;"><span class="avatar-status online" id="profileStatusDot"></span>`;
+            } else {
+                const initials = (user.full_name || user.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                avatarEl.innerHTML = `<span id="profileInitials">${initials}</span><span class="avatar-status online" id="profileStatusDot"></span>`;
+            }
+        }
+
+        // Populate form inputs
+        const editFullName = document.getElementById('editFullName');
+        const editBio = document.getElementById('editBio');
+        const editAvatar = document.getElementById('editAvatarUrl');
+        if (editFullName) editFullName.value = user.full_name || '';
+        if (editBio) editBio.value = bioText;
+        if (editAvatar) editAvatar.value = user.avatar_url || '';
+    },
+
     async loadProfileData() {
+        // 1. Immediately render locally cached user details with zero delay
+        const cached = auth.getUser();
+        if (cached) {
+            this.renderUserData(cached);
+        }
+
+        // 2. Fetch fresh user details from the backend
         try {
             const user = await api.getCurrentUser();
-            let bioText = user.bio || 'Hey there! I am using FRANK.';
-            if (bioText.includes('ChatApp') || bioText.includes('QENVO')) {
-                bioText = bioText.replace(/ChatApp|QENVO/gi, 'FRANK');
-                user.bio = bioText;
-            }
             auth.setUser(user);
-
-            const nameEl = document.getElementById('profileDisplayName');
-            const usernameEl = document.getElementById('profileUsername');
-            const bioEl = document.getElementById('profileBioText');
-            const emailEl = document.getElementById('profileEmail');
-            const joinedEl = document.getElementById('profileJoined');
-            const avatarEl = document.getElementById('profileAvatar');
-
-            if (nameEl) nameEl.textContent = user.full_name;
-            if (usernameEl) usernameEl.textContent = `@${user.username}`;
-            if (bioEl) bioEl.textContent = bioText;
-            if (emailEl) {
-                emailEl.textContent = user.email || 'user@example.com';
-                emailEl.title = user.email || '';
-            }
-            if (joinedEl && user.created_at) {
-                const parsedDate = window.messagesModule ? window.messagesModule.parseDate(user.created_at) : new Date(user.created_at);
-                joinedEl.textContent = parsedDate ? parsedDate.toLocaleDateString([], { month: 'long', year: 'numeric' }) : '';
-            }
-            if (avatarEl) {
-                if (user.avatar_url) {
-                    avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${user.full_name}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;"><span class="avatar-status online" id="profileStatusDot"></span>`;
-                } else {
-                    const initials = (user.full_name || user.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-                    avatarEl.innerHTML = `<span id="profileInitials">${initials}</span><span class="avatar-status online" id="profileStatusDot"></span>`;
-                }
-            }
-
-            // Populate form inputs
-            const editFullName = document.getElementById('editFullName');
-            const editBio = document.getElementById('editBio');
-            const editAvatar = document.getElementById('editAvatarUrl');
-            if (editFullName) editFullName.value = user.full_name;
-            if (editBio) editBio.value = bioText;
-            if (editAvatar) editAvatar.value = user.avatar_url || '';
-
+            this.renderUserData(user);
         } catch (err) {
-            showToast('Failed to load profile details', 'error');
+            console.warn('Network profile fetch warning:', err);
+            if (!cached) {
+                showToast('Failed to load profile details', 'error');
+            }
         }
     },
 

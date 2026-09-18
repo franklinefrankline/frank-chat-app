@@ -22,6 +22,7 @@ class AppController {
         this.setupMobileDrawer();
         this.setupFiltersAndSearch();
         this.setupNavigation();
+        this.setupSidebarUserMenu();
 
         document.getElementById('sidebarLogoutBtn')?.addEventListener('click', () => {
             auth.logout();
@@ -37,6 +38,13 @@ class AppController {
 
         // Fail-safe: ensure splash loading screen is always dismissed within 2.2s
         setTimeout(dismissLoader, 2200);
+
+        // 1. Immediately render cached user data with zero latency
+        const cachedUser = auth.getUser();
+        if (cachedUser) {
+            this.currentUser = cachedUser;
+            this.updateSidebarUser(cachedUser);
+        }
 
         try {
             this.currentUser = await api.getCurrentUser();
@@ -66,6 +74,24 @@ class AppController {
         }
     }
 
+    setupSidebarUserMenu() {
+        const userCard = document.getElementById('sidebarUserCard');
+        const userMenu = document.getElementById('sidebarUserMenu');
+        if (userCard && userMenu) {
+            userCard.addEventListener('click', (e) => {
+                if (e.target.closest('.dropdown-item')) return;
+                e.stopPropagation();
+                userMenu.classList.toggle('show');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!userCard.contains(e.target)) {
+                    userMenu.classList.remove('show');
+                }
+            });
+        }
+    }
+
     checkFirstTimeOnboarding() {
         const hasOnboarded = localStorage.getItem('frank_onboarded') || localStorage.getItem('qenvo_onboarded');
         if (!hasOnboarded) {
@@ -90,6 +116,7 @@ class AppController {
     }
 
     updateSidebarUser(user) {
+        if (!user) return;
         const nameEl = document.getElementById('sidebarUserName');
         const initialsEl = document.getElementById('sidebarUserInitials');
         if (nameEl) nameEl.textContent = user.full_name || user.username;
@@ -102,6 +129,57 @@ class AppController {
             statusEl.innerHTML = `<span style="font-family:monospace; font-weight:700; color:var(--primary); letter-spacing:0.8px;">ID: ${user.frank_id}</span>`;
             statusEl.title = `Your unique FRANK ID: ${user.frank_id}`;
         }
+
+        const sidebarFrankIdCode = document.getElementById('sidebarFrankIdCode');
+        if (sidebarFrankIdCode) {
+            sidebarFrankIdCode.textContent = user.frank_id || '------';
+        }
+
+        const modalMyFrankIdCode = document.getElementById('modalMyFrankIdCode');
+        if (modalMyFrankIdCode) {
+            modalMyFrankIdCode.textContent = user.frank_id || '------';
+        }
+
+        this.setupFrankIdButtons(user.frank_id);
+    }
+
+    setupFrankIdButtons(frankId) {
+        if (!frankId) return;
+
+        const copyAction = (e) => {
+            if (e) e.stopPropagation();
+            navigator.clipboard.writeText(frankId).then(() => {
+                showToast(`FRANK ID ${frankId} copied to clipboard!`, 'success');
+            }).catch(() => {
+                showToast(`Your FRANK ID is: ${frankId}`, 'info');
+            });
+        };
+
+        const shareAction = (e) => {
+            if (e) e.stopPropagation();
+            const shareData = {
+                title: 'Chat with me on FRANK',
+                text: `Add me on FRANK with my unique FRANK ID: ${frankId}`,
+                url: window.location.origin
+            };
+            if (navigator.share) {
+                navigator.share(shareData).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(`Add me on FRANK! My unique FRANK ID is: ${frankId}`).then(() => {
+                    showToast('Share message copied to clipboard!', 'success');
+                });
+            }
+        };
+
+        const sidebarCopyBtn = document.getElementById('sidebarCopyFrankIdBtn');
+        const sidebarShareBtn = document.getElementById('sidebarShareFrankIdBtn');
+        const modalCopyBtn = document.getElementById('modalCopyMyFrankIdBtn');
+        const modalShareBtn = document.getElementById('modalShareMyFrankIdBtn');
+
+        if (sidebarCopyBtn) sidebarCopyBtn.onclick = copyAction;
+        if (sidebarShareBtn) sidebarShareBtn.onclick = shareAction;
+        if (modalCopyBtn) modalCopyBtn.onclick = copyAction;
+        if (modalShareBtn) modalShareBtn.onclick = shareAction;
     }
 
     async loadConversations(autoSelectFirst = false) {
