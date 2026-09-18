@@ -99,6 +99,20 @@ def check_and_migrate_db():
                     conn.execute(text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE"))
                     # Backfill existing users as verified so existing accounts are preserved
                     conn.execute(text("UPDATE users SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE"))
+                if "role" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
+                    conn.execute(text("UPDATE users SET role = 'user' WHERE role IS NULL"))
+                if "is_active" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE"))
+                    conn.execute(text("UPDATE users SET is_active = TRUE WHERE is_active IS NULL"))
+                # Promote configured admin accounts
+                admin_emails_env = os.getenv("ADMIN_EMAILS", "frankline30999112@gmail.com")
+                admin_emails = [e.strip().lower() for e in admin_emails_env.split(",") if e.strip()]
+                for adm_email in admin_emails:
+                    try:
+                        conn.execute(text("UPDATE users SET role = 'admin' WHERE LOWER(TRIM(email)) = :ae"), {"ae": adm_email})
+                    except Exception as adm_e:
+                        print(f"Admin promotion note: {adm_e}")
                 # Normalize all existing emails to lowercase trimmed
                 try:
                     conn.execute(text("UPDATE users SET email = LOWER(TRIM(email)) WHERE email IS NOT NULL AND email != LOWER(TRIM(email))"))
@@ -249,6 +263,45 @@ def check_and_migrate_db():
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_evt_expires_at ON email_verification_tokens (expires_at)"))
                 except Exception as idx_err:
                     print(f"Index creation note: {idx_err}")
+
+        # 8. Ensure admin_audit_logs table exists
+        if "admin_audit_logs" not in table_names:
+            with engine.begin() as conn:
+                if is_sqlite:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS admin_audit_logs (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            admin_user_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL,
+                            action VARCHAR(50) NOT NULL,
+                            target_user_id INTEGER NULL,
+                            target_identifier VARCHAR(120) NULL,
+                            details TEXT NULL,
+                            ip_address VARCHAR(45) NULL,
+                            status VARCHAR(20) DEFAULT 'success' NOT NULL,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                else:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS admin_audit_logs (
+                            id SERIAL PRIMARY KEY,
+                            admin_user_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL,
+                            action VARCHAR(50) NOT NULL,
+                            target_user_id INTEGER NULL,
+                            target_identifier VARCHAR(120) NULL,
+                            details TEXT NULL,
+                            ip_address VARCHAR(45) NULL,
+                            status VARCHAR(20) DEFAULT 'success' NOT NULL,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                try:
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_aal_action ON admin_audit_logs (action)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_aal_admin_user_id ON admin_audit_logs (admin_user_id)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_aal_created_at ON admin_audit_logs (created_at)"))
+                except Exception as idx_err:
+                    print(f"Index creation note: {idx_err}")
+
 
     except Exception as e:
         print(f"Migration note: {e}")

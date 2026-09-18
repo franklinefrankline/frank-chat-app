@@ -57,6 +57,8 @@ class UserResponse(UserBase):
     avatar_url: Optional[str] = None
     is_online: bool = False
     email_verified: bool = False
+    role: str = "user"
+    is_active: bool = True
     last_seen: Optional[datetime] = None
     created_at: datetime
 
@@ -259,4 +261,89 @@ class RegisterResponse(BaseModel):
     email: str
     email_verified: bool = False
     frank_id: str
+
+
+# ---------------- ACCOUNT DELETION SCHEMAS ----------------
+class UserDeleteSelfRequest(BaseModel):
+    password: str = Field(..., min_length=1, description="Current password for identity verification")
+    confirm_text: Optional[str] = None
+
+
+# ---------------- ADMIN PORTAL SCHEMAS ----------------
+class AdminUserListItem(BaseModel):
+    id: int
+    frank_id: Optional[str] = None
+    username: str
+    email: str
+    full_name: str
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    role: str = "user"
+    is_active: bool = True
+    email_verified: bool = False
+    is_online: bool = False
+    created_at: Optional[datetime] = None
+    last_seen: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AdminStatsResponse(BaseModel):
+    total_users: int
+    verified_users: int
+    unverified_users: int
+    active_users: int
+    disabled_users: int
+    total_conversations: int
+    total_messages: int
+    total_groups: int
+    total_files: int
+    total_file_bytes: int
+    recent_registrations: List[AdminUserListItem]
+
+
+class AdminUsersPaginatedResponse(BaseModel):
+    items: List[AdminUserListItem]
+    total: int
+    page: int
+    limit: int
+    pages: int
+
+
+class AdminUserDetailResponse(AdminUserListItem):
+    conversation_count: int = 0
+    message_count: int = 0
+    group_count: int = 0
+    file_count: int = 0
+
+
+class AdminUserStatusUpdate(BaseModel):
+    is_active: bool
+    reason: Optional[str] = None
+
+
+class AdminAuditLogItem(BaseModel):
+    id: int
+    admin_user_id: Optional[int] = None
+    admin_username: Optional[str] = None
+    action: str
+    target_user_id: Optional[int] = None
+    target_identifier: Optional[str] = None
+    details: Optional[str] = None
+    ip_address: Optional[str] = None
+    status: str = "success"
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdminAuditLogsPaginatedResponse(BaseModel):
+    items: List[AdminAuditLogItem]
+    total: int
+    page: int
+    limit: int
+    pages: int
+
 

@@ -131,6 +131,13 @@ def get_current_user(
     if user is None:
         raise credentials_exception
 
+    # Enforce active account status
+    if hasattr(user, "is_active") and user.is_active is False:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been disabled. Please contact an administrator."
+        )
+
     # Auto-heal: Guarantee user always has a permanent 6-character frank_id
     if not user.frank_id or len(str(user.frank_id).strip()) != 6:
         from database import generate_unique_frank_id
@@ -145,6 +152,18 @@ def get_current_user(
     return user
 
 
+def get_current_admin(
+    current_user: models.User = Depends(get_current_user)
+) -> models.User:
+    """Dependency that strictly enforces administrator authorization on the server."""
+    if not hasattr(current_user, "role") or current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrator access required. Your account does not possess admin privileges."
+        )
+    return current_user
+
+
 def get_user_from_token(token: str, db: Session) -> Optional[models.User]:
     """Helper for WebSocket auth"""
     payload = decode_token(token)
@@ -153,4 +172,8 @@ def get_user_from_token(token: str, db: Session) -> Optional[models.User]:
     username = payload.get("sub")
     if not username:
         return None
-    return db.query(models.User).filter(models.User.username == username).first()
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if user and hasattr(user, "is_active") and user.is_active is False:
+        return None
+    return user
+

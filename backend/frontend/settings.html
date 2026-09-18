@@ -61,6 +61,10 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                     Security
                 </button>
+                <button type="button" class="settings-nav-btn" data-tab="account">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    Account
+                </button>
                 <button type="button" class="settings-nav-btn" data-tab="about">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                     About
@@ -253,7 +257,50 @@
                     </div>
                 </section>
 
-                <!-- 5. ABOUT TAB -->
+                <!-- 5. ACCOUNT TAB & DANGER ZONE -->
+                <section id="tabAccount" class="settings-tab-section" style="display:none;">
+                    <div class="settings-section-header">
+                        <h2 class="settings-title">Account Settings</h2>
+                        <p class="settings-desc">Manage your FRANK identity and account lifecycle.</p>
+                    </div>
+
+                    <div style="margin-bottom: var(--space-6);">
+                        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: var(--space-3);">Account Profile</h3>
+                        <div style="padding: 16px; background: var(--surface-elevated); border-radius: var(--radius-md); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                                <span style="color: var(--text-secondary);">Username</span>
+                                <strong id="settingsUsernameDisplay">...</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                                <span style="color: var(--text-secondary);">Email Address</span>
+                                <strong id="settingsEmailDisplay">...</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 14px; align-items: center;">
+                                <span style="color: var(--text-secondary);">FRANK ID</span>
+                                <span class="badge badge-info" id="settingsFrankIdDisplay">------</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="danger-zone-card" style="border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.04); padding: 20px; border-radius: var(--radius-md);">
+                        <h3 style="font-size: 15px; font-weight: 700; color: var(--danger); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            Danger Zone
+                        </h3>
+                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
+                            Permanently delete your FRANK account, messages, reactions, files, and group ownerships. Once deleted, your account cannot be recovered.
+                        </p>
+                        <button type="button" class="btn btn-danger" id="openDeleteSelfModalBtn" style="background: #ef4444; color: #fff; border: none; padding: 10px 18px; font-weight: 600; border-radius: 8px; cursor: pointer;">
+                            Delete My Account
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 6. ABOUT TAB -->
                 <section id="tabAbout" class="settings-tab-section" style="display:none;">
                     <div class="settings-section-header">
                         <h2 class="settings-title">About FRANK</h2>
@@ -271,6 +318,36 @@
             </div>
         </div>
     </main>
+
+    <!-- SELF ACCOUNT DELETION MODAL -->
+    <div class="admin-modal-backdrop" id="deleteSelfModal" style="position: fixed; inset: 0; background: rgba(5,8,23,0.85); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 500;">
+        <div class="admin-modal" style="background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 460px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); overflow: hidden;">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.1rem; color: #ef4444; font-weight: 700;">Permanently Delete Account</h3>
+                <button type="button" id="closeDeleteSelfModalBtn" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+            </div>
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 12px; border-radius: 8px; font-size: 0.85rem; line-height: 1.4;">
+                    <strong>Irreversible Action:</strong> All your chats, messages, files, and profile details will be permanently erased.
+                </div>
+                <div id="deleteSelfModalError" style="display: none; background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 10px; border-radius: 6px; font-size: 0.85rem;"></div>
+                <div class="form-group">
+                    <label class="form-label" for="deleteSelfPassword" style="font-size: 0.85rem; font-weight: 600;">Confirm your password:</label>
+                    <input type="password" id="deleteSelfPassword" class="form-input" placeholder="Current password" required autocomplete="current-password" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--background); color: var(--text);">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="deleteSelfConfirmText" style="font-size: 0.85rem; font-weight: 600;">Type <strong>DELETE</strong> to confirm:</label>
+                    <input type="text" id="deleteSelfConfirmText" class="form-input" placeholder="Type DELETE" required autocomplete="off" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--background); color: var(--text);">
+                </div>
+            </div>
+            <div style="padding: 14px 20px; border-top: 1px solid var(--border); background: var(--surface-elevated); display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn-outline btn-sm" id="cancelDeleteSelfBtn">Cancel</button>
+                <button type="button" class="btn btn-danger btn-sm" id="confirmDeleteSelfBtn" disabled style="background: #ef4444; color: #fff; font-weight: 600; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+                    Delete Forever
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="js/config.js"></script>

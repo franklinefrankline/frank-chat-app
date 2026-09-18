@@ -21,6 +21,8 @@ class User(Base):
     avatar_url = Column(String(255), default="")
     is_online = Column(Boolean, default=False)
     email_verified = Column(Boolean, default=False, nullable=False)
+    role = Column(String(20), default="user", nullable=False, index=True)
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
     last_seen = Column(DateTime(timezone=True), default=get_utc_now)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
     updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
@@ -163,3 +165,20 @@ class EmailVerificationToken(Base):
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
 
     user = relationship("User")
+
+
+class AdminAuditLog(Base):
+    __tablename__ = "admin_audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    admin_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    action = Column(String(50), nullable=False, index=True)
+    target_user_id = Column(Integer, nullable=True, index=True)
+    target_identifier = Column(String(120), nullable=True)
+    details = Column(Text, nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    status = Column(String(20), default="success", nullable=False)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
+
+    admin_user = relationship("User", foreign_keys=[admin_user_id])
+

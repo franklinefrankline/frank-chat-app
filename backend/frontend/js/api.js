@@ -422,6 +422,74 @@ const api = {
         return this.request(`/api/files/group/${groupId}`);
     },
 
+    // ── Self Account Deletion ─────────────────────────────────────────────
+    async deleteMyAccount(password, confirmation) {
+        return this.request('/api/users/me', {
+            method: 'DELETE',
+            body: JSON.stringify({ password, confirmation })
+        });
+    },
+
+    // ── Admin Portal API ─────────────────────────────────────────────────
+    async getAdminMe() {
+        return this.request('/api/admin/me');
+    },
+
+    async getAdminStats() {
+        return this.request('/api/admin/stats');
+    },
+
+    async getAdminUsers(params = {}) {
+        const query = new URLSearchParams();
+        if (params.search) query.append('search', params.search);
+        if (params.role) query.append('role', params.role);
+        if (params.is_active !== undefined && params.is_active !== '') query.append('is_active', params.is_active);
+        if (params.is_verified !== undefined && params.is_verified !== '') query.append('is_verified', params.is_verified);
+        if (params.sort_by) query.append('sort_by', params.sort_by);
+        if (params.sort_order) query.append('sort_order', params.sort_order);
+        if (params.page) query.append('page', params.page);
+        if (params.limit) query.append('limit', params.limit);
+        const qStr = query.toString();
+        return this.request(`/api/admin/users${qStr ? '?' + qStr : ''}`);
+    },
+
+    async getAdminUserDetail(userId) {
+        return this.request(`/api/admin/users/${userId}`);
+    },
+
+    async updateAdminUserStatus(userId, isActive, reason = '') {
+        return this.request(`/api/admin/users/${userId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ is_active: isActive, reason })
+        });
+    },
+
+    async deleteAdminUserData(userId) {
+        return this.request(`/api/admin/users/${userId}/data`, {
+            method: 'DELETE'
+        });
+    },
+
+    async deleteAdminUserAccount(userId) {
+        return this.request(`/api/admin/users/${userId}`, {
+            method: 'DELETE'
+        });
+    },
+
+    async getAdminConversations() {
+        return this.request('/api/admin/conversations');
+    },
+
+    async getAdminAuditLogs(params = {}) {
+        const query = new URLSearchParams();
+        if (params.action) query.append('action', params.action);
+        if (params.target_user_id) query.append('target_user_id', params.target_user_id);
+        if (params.page) query.append('page', params.page);
+        if (params.limit) query.append('limit', params.limit);
+        const qStr = query.toString();
+        return this.request(`/api/admin/audit-logs${qStr ? '?' + qStr : ''}`);
+    },
+
     // ── Auth: Logout ──────────────────────────────────────────────────────────
     logout() {
         this.setToken(null);

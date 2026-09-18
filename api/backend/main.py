@@ -16,7 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from database import engine, Base, SessionLocal
 import models
 from security import hash_password
-from routes import auth, users, messages, groups, files
+from routes import auth, users, messages, groups, files, conversations, admin
 from websocket.chat import handle_websocket_connection
 
 # Create database tables automatically
@@ -77,8 +77,13 @@ default_origins = [
     "https://frank-chat-vercel.vercel.app",
     "http://localhost:8000",
     "http://localhost:3000",
+    "http://localhost:5500",
+    "http://localhost:5173",
     "http://127.0.0.1:8000",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5500",
+    "http://127.0.0.1:5173",
+    "null"
 ]
 
 env_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
@@ -91,7 +96,6 @@ allowed_origins = list(set(default_origins + env_origins))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins if "*" not in env_origins else ["*"],
-    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -99,36 +103,23 @@ app.add_middleware(
 
 app.add_middleware(SecurityHeadersMiddleware)
 
-# Handle both /api/... and stripped paths in case of serverless path rewriting
-@app.middleware("http")
-async def ensure_api_prefix(request: Request, call_next):
-    path = request.url.path
-    for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health"]:
-        if path.startswith(pfx):
-            request.scope["path"] = "/api" + path
-            break
-    response = await call_next(request)
-    return response
-
-# Include Routers with both /api prefix and root prefix
-for r in [auth.router, users.router, messages.router, groups.router, files.router]:
-    app.include_router(r, prefix="/api")
-    app.include_router(r)
+# Include Routers
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(conversations.router)
+app.include_router(messages.router)
+app.include_router(groups.router)
+app.include_router(files.router)
+app.include_router(admin.router)
 
 
 # WebSocket Gateway
 @app.websocket("/ws/{token}")
-@app.websocket("/api/ws/{token}")
 async def websocket_endpoint(websocket: WebSocket, token: str):
     await handle_websocket_connection(websocket, token)
 
 
-@app.get("/")
-@app.get("/api")
-@app.get("/api/")
-@app.get("/api/index.py")
 @app.get("/api/health")
-@app.get("/health")
 def health_check():
     return {
         "status": "healthy",
@@ -199,6 +190,14 @@ if frontend_dir and frontend_dir.exists():
     def serve_forgot_password():
         return FileResponse(frontend_dir / "forgot-password.html")
 
+    @app.get("/admin")
+    def serve_admin():
+        return FileResponse(frontend_dir / "admin.html")
+
+    @app.get("/admin-login")
+    def serve_admin_login():
+        return FileResponse(frontend_dir / "admin-login.html")
+
     @app.get("/{filename}.html")
     def serve_html_page(filename: str):
         target = frontend_dir / f"{filename}.html"
@@ -211,4 +210,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     host = os.environ.get("HOST", "0.0.0.0")
-    uvicorn.run("main:app", host=host, port=port, reload=False)
+    uvicorn.run(app, host=host, port=port)

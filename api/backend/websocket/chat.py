@@ -90,6 +90,25 @@ class ConnectionManager:
             if uid in self.active_connections and not self.active_connections[uid]:
                 del self.active_connections[uid]
 
+    async def force_disconnect_user(self, user_id: int, reason: str = "account_disabled"):
+        """Immediately closes and removes all active sockets for the specified user."""
+        if user_id is None:
+            return
+        uid = int(user_id)
+        if uid in self.active_connections:
+            sockets = list(self.active_connections[uid])
+            for ws in sockets:
+                try:
+                    await ws.send_text(json.dumps({
+                        "type": "account_status",
+                        "status": reason,
+                        "message": "Your account has been disabled or removed."
+                    }))
+                    await ws.close(code=1008, reason=reason)
+                except Exception:
+                    pass
+            self.active_connections.pop(uid, None)
+
     async def broadcast(self, data: dict, exclude_user_id: int = None):
         message_text = json.dumps(data)
         ex_uid = int(exclude_user_id) if exclude_user_id is not None else None
@@ -202,6 +221,7 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                             logger.warning(f"Unauthorized group message attempt from user {user_id} to group {group_id}")
                             continue
 
+                    is_self = (recipient_id is not None and recipient_id == user_id)
                     conv_id = None
                     if recipient_id:
                         conv, _ = get_or_create_private_conversation(user_id, recipient_id, db_session)
@@ -249,6 +269,7 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                         "message": {
                             "id": msg.id,
                             "message_id": msg.id,
+                            "conversation_id": msg.conversation_id,
                             "sender_id": msg.sender_id,
                             "recipient_id": msg.recipient_id,
                             "group_id": msg.group_id,

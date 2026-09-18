@@ -16,7 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from database import engine, Base, SessionLocal
 import models
 from security import hash_password
-from routes import auth, users, messages, groups, files, conversations
+from routes import auth, users, messages, groups, files, conversations, admin
 from websocket.chat import handle_websocket_connection
 
 # Create database tables automatically
@@ -110,6 +110,7 @@ app.include_router(conversations.router)
 app.include_router(messages.router)
 app.include_router(groups.router)
 app.include_router(files.router)
+app.include_router(admin.router)
 
 
 # WebSocket Gateway
@@ -188,6 +189,14 @@ if frontend_dir and frontend_dir.exists():
     @app.get("/forgot-password")
     def serve_forgot_password():
         return FileResponse(frontend_dir / "forgot-password.html")
+
+    @app.get("/admin")
+    def serve_admin():
+        return FileResponse(frontend_dir / "admin.html")
+
+    @app.get("/admin-login")
+    def serve_admin_login():
+        return FileResponse(frontend_dir / "admin-login.html")
 
     @app.get("/{filename}.html")
     def serve_html_page(filename: str):

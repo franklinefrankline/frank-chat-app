@@ -20,6 +20,7 @@ const settingsModule = {
             notifications: document.getElementById('tabNotifications'),
             privacy: document.getElementById('tabPrivacy'),
             security: document.getElementById('tabSecurity'),
+            account: document.getElementById('tabAccount'),
             about: document.getElementById('tabAbout')
         };
 
@@ -34,7 +35,90 @@ const settingsModule = {
                         sections[key].style.display = key === tab ? 'block' : 'none';
                     }
                 });
+
+                if (tab === 'account') {
+                    this.loadAccountInfo();
+                }
             });
+        });
+
+        this.setupAccountTab();
+    },
+
+    async loadAccountInfo() {
+        try {
+            const user = await api.getMe();
+            const uName = document.getElementById('settingsUsernameDisplay');
+            const uEmail = document.getElementById('settingsEmailDisplay');
+            const uFrankId = document.getElementById('settingsFrankIdDisplay');
+
+            if (uName) uName.textContent = `@${user.username}`;
+            if (uEmail) uEmail.textContent = user.email;
+            if (uFrankId) uFrankId.textContent = user.frank_id || '------';
+        } catch (e) {
+            console.warn('Could not load profile for account tab:', e);
+        }
+    },
+
+    setupAccountTab() {
+        const openModalBtn = document.getElementById('openDeleteSelfModalBtn');
+        const modal = document.getElementById('deleteSelfModal');
+        const closeModalBtn = document.getElementById('closeDeleteSelfModalBtn');
+        const cancelBtn = document.getElementById('cancelDeleteSelfBtn');
+        const confirmBtn = document.getElementById('confirmDeleteSelfBtn');
+        const pwdInput = document.getElementById('deleteSelfPassword');
+        const confirmInput = document.getElementById('deleteSelfConfirmText');
+        const errorBox = document.getElementById('deleteSelfModalError');
+
+        if (!modal) return;
+
+        const closeModal = () => {
+            modal.style.display = 'none';
+            if (pwdInput) pwdInput.value = '';
+            if (confirmInput) confirmInput.value = '';
+            if (confirmBtn) confirmBtn.disabled = true;
+            if (errorBox) {
+                errorBox.style.display = 'none';
+                errorBox.textContent = '';
+            }
+        };
+
+        openModalBtn?.addEventListener('click', () => {
+            modal.style.display = 'flex';
+        });
+
+        closeModalBtn?.addEventListener('click', closeModal);
+        cancelBtn?.addEventListener('click', closeModal);
+
+        const validateInputs = () => {
+            const isConfirmed = (confirmInput?.value.trim().toUpperCase() === 'DELETE');
+            const hasPwd = Boolean(pwdInput?.value);
+            if (confirmBtn) confirmBtn.disabled = !(isConfirmed && hasPwd);
+        };
+
+        pwdInput?.addEventListener('input', validateInputs);
+        confirmInput?.addEventListener('input', validateInputs);
+
+        confirmBtn?.addEventListener('click', async () => {
+            if (!pwdInput?.value) return;
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Deleting...';
+            if (errorBox) errorBox.style.display = 'none';
+
+            try {
+                await api.deleteMyAccount(pwdInput.value, confirmInput.value);
+                api.setToken(null);
+                localStorage.removeItem('chatapp_user');
+                alert('Your FRANK account and all data have been permanently deleted.');
+                window.location.href = 'login.html?account_deleted=1';
+            } catch (err) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Delete Forever';
+                if (errorBox) {
+                    errorBox.textContent = err.message || 'Failed to delete account. Please verify your password.';
+                    errorBox.style.display = 'block';
+                }
+            }
         });
     },
 

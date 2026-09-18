@@ -90,6 +90,25 @@ class ConnectionManager:
             if uid in self.active_connections and not self.active_connections[uid]:
                 del self.active_connections[uid]
 
+    async def force_disconnect_user(self, user_id: int, reason: str = "account_disabled"):
+        """Immediately closes and removes all active sockets for the specified user."""
+        if user_id is None:
+            return
+        uid = int(user_id)
+        if uid in self.active_connections:
+            sockets = list(self.active_connections[uid])
+            for ws in sockets:
+                try:
+                    await ws.send_text(json.dumps({
+                        "type": "account_status",
+                        "status": reason,
+                        "message": "Your account has been disabled or removed."
+                    }))
+                    await ws.close(code=1008, reason=reason)
+                except Exception:
+                    pass
+            self.active_connections.pop(uid, None)
+
     async def broadcast(self, data: dict, exclude_user_id: int = None):
         message_text = json.dumps(data)
         ex_uid = int(exclude_user_id) if exclude_user_id is not None else None

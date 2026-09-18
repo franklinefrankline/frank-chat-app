@@ -5,7 +5,8 @@ from sqlalchemy import or_, desc
 from database import get_db
 import models
 import schemas
-from security import get_current_user
+from security import get_current_user, verify_password
+from services.user_cleanup import delete_user_account_permanently, force_disconnect_ws
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
@@ -31,6 +32,33 @@ def get_users(
 @router.get("/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+
+@router.delete("/me")
+async def delete_my_account(
+    payload: schemas.UserDeleteSelfRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Permanently deletes current user account, conversations, messages, files,
+    and invalidates active sessions. Requires password re-authentication.
+    """
+    if not verify_password(payload.password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect password. Account deletion aborted."
+        )
+
+    user_id = current_user.id
+    await force_disconnect_ws(user_id, reason="account_deleted")
+    delete_user_account_permanently(db, current_user)
+
+    return {
+        "success": True,
+        "message": "Your account and all associated data have been permanently deleted."
+    }
+
 
 
 @router.get("/profile", response_model=schemas.UserResponse)
