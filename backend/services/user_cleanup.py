@@ -185,8 +185,7 @@ def delete_user_account_permanently(db: Session, user: models.User) -> Dict[str,
         )
     ).delete(synchronize_session=False)
 
-    # 8. Delete verification tokens and password reset tokens
-    db.query(models.EmailVerificationToken).filter(models.EmailVerificationToken.user_id == user_id).delete(synchronize_session=False)
+    # 8. Delete password reset tokens
     db.query(models.PasswordResetToken).filter(models.PasswordResetToken.user_id == user_id).delete(synchronize_session=False)
 
     # 9. Anonymize admin audit logs where this user was the admin

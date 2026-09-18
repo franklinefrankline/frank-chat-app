@@ -20,7 +20,7 @@ class User(Base):
     bio = Column(String(255), default="Hey there! I am using FRANK.")
     avatar_url = Column(String(255), default="")
     is_online = Column(Boolean, default=False)
-    email_verified = Column(Boolean, default=False, nullable=False)
+    email_verified = Column(Boolean, default=True, nullable=False)
     role = Column(String(20), default="user", nullable=False, index=True)
     is_active = Column(Boolean, default=True, nullable=False, index=True)
     last_seen = Column(DateTime(timezone=True), default=get_utc_now)
@@ -143,19 +143,6 @@ class GroupMember(Base):
 
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    token_hash = Column(String(64), nullable=False, unique=True, index=True)
-    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
-    used = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=get_utc_now)
-
-    user = relationship("User")
-
-
-class EmailVerificationToken(Base):
-    __tablename__ = "email_verification_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)

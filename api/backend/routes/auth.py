@@ -18,12 +18,6 @@ from security import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     decode_token
 )
-from services.email import (
-    send_verification_email,
-    send_password_reset_email,
-    get_frontend_url
-)
-
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
@@ -74,7 +68,7 @@ def register(user_in: schemas.UserRegister, request: Request = None, db: Session
     # 3. Generate permanent 6-character unique FRANK ID
     fid = generate_unique_frank_id(db)
 
-    # 4. Create user with normalized email & email_verified = False
+    # 4. Create user with normalized email & email_verified = True, is_active = True
     user = models.User(
         frank_id=fid,
         username=clean_username,
@@ -82,7 +76,8 @@ def register(user_in: schemas.UserRegister, request: Request = None, db: Session
         full_name=user_in.full_name.strip(),
         hashed_password=hash_password(user_in.password),
         bio="Hey there! I am using FRANK.",
-        email_verified=False
+        email_verified=True,
+        is_active=True
     )
     try:
         db.add(user)
@@ -112,36 +107,10 @@ def register(user_in: schemas.UserRegister, request: Request = None, db: Session
             db.rollback()
             raise HTTPException(status_code=500, detail="Account registration could not be completed.")
 
-    # 5. Generate secure email verification token (32 bytes urlsafe)
-    raw_token = secrets.token_urlsafe(32)
-    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
-
-    verif_token = models.EmailVerificationToken(
-        user_id=user.id,
-        token_hash=token_hash,
-        expires_at=expires_at,
-        used=False
-    )
-    db.add(verif_token)
-    db.commit()
-
-    # 6. Send verification email via Resend
-    frontend_base = get_frontend_url()
-    verify_url = f"{frontend_base}/verify-email?token={raw_token}"
-    try:
-        send_verification_email(
-            to_email=user.email,
-            verify_url=verify_url,
-            user_name=user.full_name
-        )
-    except Exception as email_err:
-        print(f"[AUTH ERROR] Failed to dispatch verification email: {email_err}")
-
     return {
-        "message": "Account created successfully. We've sent a verification link to your email. Please verify your email before signing in.",
+        "success": True,
+        "message": "Account created successfully! Your FRANK account is ready. You can now sign in.",
         "email": clean_email,
-        "email_verified": False,
         "frank_id": fid
     }
 
@@ -166,11 +135,11 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    # Check email verification status
-    if not user.email_verified:
+    # Check active status
+    if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Please verify your email before signing in."
+            detail="Your account has been disabled. Please contact an administrator."
         )
 
     # Guarantee user has a permanent frank_id (for any legacy accounts)
@@ -231,297 +200,28 @@ def ensure_frank_id(
     return current_user
 
 
-@router.get("/verify-email", response_model=schemas.VerifyEmailResponse)
-def verify_email(token: str, db: Session = Depends(get_db)):
-    if not token or not token.strip():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Verification token is required."
-        )
-
-    token_hash = hashlib.sha256(token.strip().encode("utf-8")).hexdigest()
-    record = db.query(models.EmailVerificationToken).filter(
-        models.EmailVerificationToken.token_hash == token_hash
-    ).first()
-
-    if not record:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired verification link."
-        )
-
-    if record.used:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This verification link has already been used. Please sign in."
-        )
-
-    now_utc = datetime.now(timezone.utc)
-    rec_expires = record.expires_at
-    if rec_expires.tzinfo is None:
-        rec_expires = rec_expires.replace(tzinfo=timezone.utc)
-
-    if now_utc > rec_expires:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This verification link has expired. Please request a new verification email."
-        )
-
-    user = db.query(models.User).filter(models.User.id == record.user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User account not found."
-        )
-
-    # If already verified
-    if user.email_verified:
-        record.used = True
-        db.commit()
-        return {
-            "success": True,
-            "message": "Email already verified. Your FRANK account is active.",
-            "email_verified": True
-        }
-
-    # Mark user as email_verified = True
-    user.email_verified = True
-    record.used = True
-
-    # Invalidate other pending verification tokens for this user
-    db.query(models.EmailVerificationToken).filter(
-        models.EmailVerificationToken.user_id == user.id,
-        models.EmailVerificationToken.used == False
-    ).update({"used": True}, synchronize_session=False)
-
-    db.commit()
-
-    return {
-        "success": True,
-        "message": "Email verified successfully! Your FRANK account is now active.",
-        "email_verified": True
-    }
-
-
-@router.post("/resend-verification")
-def resend_verification(req: schemas.ResendVerificationRequest, request: Request, db: Session = Depends(get_db)):
-    clean_email = req.email.strip().lower()
-    client_ip = request.client.host if request.client else "unknown"
-    rate_key = f"resend_verif:{client_ip}:{clean_email}"
-
-    if not check_rate_limit(rate_key, max_requests=5, window_seconds=900):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many verification requests. Please wait a few minutes and try again."
-        )
-
-    user = db.query(models.User).filter(models.User.email == clean_email).first()
-
-    # Only send if account exists and is not already verified
-    if user and not user.email_verified:
-        # Invalidate previous unused verification tokens
-        db.query(models.EmailVerificationToken).filter(
-            models.EmailVerificationToken.user_id == user.id,
-            models.EmailVerificationToken.used == False
-        ).update({"used": True}, synchronize_session=False)
-
-        raw_token = secrets.token_urlsafe(32)
-        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-        expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
-
-        verif_token = models.EmailVerificationToken(
-            user_id=user.id,
-            token_hash=token_hash,
-            expires_at=expires_at,
-            used=False
-        )
-        db.add(verif_token)
-        db.commit()
-
-        frontend_base = get_frontend_url()
-        verify_url = f"{frontend_base}/verify-email?token={raw_token}"
-        try:
-            send_verification_email(
-                to_email=user.email,
-                verify_url=verify_url,
-                user_name=user.full_name
-            )
-        except Exception as email_err:
-            print(f"[AUTH ERROR] Failed to resend verification email: {email_err}")
-
-    # Generic response for email enumeration protection
-    return {
-        "message": "If an unverified account exists with this email, a new verification link has been sent."
-    }
-
 
 @router.post("/forgot-password")
-def forgot_password(req: schemas.ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
-    clean_email = req.email.strip().lower()
-
-    # Rate limit by client IP and normalized email
-    client_ip = request.client.host if request.client else "unknown"
-    rate_key = f"pwd_reset:{client_ip}:{clean_email}"
-    if not check_rate_limit(rate_key, max_requests=5, window_seconds=900):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many password reset requests. Please wait a few minutes and try again."
-        )
-
-    # 1. Look up user quietly without revealing existence (email enumeration protection)
-    user = db.query(models.User).filter(models.User.email == clean_email).first()
-
-    if user:
-        # 2. Invalidate previous unused reset tokens for this user
-        db.query(models.PasswordResetToken).filter(
-            models.PasswordResetToken.user_id == user.id,
-            models.PasswordResetToken.used == False
-        ).update({"used": True}, synchronize_session=False)
-
-        # 3. Generate cryptographically secure random 32-byte token
-        raw_token = secrets.token_urlsafe(32)
-        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-
-        # 4. Expiration: 30 minutes from now (UTC)
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
-
-        # 5. Store ONLY the token hash in the database
-        reset_record = models.PasswordResetToken(
-            user_id=user.id,
-            token_hash=token_hash,
-            expires_at=expires_at,
-            used=False
-        )
-        db.add(reset_record)
-        db.commit()
-
-        # 6. Build reset URL pointing to FRONTEND_URL
-        frontend_base = get_frontend_url()
-        reset_url = f"{frontend_base}/reset-password?token={raw_token}"
-
-        # 7. Dispatch email via Resend
-        try:
-            send_password_reset_email(
-                to_email=user.email,
-                reset_url=reset_url,
-                user_name=user.full_name
-            )
-        except Exception as email_err:
-            print(f"[AUTH ERROR] Failed to dispatch reset email: {email_err}")
-
-    # Generic security response: never reveal whether the email exists
+def forgot_password(req: schemas.ForgotPasswordRequest, request: Request = None, db: Session = Depends(get_db)):
     return {
-        "message": "If an account exists with this email, password reset instructions have been sent."
+        "success": False,
+        "message": "Password recovery is currently unavailable. Please contact an administrator."
     }
 
 
-@router.get("/verify-reset-token", response_model=schemas.VerifyResetTokenResponse)
+@router.get("/verify-reset-token")
 def verify_reset_token(token: str, db: Session = Depends(get_db)):
-    if not token or not token.strip():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reset token is required."
-        )
-
-    token_hash = hashlib.sha256(token.strip().encode("utf-8")).hexdigest()
-    record = db.query(models.PasswordResetToken).filter(
-        models.PasswordResetToken.token_hash == token_hash
-    ).first()
-
-    if not record:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired reset link."
-        )
-
-    if record.used:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This password reset link is invalid or has already been used."
-        )
-
-    now_utc = datetime.now(timezone.utc)
-    # Handle timezone-aware and naive comparison safely
-    record_expires = record.expires_at
-    if record_expires.tzinfo is None:
-        record_expires = record_expires.replace(tzinfo=timezone.utc)
-
-    if now_utc > record_expires:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reset link has expired. Please request a new password reset link."
-        )
-
-    return {"valid": True, "message": "Token is valid."}
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Password recovery is currently unavailable. Please contact an administrator."
+    )
 
 
 @router.post("/reset-password")
 def reset_password(req: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
-    raw_token = req.token.strip()
-    if not raw_token:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reset token is required."
-        )
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Password recovery is currently unavailable. Please contact an administrator."
+    )
 
-    if len(req.new_password) < 8:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 8 characters long."
-        )
-
-    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-    record = db.query(models.PasswordResetToken).filter(
-        models.PasswordResetToken.token_hash == token_hash
-    ).first()
-
-    if not record:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired reset link."
-        )
-
-    if record.used:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This password reset link is invalid or has already been used."
-        )
-
-    now_utc = datetime.now(timezone.utc)
-    record_expires = record.expires_at
-    if record_expires.tzinfo is None:
-        record_expires = record_expires.replace(tzinfo=timezone.utc)
-
-    if now_utc > record_expires:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reset link has expired. Please request a new password reset link."
-        )
-
-    user = db.query(models.User).filter(models.User.id == record.user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User account associated with this reset link does not exist."
-        )
-
-    # 1. Update password using PBKDF2-HMAC-SHA256
-    user.hashed_password = hash_password(req.new_password)
-    user.updated_at = datetime.now(timezone.utc)
-
-    # 2. Mark this token as used
-    record.used = True
-
-    # 3. Invalidate any other active reset tokens for this user
-    db.query(models.PasswordResetToken).filter(
-        models.PasswordResetToken.user_id == user.id,
-        models.PasswordResetToken.used == False
-    ).update({"used": True}, synchronize_session=False)
-
-    db.commit()
-
-    return {
-        "success": True,
-        "message": "Password reset successfully. Your password has been updated."
-    }
 

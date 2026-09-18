@@ -56,7 +56,7 @@ class UserResponse(UserBase):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     is_online: bool = False
-    email_verified: bool = False
+    email_verified: bool = True
     role: str = "user"
     is_active: bool = True
     last_seen: Optional[datetime] = None
@@ -245,21 +245,10 @@ class VerifyResetTokenResponse(BaseModel):
     message: Optional[str] = None
 
 
-# ---------------- EMAIL VERIFICATION SCHEMAS ----------------
-
-class ResendVerificationRequest(BaseModel):
-    email: str = Field(..., min_length=5, max_length=120)
-
-
-class VerifyEmailResponse(BaseModel):
+class RegisterResponse(BaseModel):
     success: bool = True
     message: str
-
-
-class RegisterResponse(BaseModel):
-    message: str
     email: str
-    email_verified: bool = False
     frank_id: str
 
 

@@ -96,9 +96,13 @@ def check_and_migrate_db():
                 if "updated_at" not in user_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE NULL"))
                 if "email_verified" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE"))
-                    # Backfill existing users as verified so existing accounts are preserved
-                    conn.execute(text("UPDATE users SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT TRUE"))
+                # Ensure all users are marked verified so verification is never a requirement
+                conn.execute(text("UPDATE users SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE"))
+                try:
+                    conn.execute(text("DROP TABLE IF EXISTS email_verification_tokens"))
+                except Exception as drop_err:
+                    print(f"Drop tokens note: {drop_err}")
                 if "role" not in user_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
                     conn.execute(text("UPDATE users SET role = 'user' WHERE role IS NULL"))

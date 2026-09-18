@@ -253,6 +253,13 @@ if (loginForm) {
         }
     });
 
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('registered')) {
+            showToast('Account created successfully! Please sign in.', 'success', 5000);
+        }
+    } catch (_) {}
+
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -287,46 +294,9 @@ if (loginForm) {
             showToast(`Welcome back, ${data.user.full_name}!`, 'success', 1000);
             window.location.replace('dashboard.html');
         } catch (err) {
-            const isUnverified = err.status === 403 || (err.message && err.message.toLowerCase().includes('verify your email'));
             const isConnErr = err.status === 0 || (err.message && err.message.toLowerCase().includes('cannot reach'));
 
-            if (isUnverified) {
-                let unverifiedBanner = document.getElementById('loginUnverifiedAlert');
-                if (!unverifiedBanner) {
-                    unverifiedBanner = document.createElement('div');
-                    unverifiedBanner.id = 'loginUnverifiedAlert';
-                    unverifiedBanner.style.cssText = 'padding: 16px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; margin-bottom: 20px; text-align: center;';
-                    loginForm.parentNode.insertBefore(unverifiedBanner, loginForm);
-                }
-                unverifiedBanner.innerHTML = `
-                    <div style="font-weight: 700; color: #ef4444; font-size: 15px; margin-bottom: 6px;">Email verification required</div>
-                    <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">Please verify your email before signing in. Check your inbox for the activation link.</div>
-                    <button type="button" class="btn btn-secondary btn-full" id="bannerResendBtn" style="font-size: 13px; padding: 8px 16px;">
-                        <span class="btn-text">Resend Verification Email</span>
-                    </button>
-                `;
-                const bannerBtn = document.getElementById('bannerResendBtn');
-                bannerBtn?.addEventListener('click', async () => {
-                    const identifier = usernameInput.value.trim();
-                    if (!identifier || !identifier.includes('@')) {
-                        showToast('Please enter your email in the username/email field above to resend.', 'warning');
-                        usernameInput.focus();
-                        return;
-                    }
-                    bannerBtn.disabled = true;
-                    bannerBtn.querySelector('.btn-text').textContent = 'Sending...';
-                    try {
-                        const res = await api.resendVerification(identifier);
-                        showToast(res.message || 'Verification link sent! Check your inbox.', 'success', 4000);
-                        bannerBtn.querySelector('.btn-text').textContent = 'Email Sent!';
-                    } catch (rErr) {
-                        showToast(rErr.message || 'Failed to resend verification email.', 'error');
-                        bannerBtn.disabled = false;
-                        bannerBtn.querySelector('.btn-text').textContent = 'Resend Verification Email';
-                    }
-                });
-                showToast('Please verify your email before signing in.', 'warning', 4000);
-            } else if (isConnErr) {
+            if (isConnErr) {
                 showConnectionAlert(loginForm);
                 showToast('Cannot reach the FRANK backend server.', 'error', 5000);
             } else {
@@ -441,51 +411,31 @@ if (registerForm) {
         try {
             const data = await api.register({ full_name, username, email, password });
 
-            // Render unverified registration confirmation state
+            // Render direct registration success state
             const cardBody = registerForm.parentNode;
             cardBody.innerHTML = `
                 <div class="auth-card-header" style="text-align: center; margin-bottom: 24px;">
-                    <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(37, 99, 235, 0.15); border: 2px solid var(--primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: var(--primary);">
+                    <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); border: 2px solid #10b981; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #10b981;">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                            <polyline points="22,6 12,13 2,6"></polyline>
+                            <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                     </div>
                     <h1 class="auth-card-title" style="font-size: 22px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">Account created successfully</h1>
                     <p class="auth-card-subtitle" style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
-                        We've sent a verification link to <strong style="color: #FFFFFF;">${data.email || email}</strong>.<br>
-                        Please verify your email before signing in.
+                        Your FRANK account is ready. You can now sign in.
                     </p>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
-                    <a href="login.html" class="btn btn-primary btn-full btn-large">
+                    <a href="login.html?registered=1" class="btn btn-primary btn-full btn-large">
                         Open Login
                     </a>
-                    <button type="button" class="btn btn-secondary btn-full" id="regResendBtn">
-                        <span class="btn-text">Resend Verification Email</span>
-                    </button>
-                </div>
-                <div style="text-align: center; margin-top: 20px;">
-                    <span style="font-size: 12px; color: var(--text-muted);">Didn't receive the email? Check your spam folder or click resend above.</span>
                 </div>
             `;
 
-            const regResendBtn = document.getElementById('regResendBtn');
-            regResendBtn?.addEventListener('click', async () => {
-                regResendBtn.disabled = true;
-                regResendBtn.querySelector('.btn-text').textContent = 'Sending...';
-                try {
-                    const res = await api.resendVerification(data.email || email);
-                    showToast(res.message || 'Verification link sent! Check your inbox.', 'success', 4000);
-                    regResendBtn.querySelector('.btn-text').textContent = 'Email Sent!';
-                } catch (err) {
-                    showToast(err.message || 'Failed to resend verification email.', 'error');
-                    regResendBtn.disabled = false;
-                    regResendBtn.querySelector('.btn-text').textContent = 'Resend Verification Email';
-                }
-            });
-
-            showToast('Account created! Please check your email.', 'success', 4000);
+            showToast('Account created successfully! Redirecting to login...', 'success', 3000);
+            setTimeout(() => {
+                window.location.href = 'login.html?registered=1';
+            }, 2200);
         } catch (err) {
             const isDuplicate = err.message && err.message.toLowerCase().includes('already registered');
             if (isDuplicate) {

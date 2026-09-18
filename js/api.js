@@ -127,17 +127,6 @@ const api = {
         return preferredId;
     },
 
-    async verifyEmail(token) {
-        return this.request(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
-    },
-
-    async resendVerification(email) {
-        return this.request('/api/auth/resend-verification', {
-            method: 'POST',
-            body: JSON.stringify({ email })
-        });
-    },
-
     async forgotPassword(email) {
         return this.request('/api/auth/forgot-password', {
             method: 'POST',
