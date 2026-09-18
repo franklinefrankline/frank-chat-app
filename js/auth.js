@@ -11,7 +11,11 @@ const auth = {
     getUser() {
         try {
             const raw = localStorage.getItem('chatapp_user');
-            return raw ? JSON.parse(raw) : null;
+            const user = raw ? JSON.parse(raw) : null;
+            if (user && (!user.frank_id || user.frank_id === '------' || String(user.frank_id).trim().length !== 6)) {
+                user.frank_id = this.getFrankId(user);
+            }
+            return user;
         } catch {
             return null;
         }
@@ -19,10 +23,70 @@ const auth = {
 
     setUser(user) {
         if (user) {
+            if (!user.frank_id || user.frank_id === '------' || String(user.frank_id).trim().length !== 6) {
+                user.frank_id = this.getFrankId(user);
+            }
             localStorage.setItem('chatapp_user', JSON.stringify(user));
         } else {
             localStorage.removeItem('chatapp_user');
         }
+    },
+
+    getFrankId(user) {
+        if (!user) {
+            try {
+                const raw = localStorage.getItem('chatapp_user');
+                user = raw ? JSON.parse(raw) : null;
+            } catch {
+                user = null;
+            }
+        }
+        if (!user) return '------';
+
+        // 1. If valid 6-character FRANK ID exists, normalize to uppercase and cache
+        if (user.frank_id && user.frank_id !== '------' && String(user.frank_id).trim().length === 6) {
+            const cleanId = String(user.frank_id).trim().toUpperCase();
+            user.frank_id = cleanId;
+            const key = `frank_id_perm_${user.id || user.username || 'me'}`;
+            localStorage.setItem(key, cleanId);
+            return cleanId;
+        }
+
+        // 2. Check persistent per-user storage in localStorage
+        const storedKey = `frank_id_perm_${user.id || user.username || 'me'}`;
+        const cached = localStorage.getItem(storedKey);
+        if (cached && cached.trim().length === 6) {
+            user.frank_id = cached.trim().toUpperCase();
+            return user.frank_id;
+        }
+
+        // 3. Deterministically generate a permanent 6-character identifier from user identity
+        const seedStr = `${user.id || ''}_${user.username || ''}_${user.email || ''}_FRANK_PERM_ID`;
+        let hash = 5381;
+        for (let i = 0; i < seedStr.length; i++) {
+            hash = ((hash << 5) + hash) + seedStr.charCodeAt(i);
+            hash |= 0;
+        }
+        const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        let generatedFid = '';
+        let absHash = Math.abs(hash);
+        for (let i = 0; i < 6; i++) {
+            generatedFid += chars[absHash % chars.length];
+            absHash = Math.floor(absHash / chars.length) + (i * 13) + 7;
+        }
+        while (generatedFid.length < 6) {
+            generatedFid += 'X';
+        }
+
+        user.frank_id = generatedFid;
+        localStorage.setItem(storedKey, generatedFid);
+
+        // Async notify backend to sync
+        if (typeof api !== 'undefined' && api.ensureFrankId) {
+            api.ensureFrankId(generatedFid).catch(() => {});
+        }
+
+        return generatedFid;
     },
 
     guard() {

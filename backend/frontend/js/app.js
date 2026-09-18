@@ -130,17 +130,18 @@ class AppController {
             statusEl.title = `Your unique FRANK ID: ${user.frank_id}`;
         }
 
+        const frankId = auth.getFrankId(user);
         const sidebarFrankIdCode = document.getElementById('sidebarFrankIdCode');
         if (sidebarFrankIdCode) {
-            sidebarFrankIdCode.textContent = user.frank_id || '------';
+            sidebarFrankIdCode.textContent = frankId;
         }
 
         const modalMyFrankIdCode = document.getElementById('modalMyFrankIdCode');
         if (modalMyFrankIdCode) {
-            modalMyFrankIdCode.textContent = user.frank_id || '------';
+            modalMyFrankIdCode.textContent = frankId;
         }
 
-        this.setupFrankIdButtons(user.frank_id);
+        this.setupFrankIdButtons(frankId);
     }
 
     setupFrankIdButtons(frankId) {

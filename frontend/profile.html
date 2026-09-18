@@ -69,9 +69,41 @@
                             <span style="display:inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 10px var(--primary);"></span>
                             Unique FRANK ID
                         </div>
-                        <div style="font-family: 'JetBrains Mono', monospace, Consolas; font-size: 24px; font-weight: 900; letter-spacing: 2.5px; color: var(--text);" id="profileFrankId">
-                            ------
-                        </div>
+                        <div style="font-family: 'JetBrains Mono', monospace, Consolas; font-size: 24px; font-weight: 900; letter-spacing: 2.5px; color: var(--text);" id="profileFrankId"></div>
+                        <script>
+                            (function() {
+                                try {
+                                    var el = document.getElementById('profileFrankId');
+                                    var u = JSON.parse(localStorage.getItem('chatapp_user') || '{}');
+                                    var fid = (u && u.frank_id && u.frank_id !== '------' && String(u.frank_id).trim().length === 6) ? String(u.frank_id).trim().toUpperCase() : null;
+                                    var key = 'frank_id_perm_' + (u.id || u.username || 'me');
+                                    if (!fid) {
+                                        var cached = localStorage.getItem(key);
+                                        if (cached && cached.trim().length === 6) fid = cached.trim().toUpperCase();
+                                    }
+                                    if (!fid && (u.username || u.email || u.id)) {
+                                        var seedStr = (u.id || '') + '_' + (u.username || '') + '_' + (u.email || '') + '_FRANK_PERM_ID';
+                                        var hash = 5381;
+                                        for (var i = 0; i < seedStr.length; i++) {
+                                            hash = ((hash << 5) + hash) + seedStr.charCodeAt(i);
+                                            hash |= 0;
+                                        }
+                                        var chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+                                        var absHash = Math.abs(hash);
+                                        fid = '';
+                                        for (var j = 0; j < 6; j++) {
+                                            fid += chars[absHash % chars.length];
+                                            absHash = Math.floor(absHash / chars.length) + (j * 13) + 7;
+                                        }
+                                        while (fid.length < 6) fid += 'X';
+                                        localStorage.setItem(key, fid);
+                                        u.frank_id = fid;
+                                        localStorage.setItem('chatapp_user', JSON.stringify(u));
+                                    }
+                                    if (el && fid) el.textContent = fid;
+                                } catch (e) {}
+                            })();
+                        </script>
                         <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
                             Permanent 6-character identifier. Share it with friends to start chatting.
                         </p>

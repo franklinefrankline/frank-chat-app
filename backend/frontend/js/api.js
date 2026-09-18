@@ -101,9 +101,30 @@ const api = {
     async getCurrentUser() {
         const user = await this.request('/api/auth/me');
         if (user && typeof auth !== 'undefined') {
+            if (!user.frank_id || user.frank_id === '------' || String(user.frank_id).trim().length !== 6) {
+                user.frank_id = auth.getFrankId(user);
+            }
             auth.setUser(user);
         }
         return user;
+    },
+
+    async ensureFrankId(preferredId) {
+        try {
+            const res = await this.request('/api/auth/ensure-frank-id', {
+                method: 'POST',
+                body: JSON.stringify({ preferred_id: preferredId })
+            });
+            if (res && res.frank_id && typeof auth !== 'undefined') {
+                const user = auth.getUser() || {};
+                user.frank_id = res.frank_id;
+                auth.setUser(user);
+                return res.frank_id;
+            }
+        } catch (e) {
+            console.warn('ensureFrankId sync note:', e);
+        }
+        return preferredId;
     },
 
     async verifyEmail(token) {

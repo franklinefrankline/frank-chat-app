@@ -698,9 +698,41 @@
                                 <span style="display:inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px var(--primary);"></span>
                                 YOUR UNIQUE FRANK ID
                             </div>
-                            <div style="font-family: 'JetBrains Mono', monospace, Consolas; font-size: 19px; font-weight: 900; letter-spacing: 2px; color: var(--text); margin-top: 3px;" id="modalMyFrankIdCode">
-                                ------
-                            </div>
+                            <div style="font-family: 'JetBrains Mono', monospace, Consolas; font-size: 19px; font-weight: 900; letter-spacing: 2px; color: var(--text); margin-top: 3px;" id="modalMyFrankIdCode"></div>
+                            <script>
+                                (function() {
+                                    try {
+                                        var el = document.getElementById('modalMyFrankIdCode');
+                                        var u = JSON.parse(localStorage.getItem('chatapp_user') || '{}');
+                                        var fid = (u && u.frank_id && u.frank_id !== '------' && String(u.frank_id).trim().length === 6) ? String(u.frank_id).trim().toUpperCase() : null;
+                                        var key = 'frank_id_perm_' + (u.id || u.username || 'me');
+                                        if (!fid) {
+                                            var cached = localStorage.getItem(key);
+                                            if (cached && cached.trim().length === 6) fid = cached.trim().toUpperCase();
+                                        }
+                                        if (!fid && (u.username || u.email || u.id)) {
+                                            var seedStr = (u.id || '') + '_' + (u.username || '') + '_' + (u.email || '') + '_FRANK_PERM_ID';
+                                            var hash = 5381;
+                                            for (var i = 0; i < seedStr.length; i++) {
+                                                hash = ((hash << 5) + hash) + seedStr.charCodeAt(i);
+                                                hash |= 0;
+                                            }
+                                            var chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+                                            var absHash = Math.abs(hash);
+                                            fid = '';
+                                            for (var j = 0; j < 6; j++) {
+                                                fid += chars[absHash % chars.length];
+                                                absHash = Math.floor(absHash / chars.length) + (j * 13) + 7;
+                                            }
+                                            while (fid.length < 6) fid += 'X';
+                                            localStorage.setItem(key, fid);
+                                            u.frank_id = fid;
+                                            localStorage.setItem('chatapp_user', JSON.stringify(u));
+                                        }
+                                        if (el && fid) el.textContent = fid;
+                                    } catch (e) {}
+                                })();
+                            </script>
                             <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Share with friends so they can add you</div>
                         </div>
                         <div style="display: flex; gap: 6px;">

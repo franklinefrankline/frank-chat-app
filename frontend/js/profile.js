@@ -7,6 +7,12 @@ const profileModule = {
     async init() {
         if (!document.getElementById('profileDisplayName')) return;
 
+        // Render immediately from cache
+        const cached = auth.getUser();
+        if (cached) {
+            this.renderUserData(cached);
+        }
+
         const logoutBtn = document.getElementById('profileLogoutBtn');
         logoutBtn?.addEventListener('click', () => auth.logout());
 
@@ -60,39 +66,36 @@ const profileModule = {
             joinedEl.textContent = parsedDate ? parsedDate.toLocaleDateString([], { month: 'long', year: 'numeric' }) : '';
         }
 
+        const frankId = auth.getFrankId(user);
         if (frankIdEl) {
-            frankIdEl.textContent = user.frank_id || '------';
+            frankIdEl.textContent = frankId;
         }
 
         const copyFrankIdBtn = document.getElementById('copyFrankIdBtn');
         if (copyFrankIdBtn) {
             copyFrankIdBtn.onclick = () => {
-                if (user.frank_id) {
-                    navigator.clipboard.writeText(user.frank_id).then(() => {
-                        showToast(`FRANK ID ${user.frank_id} copied to clipboard!`, 'success');
-                    }).catch(() => {
-                        showToast(`Your FRANK ID is: ${user.frank_id}`, 'info');
-                    });
-                }
+                navigator.clipboard.writeText(frankId).then(() => {
+                    showToast(`FRANK ID ${frankId} copied to clipboard!`, 'success');
+                }).catch(() => {
+                    showToast(`Your FRANK ID is: ${frankId}`, 'info');
+                });
             };
         }
 
         const shareFrankIdBtn = document.getElementById('shareFrankIdBtn');
         if (shareFrankIdBtn) {
             shareFrankIdBtn.onclick = () => {
-                if (user.frank_id) {
-                    const shareData = {
-                        title: 'Chat with me on FRANK',
-                        text: `Add me on FRANK with my unique FRANK ID: ${user.frank_id}`,
-                        url: window.location.origin
-                    };
-                    if (navigator.share) {
-                        navigator.share(shareData).catch(() => {});
-                    } else {
-                        navigator.clipboard.writeText(`Add me on FRANK! My unique FRANK ID is: ${user.frank_id}`).then(() => {
-                            showToast('Share message copied to clipboard!', 'success');
-                        });
-                    }
+                const shareData = {
+                    title: 'Chat with me on FRANK',
+                    text: `Add me on FRANK with my unique FRANK ID: ${frankId}`,
+                    url: window.location.origin
+                };
+                if (navigator.share) {
+                    navigator.share(shareData).catch(() => {});
+                } else {
+                    navigator.clipboard.writeText(`Add me on FRANK! My unique FRANK ID is: ${frankId}`).then(() => {
+                        showToast('Share message copied to clipboard!', 'success');
+                    });
                 }
             };
         }

@@ -191,8 +191,41 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
     )
 
 
+class EnsureFrankIdRequest(BaseModel):
+    preferred_id: Optional[str] = None
+
+
 @router.get("/me", response_model=schemas.UserResponse)
-def get_me(current_user: models.User = Depends(get_current_user)):
+def get_me(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.frank_id or len(str(current_user.frank_id).strip()) != 6:
+        current_user.frank_id = generate_unique_frank_id(db)
+        try:
+            db.commit()
+            db.refresh(current_user)
+        except Exception:
+            db.rollback()
+    return current_user
+
+
+@router.post("/ensure-frank-id", response_model=schemas.UserResponse)
+def ensure_frank_id(
+    body: Optional[EnsureFrankIdRequest] = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not current_user.frank_id or len(str(current_user.frank_id).strip()) != 6:
+        if body and body.preferred_id and len(body.preferred_id.strip()) == 6:
+            candidate = body.preferred_id.strip().upper()
+            existing = db.query(models.User).filter(models.User.frank_id == candidate).first()
+            if not existing:
+                current_user.frank_id = candidate
+        if not current_user.frank_id:
+            current_user.frank_id = generate_unique_frank_id(db)
+        try:
+            db.commit()
+            db.refresh(current_user)
+        except Exception:
+            db.rollback()
     return current_user
 
 

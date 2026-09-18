@@ -131,6 +131,17 @@ def get_current_user(
     if user is None:
         raise credentials_exception
 
+    # Auto-heal: Guarantee user always has a permanent 6-character frank_id
+    if not user.frank_id or len(str(user.frank_id).strip()) != 6:
+        from database import generate_unique_frank_id
+        try:
+            user.frank_id = generate_unique_frank_id(db)
+            db.commit()
+            db.refresh(user)
+        except Exception as e:
+            db.rollback()
+            print(f"Auto-heal frank_id warning: {e}")
+
     return user
 
 
