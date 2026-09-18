@@ -139,12 +139,119 @@ document.addEventListener('click', (e) => {
     toggleBtn.innerHTML = isPassword ? eyeOffIcon : eyeIcon;
 });
 
+function showConnectionAlert(formElement) {
+    let connAlert = document.getElementById('connectionStatusAlert');
+    if (!connAlert) {
+        connAlert = document.createElement('div');
+        connAlert.id = 'connectionStatusAlert';
+        connAlert.style.cssText = 'padding: 16px; background: rgba(245, 158, 11, 0.09); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 12px; margin-bottom: 20px; text-align: center;';
+        formElement.parentNode.insertBefore(connAlert, formElement);
+    }
+    const currentServer = (window.FRANK_CONFIG && window.FRANK_CONFIG.API_BASE) || 'https://frank-chat-app.onrender.com';
+    connAlert.innerHTML = `
+        <div style="font-weight: 700; color: #f59e0b; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            Backend Server Unreachable
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
+            Cannot reach: <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-size: 11px; word-break: break-all;">${currentServer}</code><br>
+            <span style="opacity: 0.85;">Render free instances take ~50s to wake up from idle. If your Render URL is different, you can set it below.</span>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btnWakeServer" style="font-size: 12px; padding: 6px 14px;">
+                <span class="btn-text">⚡ Wake / Ping Server</span>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnEditServerUrl" style="font-size: 12px; padding: 6px 14px;">
+                <span class="btn-text">⚙ Set Backend URL</span>
+            </button>
+        </div>
+        <div id="wakeStatusMsg" style="margin-top: 10px; font-size: 12px; font-weight: 600; display: none;"></div>
+    `;
+
+    document.getElementById('btnWakeServer')?.addEventListener('click', async () => {
+        const statusEl = document.getElementById('wakeStatusMsg');
+        const wakeBtn = document.getElementById('btnWakeServer');
+        if (statusEl) {
+            statusEl.style.display = 'block';
+            statusEl.style.color = '#f59e0b';
+            statusEl.textContent = 'Pinging server... Free-tier instances take ~45s to boot.';
+        }
+        if (wakeBtn) wakeBtn.disabled = true;
+
+        let seconds = 0;
+        const timer = setInterval(() => {
+            seconds += 2;
+            if (statusEl && statusEl.style.color !== 'rgb(16, 185, 129)') {
+                statusEl.textContent = `Pinging server... (${seconds}s elapsed)`;
+            }
+        }, 2000);
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 65000);
+            const res = await fetch(`${currentServer}/api/health`, { method: 'GET', signal: controller.signal });
+            clearTimeout(timeoutId);
+            clearInterval(timer);
+            if (res.ok) {
+                if (statusEl) {
+                    statusEl.style.color = '#10b981';
+                    statusEl.textContent = '✓ Server is online and ready! Try signing in again.';
+                }
+                showToast('Server is online!', 'success');
+            } else {
+                if (statusEl) {
+                    statusEl.style.color = '#ef4444';
+                    statusEl.textContent = `Server responded with status ${res.status}. Check your Render dashboard URL.`;
+                }
+            }
+        } catch (e) {
+            clearInterval(timer);
+            if (statusEl) {
+                statusEl.style.color = '#ef4444';
+                statusEl.textContent = 'Could not reach server. Please verify your Render service URL.';
+            }
+        } finally {
+            if (wakeBtn) wakeBtn.disabled = false;
+        }
+    });
+
+    document.getElementById('btnEditServerUrl')?.addEventListener('click', () => {
+        const newUrl = prompt('Enter your Render backend URL (from dashboard.render.com):', currentServer);
+        if (newUrl && newUrl.trim()) {
+            const clean = newUrl.trim().replace(/\/+$/, '');
+            localStorage.setItem('frank_api_url', clean);
+            const wsClean = clean.replace(/^http/, 'ws');
+            localStorage.setItem('frank_ws_url', wsClean);
+            showToast('Backend URL updated! Reloading page...', 'info');
+            setTimeout(() => window.location.reload(), 800);
+        }
+    });
+}
+
 // ---------------- LOGIN FORM HANDLER ----------------
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
     const usernameInput = document.getElementById('loginUsername');
     const passwordInput = document.getElementById('loginPassword');
     const submitBtn = document.getElementById('loginSubmitBtn');
+
+    // Display current backend server status pill
+    const currentServer = (window.FRANK_CONFIG && window.FRANK_CONFIG.API_BASE) || 'https://frank-chat-app.onrender.com';
+    const serverPill = document.createElement('div');
+    serverPill.style.cssText = 'text-align: center; margin-top: 14px; font-size: 11px; color: var(--text-muted);';
+    serverPill.innerHTML = `Backend: <span style="font-family: monospace;">${currentServer.replace(/^https?:\/\//, '')}</span> &bull; <a href="javascript:void(0)" id="pillChangeUrl" style="color: var(--primary); text-decoration: underline;">Change</a>`;
+    loginForm.appendChild(serverPill);
+    document.getElementById('pillChangeUrl')?.addEventListener('click', () => {
+        const newUrl = prompt('Enter Backend API URL (e.g. from dashboard.render.com):', currentServer);
+        if (newUrl && newUrl.trim()) {
+            const clean = newUrl.trim().replace(/\/+$/, '');
+            localStorage.setItem('frank_api_url', clean);
+            const wsClean = clean.replace(/^http/, 'ws');
+            localStorage.setItem('frank_ws_url', wsClean);
+            showToast('Backend URL updated! Reloading...', 'info');
+            setTimeout(() => window.location.reload(), 600);
+        }
+    });
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -181,6 +288,8 @@ if (loginForm) {
             window.location.replace('dashboard.html');
         } catch (err) {
             const isUnverified = err.status === 403 || (err.message && err.message.toLowerCase().includes('verify your email'));
+            const isConnErr = err.status === 0 || (err.message && err.message.toLowerCase().includes('cannot reach'));
+
             if (isUnverified) {
                 let unverifiedBanner = document.getElementById('loginUnverifiedAlert');
                 if (!unverifiedBanner) {
@@ -217,6 +326,9 @@ if (loginForm) {
                     }
                 });
                 showToast('Please verify your email before signing in.', 'warning', 4000);
+            } else if (isConnErr) {
+                showConnectionAlert(loginForm);
+                showToast('Cannot reach the FRANK backend server.', 'error', 5000);
             } else {
                 showToast(err.message || 'Invalid username or password.', 'error');
             }
@@ -393,6 +505,9 @@ if (registerForm) {
                         <a href="forgot-password.html" class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;">Forgot Password</a>
                     </div>
                 `;
+            } else if (err.status === 0 || (err.message && err.message.toLowerCase().includes('cannot reach'))) {
+                showConnectionAlert(registerForm);
+                showToast('Cannot reach the FRANK backend server.', 'error', 5000);
             } else {
                 showToast(err.message || 'Registration failed.', 'error');
             }
