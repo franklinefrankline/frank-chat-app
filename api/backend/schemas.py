@@ -56,6 +56,7 @@ class UserResponse(UserBase):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     is_online: bool = False
+    email_verified: bool = False
     last_seen: Optional[datetime] = None
     created_at: datetime
 
@@ -233,5 +234,29 @@ class ForgotPasswordRequest(BaseModel):
 
 
 class ResetPasswordRequest(BaseModel):
-    token: str
-    new_password: str = Field(..., min_length=6, max_length=128)
+    token: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
+class VerifyResetTokenResponse(BaseModel):
+    valid: bool = True
+    message: Optional[str] = None
+
+
+# ---------------- EMAIL VERIFICATION SCHEMAS ----------------
+
+class ResendVerificationRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=120)
+
+
+class VerifyEmailResponse(BaseModel):
+    success: bool = True
+    message: str
+
+
+class RegisterResponse(BaseModel):
+    message: str
+    email: str
+    email_verified: bool = False
+    frank_id: str
+

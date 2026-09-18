@@ -30,6 +30,23 @@ except Exception as e:
 MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "25"))
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
+# Enforced per-type size limits
+LIMIT_IMAGES_BYTES = 10 * 1024 * 1024       # 10 MB
+LIMIT_DOCUMENTS_BYTES = 25 * 1024 * 1024    # 25 MB
+LIMIT_ZIP_BYTES = 50 * 1024 * 1024          # 50 MB
+LIMIT_VIDEOS_BYTES = 100 * 1024 * 1024      # 100 MB
+
+def get_max_allowed_size_bytes(file_type: str, ext: str) -> tuple[int, int]:
+    """Returns (max_bytes, max_mb) for the given file type."""
+    if file_type == "image":
+        return LIMIT_IMAGES_BYTES, 10
+    elif file_type == "video":
+        return LIMIT_VIDEOS_BYTES, 100
+    elif file_type == "archive" or ext in (".zip", ".rar", ".7z", ".tar", ".gz"):
+        return LIMIT_ZIP_BYTES, 50
+    else:  # document, audio, text, other
+        return LIMIT_DOCUMENTS_BYTES, 25
+
 # Allowed extensions and classification
 ALLOWED_EXTENSIONS = {
     # Documents
@@ -227,10 +244,11 @@ async def upload_file(
     if file_size == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The selected file is empty.")
 
-    if file_size > MAX_FILE_SIZE_BYTES:
+    max_bytes, max_mb = get_max_allowed_size_bytes(file_type, ext)
+    if file_size > max_bytes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File size ({file_size / (1024*1024):.1f} MB) exceeds the allowed limit of {MAX_FILE_SIZE_MB} MB."
+            detail=f"File size ({file_size / (1024*1024):.1f} MB) exceeds the allowed limit of {max_mb} MB for {file_type}s."
         )
 
     # Generate safe unique storage filename

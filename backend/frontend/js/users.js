@@ -164,7 +164,8 @@ const usersModule = {
                 if (nameEl) nameEl.innerHTML = `${currentUser.full_name || currentUser.username} <span class="self-prefix-badge">You</span>`;
                 if (handleEl) handleEl.textContent = `@${currentUser.username}`;
                 if (idBadgeEl) idBadgeEl.textContent = `ID: ${currentUser.frank_id}`;
-                if (bioEl) bioEl.textContent = 'This is your FRANK account. Send yourself notes, links, and reminders.';
+                if (bioEl) bioEl.textContent = 'This is your FRANK ID. Send yourself notes, links, and reminders.';
+                showToast('This is your FRANK ID', 'info');
 
                 if (avatarEl && initialsEl) {
                     if (currentUser.avatar_url) {
@@ -217,7 +218,7 @@ const usersModule = {
                 }
 
                 if (previewChatBtn) {
-                    previewChatBtn.innerHTML = `<span>Start Chat</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+                    previewChatBtn.innerHTML = `<span>Message</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
                 }
             }
         } catch (err) {

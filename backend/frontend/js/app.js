@@ -184,8 +184,8 @@ class AppController {
                     <div class="empty-state-icon" style="width:48px; height:48px; margin: 0 auto var(--space-3);">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                     </div>
-                    <div style="font-size:15px; font-weight:700; color:var(--text); margin-bottom:4px;">No conversations yet</div>
-                    <p class="empty-state-desc" style="font-size:12px; margin-bottom:16px;">Connect with someone using their FRANK ID or write notes to yourself.</p>
+                    <h3 style="font-size:16px; font-weight:800; color:var(--text); margin-bottom:4px;">Welcome to FRANK</h3>
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">No conversations yet.</p>
                     <div style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:200px; margin:0 auto;">
                         <button type="button" class="btn btn-primary btn-sm" id="emptyStateNewChatBtn" onclick="if(window.usersModule){usersModule.resetModal();openModal('newChatModal');}">+ New Conversation</button>
                         <button type="button" class="btn btn-secondary btn-sm" id="emptyStateSelfChatBtn" onclick="if(window.usersModule){usersModule.openSelfChat();}">Message Myself</button>

@@ -187,6 +187,18 @@ if frontend_dir and frontend_dir.exists():
     def serve_profile():
         return FileResponse(frontend_dir / "profile.html")
 
+    @app.get("/verify-email")
+    def serve_verify_email():
+        return FileResponse(frontend_dir / "verify-email.html")
+
+    @app.get("/reset-password")
+    def serve_reset_password():
+        return FileResponse(frontend_dir / "reset-password.html")
+
+    @app.get("/forgot-password")
+    def serve_forgot_password():
+        return FileResponse(frontend_dir / "forgot-password.html")
+
     @app.get("/{filename}.html")
     def serve_html_page(filename: str):
         target = frontend_dir / f"{filename}.html"

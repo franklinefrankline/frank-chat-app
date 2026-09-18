@@ -93,6 +93,12 @@ def check_and_migrate_db():
             with engine.begin() as conn:
                 if "frank_id" not in user_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN frank_id VARCHAR(6) NULL"))
+                if "updated_at" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE NULL"))
+                if "email_verified" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE"))
+                    # Backfill existing users as verified so existing accounts are preserved
+                    conn.execute(text("UPDATE users SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE"))
                 # Normalize all existing emails to lowercase trimmed
                 try:
                     conn.execute(text("UPDATE users SET email = LOWER(TRIM(email)) WHERE email IS NOT NULL AND email != LOWER(TRIM(email))"))
@@ -133,14 +139,10 @@ def check_and_migrate_db():
         if "conversations" not in table_names:
             models.Base.metadata.tables["conversations"].create(bind=engine, checkfirst=True)
         else:
-            if is_sqlite:
-                cols = inspector.get_columns("conversations")
-                id_col = next((c for c in cols if c["name"] == "id"), None)
-                if id_col and str(id_col["type"]).upper() == "SERIAL":
-                    with engine.begin() as conn:
-                        conn.execute(text("DROP TABLE conversations"))
-                    models.Base.metadata.tables["conversations"].create(bind=engine, checkfirst=True)
+            conv_cols = [col["name"] for col in inspector.get_columns("conversations")]
             with engine.begin() as conn:
+                if "conversation_type" not in conv_cols:
+                    conn.execute(text("ALTER TABLE conversations ADD COLUMN conversation_type VARCHAR(20) DEFAULT 'private'"))
                 try:
                     conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_conversation_pair ON conversations (user_a_id, user_b_id)"))
                 except Exception:
@@ -158,6 +160,10 @@ def check_and_migrate_db():
                     conn.execute(text("ALTER TABLE messages ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE NULL"))
                 if "conversation_id" not in msg_cols:
                     conn.execute(text("ALTER TABLE messages ADD COLUMN conversation_id INTEGER NULL REFERENCES conversations(id)"))
+                if "is_edited" not in msg_cols:
+                    conn.execute(text("ALTER TABLE messages ADD COLUMN is_edited BOOLEAN DEFAULT FALSE"))
+                if "is_deleted" not in msg_cols:
+                    conn.execute(text("ALTER TABLE messages ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE"))
 
         # 4. Migrate groups table
         if "groups" in table_names:
@@ -179,6 +185,70 @@ def check_and_migrate_db():
                         WHERE gm.user_id = g.created_by AND gm.role != 'owner'
                     )
                 """))
+
+        # 6. Ensure password_reset_tokens table exists
+        if "password_reset_tokens" not in table_names:
+            with engine.begin() as conn:
+                if is_sqlite:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                            token_hash VARCHAR(64) NOT NULL UNIQUE,
+                            expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                            used BOOLEAN DEFAULT FALSE NOT NULL,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                else:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                            id SERIAL PRIMARY KEY,
+                            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                            token_hash VARCHAR(64) NOT NULL UNIQUE,
+                            expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                            used BOOLEAN DEFAULT FALSE NOT NULL,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                try:
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_prt_user_id ON password_reset_tokens (user_id)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_prt_token_hash ON password_reset_tokens (token_hash)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_prt_expires_at ON password_reset_tokens (expires_at)"))
+                except Exception as idx_err:
+                    print(f"Index creation note: {idx_err}")
+
+        # 7. Ensure email_verification_tokens table exists
+        if "email_verification_tokens" not in table_names:
+            with engine.begin() as conn:
+                if is_sqlite:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS email_verification_tokens (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                            token_hash VARCHAR(64) NOT NULL UNIQUE,
+                            expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                            used BOOLEAN DEFAULT FALSE NOT NULL,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                else:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS email_verification_tokens (
+                            id SERIAL PRIMARY KEY,
+                            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                            token_hash VARCHAR(64) NOT NULL UNIQUE,
+                            expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                            used BOOLEAN DEFAULT FALSE NOT NULL,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                try:
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_evt_user_id ON email_verification_tokens (user_id)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_evt_token_hash ON email_verification_tokens (token_hash)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_evt_expires_at ON email_verification_tokens (expires_at)"))
+                except Exception as idx_err:
+                    print(f"Index creation note: {idx_err}")
 
     except Exception as e:
         print(f"Migration note: {e}")

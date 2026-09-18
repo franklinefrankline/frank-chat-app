@@ -15,7 +15,7 @@ def request_json(url, method="GET", data=None, token=None):
         return json.loads(resp.read().decode("utf-8"))
 
 def main():
-    print("Testing live QENVO server at", BASE_URL)
+    print("Testing live FRANK server at", BASE_URL)
     
     # 1. Login as Alex
     login_res = request_json(f"{BASE_URL}/api/auth/login", method="POST", data={

@@ -135,6 +135,7 @@ def get_or_create_private_conversation(user_a_id: int, user_b_id: int, db: Sessi
         if existing:
             return existing, False
         new_conv = models.Conversation(
+            conversation_type="self",
             user_a_id=user_a_id,
             user_b_id=user_b_id,
             created_at=datetime.now(timezone.utc),
@@ -159,6 +160,7 @@ def get_or_create_private_conversation(user_a_id: int, user_b_id: int, db: Sessi
     # Atomically create conversation
     try:
         new_conv = models.Conversation(
+            conversation_type="private",
             user_a_id=u_min,
             user_b_id=u_max,
             created_at=datetime.now(timezone.utc),

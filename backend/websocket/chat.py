@@ -202,6 +202,7 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                             logger.warning(f"Unauthorized group message attempt from user {user_id} to group {group_id}")
                             continue
 
+                    is_self = (recipient_id is not None and recipient_id == user_id)
                     conv_id = None
                     if recipient_id:
                         conv, _ = get_or_create_private_conversation(user_id, recipient_id, db_session)
@@ -249,6 +250,7 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                         "message": {
                             "id": msg.id,
                             "message_id": msg.id,
+                            "conversation_id": msg.conversation_id,
                             "sender_id": msg.sender_id,
                             "recipient_id": msg.recipient_id,
                             "group_id": msg.group_id,

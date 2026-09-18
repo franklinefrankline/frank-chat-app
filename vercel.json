@@ -13,7 +13,8 @@
     { "source": "/settings", "destination": "/settings.html" },
     { "source": "/profile", "destination": "/profile.html" },
     { "source": "/forgot-password", "destination": "/forgot-password.html" },
-    { "source": "/reset-password", "destination": "/reset-password.html" }
+    { "source": "/reset-password", "destination": "/reset-password.html" },
+    { "source": "/verify-email", "destination": "/verify-email.html" }
   ],
   "headers": [
     {

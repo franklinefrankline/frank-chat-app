@@ -20,8 +20,10 @@ class User(Base):
     bio = Column(String(255), default="Hey there! I am using FRANK.")
     avatar_url = Column(String(255), default="")
     is_online = Column(Boolean, default=False)
+    email_verified = Column(Boolean, default=False, nullable=False)
     last_seen = Column(DateTime(timezone=True), default=get_utc_now)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
 
     # Relationships
     sent_messages = relationship("Message", back_populates="sender", foreign_keys="Message.sender_id")
@@ -35,6 +37,7 @@ class Conversation(Base):
     __tablename__ = "conversations"
 
     id = Column(Integer, primary_key=True, index=True)
+    conversation_type = Column(String(20), default="private", nullable=True)  # private, self, group
     user_a_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     user_b_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
@@ -58,10 +61,12 @@ class Message(Base):
     recipient_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=True, index=True)
     content = Column(Text, nullable=False)
-    message_type = Column(String(20), default="text")  # text, document, image, file, video
+    message_type = Column(String(20), default="text")  # text, document, image, file, video, audio
     file_id = Column(Integer, ForeignKey("documents.id", use_alter=True, name="fk_message_document"), nullable=True)
     reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
     status = Column(String(20), default="sent")  # sent, delivered, read
+    is_edited = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
     updated_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -132,3 +137,30 @@ class GroupMember(Base):
 
     group = relationship("Group", back_populates="members")
     user = relationship("User", back_populates="group_memberships")
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    used = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+    user = relationship("User")
+
+
+class EmailVerificationToken(Base):
+    __tablename__ = "email_verification_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    used = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+    user = relationship("User")
+

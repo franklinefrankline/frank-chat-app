@@ -72,12 +72,18 @@ app = FastAPI(
 
 # CORS configuration
 default_origins = [
+    "https://frank-chat-app.vercel.app",
     "https://frank-chat-vercel.app",
     "https://frank-chat-vercel.vercel.app",
     "http://localhost:8000",
     "http://localhost:3000",
+    "http://localhost:5500",
+    "http://localhost:5173",
     "http://127.0.0.1:8000",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5500",
+    "http://127.0.0.1:5173",
+    "null"
 ]
 
 env_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
@@ -171,6 +177,18 @@ if frontend_dir and frontend_dir.exists():
     def serve_profile():
         return FileResponse(frontend_dir / "profile.html")
 
+    @app.get("/verify-email")
+    def serve_verify_email():
+        return FileResponse(frontend_dir / "verify-email.html")
+
+    @app.get("/reset-password")
+    def serve_reset_password():
+        return FileResponse(frontend_dir / "reset-password.html")
+
+    @app.get("/forgot-password")
+    def serve_forgot_password():
+        return FileResponse(frontend_dir / "forgot-password.html")
+
     @app.get("/{filename}.html")
     def serve_html_page(filename: str):
         target = frontend_dir / f"{filename}.html"
@@ -183,4 +201,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     host = os.environ.get("HOST", "0.0.0.0")
-    uvicorn.run("main:app", host=host, port=port, reload=False)
+    uvicorn.run(app, host=host, port=port)

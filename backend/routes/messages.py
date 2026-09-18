@@ -289,6 +289,7 @@ async def edit_message(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot edit messages sent by another user")
 
     msg.content = update_in.content.strip()
+    msg.is_edited = True
     msg.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(msg)

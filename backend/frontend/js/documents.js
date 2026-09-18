@@ -20,6 +20,22 @@ class DocumentsController {
         this.init();
     }
 
+    getMaxAllowedSize(ext) {
+        const imageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'];
+        const videoExts = ['.mp4', '.mov', '.webm', '.mkv'];
+        const zipExts = ['.zip', '.rar', '.7z', '.tar', '.gz'];
+
+        if (imageExts.includes(ext)) {
+            return { mb: 10, bytes: 10 * 1024 * 1024, type: 'images' };
+        } else if (videoExts.includes(ext)) {
+            return { mb: 100, bytes: 100 * 1024 * 1024, type: 'videos' };
+        } else if (zipExts.includes(ext)) {
+            return { mb: 50, bytes: 50 * 1024 * 1024, type: 'archives' };
+        } else {
+            return { mb: 25, bytes: 25 * 1024 * 1024, type: 'documents' };
+        }
+    }
+
     init() {
         // Create hidden OS file input
         let fileInput = document.getElementById('frankFileInput');
@@ -74,10 +90,11 @@ class DocumentsController {
             return;
         }
 
-        // 2. Size check
-        if (file.size > this.maxFileSizeBytes) {
+        // 2. Size check by file type
+        const limit = this.getMaxAllowedSize(ext);
+        if (file.size > limit.bytes) {
             const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-            showToast(`File size (${sizeMb} MB) exceeds the allowed limit of ${this.maxFileSizeMB} MB.`, 'error');
+            showToast(`File size (${sizeMb} MB) exceeds the allowed limit of ${limit.mb} MB for ${limit.type}.`, 'error');
             return;
         }
 
