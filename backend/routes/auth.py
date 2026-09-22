@@ -127,6 +127,19 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
         ))
     ).first()
 
+    if not user and ident_lower in ["alex", "sarah", "david", "alex@frank.app", "sarah@frank.app", "david@frank.app"]:
+        # Auto-seed standard accounts in ephemeral serverless container
+        try:
+            import main as backend_main
+            if hasattr(backend_main, "seed_demo_users"):
+                backend_main.seed_demo_users()
+            user = db.query(models.User).filter(
+                (func.lower(models.User.username) == ident_lower) | 
+                (func.lower(models.User.email) == ident_lower)
+            ).first()
+        except Exception:
+            pass
+
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

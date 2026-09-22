@@ -82,39 +82,42 @@ def seed_demo_users():
             admin_user.account_status = "active"
             db.commit()
 
-        if db.query(models.User).filter(models.User.role != "admin").count() == 0:
-            demo_users = [
-                {
-                    "username": "alex",
-                    "email": "alex@frank.app",
-                    "frank_id": "F4M8Q1",
-                    "full_name": "Alex Morgan",
-                    "bio": "Product Designer & Tech Enthusiast 🚀",
-                    "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-                    "is_online": True
-                },
-                {
-                    "username": "sarah",
-                    "email": "sarah@frank.app",
-                    "frank_id": "K7P2X9",
-                    "full_name": "Sarah Connor",
-                    "bio": "Building the future of real-time communication.",
-                    "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-                    "is_online": True
-                },
-                {
-                    "username": "david",
-                    "email": "david@frank.app",
-                    "frank_id": "B3N8R5",
-                    "full_name": "David Chen",
-                    "bio": "Software Architect & Open Source Contributor.",
-                    "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-                    "is_online": False
-                }
-            ]
+        demo_users = [
+            {
+                "username": "alex",
+                "email": "alex@frank.app",
+                "frank_id": "F4M8Q1",
+                "full_name": "Alex Morgan",
+                "bio": "Product Designer & Tech Enthusiast 🚀",
+                "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+                "is_online": True
+            },
+            {
+                "username": "sarah",
+                "email": "sarah@frank.app",
+                "frank_id": "K7P2X9",
+                "full_name": "Sarah Connor",
+                "bio": "Building the future of real-time communication.",
+                "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+                "is_online": True
+            },
+            {
+                "username": "david",
+                "email": "david@frank.app",
+                "frank_id": "B3N8R5",
+                "full_name": "David Chen",
+                "bio": "Software Architect & Open Source Contributor.",
+                "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+                "is_online": False
+            }
+        ]
 
-            created = []
-            for u in demo_users:
+        created = []
+        for u in demo_users:
+            existing = db.query(models.User).filter(
+                (models.User.username == u["username"]) | (models.User.email == u["email"])
+            ).first()
+            if not existing:
                 user = models.User(
                     username=u["username"],
                     email=u["email"],
@@ -129,6 +132,7 @@ def seed_demo_users():
                 )
                 db.add(user)
                 created.append(user)
+        if created:
             db.commit()
 
             # Seed an introductory welcome message from Alex to Sarah
