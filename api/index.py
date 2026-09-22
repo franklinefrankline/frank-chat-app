@@ -1,64 +1,69 @@
 import os
 import sys
 import traceback
+import importlib.util
 from pathlib import Path
 
-# Resolve directories
-api_dir = Path(__file__).resolve().parent
-api_backend_us = api_dir / "_backend"
-api_backend = api_dir / "backend"
-root_dir = api_dir.parent
-root_backend = root_dir / "backend"
+# Signal Vercel environment
+os.environ.setdefault("VERCEL", "1")
 
-# Priority search paths for modules
-for d in [root_backend, api_backend_us, api_backend, api_dir, root_dir]:
-    if d.exists():
-        p_str = str(d)
+api_dir = Path(__file__).resolve().parent
+root_dir = api_dir.parent
+
+candidates = [
+    api_dir / "_backend" / "main.py",
+    api_dir / "backend" / "main.py",
+    root_dir / "backend" / "main.py",
+]
+
+app = None
+last_err = None
+last_trace = ""
+
+for candidate in candidates:
+    if candidate.exists():
+        cand_dir = candidate.parent
+        p_str = str(cand_dir)
         if p_str in sys.path:
             sys.path.remove(p_str)
         sys.path.insert(0, p_str)
-
-# Signal Vercel environment for temporary SQLite database path
-os.environ.setdefault("VERCEL", "1")
-
-app = None
-for mod_name in ["backend.main", "_backend.main", "main"]:
-    try:
-        mod = __import__(mod_name, fromlist=["app"])
-        candidate = getattr(mod, "app", None)
-        if candidate is not None:
-            app = candidate
-            break
-    except Exception:
-        continue
+        try:
+            spec = importlib.util.spec_from_file_location("frank_serverless_backend", str(candidate))
+            if spec and spec.loader:
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules["frank_serverless_backend"] = mod
+                spec.loader.exec_module(mod)
+                candidate_app = getattr(mod, "app", None)
+                if candidate_app is not None:
+                    app = candidate_app
+                    break
+        except Exception as e:
+            last_err = e
+            last_trace = traceback.format_exc()
+            continue
 
 if app is None:
-    try:
-        from main import app
-    except Exception as e:
-        from fastapi import FastAPI
-        from fastapi.responses import JSONResponse
+    from fastapi import FastAPI
+    from fastapi.responses import JSONResponse
 
-        app = FastAPI(title="FRANK API - Diagnostic Mode")
-        startup_error = str(e)
-        startup_trace = traceback.format_exc()
+    app = FastAPI(title="FRANK API - Diagnostic Mode")
+    startup_error = str(last_err) if last_err else "Backend main.py not found in candidate paths"
 
-        @app.api_route("/", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
-        @app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
-        async def startup_error_fallback(full_path: str = ""):
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": "Backend failed to initialize on Vercel Serverless Function",
-                    "error": startup_error,
-                    "traceback": startup_trace,
-                    "debug": {
-                        "sys_path": sys.path,
-                        "cwd": os.getcwd(),
-                        "api_dir": str(api_dir),
-                        "api_backend_exists": api_backend.exists(),
-                        "root_backend_exists": root_backend.exists()
-                    }
+    @app.api_route("/", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
+    @app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
+    async def startup_error_fallback(full_path: str = ""):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "message": "Backend failed to initialize on Vercel Serverless Function",
+                "error": startup_error,
+                "traceback": last_trace,
+                "debug": {
+                    "sys_path": sys.path,
+                    "cwd": os.getcwd(),
+                    "api_dir": str(api_dir),
+                    "candidates_exist": [str(c) for c in candidates if c.exists()]
                 }
-            )
+            }
+        )
