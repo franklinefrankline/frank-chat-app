@@ -9,12 +9,13 @@ api_backend = api_dir / "backend"
 root_dir = api_dir.parent
 root_backend = root_dir / "backend"
 
-# Priority search paths for modules
-for d in [api_backend, root_backend, api_dir, root_dir]:
+# Priority search paths for modules (backend directories must be index 0)
+for d in [root_dir, api_dir, root_backend, api_backend]:
     if d.exists():
         p_str = str(d)
-        if p_str not in sys.path:
-            sys.path.insert(0, p_str)
+        while p_str in sys.path:
+            sys.path.remove(p_str)
+        sys.path.insert(0, p_str)
 
 # Signal Vercel environment for temporary SQLite database path
 os.environ.setdefault("VERCEL", "1")

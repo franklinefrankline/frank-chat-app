@@ -535,7 +535,8 @@ document.addEventListener('click', async (e) => {
     if (openDocBtn) {
         e.stopPropagation();
         const card = openDocBtn.closest('.message-photo-card, .message-document-card, .message-video-card, .message-voice-card, .message-row');
-        const fileId = parseInt(openDocBtn.dataset.fileId || (card ? card.dataset.fileId : '') || (card ? card.dataset.messageId : ''), 10);
+        const rawFileId = openDocBtn.dataset.fileId || (card ? card.dataset.fileId : '') || (card ? card.dataset.messageId : '');
+        const fileId = rawFileId ? parseInt(rawFileId, 10) : null;
         let fileType = openDocBtn.dataset.fileType;
         if (!fileType) {
             if (openDocBtn.classList.contains('msg-photo-img') || openDocBtn.classList.contains('message-photo-card')) fileType = 'image';
@@ -543,8 +544,9 @@ document.addEventListener('click', async (e) => {
             else fileType = card?.dataset.fileType || 'document';
         }
         const filename = openDocBtn.dataset.filename || card?.dataset.filename || openDocBtn.getAttribute('alt') || 'Document';
-        if (window.documentsController && fileId) {
-            window.documentsController.openDocument(fileId, fileType, filename);
+        const directUrl = openDocBtn.dataset.viewUrl || card?.dataset.viewUrl || openDocBtn.src || openDocBtn.querySelector('img, video, audio')?.src || '';
+        if (window.documentsController) {
+            window.documentsController.openDocument(fileId, fileType, filename, directUrl);
         }
         return;
     }
@@ -554,10 +556,12 @@ document.addEventListener('click', async (e) => {
     if (downloadDocBtn) {
         e.stopPropagation();
         const card = downloadDocBtn.closest('.message-photo-card, .message-document-card, .message-video-card, .message-voice-card, .message-row');
-        const fileId = parseInt(downloadDocBtn.dataset.fileId || (card ? card.dataset.fileId : ''), 10);
+        const rawFileId = downloadDocBtn.dataset.fileId || (card ? card.dataset.fileId : '');
+        const fileId = rawFileId ? parseInt(rawFileId, 10) : null;
         const filename = downloadDocBtn.dataset.filename || card?.dataset.filename || 'document';
-        if (window.documentsController && fileId) {
-            window.documentsController.downloadDocument(fileId, filename);
+        const directUrl = downloadDocBtn.dataset.viewUrl || card?.dataset.viewUrl || '';
+        if (window.documentsController) {
+            window.documentsController.downloadDocument(fileId, filename, directUrl);
         }
         return;
     }

@@ -11,6 +11,12 @@ backend_dir = Path(__file__).resolve().parent / "backend"
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
+try:
+    import main as backend_main
+    app = getattr(backend_main, "app", None)
+except Exception:
+    app = None
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))

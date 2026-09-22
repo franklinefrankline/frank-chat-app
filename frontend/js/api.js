@@ -805,12 +805,8 @@ const api = {
                     resolve(data);
                 } else {
                     let errMsg = `Upload failed with status ${xhr.status}`;
-                    if (data && data.detail) {
-                        if (typeof data.detail === 'string') {
-                            errMsg = data.detail;
-                        } else if (Array.isArray(data.detail)) {
-                            errMsg = data.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
-                        }
+                    if (xhr.status === 404) {
+                        errMsg = 'Upload endpoint not found (404). Please ensure the backend is running.';
                     } else if (xhr.status === 413) {
                         errMsg = 'File is too large.';
                     } else if (xhr.status === 415) {
@@ -819,6 +815,16 @@ const api = {
                         errMsg = 'Your session expired. Please log in again.';
                     } else if (xhr.status === 403) {
                         errMsg = 'You do not have permission to upload this file.';
+                    } else if (data && data.detail) {
+                        if (typeof data.detail === 'string') {
+                            if (data.detail.includes('NOT_FOUND') || data.detail.includes('<html') || data.detail.includes('<!DOCTYPE')) {
+                                errMsg = `Server returned an invalid response (${xhr.status}). Please try again.`;
+                            } else {
+                                errMsg = data.detail;
+                            }
+                        } else if (Array.isArray(data.detail)) {
+                            errMsg = data.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+                        }
                     }
                     const err = new Error(errMsg);
                     err.status = xhr.status;
