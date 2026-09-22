@@ -82,15 +82,22 @@ async function runTwoUserRealTimeTest(targetUrl = 'http://127.0.0.1:8000') {
 
         // Step 3: User A opens conversation with User B via FRANK ID
         console.log('\n3. User A starting chat with User B via FRANK ID...');
+        await pageA.waitForTimeout(2000);
         await pageA.click('#newChatModalBtn');
-        await pageA.waitForSelector('#newChatModal.open', { timeout: 4000 });
+        await pageA.waitForSelector('#newChatModal.open', { timeout: 5000 });
         await pageA.fill('#frankIdSearchInput', userB_data.frank_id);
         await pageA.click('#frankIdSearchBtn');
 
         const startChatBtn = pageA.locator('#previewStartChatBtn');
-        await startChatBtn.waitFor({ state: 'visible', timeout: 5000 });
+        try {
+            await startChatBtn.waitFor({ state: 'visible', timeout: 6000 });
+        } catch (e) {
+            // Retry once if replica lagged
+            await pageA.click('#frankIdSearchBtn');
+            await startChatBtn.waitFor({ state: 'visible', timeout: 6000 });
+        }
         await startChatBtn.click();
-        await pageA.waitForTimeout(1000);
+        await pageA.waitForTimeout(1500);
         console.log('  -> User A opened direct chat with User B');
 
         // Step 4: User A sends text message

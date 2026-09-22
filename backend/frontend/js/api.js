@@ -591,11 +591,10 @@ const api = {
                 data = await res.json();
             }
 
-            // If backend is unavailable or not found (404/500/502/503), fall back gracefully
+            // If backend returned non-OK response
             if (!res.ok) {
-                const isAuthEndpoint = endpoint.startsWith('/api/auth/') || endpoint.startsWith('/auth/');
-                if (!isAuthEndpoint && (res.status === 404 || res.status >= 500)) {
-                    console.warn(`[FRANK API] Backend returned ${res.status} for ${endpoint}. Falling back to resilient local demo database.`);
+                if (window.isDemoMode) {
+                    console.warn(`[FRANK API] Demo mode active. Falling back for ${endpoint}.`);
                     return handleMockRequest(endpoint, options);
                 }
                 const errorMsg = (data && (data.detail || data.message)) || `Request failed with status ${res.status}`;
@@ -607,10 +606,8 @@ const api = {
 
             return data;
         } catch (error) {
-            const isAuthEndpoint = endpoint.startsWith('/api/auth/') || endpoint.startsWith('/auth/');
-            // If fetch failed due to NetworkError, CORS, or offline server, engage fallback only for non-auth requests
-            if (!isAuthEndpoint && error && (error.name === 'TypeError' || String(error).includes('fetch') || String(error).includes('NetworkError'))) {
-                console.warn(`[FRANK API] Network fetch failed for ${endpoint}. Falling back to resilient local demo database.`);
+            if (window.isDemoMode && error && (error.name === 'TypeError' || String(error).includes('fetch') || String(error).includes('NetworkError'))) {
+                console.warn(`[FRANK API] Demo mode fallback for ${endpoint}.`);
                 return handleMockRequest(endpoint, options);
             }
             console.error(`API Error [${endpoint}]:`, error);
