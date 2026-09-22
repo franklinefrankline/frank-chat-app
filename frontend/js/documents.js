@@ -757,6 +757,8 @@ class DocumentsController {
             const uploadedDoc = await api.uploadFile(formData, (percent) => {
                 if (this.dom.trayProgressBar) this.dom.trayProgressBar.style.width = `${percent}%`;
                 if (this.dom.trayProgressText) this.dom.trayProgressText.textContent = `Uploading... ${percent}%`;
+            }, (xhr) => {
+                this.currentUploadXhr = xhr;
             });
 
             if (this.dom.trayProgressBar) this.dom.trayProgressBar.style.width = '100%';
@@ -827,7 +829,7 @@ class DocumentsController {
             } else if (err.status === 403) {
                 friendlyError = 'You do not have permission to upload this file.';
             } else if (err.status === 413) {
-                friendlyError = 'File is too large.';
+                friendlyError = 'File is too large. Maximum size is 100 MB.';
             } else if (err.status === 415) {
                 friendlyError = 'Unsupported file type.';
             }

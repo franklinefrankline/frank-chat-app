@@ -169,4 +169,15 @@ class ConversationPreference(Base):
     updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
 
 
+class UploadChunk(Base):
+    __tablename__ = "upload_chunks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    upload_id = Column(String(64), index=True, nullable=False)
+    chunk_index = Column(Integer, nullable=False)
+    total_chunks = Column(Integer, nullable=False)
+    chunk_data = Column(Text, nullable=True)  # Base64 encoded chunk data for multi-instance serverless resilience
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+
 

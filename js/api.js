@@ -773,12 +773,27 @@ const api = {
     },
 
 
-    // Document & File Endpoints
-    uploadFile(formData, onProgress) {
+    // Document & File Endpoints (supports chunked upload for files > 3MB to bypass serverless/Vercel payload limits)
+    async uploadFile(formData, onProgress, onXhrCreated) {
+        const file = formData.get('file');
+        const CHUNK_SIZE = 3 * 1024 * 1024; // 3 MB chunks (safely below Vercel's 4.5 MB function payload limit)
+
+        if (!file || !(file instanceof Blob) || file.size <= CHUNK_SIZE) {
+            return this.uploadDirect(formData, onProgress, onXhrCreated);
+        }
+
+        return this.uploadChunked(formData, onProgress, onXhrCreated);
+    },
+
+    uploadDirect(formData, onProgress, onXhrCreated) {
         return new Promise((resolve, reject) => {
             const baseUrl = this.baseUrl || API_BASE;
             const xhr = new XMLHttpRequest();
             xhr.open('POST', `${baseUrl}/api/files/upload`);
+
+            if (typeof onXhrCreated === 'function') {
+                onXhrCreated(xhr);
+            }
 
             const token = this.getToken();
             if (token) {
@@ -813,7 +828,7 @@ const api = {
                             errMsg = data.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
                         }
                     } else if (xhr.status === 413) {
-                        errMsg = 'File is too large.';
+                        errMsg = 'File is too large. Maximum size is 100 MB.';
                     } else if (xhr.status === 415) {
                         errMsg = 'Unsupported file type.';
                     } else if (xhr.status === 401) {
@@ -839,6 +854,120 @@ const api = {
             };
 
             xhr.send(formData);
+        });
+    },
+
+    async uploadChunked(formData, onProgress, onXhrCreated) {
+        const file = formData.get('file');
+        const partnerId = formData.get('partner_id');
+        const groupId = formData.get('group_id');
+        const duration = formData.get('duration');
+
+        const CHUNK_SIZE = 3 * 1024 * 1024; // 3 MB chunks
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+        const uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+
+        let finalResponse = null;
+
+        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+            const start = chunkIndex * CHUNK_SIZE;
+            const end = Math.min(start + CHUNK_SIZE, file.size);
+            const chunkBlob = file.slice(start, end);
+
+            const chunkFormData = new FormData();
+            chunkFormData.append('chunk', chunkBlob, file.name);
+            chunkFormData.append('upload_id', uploadId);
+            chunkFormData.append('chunk_index', chunkIndex.toString());
+            chunkFormData.append('total_chunks', totalChunks.toString());
+            chunkFormData.append('filename', file.name);
+            if (partnerId) chunkFormData.append('partner_id', partnerId);
+            if (groupId) chunkFormData.append('group_id', groupId);
+            if (duration) chunkFormData.append('duration', duration);
+
+            finalResponse = await this.uploadSingleChunk(chunkFormData, (chunkPercent, chunkLoaded, chunkTotal) => {
+                if (onProgress) {
+                    const totalLoadedSoFar = start + chunkLoaded;
+                    const overallPercent = Math.min(99, Math.round((totalLoadedSoFar / file.size) * 100));
+                    onProgress(overallPercent, totalLoadedSoFar, file.size);
+                }
+            }, onXhrCreated);
+        }
+
+        if (onProgress) {
+            onProgress(100, file.size, file.size);
+        }
+        return finalResponse;
+    },
+
+    uploadSingleChunk(chunkFormData, onChunkProgress, onXhrCreated) {
+        return new Promise((resolve, reject) => {
+            const baseUrl = this.baseUrl || API_BASE;
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `${baseUrl}/api/files/upload-chunk`);
+
+            if (typeof onXhrCreated === 'function') {
+                onXhrCreated(xhr);
+            }
+
+            const token = this.getToken();
+            if (token) {
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            }
+
+            if (xhr.upload && onChunkProgress) {
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        onChunkProgress(percent, e.loaded, e.total);
+                    }
+                });
+            }
+
+            xhr.onload = () => {
+                let data = null;
+                try {
+                    data = JSON.parse(xhr.responseText);
+                } catch {
+                    data = { detail: xhr.responseText || 'Invalid server response' };
+                }
+
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve(data);
+                } else {
+                    let errMsg = `Upload failed with status ${xhr.status}`;
+                    if (data && data.detail) {
+                        if (typeof data.detail === 'string') {
+                            errMsg = data.detail;
+                        } else if (Array.isArray(data.detail)) {
+                            errMsg = data.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+                        }
+                    } else if (xhr.status === 413) {
+                        errMsg = 'File chunk exceeded server limit. Maximum file size is 100 MB.';
+                    } else if (xhr.status === 415) {
+                        errMsg = 'Unsupported file type.';
+                    } else if (xhr.status === 401) {
+                        errMsg = 'Your session expired. Please log in again.';
+                    } else if (xhr.status === 403) {
+                        errMsg = 'You do not have permission to upload this file.';
+                    }
+                    const err = new Error(errMsg);
+                    err.status = xhr.status;
+                    err.data = data;
+                    reject(err);
+                }
+            };
+
+            xhr.onerror = () => {
+                const err = new Error('Unable to connect to the server. Please check your connection and try again.');
+                err.status = 0;
+                reject(err);
+            };
+
+            xhr.onabort = () => {
+                reject(new Error('Upload cancelled.'));
+            };
+
+            xhr.send(chunkFormData);
         });
     },
 

@@ -1,10 +1,13 @@
 import os
 import uuid
+import shutil
+import base64
 import urllib.parse
 from pathlib import Path
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
 from fastapi.responses import FileResponse
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_
 
@@ -197,22 +200,16 @@ def verify_document_access(doc: models.Document, user: models.User, db: Session)
     return False
 
 
-@router.post("/upload", response_model=schemas.DocumentResponse, status_code=status.HTTP_201_CREATED)
-async def upload_file(
-    file: UploadFile = File(...),
-    partner_id: Optional[int] = Form(None),
-    conversation_id: Optional[int] = Form(None),
-    group_id: Optional[int] = Form(None),
-    duration: Optional[float] = Form(None),
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    if not file.filename:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No file selected.")
-
-    target_partner_id = partner_id if partner_id is not None else conversation_id
-
-    original_name = sanitize_filename(file.filename)
+def _process_and_save_file(
+    content: bytes,
+    original_name: str,
+    raw_content_type: Optional[str],
+    current_user: models.User,
+    target_partner_id: Optional[int],
+    group_id: Optional[int],
+    duration: Optional[float],
+    db: Session
+) -> models.Document:
     ext = Path(original_name).suffix.lower()
 
     if ext in DISALLOWED_EXTENSIONS:
@@ -223,7 +220,7 @@ async def upload_file(
 
     # If mime is audio or video and ext is webm, detect audio vs video
     if (ext in [".webm", ".weba"] or original_name.startswith("voice-") or original_name.startswith("audio-")) and (
-        (file.content_type and "audio" in file.content_type) or original_name.startswith("voice-")
+        (raw_content_type and "audio" in raw_content_type) or original_name.startswith("voice-")
     ):
         expected_mime, file_type = ("audio/webm", "audio")
     elif ext not in ALLOWED_EXTENSIONS:
@@ -234,7 +231,7 @@ async def upload_file(
     else:
         expected_mime, file_type = ALLOWED_EXTENSIONS[ext]
 
-    raw_mime = file.content_type or expected_mime
+    raw_mime = raw_content_type or expected_mime
     mime_type = raw_mime.split(";")[0].strip()
 
     # Verify conversation target permissions
@@ -251,10 +248,7 @@ async def upload_file(
         if not partner:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found.")
 
-    # Read and validate size safely
-    content = await file.read()
     file_size = len(content)
-
     if file_size == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The selected file is empty.")
 
@@ -307,7 +301,6 @@ async def upload_file(
     # Multi-instance serverless resilience: store base64 payload for docs <= 100MB
     b64_data = None
     if file_size <= 100 * 1024 * 1024:
-        import base64
         try:
             b64_data = base64.b64encode(content).decode("ascii")
         except Exception:
@@ -343,6 +336,165 @@ async def upload_file(
         pass
 
     return doc
+
+
+@router.post("/upload", response_model=schemas.DocumentResponse, status_code=status.HTTP_201_CREATED)
+async def upload_file(
+    file: UploadFile = File(...),
+    partner_id: Optional[int] = Form(None),
+    conversation_id: Optional[int] = Form(None),
+    group_id: Optional[int] = Form(None),
+    duration: Optional[float] = Form(None),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not file.filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No file selected.")
+
+    target_partner_id = partner_id if partner_id is not None else conversation_id
+    original_name = sanitize_filename(file.filename)
+    content = await file.read()
+
+    return _process_and_save_file(
+        content=content,
+        original_name=original_name,
+        raw_content_type=file.content_type,
+        current_user=current_user,
+        target_partner_id=target_partner_id,
+        group_id=group_id,
+        duration=duration,
+        db=db
+    )
+
+
+@router.post("/upload-chunk", status_code=status.HTTP_200_OK)
+async def upload_chunk(
+    upload_id: str = Form(...),
+    chunk_index: int = Form(...),
+    total_chunks: int = Form(...),
+    filename: str = Form(...),
+    partner_id: Optional[int] = Form(None),
+    conversation_id: Optional[int] = Form(None),
+    group_id: Optional[int] = Form(None),
+    duration: Optional[float] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    chunk: Optional[UploadFile] = File(None),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    upload_file_obj = chunk if chunk is not None else file
+    if not upload_file_obj:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No chunk data provided.")
+
+    if total_chunks <= 0 or total_chunks > 60:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid total_chunks value.")
+
+    if chunk_index < 0 or chunk_index >= total_chunks:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid chunk_index value.")
+
+    chunk_bytes = await upload_file_obj.read()
+    if len(chunk_bytes) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Individual chunk exceeds 5MB limit.")
+
+    # 1. Save chunk to local disk
+    chunk_dir = UPLOAD_DIR / "chunks" / upload_id
+    try:
+        chunk_dir.mkdir(parents=True, exist_ok=True)
+        chunk_path = chunk_dir / f"{chunk_index}.part"
+        with open(chunk_path, "wb") as f:
+            f.write(chunk_bytes)
+    except Exception as e:
+        print(f"Chunk disk save note: {e}")
+
+    # 2. Store chunk in DB for multi-instance serverless resilience
+    chunk_b64 = base64.b64encode(chunk_bytes).decode("ascii")
+    existing_chunk = db.query(models.UploadChunk).filter(
+        models.UploadChunk.upload_id == upload_id,
+        models.UploadChunk.chunk_index == chunk_index
+    ).first()
+    if existing_chunk:
+        existing_chunk.chunk_data = chunk_b64
+    else:
+        new_chunk = models.UploadChunk(
+            upload_id=upload_id,
+            chunk_index=chunk_index,
+            total_chunks=total_chunks,
+            chunk_data=chunk_b64
+        )
+        db.add(new_chunk)
+    db.commit()
+
+    # 3. Check if all chunks have been received
+    received_count = db.query(models.UploadChunk).filter(
+        models.UploadChunk.upload_id == upload_id
+    ).count()
+
+    if received_count < total_chunks:
+        return {
+            "status": "chunk_received",
+            "upload_id": upload_id,
+            "chunk_index": chunk_index,
+            "total_chunks": total_chunks,
+            "received": received_count
+        }
+
+    # 4. Assemble complete file
+    parts = []
+    all_on_disk = True
+    for i in range(total_chunks):
+        p = chunk_dir / f"{i}.part"
+        if p.exists():
+            try:
+                parts.append(p.read_bytes())
+            except Exception:
+                all_on_disk = False
+                break
+        else:
+            all_on_disk = False
+            break
+
+    if not all_on_disk:
+        db_chunks = db.query(models.UploadChunk).filter(
+            models.UploadChunk.upload_id == upload_id
+        ).order_by(models.UploadChunk.chunk_index.asc()).all()
+        if len(db_chunks) != total_chunks:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Incomplete upload: expected {total_chunks} chunks, received {len(db_chunks)}"
+            )
+        parts = [base64.b64decode(c.chunk_data) for c in db_chunks]
+
+    full_content = b"".join(parts)
+
+    # 5. Clean up temporary chunks
+    try:
+        db.query(models.UploadChunk).filter(models.UploadChunk.upload_id == upload_id).delete()
+        db.commit()
+    except Exception:
+        pass
+    try:
+        if chunk_dir.exists():
+            shutil.rmtree(chunk_dir, ignore_errors=True)
+    except Exception:
+        pass
+
+    # 6. Process and save the assembled document
+    target_partner_id = partner_id if partner_id is not None else conversation_id
+    original_name = sanitize_filename(filename)
+
+    doc = _process_and_save_file(
+        content=full_content,
+        original_name=original_name,
+        raw_content_type=upload_file_obj.content_type,
+        current_user=current_user,
+        target_partner_id=target_partner_id,
+        group_id=group_id,
+        duration=duration,
+        db=db
+    )
+
+    return jsonable_encoder(doc)
+
 
 
 
