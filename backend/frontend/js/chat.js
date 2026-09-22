@@ -1721,7 +1721,7 @@ class ChatController {
     activateRealTimeSync() {
         if (this._syncTimer) clearInterval(this._syncTimer);
         this.runRealTimeSyncCycle();
-        const interval = document.visibilityState === 'visible' ? 2500 : 6000;
+        const interval = document.visibilityState === 'visible' ? 1800 : 5000;
         this._syncTimer = setInterval(() => this.runRealTimeSyncCycle(), interval);
     }
 

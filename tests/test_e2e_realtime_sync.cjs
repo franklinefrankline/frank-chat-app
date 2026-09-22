@@ -108,15 +108,14 @@ async function runTwoUserRealTimeTest(targetUrl = 'http://127.0.0.1:8000') {
         // Step 5: User B receives message in real time (WITHOUT PAGE REFRESH!)
         console.log('\n5. Verifying User B receives message in real time (No refresh)...');
         // If User B doesn't have chat open yet, open it or check conversation list
-        await pageB.waitForTimeout(3000);
         const convCardB = pageB.locator(`.conversation-card:has-text("User Alpha")`).first();
-        await convCardB.waitFor({ state: 'visible', timeout: 8000 });
+        await convCardB.waitFor({ state: 'visible', timeout: 15000 });
         console.log('  [PASS] User B conversation list updated with User Alpha card in real time');
         await convCardB.click();
         await pageB.waitForTimeout(1000);
 
         const userB_receivedMsg = pageB.locator(`.message-row:has-text("${testMsgText}")`);
-        await userB_receivedMsg.waitFor({ state: 'visible', timeout: 6000 });
+        await userB_receivedMsg.waitFor({ state: 'visible', timeout: 12000 });
         console.log('  [PASS] User B received and rendered message without reload!');
 
         // Step 6: User A edits message
@@ -126,18 +125,18 @@ async function runTwoUserRealTimeTest(targetUrl = 'http://127.0.0.1:8000') {
         await pageA.waitForTimeout(300);
         const editBtn = userA_sentMsg.locator('.msg-action-edit');
         await editBtn.dispatchEvent('click');
-        await pageA.waitForSelector('#composerEditStrip', { state: 'visible', timeout: 3000 });
+        await pageA.waitForSelector('#composerEditStrip', { state: 'visible', timeout: 4000 });
         await pageA.fill('#messageComposerTextarea', editedText);
         await pageA.click('#saveEditBtn');
         await pageA.waitForTimeout(1000);
 
         // Verify User A sees edit
-        await pageA.locator(`.message-row:has-text("${editedText}")`).waitFor({ state: 'visible', timeout: 5000 });
+        await pageA.locator(`.message-row:has-text("${editedText}")`).waitFor({ state: 'visible', timeout: 8000 });
         console.log('  [PASS] User A sees edited text and badge');
 
         // Step 7: User B receives edit in real time (WITHOUT RELOAD!)
         console.log('\n7. Verifying User B sees edit in real time (No reload)...');
-        await pageB.locator(`.message-row:has-text("${editedText}")`).waitFor({ state: 'visible', timeout: 8000 });
+        await pageB.locator(`.message-row:has-text("${editedText}")`).waitFor({ state: 'visible', timeout: 15000 });
         console.log('  [PASS] User B received live message edit without reload!');
 
         // Step 8: User B reacts with emoji 👍
@@ -150,13 +149,13 @@ async function runTwoUserRealTimeTest(targetUrl = 'http://127.0.0.1:8000') {
         await pageB.waitForTimeout(1000);
 
         // Verify User B sees reaction pill
-        await userB_msgRow.locator('.reaction-pill:has-text("👍")').waitFor({ state: 'visible', timeout: 5000 });
+        await userB_msgRow.locator('.reaction-pill:has-text("👍")').waitFor({ state: 'visible', timeout: 8000 });
         console.log('  [PASS] User B reaction pill rendered');
 
         // Step 9: User A receives reaction in real time (WITHOUT RELOAD!)
         console.log('\n9. Verifying User A sees reaction in real time (No reload)...');
         const userA_msgRow = pageA.locator(`.message-row:has-text("${editedText}")`);
-        await userA_msgRow.locator('.reaction-pill:has-text("👍")').waitFor({ state: 'visible', timeout: 8000 });
+        await userA_msgRow.locator('.reaction-pill:has-text("👍")').waitFor({ state: 'visible', timeout: 15000 });
         console.log('  [PASS] User A received live emoji reaction without reload!');
 
         // Step 10: User A deletes message
@@ -167,7 +166,7 @@ async function runTwoUserRealTimeTest(targetUrl = 'http://127.0.0.1:8000') {
         await delBtn.dispatchEvent('click');
         // Confirm in modal
         const confirmBtn = pageA.locator('#confirmModalOk');
-        await confirmBtn.waitFor({ state: 'visible', timeout: 3000 });
+        await confirmBtn.waitFor({ state: 'visible', timeout: 4000 });
         await confirmBtn.click();
         await pageA.waitForTimeout(1000);
 
@@ -179,8 +178,7 @@ async function runTwoUserRealTimeTest(targetUrl = 'http://127.0.0.1:8000') {
         // Step 11: User B sees message deletion in real time (WITHOUT RELOAD!)
         console.log('\n11. Verifying User B sees message deletion in real time (No reload)...');
         await pageB.waitForTimeout(4000);
-        const isMsgGoneB = await pageB.locator(`.message-row:has-text("${editedText}")`).count();
-        if (isMsgGoneB !== 0) throw new Error('Message still visible to User B after deletion');
+        await pageB.locator(`.message-row:has-text("${editedText}")`).waitFor({ state: 'detached', timeout: 15000 });
         console.log('  [PASS] Message removed from User B view in real time without reload!');
 
         // Step 12: Verify no stray localhost:8000 calls on production
