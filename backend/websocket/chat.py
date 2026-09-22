@@ -355,6 +355,13 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                             if recipient_id != user_id:
                                 await manager.send_to_user(recipient_id, msg_payload)
 
+                        # Broadcast updated message count to admin (metadata count only — zero message content)
+                        total_cnt = db_session.query(models.Message).count()
+                        await manager.broadcast_admin({
+                            "type": "admin_message_count_updated",
+                            "total_messages": total_cnt
+                        })
+                        await manager.broadcast_admin_metrics(db_session)
                     finally:
                         db_session.close()
 
@@ -449,6 +456,14 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                                     await manager.broadcast_to_group(grp_id, del_payload, sender_id=user_id)
                                 elif recip_id:
                                     await manager.send_to_user(recip_id, del_payload)
+
+                                # Broadcast updated message count to admin
+                                total_cnt = db_session.query(models.Message).count()
+                                await manager.broadcast_admin({
+                                    "type": "admin_message_count_updated",
+                                    "total_messages": total_cnt
+                                })
+                                await manager.broadcast_admin_metrics(db_session)
                         finally:
                             db_session.close()
 

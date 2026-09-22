@@ -241,9 +241,24 @@ def delete_group(
     if group.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the group owner can delete this group.")
 
+    group_name = group.name
+    group_id_val = group.id
     db.delete(group)
     db.commit()
-    return {"success": True, "message": f"Group '{group.name}' has been deleted."}
+
+    # Real-time WebSocket broadcast to admin
+    try:
+        from websocket.chat import manager
+        import asyncio
+        asyncio.create_task(manager.broadcast_admin({
+            "type": "admin_group_deleted",
+            "group_id": group_id_val
+        }))
+        asyncio.create_task(manager.broadcast_admin_metrics(db))
+    except Exception:
+        pass
+
+    return {"success": True, "message": f"Group '{group_name}' has been deleted."}
 
 
 @router.get("/{group_id}/messages", response_model=List[schemas.MessageResponse])

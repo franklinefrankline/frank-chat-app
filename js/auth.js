@@ -17,6 +17,19 @@ const auth = {
         }
     },
 
+    async getCurrentUser() {
+        if (typeof api !== 'undefined' && api.getCurrentUser) {
+            try {
+                const user = await api.getCurrentUser();
+                if (user) {
+                    this.setUser(user);
+                    return user;
+                }
+            } catch (e) {}
+        }
+        return this.getUser();
+    },
+
     setUser(user) {
         if (user) {
             localStorage.setItem('chatapp_user', JSON.stringify(user));

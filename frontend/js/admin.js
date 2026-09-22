@@ -6,6 +6,13 @@
 (function () {
     'use strict';
 
+    const toast = {
+        success: (msg, dur) => (window.toast?.success ? window.toast.success(msg, dur) : (window.showToast ? window.showToast(msg, 'success', dur) : console.log(msg))),
+        error: (msg, dur) => (window.toast?.error ? window.toast.error(msg, dur) : (window.showToast ? window.showToast(msg, 'error', dur) : console.error(msg))),
+        info: (msg, dur) => (window.toast?.info ? window.toast.info(msg, dur) : (window.showToast ? window.showToast(msg, 'info', dur) : console.log(msg))),
+        warning: (msg, dur) => (window.toast?.warning ? window.toast.warning(msg, dur) : (window.showToast ? window.showToast(msg, 'warning', dur) : console.warn(msg)))
+    };
+
     class AdminController {
         constructor() {
             this.currentUser = null;
@@ -46,7 +53,9 @@
         async init() {
             try {
                 // 1. Authenticate and enforce Admin role
-                const user = await auth.getCurrentUser();
+                const user = (auth.getCurrentUser ? await auth.getCurrentUser() : null) || 
+                             (typeof api !== 'undefined' && api.getCurrentUser ? await api.getCurrentUser() : null) || 
+                             auth.getUser();
                 if (!user) {
                     window.location.href = 'login.html';
                     return;
@@ -163,13 +172,15 @@
 
             if (mobileBtn && sidebar && overlay) {
                 mobileBtn.addEventListener('click', () => {
-                    sidebar.classList.toggle('open');
-                    overlay.classList.toggle('active');
+                    const isOpen = sidebar.classList.toggle('open');
+                    overlay.classList.toggle('active', isOpen);
+                    overlay.classList.toggle('show', isOpen);
                 });
 
                 overlay.addEventListener('click', () => {
                     sidebar.classList.remove('open');
                     overlay.classList.remove('active');
+                    overlay.classList.remove('show');
                 });
             }
 
@@ -362,10 +373,10 @@
             const detailsModal = document.getElementById('adminUserDetailsModal');
             if (closeDetailsBtn && detailsModal) {
                 closeDetailsBtn.addEventListener('click', () => {
-                    detailsModal.classList.remove('active');
+                    detailsModal.classList.remove('open', 'active');
                 });
                 detailsModal.addEventListener('click', (e) => {
-                    if (e.target === detailsModal) detailsModal.classList.remove('active');
+                    if (e.target === detailsModal) detailsModal.classList.remove('open', 'active');
                 });
             }
 
@@ -376,7 +387,7 @@
             const confirmSubmitBtn = document.getElementById('adminConfirmSubmitBtn');
 
             const closeConfirm = () => {
-                if (confirmModal) confirmModal.classList.remove('active');
+                if (confirmModal) confirmModal.classList.remove('open', 'active');
                 this.confirmCallback = null;
             };
 
@@ -387,6 +398,15 @@
                     if (e.target === confirmModal) closeConfirm();
                 });
             }
+
+            // Keyboard Escape dismiss
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (confirmModal) confirmModal.classList.remove('open', 'active');
+                    if (detailsModal) detailsModal.classList.remove('open', 'active');
+                    this.confirmCallback = null;
+                }
+            });
 
             if (confirmSubmitBtn) {
                 confirmSubmitBtn.addEventListener('click', async () => {
@@ -428,7 +448,7 @@
             submitBtn.className = `btn ${confirmClass || 'btn-danger'}`;
             this.confirmCallback = onConfirm;
 
-            modal.classList.add('active');
+            modal.classList.add('open', 'active');
         }
 
         /* -----------------------------------------------------------------
@@ -610,7 +630,7 @@
             const body = document.getElementById('userDetailsModalBody');
             if (!modal || !body) return;
 
-            modal.classList.add('active');
+            modal.classList.add('open', 'active');
             body.innerHTML = `<div class="spinner" style="margin: 24px auto;"></div>`;
 
             try {
@@ -725,10 +745,10 @@
 
         handleDeleteUserAccount(userId, userName, userEmail) {
             this.showConfirmDialog({
-                title: 'Permanently Delete User Account',
+                title: 'Delete Account?',
                 message: `Are you sure you want to permanently delete the account for ${userName} (${userEmail})?`,
-                warning: 'CRITICAL: This will permanently delete the user account, conversations, messages, files, and memberships from the database. This action CANNOT be undone.',
-                confirmText: 'Permanently Delete',
+                warning: 'This action cannot be undone.',
+                confirmText: 'Delete Account',
                 confirmClass: 'btn-danger',
                 onConfirm: async () => {
                     try {
@@ -975,6 +995,7 @@
                     this.animateCounter('metricActiveAccounts', data.metrics.active_users || 0);
                     this.animateCounter('metricDisabledAccounts', data.metrics.disabled_users || 0);
                 }
+                this.loadMetrics();
                 this.loadUsers();
             });
 
@@ -983,6 +1004,7 @@
                 if (data.metrics) {
                     this.animateCounter('metricTotalGroups', data.metrics.total_groups || 0);
                 }
+                this.loadMetrics();
                 this.loadGroups();
                 this.prependActivityItem({
                     type: 'group_created',
@@ -991,14 +1013,21 @@
                 });
             });
 
+            // Group deleted
+            window.wsClient.on('admin_group_deleted', (data) => {
+                this.loadMetrics();
+                this.loadGroups();
+            });
+
             // Audit log created
             window.wsClient.on('admin_audit_created', (data) => {
-                if (data.log) {
+                const log = data.audit || data.log;
+                if (log) {
                     this.loadAuditLogs();
                     this.prependActivityItem({
-                        type: data.log.action || 'admin_action',
-                        description: `${data.log.admin_name || 'Admin'}: ${data.log.action} ${data.log.target_type || ''} #${data.log.target_id || ''}`,
-                        timestamp: data.log.created_at || new Date().toISOString()
+                        type: log.action || 'admin_action',
+                        description: `${log.admin_name || 'Admin'}: ${(log.action || '').replace(/_/g, ' ')} on ${log.target_type || ''} ${log.target_name || ''}`,
+                        timestamp: log.created_at || new Date().toISOString()
                     });
                 }
             });
@@ -1007,13 +1036,18 @@
             window.wsClient.on('admin_message_count_updated', (data) => {
                 if (typeof data.total_messages === 'number') {
                     this.animateCounter('metricTotalMessages', data.total_messages);
+                } else {
+                    this.loadMetrics();
                 }
             });
 
             // File count update
             window.wsClient.on('admin_file_count_updated', (data) => {
-                if (typeof data.total_files === 'number') {
-                    this.animateCounter('metricTotalFiles', data.total_files);
+                const count = typeof data.files === 'number' ? data.files : (typeof data.total_files === 'number' ? data.total_files : null);
+                if (count !== null) {
+                    this.animateCounter('metricTotalFiles', count);
+                } else {
+                    this.loadMetrics();
                 }
             });
         }

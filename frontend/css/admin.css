@@ -666,6 +666,20 @@
     text-align: right;
 }
 
+/* Modal backdrop open & active support */
+.modal-backdrop.open,
+.modal-backdrop.active {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+.modal-backdrop.open .modal-card,
+.modal-backdrop.active .modal-card {
+    transform: translateY(0) scale(1) !important;
+    opacity: 1 !important;
+}
+
 /* Mobile responsive drawer */
 @media (max-width: 768px) {
     .mobile-nav-toggle {
@@ -695,10 +709,17 @@
         bottom: 0;
         background: rgba(0, 0, 0, 0.5);
         z-index: 300;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity var(--transition-base), visibility var(--transition-base);
     }
 
-    .mobile-overlay.active {
-        display: block;
+    .mobile-overlay.active,
+    .mobile-overlay.show {
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
     }
 
     .admin-section {

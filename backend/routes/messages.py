@@ -147,6 +147,14 @@ async def send_message(
             await manager.send_to_user(msg.recipient_id, msg_payload)
             if msg.recipient_id != current_user.id:
                 await manager.send_to_user(current_user.id, msg_payload)
+
+        # Real-time metric update for admin (metadata count only — zero message plaintext)
+        total_msgs = db.query(models.Message).count()
+        await manager.broadcast_admin({
+            "type": "admin_message_count_updated",
+            "total_messages": total_msgs
+        })
+        await manager.broadcast_admin_metrics(db)
     except Exception:
         pass
 
@@ -223,6 +231,14 @@ async def delete_message(
         elif recip_id:
             await manager.send_to_user(recip_id, del_payload)
             await manager.send_to_user(current_user.id, del_payload)
+
+        # Real-time metric update for admin
+        total_msgs = db.query(models.Message).count()
+        await manager.broadcast_admin({
+            "type": "admin_message_count_updated",
+            "total_messages": total_msgs
+        })
+        await manager.broadcast_admin_metrics(db)
     except Exception:
         pass
 

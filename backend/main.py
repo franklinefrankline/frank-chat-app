@@ -51,21 +51,35 @@ except Exception as e:
 def seed_demo_users():
     db = SessionLocal()
     try:
-        # Ensure default administrator exists
-        admin_user = db.query(models.User).filter(models.User.username == "admin").first()
+        # Ensure default administrator exists with requested credentials
+        admin_user = db.query(models.User).filter(
+            (models.User.email == "frankline30999112@gmail.com") |
+            (models.User.username == "frankline30999112@gmail.com") |
+            (models.User.username == "frankline") |
+            (models.User.username == "admin") |
+            (models.User.role == "admin")
+        ).first()
         if not admin_user:
             admin_user = models.User(
-                username="admin",
-                email="admin@frank.app",
+                username="frankline30999112@gmail.com",
+                email="frankline30999112@gmail.com",
                 frank_id="ADM001",
-                full_name="FRANK Administrator",
+                full_name="Frankline",
                 bio="System Administrator",
-                hashed_password=hash_password("Admin@123456"),
+                hashed_password=hash_password("#Frankline2006"),
                 role="admin",
                 account_status="active",
                 is_online=False
             )
             db.add(admin_user)
+            db.commit()
+        else:
+            admin_user.username = "frankline30999112@gmail.com"
+            admin_user.email = "frankline30999112@gmail.com"
+            admin_user.full_name = "Frankline"
+            admin_user.hashed_password = hash_password("#Frankline2006")
+            admin_user.role = "admin"
+            admin_user.account_status = "active"
             db.commit()
 
         if db.query(models.User).filter(models.User.role != "admin").count() == 0:
@@ -198,10 +212,12 @@ app.add_middleware(SecurityHeadersMiddleware)
 @app.middleware("http")
 async def ensure_api_prefix(request: Request, call_next):
     path = request.url.path
-    for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health", "/admin"]:
-        if path.startswith(pfx):
-            request.scope["path"] = "/api" + path
-            break
+    # Never rewrite static frontend assets or HTML pages
+    if not any(path.endswith(ext) for ext in [".html", ".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".webp", ".woff", ".woff2", ".ttf"]):
+        for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health", "/admin"]:
+            if (path == pfx and pfx != "/admin") or path.startswith(pfx + "/"):
+                request.scope["path"] = "/api" + path
+                break
     response = await call_next(request)
     return response
 

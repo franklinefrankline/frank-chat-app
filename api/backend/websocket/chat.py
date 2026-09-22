@@ -354,6 +354,13 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
 
                             await manager.send_to_user(recipient_id, msg_payload)
 
+                        # Broadcast updated message count to admin (metadata count only — zero message content)
+                        total_cnt = db_session.query(models.Message).count()
+                        await manager.broadcast_admin({
+                            "type": "admin_message_count_updated",
+                            "total_messages": total_cnt
+                        })
+                        await manager.broadcast_admin_metrics(db_session)
                     finally:
                         db_session.close()
 
@@ -423,7 +430,43 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                         finally:
                             db_session.close()
 
-                # 4. MESSAGE REACTION
+                # 4. DELETE MESSAGE
+                elif event_type in ("delete_message", "message_delete"):
+                    try:
+                        del_msg_id = int(data.get("message_id")) if data.get("message_id") else None
+                    except (ValueError, TypeError):
+                        del_msg_id = None
+                    if del_msg_id:
+                        db_session = SessionLocal()
+                        try:
+                            del_msg = db_session.query(models.Message).filter(models.Message.id == del_msg_id).first()
+                            if del_msg and del_msg.sender_id == user_id:
+                                recip_id = del_msg.recipient_id
+                                grp_id = del_msg.group_id
+                                db_session.delete(del_msg)
+                                db_session.commit()
+
+                                del_payload = {
+                                    "type": "message_deleted",
+                                    "message_id": del_msg_id
+                                }
+                                await manager.send_to_user(user_id, del_payload)
+                                if grp_id:
+                                    await manager.broadcast_to_group(grp_id, del_payload, sender_id=user_id)
+                                elif recip_id:
+                                    await manager.send_to_user(recip_id, del_payload)
+
+                                # Broadcast updated message count to admin
+                                total_cnt = db_session.query(models.Message).count()
+                                await manager.broadcast_admin({
+                                    "type": "admin_message_count_updated",
+                                    "total_messages": total_cnt
+                                })
+                                await manager.broadcast_admin_metrics(db_session)
+                        finally:
+                            db_session.close()
+
+                # 5. MESSAGE REACTION
                 elif event_type == "reaction":
                     try:
                         message_id = int(data.get("message_id")) if data.get("message_id") else None

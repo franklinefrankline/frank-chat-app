@@ -51,3 +51,10 @@ function showToast(message, type = 'info', duration = 3200) {
 }
 
 window.showToast = showToast;
+window.toast = {
+    show: showToast,
+    success: (msg, duration) => showToast(msg, 'success', duration),
+    error: (msg, duration) => showToast(msg, 'error', duration),
+    info: (msg, duration) => showToast(msg, 'info', duration),
+    warning: (msg, duration) => showToast(msg, 'warning', duration)
+};

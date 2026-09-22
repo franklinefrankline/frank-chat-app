@@ -23,19 +23,33 @@ def run_admin_tests():
 
     db = database.SessionLocal()
     try:
-        # Ensure default admin exists
-        admin_user = db.query(models.User).filter(models.User.username == "admin").first()
+        # Ensure administrator exists with specified credentials
+        admin_user = db.query(models.User).filter(
+            (models.User.email == "frankline30999112@gmail.com") |
+            (models.User.username == "frankline30999112@gmail.com") |
+            (models.User.username == "admin") |
+            (models.User.role == "admin")
+        ).first()
         if not admin_user:
             admin_user = models.User(
-                email="admin@frank.app",
-                username="admin",
-                full_name="System Administrator",
-                hashed_password=security.hash_password("Admin@123456"),
+                email="frankline30999112@gmail.com",
+                username="frankline30999112@gmail.com",
+                full_name="Frankline",
+                hashed_password=security.hash_password("#Frankline2006"),
                 role="admin",
                 account_status="active",
                 frank_id="ADM001"
             )
             db.add(admin_user)
+            db.commit()
+            db.refresh(admin_user)
+        else:
+            admin_user.username = "frankline30999112@gmail.com"
+            admin_user.email = "frankline30999112@gmail.com"
+            admin_user.full_name = "Frankline"
+            admin_user.hashed_password = security.hash_password("#Frankline2006")
+            admin_user.role = "admin"
+            admin_user.account_status = "active"
             db.commit()
             db.refresh(admin_user)
 
@@ -59,8 +73,8 @@ def run_admin_tests():
         # TEST 1: Admin Login & Unified Login Role Determination
         # -----------------------------------------------------------------
         admin_login_res = client.post("/api/auth/login", json={
-            "username": "admin",
-            "password": "Admin@123456"
+            "username": "frankline30999112@gmail.com",
+            "password": "#Frankline2006"
         })
         assert admin_login_res.status_code == 200, f"Admin login failed: {admin_login_res.text}"
         admin_data = admin_login_res.json()

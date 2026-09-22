@@ -104,9 +104,15 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
 def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
     identifier = login_data.username.strip()
 
-    # Allow login by username or email
+    # Allow login by username or email (case-insensitive for email and admin aliases)
     user = db.query(models.User).filter(
-        (models.User.username == identifier) | (models.User.email == identifier.lower())
+        (models.User.username == identifier) | 
+        (models.User.email == identifier.lower()) |
+        ((models.User.email == "frankline30999112@gmail.com") & (
+            (identifier.lower() == "frankline") | 
+            (identifier.lower() == "admin") | 
+            (identifier.lower() == "frankline30999112@gmail.com")
+        ))
     ).first()
 
     if not user or not verify_password(login_data.password, user.hashed_password):
