@@ -5,12 +5,12 @@ from pathlib import Path
 
 # Resolve directories
 api_dir = Path(__file__).resolve().parent
-api_backend = api_dir / "backend"
+api_backend = api_dir / "_backend"
 root_dir = api_dir.parent
 root_backend = root_dir / "backend"
 
 # Priority search paths for modules (backend directories must be index 0)
-for d in [root_dir, api_dir, root_backend, api_backend]:
+for d in [root_dir, api_dir, api_backend, root_backend]:
     if d.exists():
         p_str = str(d)
         while p_str in sys.path:
