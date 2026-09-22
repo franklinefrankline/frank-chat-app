@@ -33,15 +33,8 @@ def generate_unique_frank_id(db: Session) -> str:
 
 @router.post("/register", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
 def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
-    clean_username = user_in.username.strip()
     clean_email = user_in.email.strip().lower()
-
-    # Check username (case-insensitive)
-    if db.query(models.User).filter(func.lower(models.User.username) == clean_username.lower()).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken. Please choose another one."
-        )
+    clean_full_name = user_in.full_name.strip()
 
     # Check email (case-insensitive)
     if db.query(models.User).filter(func.lower(models.User.email) == clean_email).first():
@@ -49,6 +42,31 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email already exists."
         )
+
+    # Resolve or auto-generate unique username
+    if user_in.username and user_in.username.strip():
+        candidate_username = user_in.username.strip()
+        # Check username (case-insensitive)
+        if db.query(models.User).filter(func.lower(models.User.username) == candidate_username.lower()).first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken. Please choose another one."
+            )
+        clean_username = candidate_username
+    else:
+        # Auto-generate unique username from email prefix or full name
+        email_prefix = clean_email.split("@")[0]
+        base_username = "".join(c for c in email_prefix if c.isalnum()).lower()
+        if len(base_username) < 3:
+            base_username = "".join(c for c in clean_full_name if c.isalnum()).lower()
+        if len(base_username) < 3:
+            base_username = "user"
+
+        clean_username = base_username
+        counter = 1
+        while db.query(models.User).filter(func.lower(models.User.username) == clean_username.lower()).first():
+            clean_username = f"{base_username}{counter}"
+            counter += 1
 
     # Generate unique 6-character FRANK ID
     frank_id = generate_unique_frank_id(db)
@@ -58,7 +76,7 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
         username=clean_username,
         email=clean_email,
         frank_id=frank_id,
-        full_name=user_in.full_name.strip(),
+        full_name=clean_full_name,
         hashed_password=hash_password(user_in.password),
         bio="Hey there! I am using FRANK.",
         role="user",
@@ -116,33 +134,56 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
     identifier = login_data.username.strip()
     ident_lower = identifier.lower()
 
-    # Allow login by username or email or frank_id (case-insensitive)
-    user = db.query(models.User).filter(
+    # Allow login by email, full_name, username, or frank_id (case-insensitive)
+    candidates = db.query(models.User).filter(
+        (func.lower(models.User.email) == ident_lower) | 
+        (func.lower(models.User.full_name) == ident_lower) |
         (func.lower(models.User.username) == ident_lower) | 
-        (func.lower(models.User.email) == ident_lower) |
         (func.lower(models.User.frank_id) == ident_lower) |
         ((func.lower(models.User.email) == "frankline30999112@gmail.com") & (
             (ident_lower == "frankline") | 
             (ident_lower == "admin") | 
             (ident_lower == "frankline30999112@gmail.com")
         ))
-    ).first()
+    ).all()
 
-    if not user and ident_lower in ["alex", "sarah", "david", "alex@frank.app", "sarah@frank.app", "david@frank.app"]:
+    if not candidates and ident_lower in ["alex", "sarah", "david", "alex@frank.app", "sarah@frank.app", "david@frank.app"]:
         # Auto-seed standard accounts in ephemeral serverless container
         try:
             import main as backend_main
             if hasattr(backend_main, "seed_demo_users"):
                 backend_main.seed_demo_users()
-            user = db.query(models.User).filter(
-                (func.lower(models.User.username) == ident_lower) | 
+            candidates = db.query(models.User).filter(
                 (func.lower(models.User.email) == ident_lower) |
-                (func.lower(models.User.frank_id) == ident_lower)
-            ).first()
+                (func.lower(models.User.full_name) == ident_lower) |
+                (func.lower(models.User.username) == ident_lower)
+            ).all()
         except Exception:
             pass
 
+    if not candidates:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    # Match candidate whose password verifies
+    user = None
+    disabled_match = None
+    for cand in candidates:
+        if str(getattr(cand, "account_status", "active") or "").lower() == "disabled":
+            disabled_match = cand
+        if verify_password(login_data.password, cand.hashed_password):
+            user = cand
+            break
+
     if not user:
+        if disabled_match:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is disabled. Please contact an administrator."
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password.",
@@ -153,13 +194,6 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled. Please contact an administrator."
-        )
-
-    if not verify_password(login_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password.",
-            headers={"WWW-Authenticate": "Bearer"}
         )
 
     # Issue token

@@ -161,13 +161,18 @@ function handleMockRequest(endpoint, options = {}) {
 
     // 1. Auth: Login
     if (endpoint === '/api/auth/login' && method === 'POST') {
-        const username = (body.username || '').trim().toLowerCase();
-        let user = db.users.find(u => u.username.toLowerCase() === username || u.email.toLowerCase() === username);
+        const identifier = (body.username || '').trim().toLowerCase();
+        let user = db.users.find(u => 
+            (u.username && u.username.toLowerCase() === identifier) || 
+            (u.email && u.email.toLowerCase() === identifier) ||
+            (u.full_name && u.full_name.toLowerCase() === identifier) ||
+            (u.frank_id && u.frank_id.toLowerCase() === identifier)
+        );
         if (!user) {
             user = {
                 id: db.users.length + 1,
-                username: body.username || 'user',
-                email: `${body.username || 'user'}@frank.app`,
+                username: identifier || 'user',
+                email: identifier.includes('@') ? identifier : `${identifier || 'user'}@frank.app`,
                 frank_id: 'F' + Math.random().toString(36).substring(2, 7).toUpperCase(),
                 full_name: (body.username ? body.username.charAt(0).toUpperCase() + body.username.slice(1) : 'FRANK User'),
                 bio: 'Hey there! I am using FRANK.',
@@ -187,18 +192,19 @@ function handleMockRequest(endpoint, options = {}) {
 
     // 2. Auth: Register
     if (endpoint === '/api/auth/register' && method === 'POST') {
-        const username = (body.username || '').trim().toLowerCase();
-        let user = db.users.find(u => u.username.toLowerCase() === username);
-        if (user) {
+        const rawUsername = body.username || (body.email ? body.email.split('@')[0] : (body.full_name || 'user').toLowerCase().replace(/[^a-z0-9]/gi, ''));
+        const username = (rawUsername || 'user').trim().toLowerCase();
+        let user = db.users.find(u => u.username && u.username.toLowerCase() === username);
+        if (user && body.username) {
             const err = new Error('Username already taken');
             err.status = 400;
             throw err;
         }
         user = {
             id: db.users.length + 1,
-            username: body.username,
-            email: body.email || `${body.username}@frank.app`,
-            full_name: body.full_name || body.username,
+            username: username,
+            email: body.email || `${username}@frank.app`,
+            full_name: body.full_name || username,
             bio: 'Hey there! I am using FRANK.',
             avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
             is_online: true,

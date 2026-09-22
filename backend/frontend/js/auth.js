@@ -158,7 +158,6 @@ if (loginForm) {
 const registerForm = document.getElementById('registerForm');
 if (registerForm) {
     const fullNameInput = document.getElementById('regFullName');
-    const usernameInput = document.getElementById('regUsername');
     const emailInput = document.getElementById('regEmail');
     const passwordInput = document.getElementById('regPassword');
     const confirmInput = document.getElementById('regConfirmPassword');
@@ -199,7 +198,6 @@ if (registerForm) {
         e.preventDefault();
 
         const full_name = fullNameInput.value.trim();
-        const username = usernameInput.value.trim();
         const email = emailInput.value.trim();
         const password = passwordInput.value;
         const confirmPass = confirmInput.value;
@@ -212,13 +210,6 @@ if (registerForm) {
             hasError = true;
         } else {
             document.getElementById('groupFullName').classList.remove('has-error');
-        }
-
-        if (!username || username.length < 3) {
-            document.getElementById('groupUsername').classList.add('has-error');
-            hasError = true;
-        } else {
-            document.getElementById('groupUsername').classList.remove('has-error');
         }
 
         if (!email || !email.includes('@')) {
@@ -255,7 +246,7 @@ if (registerForm) {
         submitBtn.querySelector('.btn-text').textContent = 'Creating account...';
 
         try {
-            const data = await api.register({ full_name, username, email, password });
+            const data = await api.register({ full_name, email, password });
             api.setToken(data.access_token);
             auth.setUser(data.user);
 
