@@ -531,16 +531,16 @@
             tbody.innerHTML = this.users.map(u => {
                 const isSelf = this.currentUser && this.currentUser.id === u.id;
                 const statusBadge = u.account_status === 'disabled'
-                    ? `<span class="badge-status-disabled">● Disabled</span>`
-                    : `<span class="badge-status-active">● Active</span>`;
+                    ? `<span class="badge-status-disabled">● DISABLED</span>`
+                    : `<span class="badge-status-active">● ACTIVE</span>`;
 
                 const roleBadge = u.role === 'admin'
                     ? `<span class="badge-role-admin">Admin</span>`
                     : `<span class="badge-role-user">User</span>`;
 
                 const statusActionBtn = u.account_status === 'disabled'
-                    ? `<button type="button" class="btn-action btn-action-status-enable" data-action="enable" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}">Enable</button>`
-                    : `<button type="button" class="btn-action btn-action-status-disable" data-action="disable" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}" ${isSelf ? 'disabled title="Cannot disable your own admin account"' : ''}>Disable</button>`;
+                    ? `<button type="button" class="btn-action btn-action-status-enable" data-action="enable" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}">Enable Account</button>`
+                    : `<button type="button" class="btn-action btn-action-status-disable" data-action="disable" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}" ${isSelf ? 'disabled title="Cannot disable your own admin account"' : ''}>Disable Account</button>`;
 
                 const deleteAccountBtn = isSelf
                     ? `<button type="button" class="btn-action btn-action-delete" disabled title="Cannot delete your own admin account" style="opacity:0.4; cursor:not-allowed;">Delete</button>`
@@ -703,20 +703,58 @@
             }
         }
 
+        updateUserRowStatus(userId, newStatus) {
+            const row = document.querySelector(`tr[data-user-id="${userId}"]`);
+            if (!row) return;
+            const isSelf = this.currentUser && this.currentUser.id === userId;
+            const badgeCell = row.cells[4];
+            if (badgeCell) {
+                badgeCell.innerHTML = newStatus === 'disabled'
+                    ? `<span class="badge-status-disabled">● DISABLED</span>`
+                    : `<span class="badge-status-active">● ACTIVE</span>`;
+            }
+            const actionBtn = row.querySelector('.btn-action-status-enable, .btn-action-status-disable');
+            if (actionBtn) {
+                if (newStatus === 'disabled') {
+                    actionBtn.className = 'btn-action btn-action-status-enable';
+                    actionBtn.setAttribute('data-action', 'enable');
+                    actionBtn.textContent = 'Enable Account';
+                    actionBtn.disabled = false;
+                } else {
+                    actionBtn.className = 'btn-action btn-action-status-disable';
+                    actionBtn.setAttribute('data-action', 'disable');
+                    actionBtn.textContent = 'Disable Account';
+                    if (isSelf) actionBtn.disabled = true;
+                }
+            }
+        }
+
         handleStatusChange(userId, userName, newStatus) {
             const isDisabling = newStatus === 'disabled';
             this.showConfirmDialog({
-                title: isDisabling ? 'Disable User Account' : 'Enable User Account',
+                title: isDisabling ? 'Disable this account?' : 'Enable this account?',
                 message: isDisabling
-                    ? `Are you sure you want to disable ${userName}'s account? The user will be immediately disconnected and prevented from authenticating.`
-                    : `Are you sure you want to enable ${userName}'s account? The user will be allowed to log in.`,
-                confirmText: isDisabling ? 'Disable Account' : 'Enable Account',
+                    ? 'The user will temporarily lose access but their account and data will be preserved.'
+                    : 'The user will be able to log in again using their existing credentials.',
+                confirmText: isDisabling ? 'Disable' : 'Enable',
                 confirmClass: isDisabling ? 'btn-danger' : 'btn-primary',
                 onConfirm: async () => {
                     try {
-                        await api.updateAdminUserStatus(userId, newStatus);
+                        if (isDisabling && typeof api.disableAdminUser === 'function') {
+                            await api.disableAdminUser(userId);
+                        } else if (!isDisabling && typeof api.enableAdminUser === 'function') {
+                            await api.enableAdminUser(userId);
+                        } else {
+                            await api.updateAdminUserStatus(userId, newStatus);
+                        }
                         toast.success(`User ${userName} is now ${newStatus}`);
-                        await Promise.all([this.loadUsers(), this.loadMetrics(), this.loadAuditLogs()]);
+
+                        // Live DOM update without full page reload
+                        const userObj = this.users.find(u => u.id === userId);
+                        if (userObj) userObj.account_status = newStatus;
+                        this.updateUserRowStatus(userId, newStatus);
+
+                        await Promise.all([this.loadMetrics(), this.loadAuditLogs()]);
                     } catch (err) {
                         toast.error(err.message || 'Failed to update user status');
                     }

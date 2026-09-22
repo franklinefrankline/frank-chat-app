@@ -161,8 +161,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         path = request.url.path
         if "/files/" in path and ("/view" in path or "/download" in path):
-            response.headers["X-Frame-Options"] = "SAMEORIGIN"
-            response.headers["Content-Security-Policy"] = "frame-ancestors 'self' *"
+            if "X-Frame-Options" in response.headers:
+                del response.headers["X-Frame-Options"]
+            response.headers["Content-Security-Policy"] = "frame-ancestors 'self' http://localhost:* http://127.0.0.1:* https://*.vercel.app *"
         else:
             response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"

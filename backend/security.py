@@ -206,7 +206,7 @@ def get_current_user(
     if getattr(user, "account_status", "active") == "disabled":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Your account has been disabled by an administrator."
+            detail="Account is disabled. Please contact an administrator."
         )
 
     return user

@@ -1,7 +1,26 @@
-/* -------------------------------------------------------------------------
-   REAL-TIME WEBSOCKET CLIENT
-   Resilient connection with exponential backoff reconnect, heartbeat, and events
-   ------------------------------------------------------------------------- */
+function updateSidebarPresence(isOnline) {
+    const dot = document.getElementById('sidebarUserPresence');
+    const label = document.getElementById('sidebarUserStatusLabel');
+    const statusDot = document.getElementById('sidebarUserStatusDot');
+    if (dot) {
+        if (isOnline) {
+            dot.classList.remove('offline');
+            dot.classList.add('online');
+        } else {
+            dot.classList.remove('online');
+            dot.classList.add('offline');
+        }
+    }
+    if (label) {
+        label.textContent = isOnline ? 'Online' : 'Offline';
+    }
+    if (statusDot) {
+        statusDot.style.color = isOnline ? 'var(--success, #10B981)' : 'var(--text-muted, #94A3B8)';
+    }
+}
+window.updateSidebarPresence = updateSidebarPresence;
+window.addEventListener('online', () => updateSidebarPresence(true));
+window.addEventListener('offline', () => updateSidebarPresence(false));
 
 class ChatWebSocketClient {
     constructor() {
@@ -35,6 +54,7 @@ class ChatWebSocketClient {
 
         if (isVercelHost && !hasExternalWs) {
             this.isServerlessFallback = true;
+            updateSidebarPresence(navigator.onLine);
             this.notify('status', { status: 'serverless_sync' });
             if (window.chatController && typeof window.chatController.activateRealTimeSync === 'function') {
                 window.chatController.activateRealTimeSync();
@@ -67,6 +87,7 @@ class ChatWebSocketClient {
                 this.failedAttempts = 0;
                 this.isServerlessFallback = false;
                 this.reconnectAttempts = 0;
+                updateSidebarPresence(true);
                 this.notify('status', { status: 'connected' });
                 console.log('FRANK WebSocket: Connected successfully');
             };
@@ -86,6 +107,7 @@ class ChatWebSocketClient {
             this.socket.onclose = (event) => {
                 const wasConnected = this.isConnected;
                 this.isConnected = false;
+                updateSidebarPresence(false);
                 this.notify('status', { status: 'disconnected' });
 
                 if (!wasConnected) {
@@ -97,6 +119,7 @@ class ChatWebSocketClient {
                 if (this.failedAttempts >= 2 && !isLocal) {
                     this.isServerlessFallback = true;
                     console.log('FRANK: Real-Time serverless synchronization active.');
+                    updateSidebarPresence(navigator.onLine);
                     this.notify('status', { status: 'serverless_sync' });
                     if (window.chatController && typeof window.chatController.activateRealTimeSync === 'function') {
                         window.chatController.activateRealTimeSync();

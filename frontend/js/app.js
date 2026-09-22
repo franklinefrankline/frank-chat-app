@@ -118,6 +118,10 @@ class AppController {
                 copyMenuBtn.dataset.frankId = user.frank_id;
             }
         }
+        if (typeof updateSidebarPresence === 'function') {
+            const isWsConnected = window.wsClient && window.wsClient.isConnected;
+            updateSidebarPresence(isWsConnected || navigator.onLine);
+        }
     }
 
     async loadConversations(autoSelectFirst = false) {

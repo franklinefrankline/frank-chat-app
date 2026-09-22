@@ -923,6 +923,18 @@ const api = {
         });
     },
 
+    async disableAdminUser(userId) {
+        return this.request(`/api/admin/users/${userId}/disable`, {
+            method: 'POST'
+        });
+    },
+
+    async enableAdminUser(userId) {
+        return this.request(`/api/admin/users/${userId}/enable`, {
+            method: 'POST'
+        });
+    },
+
     async deleteAdminUserData(userId) {
         return this.request(`/api/admin/users/${userId}/data`, {
             method: 'DELETE'

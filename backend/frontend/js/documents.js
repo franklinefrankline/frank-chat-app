@@ -90,16 +90,14 @@ class DocumentsController {
     }
 
     openDocument(fileId, fileType, filename, directUrl) {
-        console.log('>>> [DOCUMENTS] openDocument called with:', fileId, fileType, filename, directUrl);
         const validFileId = (fileId && !isNaN(fileId) && parseInt(fileId, 10) > 0) ? parseInt(fileId, 10) : null;
         if (!validFileId && !directUrl) {
-            console.log('>>> [DOCUMENTS] viewerModal missing or fileId and directUrl empty');
+            console.warn('>>> [DOCUMENTS] openDocument called without valid fileId or directUrl');
             return;
         }
 
         const modal = this.dom.viewerModal || document.getElementById('attachmentViewerModal');
         if (!modal) {
-            console.log('>>> [DOCUMENTS] attachmentViewerModal not found');
             if (directUrl) window.open(directUrl, '_blank');
             return;
         }
@@ -108,30 +106,56 @@ class DocumentsController {
         if (closeBtn) {
             closeBtn.onclick = () => this.closeViewerModal();
         }
-        if (!modal) {
-            console.log('>>> [DOCUMENTS] attachmentViewerModal not found');
-            return;
-        }
 
         const token = api.getToken();
         const viewUrl = validFileId ? api.getFileViewUrl(validFileId) : directUrl;
         const filenameClean = filename || 'Document';
+        const ext = (filenameClean.split('.').pop() || '').toLowerCase();
+
+        // Accurately determine effective category from extension
+        let effectiveType = fileType;
+        if (ext === 'pdf') {
+            effectiveType = 'pdf';
+        } else if (ext === 'csv') {
+            effectiveType = 'csv';
+        } else if (['txt', 'text', 'md', 'markdown', 'json', 'log', 'xml', 'yaml', 'yml'].includes(ext)) {
+            effectiveType = 'text';
+        } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
+            effectiveType = 'image';
+        } else if (['mp4', 'mov', 'webm', 'mkv'].includes(ext)) {
+            effectiveType = 'video';
+        } else if (['mp3', 'wav', 'ogg', 'm4a', 'aac', 'opus', 'weba'].includes(ext)) {
+            effectiveType = 'audio';
+        } else if (['doc', 'docx'].includes(ext)) {
+            effectiveType = 'word';
+        } else if (['xls', 'xlsx'].includes(ext)) {
+            effectiveType = 'excel';
+        } else if (['ppt', 'pptx'].includes(ext)) {
+            effectiveType = 'presentation';
+        } else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+            effectiveType = 'archive';
+        }
 
         const titleEl = this.dom.viewerTitle || modal.querySelector('#attachmentViewerTitle');
         if (titleEl) titleEl.textContent = filenameClean;
 
         const downloadBtn = this.dom.viewerDownloadBtn || modal.querySelector('#attachmentViewerDownloadBtn');
         if (downloadBtn) {
+            downloadBtn.style.display = 'inline-flex';
             downloadBtn.onclick = () => this.downloadDocument(validFileId, filenameClean, directUrl);
         }
 
         const iconEl = this.dom.viewerIcon || modal.querySelector('#attachmentViewerIcon');
         if (iconEl) {
-            if (fileType === 'image') iconEl.textContent = '🖼️';
-            else if (fileType === 'video') iconEl.textContent = '🎥';
-            else if (fileType === 'pdf') iconEl.textContent = '📕';
-            else if (fileType === 'excel') iconEl.textContent = '📊';
-            else if (fileType === 'word') iconEl.textContent = '📘';
+            if (effectiveType === 'image') iconEl.textContent = '🖼️';
+            else if (effectiveType === 'video') iconEl.textContent = '🎥';
+            else if (effectiveType === 'audio') iconEl.textContent = '🎵';
+            else if (effectiveType === 'pdf') iconEl.textContent = '📕';
+            else if (effectiveType === 'csv' || effectiveType === 'excel') iconEl.textContent = '📊';
+            else if (effectiveType === 'word') iconEl.textContent = '📘';
+            else if (effectiveType === 'presentation') iconEl.textContent = '📽️';
+            else if (effectiveType === 'text') iconEl.textContent = '📝';
+            else if (effectiveType === 'archive') iconEl.textContent = '📦';
             else iconEl.textContent = '📄';
         }
 
@@ -139,7 +163,7 @@ class DocumentsController {
         if (bodyEl) {
             bodyEl.innerHTML = '';
 
-            if (fileType === 'image') {
+            if (effectiveType === 'image') {
                 const img = document.createElement('img');
                 img.src = viewUrl;
                 img.alt = filenameClean;
@@ -148,7 +172,7 @@ class DocumentsController {
                 img.style.objectFit = 'contain';
                 img.style.borderRadius = 'var(--radius-md)';
                 bodyEl.appendChild(img);
-            } else if (fileType === 'video') {
+            } else if (effectiveType === 'video') {
                 const video = document.createElement('video');
                 video.src = viewUrl;
                 video.controls = true;
@@ -157,53 +181,169 @@ class DocumentsController {
                 video.style.maxHeight = 'calc(90vh - 100px)';
                 video.style.borderRadius = 'var(--radius-md)';
                 bodyEl.appendChild(video);
-            } else if (fileType === 'audio') {
+            } else if (effectiveType === 'audio') {
                 const audioWrap = document.createElement('div');
                 audioWrap.style.textAlign = 'center';
                 audioWrap.style.padding = '30px 20px';
                 audioWrap.style.width = '100%';
+                const safeName = typeof messagesModule !== 'undefined' ? messagesModule.escapeHTML(filenameClean) : filenameClean;
                 audioWrap.innerHTML = `
                     <div style="font-size: 56px; margin-bottom: 16px;">🎵</div>
-                    <div style="font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px;">${messagesModule.escapeHTML(filenameClean)}</div>
+                    <div style="font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px;">${safeName}</div>
                     <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">Audio message / recording playback</div>
                     <audio controls autoplay style="width: 100%; max-width: 480px; margin: 0 auto; display: block;" src="${viewUrl}"></audio>
                 `;
                 bodyEl.appendChild(audioWrap);
-            } else if (fileType === 'pdf') {
+            } else if (effectiveType === 'pdf') {
                 const iframe = document.createElement('iframe');
                 iframe.src = viewUrl;
                 iframe.style.width = '100%';
                 iframe.style.height = 'calc(90vh - 100px)';
                 iframe.style.border = 'none';
                 iframe.style.borderRadius = 'var(--radius-md)';
+                iframe.title = filenameClean;
                 bodyEl.appendChild(iframe);
-            } else if (fileType === 'text') {
+            } else if (effectiveType === 'csv') {
+                const container = document.createElement('div');
+                container.style.cssText = 'display:flex; flex-direction:column; height:calc(90vh - 100px); width:100%; overflow:hidden;';
+                container.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding: 0 4px;">
+                        <span id="csvStatusInfo" style="font-size:12px; color:var(--text-muted); font-weight:600;">Loading CSV table...</span>
+                        <button type="button" class="btn btn-sm btn-secondary" id="toggleCsvModeBtn" style="font-size:11px; padding:4px 10px;">Show Raw Text</button>
+                    </div>
+                    <div id="csvTableWrapper" style="flex:1; overflow:auto; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--surface);">
+                        <table id="csvDataTable" style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;"></table>
+                    </div>
+                    <pre id="csvRawText" style="display:none; flex:1; overflow:auto; margin:0; padding:14px; background:var(--surface-elevated); border:1px solid var(--border); border-radius:var(--radius-md); font-family:monospace; font-size:12px; line-height:1.5; color:var(--text); white-space:pre;"></pre>
+                `;
+                bodyEl.appendChild(container);
+
+                fetch(viewUrl)
+                    .then(r => {
+                        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                        return r.text();
+                    })
+                    .then(csvText => {
+                        const statusEl = container.querySelector('#csvStatusInfo');
+                        const tableEl = container.querySelector('#csvDataTable');
+                        const rawPre = container.querySelector('#csvRawText');
+                        const toggleBtn = container.querySelector('#toggleCsvModeBtn');
+
+                        if (rawPre) rawPre.textContent = csvText;
+
+                        // Simple robust CSV parser
+                        const parseRows = (text) => {
+                            const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+                            return lines.map(line => {
+                                const row = [];
+                                let inside = false;
+                                let cur = '';
+                                for (let i = 0; i < line.length; i++) {
+                                    const c = line[i];
+                                    if (c === '"') inside = !inside;
+                                    else if (c === ',' && !inside) { row.push(cur.trim()); cur = ''; }
+                                    else cur += c;
+                                }
+                                row.push(cur.trim());
+                                return row;
+                            });
+                        };
+
+                        const rows = parseRows(csvText);
+                        if (statusEl) statusEl.textContent = `${rows.length} rows loaded`;
+
+                        if (tableEl && rows.length > 0) {
+                            const headerCols = rows[0];
+                            let theadHtml = '<thead style="background:var(--surface-elevated); position:sticky; top:0; z-index:1; border-bottom:2px solid var(--border);"><tr>';
+                            theadHtml += '<th style="padding:8px 10px; font-weight:700; color:var(--text-muted); border-bottom:1px solid var(--border); width:36px; text-align:center;">#</th>';
+                            headerCols.forEach(col => {
+                                const safe = typeof messagesModule !== 'undefined' ? messagesModule.escapeHTML(col) : col;
+                                theadHtml += `<th style="padding:8px 10px; font-weight:700; color:var(--text); border-bottom:1px solid var(--border); border-right:1px solid var(--border-light, rgba(255,255,255,0.06));">${safe}</th>`;
+                            });
+                            theadHtml += '</tr></thead>';
+
+                            let tbodyHtml = '<tbody>';
+                            for (let r = 1; r < rows.length; r++) {
+                                const bg = r % 2 === 0 ? 'background:rgba(255,255,255,0.02);' : '';
+                                tbodyHtml += `<tr style="${bg}">`;
+                                tbodyHtml += `<td style="padding:6px 10px; color:var(--text-muted); border-bottom:1px solid var(--border); font-size:11px; text-align:center;">${r}</td>`;
+                                for (let c = 0; c < headerCols.length; c++) {
+                                    const cellVal = rows[r][c] || '';
+                                    const safe = typeof messagesModule !== 'undefined' ? messagesModule.escapeHTML(cellVal) : cellVal;
+                                    tbodyHtml += `<td style="padding:6px 10px; border-bottom:1px solid var(--border); border-right:1px solid var(--border-light, rgba(255,255,255,0.04)); color:var(--text);">${safe}</td>`;
+                                }
+                                tbodyHtml += '</tr>';
+                            }
+                            tbodyHtml += '</tbody>';
+                            tableEl.innerHTML = theadHtml + tbodyHtml;
+                        }
+
+                        if (toggleBtn) {
+                            toggleBtn.onclick = () => {
+                                const tableWrap = container.querySelector('#csvTableWrapper');
+                                if (rawPre.style.display === 'none') {
+                                    rawPre.style.display = 'block';
+                                    tableWrap.style.display = 'none';
+                                    toggleBtn.textContent = 'Show Table View';
+                                } else {
+                                    rawPre.style.display = 'none';
+                                    tableWrap.style.display = 'block';
+                                    toggleBtn.textContent = 'Show Raw Text';
+                                }
+                            };
+                        }
+                    })
+                    .catch(err => {
+                        const statusEl = container.querySelector('#csvStatusInfo');
+                        if (statusEl) {
+                            statusEl.textContent = 'Unable to parse CSV into table format. Showing raw view.';
+                            statusEl.style.color = 'var(--danger)';
+                        }
+                        const tableWrap = container.querySelector('#csvTableWrapper');
+                        const rawPre = container.querySelector('#csvRawText');
+                        if (tableWrap) tableWrap.style.display = 'none';
+                        if (rawPre) {
+                            rawPre.style.display = 'block';
+                            rawPre.textContent = `Error loading CSV: ${err.message}`;
+                        }
+                    });
+            } else if (effectiveType === 'text') {
                 const pre = document.createElement('pre');
                 pre.style.width = '100%';
                 pre.style.height = 'calc(90vh - 100px)';
                 pre.style.overflow = 'auto';
-                pre.style.padding = '16px';
+                pre.style.padding = '18px';
                 pre.style.background = 'var(--surface-elevated)';
                 pre.style.borderRadius = 'var(--radius-md)';
                 pre.style.fontFamily = 'monospace';
                 pre.style.fontSize = '13px';
+                pre.style.lineHeight = '1.6';
+                pre.style.color = 'var(--text)';
+                pre.style.whiteSpace = 'pre-wrap';
                 pre.textContent = 'Loading text...';
                 bodyEl.appendChild(pre);
 
-                fetch(viewUrl).then(r => r.text()).then(t => {
+                fetch(viewUrl).then(r => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                    return r.text();
+                }).then(t => {
                     pre.textContent = t;
                 }).catch(() => {
                     pre.textContent = 'Unable to load text preview.';
                 });
             } else {
+                const safeName = typeof messagesModule !== 'undefined' ? messagesModule.escapeHTML(filenameClean) : filenameClean;
+                const extUpper = ext ? ext.toUpperCase() : 'FILE';
                 bodyEl.innerHTML = `
-                    <div style="text-align: center; padding: 40px 20px;">
-                        <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
-                        <div style="font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px;">Preview unavailable</div>
-                        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">This file type cannot be previewed in the browser. You can download it to view on your device.</div>
-                        <button type="button" class="btn btn-primary" id="fallbackDownloadBtn">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            Download ${messagesModule.escapeHTML(filenameClean)}
+                    <div style="text-align: center; padding: 48px 24px;">
+                        <div style="font-size: 56px; margin-bottom: 16px;">📁</div>
+                        <div style="font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 8px;">Preview unavailable</div>
+                        <div style="font-size: 14px; color: var(--text-muted); max-width: 440px; margin: 0 auto 24px auto; line-height: 1.5;">
+                            This ${extUpper} document cannot be previewed in the browser. You can download it to view on your device.
+                        </div>
+                        <button type="button" class="btn btn-primary" id="fallbackDownloadBtn" style="padding: 10px 24px; font-size: 14px; font-weight: 700;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Download ${safeName}
                         </button>
                     </div>
                 `;
@@ -394,8 +534,9 @@ class DocumentsController {
         if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'].includes(ext)) return 'image';
         if (['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.opus', '.weba'].includes(ext)) return 'audio';
         if (['.pdf'].includes(ext)) return 'pdf';
+        if (['.csv'].includes(ext)) return 'csv';
         if (['.doc', '.docx'].includes(ext)) return 'word';
-        if (['.xls', '.xlsx', '.csv'].includes(ext)) return 'excel';
+        if (['.xls', '.xlsx'].includes(ext)) return 'excel';
         if (['.ppt', '.pptx'].includes(ext)) return 'presentation';
         if (['.zip', '.rar', '.7z', '.tar', '.gz'].includes(ext)) return 'archive';
         if (['.txt', '.json', '.md'].includes(ext)) return 'text';
@@ -418,12 +559,15 @@ class DocumentsController {
         } else if (category === 'pdf') {
             badgeColor = '#EF4444';
             iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`;
+        } else if (category === 'csv' || category === 'excel') {
+            badgeColor = '#10B981';
+            iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>`;
         } else if (category === 'word') {
             badgeColor = '#2563EB';
             iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>`;
-        } else if (category === 'excel') {
-            badgeColor = '#10B981';
-            iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>`;
+        } else if (category === 'presentation') {
+            badgeColor = '#F59E0B';
+            iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`;
         } else if (category === 'archive') {
             badgeColor = '#F59E0B';
             iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>`;
@@ -459,17 +603,12 @@ class DocumentsController {
             return;
         }
 
-        // 3. Category limits
+        // 3. Category limits (100MB across all types)
         const category = this.getFileCategory(filename);
-        let maxLimitMB = 25; // default for documents
-        if (category === 'video') maxLimitMB = 100;
-        else if (category === 'image') maxLimitMB = 10;
-        else if (category === 'archive') maxLimitMB = 50;
-        else if (category === 'audio') maxLimitMB = 25;
-
+        const maxLimitMB = 100;
         const maxLimitBytes = maxLimitMB * 1024 * 1024;
         if (file.size > maxLimitBytes) {
-            showToast('File is too large.', 'error');
+            showToast(`File is too large. Maximum size is ${maxLimitMB} MB.`, 'error');
             return;
         }
 

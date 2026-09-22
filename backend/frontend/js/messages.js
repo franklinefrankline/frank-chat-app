@@ -536,8 +536,19 @@ document.addEventListener('click', async (e) => {
     if (openDocBtn) {
         e.stopPropagation();
         const card = openDocBtn.closest('.message-photo-card, .message-document-card, .message-video-card, .message-voice-card, .message-row, .drawer-doc-item');
-        const rawFileId = openDocBtn.dataset.fileId || (card ? card.dataset.fileId : '') || (card ? card.dataset.messageId : '');
-        const fileId = (rawFileId && !isNaN(rawFileId) && parseInt(rawFileId, 10) > 0) ? parseInt(rawFileId, 10) : null;
+        let rawFileId = openDocBtn.dataset.fileId || (card ? card.dataset.fileId : '');
+        let fileId = (rawFileId && !isNaN(rawFileId) && parseInt(rawFileId, 10) > 0) ? parseInt(rawFileId, 10) : null;
+
+        // If fileId is missing, check active message object in chatController using messageId (never fall back to message ID as file ID)
+        const row = openDocBtn.closest('.message-row');
+        const messageId = row ? parseInt(row.dataset.messageId, 10) : null;
+        if (!fileId && messageId && window.chatController && window.chatController.activeMessages) {
+            const msgObj = window.chatController.activeMessages.find(m => Number(m.id || m.message_id) === messageId);
+            if (msgObj) {
+                fileId = msgObj.file_id || (msgObj.document ? msgObj.document.id : null);
+            }
+        }
+
         let fileType = openDocBtn.dataset.fileType;
         if (!fileType) {
             if (openDocBtn.classList.contains('msg-photo-img') || openDocBtn.classList.contains('message-photo-card')) fileType = 'image';
@@ -547,14 +558,21 @@ document.addEventListener('click', async (e) => {
         const filename = openDocBtn.dataset.filename || card?.dataset.filename || openDocBtn.getAttribute('alt') || 'Document';
         const directUrl = openDocBtn.dataset.directUrl || (card ? card.dataset.directUrl : '') || (openDocBtn.tagName === 'IMG' || openDocBtn.tagName === 'VIDEO' ? openDocBtn.src : '');
 
-        if (!window.documentsController && typeof DocumentsController !== 'undefined') {
-            window.documentsController = new DocumentsController();
-        }
+        try {
+            if (!window.documentsController && typeof DocumentsController !== 'undefined') {
+                window.documentsController = new DocumentsController();
+            }
 
-        if (window.documentsController && (fileId || directUrl)) {
-            window.documentsController.openDocument(fileId, fileType, filename, directUrl);
-        } else if (directUrl) {
-            window.open(directUrl, '_blank');
+            if (window.documentsController && (fileId || directUrl)) {
+                window.documentsController.openDocument(fileId, fileType, filename, directUrl);
+            } else if (directUrl) {
+                window.open(directUrl, '_blank');
+            } else {
+                showToast('Unable to open document. Please try again.', 'error');
+            }
+        } catch (err) {
+            console.error('Failed to open document:', err);
+            showToast('Unable to open document. Please try again.', 'error');
         }
         return;
     }
@@ -564,24 +582,41 @@ document.addEventListener('click', async (e) => {
     if (downloadDocBtn) {
         e.stopPropagation();
         const card = downloadDocBtn.closest('.message-photo-card, .message-document-card, .message-video-card, .message-voice-card, .message-row, .drawer-doc-item');
-        const rawFileId = downloadDocBtn.dataset.fileId || (card ? card.dataset.fileId : '');
-        const fileId = (rawFileId && !isNaN(rawFileId) && parseInt(rawFileId, 10) > 0) ? parseInt(rawFileId, 10) : null;
+        let rawFileId = downloadDocBtn.dataset.fileId || (card ? card.dataset.fileId : '');
+        let fileId = (rawFileId && !isNaN(rawFileId) && parseInt(rawFileId, 10) > 0) ? parseInt(rawFileId, 10) : null;
+
+        const row = downloadDocBtn.closest('.message-row');
+        const messageId = row ? parseInt(row.dataset.messageId, 10) : null;
+        if (!fileId && messageId && window.chatController && window.chatController.activeMessages) {
+            const msgObj = window.chatController.activeMessages.find(m => Number(m.id || m.message_id) === messageId);
+            if (msgObj) {
+                fileId = msgObj.file_id || (msgObj.document ? msgObj.document.id : null);
+            }
+        }
+
         const filename = downloadDocBtn.dataset.filename || card?.dataset.filename || 'document';
         const directUrl = downloadDocBtn.dataset.directUrl || (card ? card.dataset.directUrl : '');
 
-        if (!window.documentsController && typeof DocumentsController !== 'undefined') {
-            window.documentsController = new DocumentsController();
-        }
+        try {
+            if (!window.documentsController && typeof DocumentsController !== 'undefined') {
+                window.documentsController = new DocumentsController();
+            }
 
-        if (window.documentsController && (fileId || directUrl)) {
-            window.documentsController.downloadDocument(fileId, filename, directUrl);
-        } else if (directUrl) {
-            const a = document.createElement('a');
-            a.href = directUrl;
-            a.download = filename || 'document';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
+            if (window.documentsController && (fileId || directUrl)) {
+                window.documentsController.downloadDocument(fileId, filename, directUrl);
+            } else if (directUrl) {
+                const a = document.createElement('a');
+                a.href = directUrl;
+                a.download = filename || 'document';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } else {
+                showToast('Unable to download document. Please try again.', 'error');
+            }
+        } catch (err) {
+            console.error('Failed to download document:', err);
+            showToast('Unable to download document. Please try again.', 'error');
         }
         return;
     }

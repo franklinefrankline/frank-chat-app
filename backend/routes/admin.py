@@ -118,14 +118,8 @@ def get_user_details(
     }
 
 
-@router.put("/users/{user_id}/status", response_model=schemas.AdminUserResponse)
-async def update_user_status(
-    user_id: int,
-    status_in: schemas.AdminUserStatusUpdate,
-    current_admin: models.User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """Enable or disable user account. Disconnects active WebSocket sessions if disabled."""
+async def _set_user_status(user_id: int, new_status: str, current_admin: models.User, db: Session) -> schemas.AdminUserResponse:
+    """Helper to update user account status, record standardized audit log, and disconnect sockets if disabled."""
     if user_id == current_admin.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -136,19 +130,22 @@ async def update_user_status(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    new_status = status_in.status.lower()
-    user.account_status = new_status
-    if new_status == "disabled":
+    clean_status = (new_status or "").strip().lower()
+    if clean_status not in ["active", "disabled"]:
+        clean_status = "disabled" if "disab" in clean_status else "active"
+
+    user.account_status = clean_status
+    if clean_status == "disabled":
         user.is_online = False
 
-    action_name = "user_disabled" if new_status == "disabled" else "user_enabled"
+    action_name = "ADMIN_DISABLED_USER" if clean_status == "disabled" else "ADMIN_ENABLED_USER"
     audit = models.AuditLog(
         admin_id=current_admin.id,
         action=action_name,
         target_type="user",
         target_id=user.id,
         target_name=user.full_name,
-        details=f"Account status set to {new_status} by admin {current_admin.username}"
+        details=f"Account status set to {clean_status} by admin {current_admin.username}"
     )
     db.add(audit)
     db.commit()
@@ -156,8 +153,11 @@ async def update_user_status(
     db.refresh(audit)
 
     # Disconnect user's active sockets if disabled
-    if new_status == "disabled":
-        await manager.disconnect_user(user.id)
+    if clean_status == "disabled":
+        try:
+            await manager.disconnect_user(user.id)
+        except Exception as e:
+            print(f"Disconnect socket note: {e}")
 
     # Broadcast live updates to admin connections
     user_data = {
@@ -171,28 +171,62 @@ async def update_user_status(
         "is_online": user.is_online,
         "created_at": schemas.format_iso_utc(user.created_at)
     }
-    await manager.broadcast_admin({
-        "type": "admin_user_updated",
-        "user": user_data
-    })
-    await manager.broadcast_admin_metrics(db)
-    await manager.broadcast_admin({
-        "type": "admin_audit_created",
-        "audit": {
-            "id": audit.id,
-            "admin_id": current_admin.id,
-            "admin_name": current_admin.full_name,
-            "admin_username": current_admin.username,
-            "action": audit.action,
-            "target_type": audit.target_type,
-            "target_id": audit.target_id,
-            "target_name": audit.target_name,
-            "details": audit.details,
-            "created_at": schemas.format_iso_utc(audit.created_at)
-        }
-    })
+    try:
+        await manager.broadcast_admin({
+            "type": "admin_user_updated",
+            "user": user_data
+        })
+        await manager.broadcast_admin_metrics(db)
+        await manager.broadcast_admin({
+            "type": "admin_audit_created",
+            "audit": {
+                "id": audit.id,
+                "admin_id": current_admin.id,
+                "admin_name": current_admin.full_name,
+                "admin_username": current_admin.username,
+                "action": audit.action,
+                "target_type": audit.target_type,
+                "target_id": audit.target_id,
+                "target_name": audit.target_name,
+                "details": audit.details,
+                "created_at": schemas.format_iso_utc(audit.created_at)
+            }
+        })
+    except Exception:
+        pass
 
     return schemas.AdminUserResponse.from_orm(user)
+
+
+@router.put("/users/{user_id}/status", response_model=schemas.AdminUserResponse)
+async def update_user_status(
+    user_id: int,
+    status_in: schemas.AdminUserStatusUpdate,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Enable or disable user account. Disconnects active WebSocket sessions if disabled."""
+    return await _set_user_status(user_id, status_in.status, current_admin, db)
+
+
+@router.post("/users/{user_id}/disable", response_model=schemas.AdminUserResponse)
+async def disable_user(
+    user_id: int,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Disable user account, disconnect active sockets, and record ADMIN_DISABLED_USER."""
+    return await _set_user_status(user_id, "disabled", current_admin, db)
+
+
+@router.post("/users/{user_id}/enable", response_model=schemas.AdminUserResponse)
+async def enable_user(
+    user_id: int,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Enable user account and record ADMIN_ENABLED_USER."""
+    return await _set_user_status(user_id, "active", current_admin, db)
 
 
 @router.delete("/users/{user_id}/data")

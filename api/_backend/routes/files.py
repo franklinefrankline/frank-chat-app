@@ -31,7 +31,7 @@ def _get_int_env(key: str, default: int) -> int:
     val = (os.getenv(key) or "").strip()
     return int(val) if val.isdigit() else default
 
-MAX_FILE_SIZE_MB = _get_int_env("MAX_FILE_SIZE_MB", 25)
+MAX_FILE_SIZE_MB = _get_int_env("MAX_FILE_SIZE_MB", 100)
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 # Allowed extensions and classification
@@ -45,7 +45,7 @@ ALLOWED_EXTENSIONS = {
     ".ppt": ("application/vnd.ms-powerpoint", "presentation"),
     ".pptx": ("application/vnd.openxmlformats-officedocument.presentationml.presentation", "presentation"),
     ".txt": ("text/plain", "text"),
-    ".csv": ("text/csv", "excel"),
+    ".csv": ("text/csv", "csv"),
     ".json": ("application/json", "text"),
     ".md": ("text/markdown", "text"),
     # Archives
@@ -138,7 +138,13 @@ def get_user_from_request_or_token(
 
 
 def verify_document_access(doc: models.Document, user: models.User, db: Session) -> bool:
-    """Verifies that the user is the uploader, recipient, or group member of the document."""
+    """Verifies that the user is the uploader, recipient, group member, conversation participant, or admin."""
+    if not user:
+        return False
+
+    if getattr(user, "role", None) == "admin":
+        return True
+
     if doc.uploader_id == user.id:
         return True
 
@@ -151,9 +157,15 @@ def verify_document_access(doc: models.Document, user: models.User, db: Session)
         if membership:
             return True
 
-    # If direct conversation
+    # If direct conversation user ID
     if doc.conversation_id == user.id:
         return True
+
+    # If direct conversation table record
+    if doc.conversation_id:
+        conv = db.query(models.Conversation).filter(models.Conversation.id == doc.conversation_id).first()
+        if conv and (conv.user_a_id == user.id or conv.user_b_id == user.id):
+            return True
 
     # If linked to a message, check message sender/recipient
     if doc.message_id:
@@ -168,6 +180,19 @@ def verify_document_access(doc: models.Document, user: models.User, db: Session)
                 ).first()
                 if membership:
                     return True
+
+    # Check any message that references this document
+    related_msg = db.query(models.Message).filter(models.Message.file_id == doc.id).first()
+    if related_msg:
+        if related_msg.sender_id == user.id or related_msg.recipient_id == user.id:
+            return True
+        if related_msg.group_id:
+            membership = db.query(models.GroupMember).filter(
+                models.GroupMember.group_id == related_msg.group_id,
+                models.GroupMember.user_id == user.id
+            ).first()
+            if membership:
+                return True
 
     return False
 
@@ -233,17 +258,17 @@ async def upload_file(
     if file_size == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The selected file is empty.")
 
-    # Configurable limits
+    # Configurable limits (100MB across all types)
     if file_type == "video":
         limit_mb = _get_int_env("MAX_VIDEO_SIZE_MB", 100)
     elif file_type == "image":
-        limit_mb = _get_int_env("MAX_IMAGE_SIZE_MB", 10)
+        limit_mb = _get_int_env("MAX_IMAGE_SIZE_MB", 100)
     elif file_type == "audio":
-        limit_mb = _get_int_env("MAX_AUDIO_SIZE_MB", 25)
+        limit_mb = _get_int_env("MAX_AUDIO_SIZE_MB", 100)
     elif file_type == "archive":
-        limit_mb = _get_int_env("MAX_ARCHIVE_SIZE_MB", 50)
+        limit_mb = _get_int_env("MAX_ARCHIVE_SIZE_MB", 100)
     else:
-        limit_mb = _get_int_env("MAX_DOC_SIZE_MB", 25)
+        limit_mb = _get_int_env("MAX_DOC_SIZE_MB", 100)
     max_limit = limit_mb * 1024 * 1024
     max_label = f"{limit_mb} MB"
 
@@ -279,9 +304,9 @@ async def upload_file(
             if not stored_path.exists():
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save file to object storage.")
 
-    # Multi-instance serverless resilience: store base64 payload for docs <= 10MB
+    # Multi-instance serverless resilience: store base64 payload for docs <= 100MB
     b64_data = None
-    if file_size <= 10 * 1024 * 1024:
+    if file_size <= 100 * 1024 * 1024:
         import base64
         try:
             b64_data = base64.b64encode(content).decode("ascii")

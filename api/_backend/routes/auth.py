@@ -116,10 +116,11 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
     identifier = login_data.username.strip()
     ident_lower = identifier.lower()
 
-    # Allow login by username or email (case-insensitive for both username and email)
+    # Allow login by username or email or frank_id (case-insensitive)
     user = db.query(models.User).filter(
         (func.lower(models.User.username) == ident_lower) | 
         (func.lower(models.User.email) == ident_lower) |
+        (func.lower(models.User.frank_id) == ident_lower) |
         ((func.lower(models.User.email) == "frankline30999112@gmail.com") & (
             (ident_lower == "frankline") | 
             (ident_lower == "admin") | 
@@ -135,22 +136,30 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
                 backend_main.seed_demo_users()
             user = db.query(models.User).filter(
                 (func.lower(models.User.username) == ident_lower) | 
-                (func.lower(models.User.email) == ident_lower)
+                (func.lower(models.User.email) == ident_lower) |
+                (func.lower(models.User.frank_id) == ident_lower)
             ).first()
         except Exception:
             pass
 
-    if not user or not verify_password(login_data.password, user.hashed_password):
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password.",
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    if getattr(user, "account_status", "active") == "disabled":
+    if str(getattr(user, "account_status", "active") or "").lower() == "disabled":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Your account has been disabled by an administrator."
+            detail="Account is disabled. Please contact an administrator."
+        )
+
+    if not verify_password(login_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password.",
+            headers={"WWW-Authenticate": "Bearer"}
         )
 
     # Issue token
