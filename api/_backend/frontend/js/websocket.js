@@ -7,10 +7,12 @@ class ChatWebSocketClient {
     constructor() {
         this.socket = null;
         this.reconnectAttempts = 0;
-        this.maxReconnectDelay = 10000;
+        this.failedAttempts = 0;
+        this.maxReconnectDelay = 30000;
         this.reconnectTimer = null;
         this.listeners = new Map();
         this.isConnected = false;
+        this.isServerlessFallback = false;
     }
 
     connect() {
@@ -23,15 +25,36 @@ class ChatWebSocketClient {
             this.reconnectTimer = null;
         }
 
+        const host = window.location.hostname;
+        const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '' || host.startsWith('192.168.');
+        const isHttps = window.location.protocol === 'https:';
+
+        // Check if serverless mode is explicitly signaled or detected on Vercel without external WS
+        const isVercelHost = host.endsWith('.vercel.app') || host.includes('vercel.app');
+        const hasExternalWs = window.FRANK_CONFIG && window.FRANK_CONFIG.WS_BASE;
+
+        if (isVercelHost && !hasExternalWs) {
+            this.isServerlessFallback = true;
+            this.notify('status', { status: 'serverless_sync' });
+            if (window.chatController && typeof window.chatController.activateRealTimeSync === 'function') {
+                window.chatController.activateRealTimeSync();
+            }
+            return;
+        }
+
         let wsUrl = '';
-        if (window.FRANK_CONFIG && window.FRANK_CONFIG.WS_BASE) {
+        if (hasExternalWs) {
             wsUrl = `${window.FRANK_CONFIG.WS_BASE}/ws/${token}`;
-        } else {
-            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        } else if (isLocal) {
+            const wsProtocol = isHttps ? 'wss:' : 'ws:';
             const wsHost = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
                 ? window.location.host
                 : 'localhost:8000';
             wsUrl = `${wsProtocol}//${wsHost}/ws/${token}`;
+        } else {
+            // Production deployment with potential WebSocket reverse proxy on same host
+            const wsProtocol = isHttps ? 'wss:' : 'ws:';
+            wsUrl = `${wsProtocol}//${window.location.host}/ws/${token}`;
         }
 
         this.notify('status', { status: 'connecting' });
@@ -41,9 +64,11 @@ class ChatWebSocketClient {
 
             this.socket.onopen = () => {
                 this.isConnected = true;
+                this.failedAttempts = 0;
+                this.isServerlessFallback = false;
                 this.reconnectAttempts = 0;
                 this.notify('status', { status: 'connected' });
-                console.log('FRANK WebSocket: Connected');
+                console.log('FRANK WebSocket: Connected successfully');
             };
 
             this.socket.onmessage = (event) => {
@@ -59,27 +84,56 @@ class ChatWebSocketClient {
             };
 
             this.socket.onclose = (event) => {
+                const wasConnected = this.isConnected;
                 this.isConnected = false;
                 this.notify('status', { status: 'disconnected' });
+
+                if (!wasConnected) {
+                    this.failedAttempts++;
+                }
+
+                // If connection failed repeatedly (e.g. host does not support WebSockets like Vercel),
+                // smoothly transition to high-fidelity serverless sync without spamming errors
+                if (this.failedAttempts >= 2 && !isLocal) {
+                    this.isServerlessFallback = true;
+                    console.log('FRANK: Real-Time serverless synchronization active.');
+                    this.notify('status', { status: 'serverless_sync' });
+                    if (window.chatController && typeof window.chatController.activateRealTimeSync === 'function') {
+                        window.chatController.activateRealTimeSync();
+                    }
+                    this.scheduleReconnect(60000); // Check again every 60s
+                    return;
+                }
+
                 console.log(`FRANK WebSocket: Closed (Code: ${event.code}). Scheduling reconnect...`);
                 this.scheduleReconnect();
             };
 
             this.socket.onerror = (err) => {
-                console.error('FRANK WebSocket: Error', err);
+                // Handled gracefully in onclose
             };
 
         } catch (err) {
-            console.error('FRANK WebSocket connection error:', err);
-            this.scheduleReconnect();
+            console.warn('FRANK WebSocket connection attempt:', err);
+            this.failedAttempts++;
+            if (this.failedAttempts >= 2 && !isLocal) {
+                this.isServerlessFallback = true;
+                this.notify('status', { status: 'serverless_sync' });
+                if (window.chatController && typeof window.chatController.activateRealTimeSync === 'function') {
+                    window.chatController.activateRealTimeSync();
+                }
+                this.scheduleReconnect(60000);
+            } else {
+                this.scheduleReconnect();
+            }
         }
     }
 
-    scheduleReconnect() {
+    scheduleReconnect(customDelay = null) {
         if (!api.getToken()) return;
 
         this.reconnectAttempts++;
-        const delay = Math.min(1000 * Math.pow(1.8, this.reconnectAttempts - 1), this.maxReconnectDelay);
+        const delay = customDelay || Math.min(1000 * Math.pow(1.8, this.reconnectAttempts - 1), this.maxReconnectDelay);
         this.notify('status', { status: 'reconnecting', delay });
 
         this.reconnectTimer = setTimeout(() => {

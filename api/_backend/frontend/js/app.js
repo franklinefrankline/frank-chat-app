@@ -26,6 +26,10 @@ class AppController {
         document.getElementById('sidebarLogoutBtn')?.addEventListener('click', () => {
             auth.logout();
         });
+        document.getElementById('sidebarDirectSignOutBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            auth.logout();
+        });
 
         const dismissLoader = () => {
             const loader = document.getElementById('appLoadingScreen');

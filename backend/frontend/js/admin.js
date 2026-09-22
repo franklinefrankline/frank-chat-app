@@ -940,6 +940,10 @@
                     badge.innerHTML = `<span class="live-dot"></span> LIVE`;
                     badge.style.color = 'var(--success)';
                     badge.style.borderColor = 'rgba(34, 197, 94, 0.25)';
+                } else if (data.status === 'serverless_sync') {
+                    badge.innerHTML = `<span class="live-dot" style="background:var(--primary); box-shadow:0 0 8px var(--primary);"></span> CLOUD SYNC`;
+                    badge.style.color = 'var(--primary)';
+                    badge.style.borderColor = 'rgba(37, 99, 235, 0.25)';
                 } else if (data.status === 'connecting' || data.status === 'reconnecting') {
                     badge.innerHTML = `<span class="live-dot" style="background:var(--warning); box-shadow:none;"></span> SYNCING`;
                     badge.style.color = 'var(--warning)';
@@ -950,6 +954,18 @@
                     badge.style.borderColor = 'rgba(239, 68, 68, 0.25)';
                 }
             });
+
+            // Fallback sync when in serverless mode or disconnected
+            if (this._adminSyncTimer) clearInterval(this._adminSyncTimer);
+            this._adminSyncTimer = setInterval(async () => {
+                if (window.wsClient && window.wsClient.isConnected) return;
+                try {
+                    await this.loadMetrics();
+                    if (this.activeSection === 'overview') {
+                        await this.loadActivity();
+                    }
+                } catch {}
+            }, 6000);
 
             // Metrics updated
             window.wsClient.on('admin_metrics_updated', (data) => {

@@ -1718,13 +1718,25 @@ class ChatController {
         });
     }
 
-    setupPollingFallback() {
-        // Automatic REST sync fallback when WebSocket is offline or in serverless mode
-        setInterval(async () => {
-            if (!this.activeId || !auth.isAuthenticated()) return;
-            if (window.wsClient && window.wsClient.isConnected) return;
+    activateRealTimeSync() {
+        if (this._syncTimer) clearInterval(this._syncTimer);
+        this.runRealTimeSyncCycle();
+        const interval = document.visibilityState === 'visible' ? 2500 : 6000;
+        this._syncTimer = setInterval(() => this.runRealTimeSyncCycle(), interval);
+    }
 
-            try {
+    async runRealTimeSyncCycle() {
+        if (!auth.isAuthenticated()) return;
+        if (window.wsClient && window.wsClient.isConnected) return;
+        if (this._isSyncing) return;
+        this._isSyncing = true;
+
+        try {
+            const currentUser = auth.getUser();
+            const currentUserId = currentUser ? currentUser.id : null;
+
+            // 1. Sync Active Chat (Messages, Edits, Deletions, Reactions)
+            if (this.activeId) {
                 let freshMessages = [];
                 if (this.activeType === 'direct') {
                     freshMessages = await api.getDirectMessages(this.activeId);
@@ -1732,19 +1744,97 @@ class ChatController {
                     freshMessages = await api.getGroupMessages(this.activeId);
                 }
 
-                if (freshMessages && freshMessages.length > this.activeMessages.length) {
-                    const currentUser = auth.getUser();
-                    const currentUserId = currentUser ? currentUser.id : null;
-                    const existingIds = new Set(this.activeMessages.map(m => m.id));
+                if (Array.isArray(freshMessages)) {
+                    const freshIds = new Set(freshMessages.map(m => Number(m.id || m.message_id)));
+                    const localIds = new Set(this.activeMessages.map(m => Number(m.id || m.message_id)));
 
-                    freshMessages.forEach(msg => {
-                        if (!existingIds.has(msg.id)) {
+                    // A. Detect newly arrived messages
+                    const newMessages = freshMessages.filter(m => !localIds.has(Number(m.id || m.message_id)));
+                    if (newMessages.length > 0) {
+                        newMessages.forEach(msg => {
                             this.appendMessage(msg, currentUserId);
+                        });
+                        if (typeof window.appController !== 'undefined') {
+                            window.appController.loadConversations(false);
+                        }
+                    }
+
+                    // B. Detect edits and reaction updates on existing messages
+                    freshMessages.forEach(freshMsg => {
+                        const mid = Number(freshMsg.id || freshMsg.message_id);
+                        const localMsg = this.activeMessages.find(m => Number(m.id || m.message_id) === mid);
+                        if (localMsg) {
+                            // Check if content or updated_at changed (Edit)
+                            if (localMsg.content !== freshMsg.content || localMsg.updated_at !== freshMsg.updated_at) {
+                                this.handleMessageEdited(freshMsg);
+                            }
+                            // Check if reactions changed
+                            const freshR = JSON.stringify(freshMsg.reactions || []);
+                            const localR = JSON.stringify(localMsg.reactions || []);
+                            if (freshR !== localR) {
+                                localMsg.reactions = freshMsg.reactions;
+                                const msgRow = document.getElementById(`msgRow-${mid}`);
+                                if (msgRow && typeof window.messagesModule !== 'undefined') {
+                                    const badgeTray = msgRow.querySelector('.reaction-badges');
+                                    if (badgeTray) badgeTray.remove();
+                                    
+                                    const reactionCounts = {};
+                                    let userReacted = null;
+                                    (freshMsg.reactions || []).forEach(r => {
+                                        reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1;
+                                        if (r.user_id === currentUserId) userReacted = r.emoji;
+                                    });
+                                    if (Object.keys(reactionCounts).length > 0) {
+                                        let rHtml = '<div class="reaction-badges">';
+                                        for (const [em, cnt] of Object.entries(reactionCounts)) {
+                                            rHtml += `
+                                                <button type="button" class="reaction-pill ${userReacted === em ? 'user-reacted' : ''}" data-msg-id="${mid}" data-emoji="${em}">
+                                                    <span>${em}</span>
+                                                    ${cnt > 1 ? `<span style="font-size:10px; font-weight:700;">${cnt}</span>` : ''}
+                                                </button>
+                                            `;
+                                        }
+                                        rHtml += '</div>';
+                                        msgRow.insertAdjacentHTML('beforeend', rHtml);
+                                    }
+                                }
+                            }
                         }
                     });
+
+                    // C. Detect deleted messages
+                    const deletedIds = this.activeMessages
+                        .map(m => Number(m.id || m.message_id))
+                        .filter(id => !freshIds.has(id));
+                    deletedIds.forEach(delId => {
+                        this.handleMessageDeleted(delId);
+                    });
+
+                    this.activeMessages = freshMessages;
                 }
-            } catch {}
-        }, 4000);
+            }
+
+            // 2. Sync Sidebar Conversation List (Latest snippets, unread badges, new chats)
+            this._syncCycleCount = (this._syncCycleCount || 0) + 1;
+            if (this._syncCycleCount % 2 === 0 && typeof window.appController !== 'undefined') {
+                window.appController.loadConversations(false);
+            }
+
+        } catch (err) {
+            // Silent error suppression
+        } finally {
+            this._isSyncing = false;
+        }
+    }
+
+    setupPollingFallback() {
+        this.activateRealTimeSync();
+
+        // Adjust sync frequency when user switches tabs
+        document.addEventListener('visibilitychange', () => {
+            if (window.wsClient && window.wsClient.isConnected) return;
+            this.activateRealTimeSync();
+        });
     }
 }
 

@@ -169,6 +169,21 @@ def toggle_reaction(
     db: Session = Depends(get_db)
 ):
     msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not msg and (os.environ.get("VERCEL") or "tmp" in str(db.bind.url)):
+        msg = models.Message(
+            id=message_id,
+            sender_id=current_user.id,
+            content="[Message]",
+            message_type="text"
+        )
+        db.add(msg)
+        try:
+            db.commit()
+            db.refresh(msg)
+        except Exception:
+            db.rollback()
+            msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+
     if not msg:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found")
 
@@ -253,6 +268,21 @@ async def edit_message(
     db: Session = Depends(get_db)
 ):
     msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not msg and (os.environ.get("VERCEL") or "tmp" in str(db.bind.url)):
+        msg = models.Message(
+            id=message_id,
+            sender_id=current_user.id,
+            content=update_in.content.strip(),
+            message_type="text"
+        )
+        db.add(msg)
+        try:
+            db.commit()
+            db.refresh(msg)
+        except Exception:
+            db.rollback()
+            msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+
     if not msg:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found")
 

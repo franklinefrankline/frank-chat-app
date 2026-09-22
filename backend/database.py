@@ -28,7 +28,8 @@ if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 engine_kwargs = {
-    "pool_pre_ping": True
+    "pool_pre_ping": True,
+    "pool_recycle": 300
 }
 
 if DATABASE_URL.startswith("sqlite"):

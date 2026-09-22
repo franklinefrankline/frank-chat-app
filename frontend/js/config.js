@@ -39,18 +39,31 @@
         apiBase = window.location.origin;
     }
 
+    // Determine if running on a serverless host without native persistent WebSocket
+    const isVercelHost = host.endsWith('.vercel.app') || host.includes('vercel.app');
+    let isServerless = isVercelHost;
+
     if (injectedConfig.WS_BASE) {
         wsBase = injectedConfig.WS_BASE;
+        isServerless = false;
     } else if (storedWsUrl) {
         wsBase = storedWsUrl;
+        isServerless = false;
     } else if (isLocal) {
         const wsProtocol = isHttps ? 'wss:' : 'ws:';
         const wsHost = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
             ? window.location.host
             : 'localhost:8000';
         wsBase = `${wsProtocol}//${wsHost}`;
+        isServerless = false;
     } else if (DEFAULT_PROD_WS) {
         wsBase = DEFAULT_PROD_WS;
+        isServerless = false;
+    } else if (isVercelHost) {
+        // Vercel Serverless Functions do not support persistent WebSockets.
+        // Leave wsBase empty to enable high-fidelity Real-Time Sync Engine with zero 404 errors.
+        wsBase = '';
+        isServerless = true;
     } else {
         const wsProtocol = isHttps ? 'wss:' : 'ws:';
         wsBase = `${wsProtocol}//${window.location.host}`;
@@ -58,18 +71,19 @@
 
     // Ensure no trailing slashes
     apiBase = apiBase.replace(/\/+$/, '');
-    wsBase = wsBase.replace(/\/+$/, '');
+    if (wsBase) wsBase = wsBase.replace(/\/+$/, '');
 
     window.FRANK_CONFIG = {
         BRAND_NAME: 'FRANK',
         TAGLINE: 'Think',
-        FRONTEND_URL: 'https://frank-chat-vercel.app',
+        FRONTEND_URL: 'https://frank-chat-app.vercel.app',
         API_BASE: apiBase,
         WS_BASE: wsBase,
         IS_LOCAL: isLocal,
         IS_SECURE: isHttps,
+        IS_SERVERLESS: isServerless,
         VERSION: '2.0.0'
     };
 
-    console.log(`[FRANK] Initialized v2.0.0 (API: ${apiBase}, WS: ${wsBase})`);
+    console.log(`[FRANK] Initialized v2.0.0 (API: ${apiBase}, WS: ${wsBase || 'Serverless Real-Time Sync'})`);
 })();
