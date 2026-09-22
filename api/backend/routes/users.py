@@ -245,10 +245,35 @@ def get_conversations(
             "unread_count": 0
         }
 
+    # 4. Guarantee self-conversation (Notes to Self) is always present
+    pref_map = {}
+    self_key = f"direct_{current_user.id}"
+    if self_key not in conversations:
+        p = pref_map.get(self_key)
+        conversations[self_key] = {
+            "id": current_user.id,
+            "type": "direct",
+            "name": f"{current_user.full_name} (You)",
+            "username": current_user.username,
+            "frank_id": current_user.frank_id,
+            "bio": "Message yourself • Notes & bookmarks",
+            "avatar_url": current_user.avatar_url,
+            "is_online": True,
+            "last_seen": None,
+            "last_message": None,
+            "unread_count": 0,
+            "is_pinned": p.is_pinned if p else False,
+            "is_favorite": p.is_favorite if p else False,
+            "is_muted": p.is_muted if p else False
+        }
+
     conv_list = list(conversations.values())
-    # Sort by recent message time descending
+    # Sort: pinned first, then by recent message time descending
     conv_list.sort(
-        key=lambda c: c["last_message"]["created_at"] if c.get("last_message") else "1970-01-01T00:00:00",
+        key=lambda c: (
+            1 if c.get("is_pinned") else 0,
+            c["last_message"]["created_at"] if c.get("last_message") else "1970-01-01T00:00:00"
+        ),
         reverse=True
     )
     return conv_list

@@ -16,8 +16,10 @@ class ConnectionManager:
     def __init__(self):
         # Maps user_id -> List[WebSocket]
         self.active_connections: Dict[int, List[WebSocket]] = {}
+        # Set of active admin WebSockets
+        self.admin_connections: Set[WebSocket] = set()
 
-    async def connect(self, user_id: int, websocket: WebSocket):
+    async def connect(self, user_id: int, websocket: WebSocket, is_admin: bool = False):
         try:
             uid = int(user_id)
         except (ValueError, TypeError):
@@ -26,6 +28,8 @@ class ConnectionManager:
         if uid not in self.active_connections:
             self.active_connections[uid] = []
         self.active_connections[uid].append(websocket)
+        if is_admin:
+            self.admin_connections.add(websocket)
 
         # Update user status to online in database
         db = SessionLocal()
@@ -51,6 +55,8 @@ class ConnectionManager:
             uid = int(user_id)
         except (ValueError, TypeError):
             return
+        if websocket in self.admin_connections:
+            self.admin_connections.discard(websocket)
         if uid in self.active_connections:
             if websocket in self.active_connections[uid]:
                 self.active_connections[uid].remove(websocket)
@@ -75,6 +81,67 @@ class ConnectionManager:
                     "is_online": False,
                     "last_seen": schemas.format_iso_utc(datetime.now(timezone.utc))
                 }, exclude_user_id=uid)
+
+    async def broadcast_admin(self, data: dict):
+        if not self.admin_connections:
+            return
+        message_text = json.dumps(data)
+        dead_sockets = []
+        for ws in list(self.admin_connections):
+            try:
+                await ws.send_text(message_text)
+            except Exception:
+                dead_sockets.append(ws)
+        for ws in dead_sockets:
+            self.admin_connections.discard(ws)
+
+    async def broadcast_admin_metrics(self, db=None):
+        if not self.admin_connections:
+            return
+        should_close = False
+        if db is None:
+            db = SessionLocal()
+            should_close = True
+        try:
+            total_users = db.query(models.User).count()
+            active_accounts = db.query(models.User).filter(models.User.account_status == "active").count()
+            disabled_accounts = db.query(models.User).filter(models.User.account_status == "disabled").count()
+            total_messages = db.query(models.Message).count()
+            groups = db.query(models.Group).count()
+            files = db.query(models.Document).count()
+            email_verified = db.query(models.User).filter(models.User.account_status == "active").count()
+
+            payload = {
+                "type": "admin_metrics_updated",
+                "metrics": {
+                    "total_users": total_users,
+                    "active_accounts": active_accounts,
+                    "disabled_accounts": disabled_accounts,
+                    "email_verified": email_verified,
+                    "total_messages": total_messages,
+                    "groups": groups,
+                    "files": files
+                }
+            }
+            await self.broadcast_admin(payload)
+        finally:
+            if should_close:
+                db.close()
+
+    async def disconnect_user(self, user_id: int):
+        try:
+            uid = int(user_id)
+        except (ValueError, TypeError):
+            return
+        if uid in self.active_connections:
+            sockets = list(self.active_connections[uid])
+            for ws in sockets:
+                self.admin_connections.discard(ws)
+                try:
+                    await ws.close(code=1008)
+                except Exception:
+                    pass
+            self.active_connections.pop(uid, None)
 
     async def send_to_user(self, user_id: int, data: dict):
         try:
@@ -148,8 +215,13 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
         await websocket.close(code=1008)
         return
 
+    if getattr(user, "account_status", "active") == "disabled":
+        await websocket.close(code=1008)
+        return
+
     user_id = user.id
-    await manager.connect(user_id, websocket)
+    is_admin = getattr(user, "role", "user") == "admin"
+    await manager.connect(user_id, websocket, is_admin=is_admin)
 
     try:
         while True:

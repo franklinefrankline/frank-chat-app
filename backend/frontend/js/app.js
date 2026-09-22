@@ -108,6 +108,29 @@ class AppController {
         try {
             const conversations = await api.getConversations();
             this.conversations = conversations || [];
+
+            // Guarantee Notes to Self (Message Yourself) is present in the list
+            const currentUser = auth.getUser();
+            if (currentUser) {
+                const selfId = Number(currentUser.id);
+                const hasSelf = this.conversations.some(c => c.type !== 'group' && Number(c.id) === selfId);
+                if (!hasSelf) {
+                    const selfConv = {
+                        id: selfId,
+                        type: 'direct',
+                        name: `${currentUser.full_name || currentUser.username} (You)`,
+                        username: currentUser.username,
+                        frank_id: currentUser.frank_id,
+                        avatar_url: currentUser.avatar_url,
+                        bio: 'Message yourself • Notes & bookmarks',
+                        is_online: true,
+                        last_message: null,
+                        unread_count: 0
+                    };
+                    this.conversations.unshift(selfConv);
+                }
+            }
+
             this.renderConversationList();
 
             // Auto-select first conversation if on desktop and none selected
@@ -172,9 +195,13 @@ class AppController {
             const initials = (conv.name || conv.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
             const isOnline = !!conv.is_online;
             const timeStr = conv.last_message ? messagesModule.formatRelativeTime(conv.last_message.created_at) : '';
+            const currentUser = auth.getUser();
+            const isSelf = !isGroup && currentUser && Number(conv.id) === Number(currentUser.id);
             
             let previewText = 'No messages yet';
-            if (conv.last_message) {
+            if (isSelf && !conv.last_message) {
+                previewText = 'Message yourself • Notes & bookmarks';
+            } else if (conv.last_message) {
                 if (conv.last_message.message_type === 'document') {
                     previewText = '📎 Document shared';
                 } else if (conv.last_message.sender_name && isGroup) {
@@ -184,23 +211,23 @@ class AppController {
                 }
             }
             previewText = messagesModule.escapeHTML(previewText);
-
             const isActive = window.chatController && window.chatController.activeId === conv.id && window.chatController.activeType === conv.type;
 
             const card = document.createElement('div');
-            card.className = `conversation-card ${isActive ? 'active' : ''} ${isGroup ? 'is-group' : ''}`;
+            card.className = `conversation-card ${isActive ? 'active' : ''} ${isGroup ? 'is-group' : ''} ${isSelf ? 'is-self-chat' : ''}`;
             card.dataset.id = conv.id;
             card.dataset.type = conv.type || 'direct';
 
             card.innerHTML = `
                 <div class="avatar avatar-md ${isGroup ? 'group-avatar' : ''}">
-                    <span>${initials}</span>
+                    <span>${isSelf ? '📝' : initials}</span>
                     ${isGroup ? '<span class="group-indicator-dot">👥</span>' : `<span class="avatar-status ${isOnline ? 'online' : 'offline'}"></span>`}
                 </div>
                 <div class="conversation-details">
                     <div class="conversation-row">
                         <span class="conversation-name">
                             ${isGroup ? '<span class="group-prefix-badge">Group</span> ' : ''}${messagesModule.escapeHTML(conv.name)}
+                            ${isSelf ? '<span class="self-prefix-badge" style="background: rgba(37, 99, 235, 0.15); color: var(--primary); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">Notes</span>' : ''}
                         </span>
                         <span class="conversation-time">${timeStr}</span>
                     </div>

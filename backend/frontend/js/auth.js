@@ -28,10 +28,11 @@ const auth = {
     guard() {
         const path = window.location.pathname.replace(/\/+$/, '') || '/';
         const isAuth = this.isAuthenticated();
+        const user = this.getUser();
 
         const protectedRoutes = [
-            'dashboard.html', 'chat.html', 'profile.html', 'settings.html',
-            '/dashboard', '/chat', '/profile', '/settings'
+            'dashboard.html', 'chat.html', 'profile.html', 'settings.html', 'admin.html',
+            '/dashboard', '/chat', '/profile', '/settings', '/admin'
         ];
         const guestOnlyRoutes = [
             'login.html', 'register.html',
@@ -40,11 +41,19 @@ const auth = {
 
         const isProtected = protectedRoutes.some(route => path.endsWith(route) || path === route);
         const isGuestOnly = guestOnlyRoutes.some(route => path.endsWith(route) || path === route);
+        const isAdminRoute = path.endsWith('admin.html') || path === '/admin';
 
         if (isProtected && !isAuth) {
             window.location.href = 'login.html';
-        } else if (isGuestOnly && isAuth) {
+        } else if (isAdminRoute && isAuth && (!user || user.role !== 'admin')) {
+            // Normal user trying to access admin dashboard -> redirect to user dashboard
             window.location.href = 'dashboard.html';
+        } else if (isGuestOnly && isAuth) {
+            if (user && user.role === 'admin') {
+                window.location.href = 'admin.html';
+            } else {
+                window.location.href = 'dashboard.html';
+            }
         }
     },
 
@@ -118,7 +127,11 @@ if (loginForm) {
 
             showToast(`Welcome back, ${data.user.full_name}!`, 'success');
             setTimeout(() => {
-                window.location.href = 'dashboard.html';
+                if (data.user && data.user.role === 'admin') {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
             }, 500);
         } catch (err) {
             showToast(err.message || 'Invalid username or password.', 'error');

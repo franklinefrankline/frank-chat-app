@@ -23,6 +23,11 @@ const usersModule = {
         const frankIdInput = document.getElementById('frankIdSearchInput');
         const frankIdBtn = document.getElementById('frankIdSearchBtn');
         const startChatBtn = document.getElementById('previewStartChatBtn');
+        const selfCard = document.getElementById('newChatSelfCard');
+
+        selfCard?.addEventListener('click', () => {
+            this.openSelfChat();
+        });
 
         tabContacts?.addEventListener('click', () => {
             tabContacts.classList.add('active');
@@ -206,11 +211,27 @@ const usersModule = {
 
         const currentUser = auth.getUser();
         if (currentUser && (currentUser.frank_id || '').toUpperCase() === cleanId) {
-            if (error) {
-                error.textContent = 'That is your own permanent FRANK ID! Enter a contact\'s ID to connect.';
-                error.style.display = 'block';
+            if (loading) loading.style.display = 'none';
+            if (error) error.style.display = 'none';
+            this.searchedUser = {
+                ...currentUser,
+                full_name: `${currentUser.full_name || currentUser.username} (You)`,
+                bio: 'Message yourself • Notes & bookmarks'
+            };
+            const fullNameEl = document.getElementById('previewFullName');
+            const usernameEl = document.getElementById('previewUsername');
+            const badgeEl = document.getElementById('previewFrankIdBadge');
+            const bioEl = document.getElementById('previewBio');
+            const avatarEl = document.getElementById('previewAvatar');
+            if (fullNameEl) fullNameEl.textContent = this.searchedUser.full_name;
+            if (usernameEl) usernameEl.textContent = `@${currentUser.username}`;
+            if (badgeEl) badgeEl.textContent = `ID: ${currentUser.frank_id}`;
+            if (bioEl) bioEl.textContent = this.searchedUser.bio;
+            if (avatarEl) {
+                const initials = (currentUser.full_name || currentUser.username || 'ME').slice(0, 2).toUpperCase();
+                avatarEl.innerHTML = `<span>${initials}</span><span class="avatar-status online" id="previewStatusDot"></span>`;
             }
-            if (preview) preview.style.display = 'none';
+            if (preview) preview.style.display = 'block';
             return;
         }
 
@@ -254,6 +275,31 @@ const usersModule = {
                 error.style.display = 'block';
             }
             if (preview) preview.style.display = 'none';
+        }
+    },
+
+    async openSelfChat() {
+        closeModal('newChatModal');
+        const currentUser = auth.getUser();
+        if (!currentUser) return;
+        try {
+            await api.createPrivateConversation(currentUser.id, currentUser.frank_id);
+        } catch (_) {}
+
+        const selfPartner = {
+            id: currentUser.id,
+            username: currentUser.username,
+            full_name: `${currentUser.full_name || currentUser.username} (You)`,
+            bio: 'Message yourself • Notes & bookmarks',
+            frank_id: currentUser.frank_id,
+            is_online: true
+        };
+
+        if (window.chatController) {
+            window.chatController.openDirectChat(selfPartner);
+        }
+        if (window.appController) {
+            window.appController.loadConversations(false);
         }
     },
 

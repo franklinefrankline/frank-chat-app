@@ -89,6 +89,12 @@ def check_and_migrate_db():
                 columns = [col["name"] for col in inspector.get_columns("users")]
                 if "frank_id" not in columns:
                     conn.execute(text("ALTER TABLE users ADD COLUMN frank_id VARCHAR(6) NULL"))
+                if "role" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
+                    conn.execute(text("UPDATE users SET role = 'user' WHERE role IS NULL"))
+                if "account_status" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN account_status VARCHAR(20) DEFAULT 'active'"))
+                    conn.execute(text("UPDATE users SET account_status = 'active' WHERE account_status IS NULL"))
 
                 result = conn.execute(text("SELECT id FROM users WHERE frank_id IS NULL OR frank_id = ''")).fetchall()
                 alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -106,6 +112,7 @@ def check_and_migrate_db():
 
             if "conversations" in tables:
                 try:
+                    conn.execute(text("DELETE FROM conversations WHERE id NOT IN (SELECT MIN(id) FROM conversations GROUP BY user_a_id, user_b_id)"))
                     conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_conversation_users ON conversations(user_a_id, user_b_id)"))
                 except Exception:
                     pass

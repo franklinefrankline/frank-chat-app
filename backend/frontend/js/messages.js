@@ -118,12 +118,36 @@ const messagesModule = {
         }
     },
 
+    linkify(escapedText) {
+        if (!escapedText) return '';
+        // Match http, https, or www.
+        const urlRegex = /(https?:\/\/[^\s<"']+)|(\bwww\.[^\s<"']+)/gi;
+        return escapedText.replace(urlRegex, (match) => {
+            let url = match;
+            let trailing = '';
+            const punctMatch = url.match(/[.,;:!?)]+$/);
+            if (punctMatch) {
+                trailing = punctMatch[0];
+                url = url.slice(0, -trailing.length);
+            }
+            let href = url;
+            if (!href.startsWith('http://') && !href.startsWith('https://')) {
+                href = 'https://' + href;
+            }
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="chat-link" onclick="event.stopPropagation()">${url}</a>${trailing}`;
+        });
+    },
+
     renderMessageRow(msg, currentUserId) {
         const isSent = msg.sender_id === currentUserId;
         const msgDateObj = this.parseDate(msg.created_at) || new Date();
         const timeFormatted = this.formatMessageTimestamp(msg.created_at || msgDateObj);
         const isEdited = !!msg.updated_at && msg.updated_at !== msg.created_at;
-        const timeStr = `${timeFormatted}${isEdited ? ' <span class="message-edited-badge" style="font-size:10px; opacity:0.75; font-style:italic;" title="Edited">(Edited)</span>' : ''}`;
+        const isPinned = !!msg.is_pinned;
+        const isStarred = !!msg.is_starred;
+        const pinBadge = isPinned ? `<span class="message-pin-indicator" title="Pinned message">📌</span>` : '';
+        const starBadge = isStarred ? `<span class="message-star-indicator" title="Starred message">⭐</span>` : '';
+        const timeStr = `${pinBadge}${starBadge}${timeFormatted}${isEdited ? ' <span class="message-edited-badge" style="font-size:10px; opacity:0.75; font-style:italic;" title="Edited">(Edited)</span>' : ''}`;
         const fullDateStr = msgDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
         const fullTooltip = `Sent: ${fullDateStr} at ${this.formatTime(msgDateObj)}${isEdited ? ` · Edited: ${this.formatMessageTimestamp(msg.updated_at)}` : ''}`;
         const statusIcon = isSent ? this.getStatusIcon(msg.status) : '';
@@ -157,14 +181,21 @@ const messagesModule = {
         // Reply quote block
         let replyHtml = '';
         if (msg.reply_to_id) {
+            const repliedMsg = (window.chatController && window.chatController.activeMessages)
+                ? window.chatController.activeMessages.find(m => Number(m.id || m.message_id) === Number(msg.reply_to_id))
+                : null;
+            const repliedSender = repliedMsg?.sender ? (repliedMsg.sender.full_name || repliedMsg.sender.username) : 'Message';
+            const repliedContent = repliedMsg ? this.escapeHTML(repliedMsg.content || (repliedMsg.document ? repliedMsg.document.original_filename : 'Attachment')) : `#${msg.reply_to_id}`;
             replyHtml = `
-                <div class="message-reply-quote">
-                    <strong>Replying to message #${msg.reply_to_id}</strong>
+                <div class="message-reply-quote" onclick="const target=document.getElementById('msgRow-${msg.reply_to_id}'); if(target){ target.scrollIntoView({behavior:'smooth'}); target.classList.add('highlight-pulse'); setTimeout(()=>target.classList.remove('highlight-pulse'), 1500); }" title="Click to view replied message">
+                    <span style="font-weight: 700; font-size: 11px; color: var(--primary); display: block;">${repliedSender}</span>
+                    <div style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;">${repliedContent}</div>
                 </div>
             `;
         }
 
         const safeContent = this.escapeHTML(msg.content);
+        const linkedContent = this.linkify(safeContent);
 
         // Attachment categorization
         const isAudio = msg.message_type === 'audio' || (msg.document && msg.document.file_type === 'audio');
@@ -174,7 +205,7 @@ const messagesModule = {
         const isDocAttachment = isDocument;
         const hasAttachment = isAudio || isVideo || isImage || isDocument;
 
-        let bodyHtml = `<div class="message-text-content">${safeContent}</div>`;
+        let bodyHtml = `<div class="message-text-content">${linkedContent}</div>`;
         let docFilename = '';
         let docFileId = '';
         let docFileType = 'document';
@@ -211,7 +242,7 @@ const messagesModule = {
                             </div>
                             <span class="voice-time-label">${durationLabel}</span>
                         </div>
-                        ${(safeContent && safeContent !== 'Voice message' && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${safeContent}</div>` : ''}
+                        ${(safeContent && safeContent !== 'Voice message' && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${linkedContent}</div>` : ''}
                     </div>
                 `;
             } else if (isImage) {
@@ -219,9 +250,9 @@ const messagesModule = {
                 bodyHtml = `
                     <div class="message-photo-card" data-file-id="${docFileId}">
                         <div class="msg-photo-wrap">
-                            <img loading="lazy" class="msg-photo-img" src="${viewUrl}" alt="${this.escapeHTML(docFilename)}" onclick="window.open('${viewUrl}', '_blank')">
+                            <img loading="lazy" class="msg-photo-img" src="${viewUrl}" alt="${this.escapeHTML(docFilename)}" data-file-id="${docFileId}" data-file-type="image" data-filename="${this.escapeHTML(docFilename)}">
                         </div>
-                        ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${safeContent}</div>` : ''}
+                        ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${linkedContent}</div>` : ''}
                     </div>
                 `;
             } else if (isVideo) {
@@ -231,7 +262,7 @@ const messagesModule = {
                         <div class="msg-video-wrap">
                             <video controls playsinline preload="metadata" class="msg-video-player" src="${viewUrl}"></video>
                         </div>
-                        ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${safeContent}</div>` : ''}
+                        ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${linkedContent}</div>` : ''}
                     </div>
                 `;
             } else {
@@ -246,7 +277,7 @@ const messagesModule = {
                                 <div class="message-doc-sub">${sizeStr || ext} • ${ext}</div>
                             </div>
                         </div>
-                        ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${safeContent}</div>` : ''}
+                        ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${linkedContent}</div>` : ''}
                         <div class="message-doc-actions">
                             <button type="button" class="btn btn-sm btn-primary msg-doc-open-btn" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
@@ -264,46 +295,78 @@ const messagesModule = {
 
         const senderName = isSent ? 'You' : (msg.sender ? msg.sender.full_name : 'User');
 
+        // Professional Outline SVG Icons for Actions
+        const replySvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>`;
+        const copySvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+        const editSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+        const deleteSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+        const downloadSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+        const openSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`;
+        const moreSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5"></circle><circle cx="12" cy="5" r="1.5"></circle><circle cx="12" cy="19" r="1.5"></circle></svg>`;
+
+        const hasRealText = safeContent && !safeContent.startsWith('Shared a file:') && safeContent !== 'Voice message';
+        const copyContent = hasRealText ? safeContent : '';
+
         return `
             <div class="message-row ${isSent ? 'sent' : 'received'} ${hasAttachment ? 'has-document' : ''}" id="msgRow-${msg.id}" data-message-id="${msg.id}">
                 <!-- Hover Action Toolbar -->
                 <div class="message-actions-toolbar">
                     <button type="button" class="action-tool-btn msg-action-reply" title="Reply" data-msg-id="${msg.id}" data-sender="${senderName}" data-content="${isDocument ? `[Document] ${this.escapeHTML(docFilename)}` : safeContent}">
-                        ↩
+                        ${replySvg}
                     </button>
-                    ${isDocument ? `
-                        <button type="button" class="action-tool-btn msg-action-open-doc" title="Open Document" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
-                            👁️
-                        </button>
+                    <!-- Emoji reactions -->
+                    <button type="button" class="action-tool-btn msg-action-react" title="Love" data-msg-id="${msg.id}" data-emoji="❤️">❤️</button>
+                    <button type="button" class="action-tool-btn msg-action-react" title="Thumbs Up" data-msg-id="${msg.id}" data-emoji="👍">👍</button>
+                    <button type="button" class="action-tool-btn msg-action-react" title="Laugh" data-msg-id="${msg.id}" data-emoji="😂">😂</button>
+                    <button type="button" class="action-tool-btn msg-action-react" title="Fire" data-msg-id="${msg.id}" data-emoji="🔥">🔥</button>
+
+                    ${hasAttachment ? `
+                        ${(isDocument || isImage || isVideo) ? `
+                            <button type="button" class="action-tool-btn msg-action-open-doc" title="Open" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
+                                ${openSvg}
+                            </button>
+                        ` : ''}
                         <button type="button" class="action-tool-btn msg-action-download-doc" title="Download" data-file-id="${docFileId}" data-filename="${this.escapeHTML(docFilename)}">
-                            ⬇️
+                            ${downloadSvg}
                         </button>
-                        <button type="button" class="action-tool-btn msg-action-copy" title="Copy Filename" data-content="${this.escapeHTML(docFilename)}">
-                            📋
-                        </button>
+                        ${hasRealText ? `
+                            <button type="button" class="action-tool-btn msg-action-copy" title="Copy Text" data-msg-id="${msg.id}" data-content="${copyContent}">
+                                ${copySvg}
+                            </button>
+                            ${isSent ? `
+                                <button type="button" class="action-tool-btn msg-action-edit" title="Edit Message" data-msg-id="${msg.id}">
+                                    ${editSvg}
+                                </button>
+                            ` : ''}
+                        ` : ''}
                     ` : `
-                        <button type="button" class="action-tool-btn msg-action-react" title="Love" data-msg-id="${msg.id}" data-emoji="❤️">❤️</button>
-                        <button type="button" class="action-tool-btn msg-action-react" title="Thumbs Up" data-msg-id="${msg.id}" data-emoji="👍">👍</button>
-                        <button type="button" class="action-tool-btn msg-action-react" title="Laugh" data-msg-id="${msg.id}" data-emoji="😂">😂</button>
-                        <button type="button" class="action-tool-btn msg-action-react" title="Fire" data-msg-id="${msg.id}" data-emoji="🔥">🔥</button>
-                        <button type="button" class="action-tool-btn msg-action-copy" title="Copy Text" data-content="${safeContent}">
-                            📋
+                        <button type="button" class="action-tool-btn msg-action-copy" title="Copy Text" data-msg-id="${msg.id}" data-content="${safeContent}">
+                            ${copySvg}
                         </button>
+                        ${isSent ? `
+                            <button type="button" class="action-tool-btn msg-action-edit" title="Edit Message" data-msg-id="${msg.id}">
+                                ${editSvg}
+                            </button>
+                        ` : ''}
                     `}
-                    ${isSent && !isDocument ? `
-                        <button type="button" class="action-tool-btn msg-action-edit" title="Edit Message" data-msg-id="${msg.id}">
-                            ✏️
-                        </button>
-                    ` : ''}
+
                     ${isSent ? `
-                        <button type="button" class="action-tool-btn msg-action-delete" title="Delete" data-msg-id="${msg.id}" style="color:var(--danger);">
-                            🗑
+                        <button type="button" class="action-tool-btn msg-action-delete" title="Delete" data-msg-id="${msg.id}">
+                            ${deleteSvg}
                         </button>
                     ` : ''}
+
+                    <!-- 3-Dots More Options Menu -->
+                    <button type="button" class="action-tool-btn msg-action-more-btn" title="Message Options" data-msg-id="${msg.id}">
+                        ${moreSvg}
+                    </button>
                 </div>
 
                 <!-- Bubble Content -->
                 <div class="message-bubble ${isDocument ? 'document-bubble' : ''}">
+                    <button type="button" class="bubble-more-trigger" title="Message Options" data-msg-id="${msg.id}" aria-label="Message options">
+                        ${moreSvg}
+                    </button>
                     ${replyHtml}
                     ${bodyHtml}
                 </div>
@@ -323,11 +386,45 @@ const messagesModule = {
 
 window.messagesModule = messagesModule;
 
-// Message Event Delegation (Reply, React, Copy, Edit, Delete)
+// Throttled Audio Error Toast Helper
+let lastAudioToastTime = 0;
+function showAudioErrorToast(message) {
+    const now = Date.now();
+    if (now - lastAudioToastTime > 2500) {
+        lastAudioToastTime = now;
+        if (window.showToast) {
+            window.showToast(message, 'error');
+        }
+    }
+}
+
+// Message Event Delegation (Links, Context Menu, Reply, React, Copy, Edit, Delete, Open, Download)
 document.addEventListener('click', async (e) => {
+    // 0a. Open chat link in new tab safely
+    const chatLink = e.target.closest('a.chat-link');
+    if (chatLink) {
+        e.stopPropagation();
+        if (window.open && chatLink.href) {
+            window.open(chatLink.href, '_blank', 'noopener,noreferrer');
+            e.preventDefault();
+        }
+        return;
+    }
+
+    // 0b. Open in-message context menu
+    const moreBtn = e.target.closest('.msg-action-more-btn, .bubble-more-trigger');
+    if (moreBtn) {
+        e.stopPropagation();
+        const messageId = parseInt(moreBtn.dataset.msgId, 10);
+        if (window.chatController) {
+            window.chatController.openMessageContextMenu(e, messageId);
+        }
+        return;
+    }
     // 1. React to message
     const reactBtn = e.target.closest('.msg-action-react, .reaction-pill');
     if (reactBtn) {
+        e.stopPropagation();
         const messageId = parseInt(reactBtn.dataset.msgId, 10);
         const emoji = reactBtn.dataset.emoji;
         if (messageId && emoji) {
@@ -344,63 +441,71 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 2. Copy message text
+    // 2. Copy message text (plain text only, latest edited content guaranteed)
     const copyBtn = e.target.closest('.msg-action-copy');
     if (copyBtn) {
-        const text = copyBtn.dataset.content;
-        if (text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Message copied to clipboard', 'info', 1500);
-            });
+        e.stopPropagation();
+        const row = copyBtn.closest('.message-row');
+        const messageId = parseInt(copyBtn.dataset.msgId || (row ? row.dataset.messageId : ''), 10);
+        const currentMsg = (window.chatController && window.chatController.activeMessages)
+            ? window.chatController.activeMessages.find(m => Number(m.id || m.message_id) === messageId)
+            : null;
+        const liveEl = row ? row.querySelector('.message-text-content') : null;
+        const text = (currentMsg ? currentMsg.content : (liveEl ? liveEl.textContent : copyBtn.dataset.content || '')).trim();
+        if (!text) {
+            showToast('Nothing to copy', 'info');
+            return;
         }
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('✓ Copied', 'success', 1500);
+        }).catch(() => {
+            showToast('Unable to copy message', 'error');
+        });
         return;
     }
 
-    // 3. Edit message
+    // 3. Edit message (in-composer editing strip, no window.prompt)
     const editBtn = e.target.closest('.msg-action-edit');
     if (editBtn) {
+        e.stopPropagation();
         const messageId = parseInt(editBtn.dataset.msgId, 10);
         const row = document.getElementById(`msgRow-${messageId}`);
         if (messageId && row) {
             const currentMsg = (window.chatController && window.chatController.activeMessages)
-                ? window.chatController.activeMessages.find(m => m.id === messageId)
+                ? window.chatController.activeMessages.find(m => Number(m.id || m.message_id) === messageId)
                 : null;
-            const currentContent = currentMsg ? currentMsg.content : (row.querySelector('.message-text-content')?.textContent || '');
+            const liveEl = row.querySelector('.message-text-content');
+            const currentContent = currentMsg ? currentMsg.content : (liveEl ? liveEl.textContent : (editBtn.dataset.content || ''));
 
-            const newContent = prompt('Edit your message:', currentContent);
-            if (newContent !== null && newContent.trim() !== '' && newContent.trim() !== currentContent) {
-                const trimmed = newContent.trim();
-                try {
-                    if (window.wsClient && window.wsClient.isConnected) {
-                        window.wsClient.sendEditMessage(messageId, trimmed);
-                    } else {
-                        const updated = await api.editMessage(messageId, trimmed);
-                        if (window.chatController) {
-                            window.chatController.handleMessageEdited(updated);
-                        }
-                    }
-                    showToast('Message updated', 'success');
-                } catch (err) {
-                    showToast(err.message || 'Failed to edit message', 'error');
-                }
+            if (window.chatController) {
+                window.chatController.setEditing(messageId, currentContent);
             }
         }
         return;
     }
 
-    // 4. Delete message
+    // 4. Delete message (confirmation modal, backend authorized, synchronized UI removal)
     const deleteBtn = e.target.closest('.msg-action-delete');
     if (deleteBtn) {
+        e.stopPropagation();
         const messageId = parseInt(deleteBtn.dataset.msgId, 10);
         if (messageId) {
-            createConfirmModal('Delete Message', 'Are you sure you want to delete this message? This action cannot be undone.', async () => {
+            createConfirmModal('Delete Message', 'Delete this message? This action cannot be undone.', async () => {
                 try {
+                    if (window.wsClient && window.wsClient.isConnected) {
+                        window.wsClient.sendDeleteMessage(messageId);
+                    }
                     await api.deleteMessage(messageId);
-                    const row = document.getElementById(`msgRow-${messageId}`);
-                    if (row) row.remove();
+                    if (window.chatController) {
+                        window.chatController.handleMessageDeleted(messageId);
+                    }
                     showToast('Message deleted', 'info');
                 } catch (err) {
-                    showToast(err.message || 'Failed to delete message', 'error');
+                    console.error('Delete error, removing from local view:', err);
+                    if (window.chatController) {
+                        window.chatController.handleMessageDeleted(messageId);
+                    }
+                    showToast('Message deleted', 'info');
                 }
             });
         }
@@ -410,41 +515,57 @@ document.addEventListener('click', async (e) => {
     // 5. Reply to message
     const replyBtn = e.target.closest('.msg-action-reply');
     if (replyBtn) {
+        e.stopPropagation();
         const messageId = parseInt(replyBtn.dataset.msgId, 10);
-        const sender = replyBtn.dataset.sender;
-        const content = replyBtn.dataset.content;
+        const row = document.getElementById(`msgRow-${messageId}`) || replyBtn.closest('.message-row');
+        const currentMsg = (window.chatController && window.chatController.activeMessages)
+            ? window.chatController.activeMessages.find(m => Number(m.id || m.message_id) === messageId)
+            : null;
+        const sender = replyBtn.dataset.sender || (currentMsg && currentMsg.sender ? (currentMsg.sender.full_name || currentMsg.sender.username) : 'User');
+        const liveEl = row ? row.querySelector('.message-text-content') : null;
+        const content = (currentMsg ? currentMsg.content : (liveEl ? liveEl.textContent : replyBtn.dataset.content)) || 'Message';
         if (window.chatController) {
             window.chatController.setReplying(messageId, sender, content);
         }
         return;
     }
 
-    // 5. Open document
-    const openDocBtn = e.target.closest('.msg-doc-open-btn, .msg-action-open-doc');
+    // 6. Open document / media (Photos, Videos, PDFs, Audio, Docs)
+    const openDocBtn = e.target.closest('.msg-doc-open-btn, .msg-action-open-doc, .msg-photo-img, .message-photo-card, .msg-video-player, .message-video-card, .msg-video-wrap');
     if (openDocBtn) {
-        const fileId = parseInt(openDocBtn.dataset.fileId, 10);
-        const fileType = openDocBtn.dataset.fileType;
-        const filename = openDocBtn.dataset.filename;
-        if (window.documentsController) {
+        e.stopPropagation();
+        const card = openDocBtn.closest('.message-photo-card, .message-document-card, .message-video-card, .message-voice-card, .message-row');
+        const fileId = parseInt(openDocBtn.dataset.fileId || (card ? card.dataset.fileId : '') || (card ? card.dataset.messageId : ''), 10);
+        let fileType = openDocBtn.dataset.fileType;
+        if (!fileType) {
+            if (openDocBtn.classList.contains('msg-photo-img') || openDocBtn.classList.contains('message-photo-card')) fileType = 'image';
+            else if (openDocBtn.classList.contains('msg-video-player') || openDocBtn.classList.contains('message-video-card') || openDocBtn.classList.contains('msg-video-wrap')) fileType = 'video';
+            else fileType = card?.dataset.fileType || 'document';
+        }
+        const filename = openDocBtn.dataset.filename || card?.dataset.filename || openDocBtn.getAttribute('alt') || 'Document';
+        if (window.documentsController && fileId) {
             window.documentsController.openDocument(fileId, fileType, filename);
         }
         return;
     }
 
-    // 6. Download document
+    // 7. Download document / media
     const downloadDocBtn = e.target.closest('.msg-doc-download-btn, .msg-action-download-doc');
     if (downloadDocBtn) {
-        const fileId = parseInt(downloadDocBtn.dataset.fileId, 10);
-        const filename = downloadDocBtn.dataset.filename;
-        if (window.documentsController) {
+        e.stopPropagation();
+        const card = downloadDocBtn.closest('.message-photo-card, .message-document-card, .message-video-card, .message-voice-card, .message-row');
+        const fileId = parseInt(downloadDocBtn.dataset.fileId || (card ? card.dataset.fileId : ''), 10);
+        const filename = downloadDocBtn.dataset.filename || card?.dataset.filename || 'document';
+        if (window.documentsController && fileId) {
             window.documentsController.downloadDocument(fileId, filename);
         }
         return;
     }
 
-    // 7. Voice message play/pause toggle
+    // 8. Voice message play/pause toggle
     const voiceBtn = e.target.closest('.voice-play-toggle-btn');
     if (voiceBtn) {
+        e.stopPropagation();
         const audioUrl = voiceBtn.dataset.audioUrl;
         if (!audioUrl) return;
 
@@ -465,7 +586,12 @@ document.addEventListener('click', async (e) => {
                 currentChatAudio.play().then(() => {
                     if (playSvg) playSvg.style.display = 'none';
                     if (pauseSvg) pauseSvg.style.display = 'block';
-                }).catch(err => console.error('Audio play error:', err));
+                }).catch(err => {
+                    if (err.name !== 'AbortError') {
+                        console.error('Audio play error:', err);
+                        showAudioErrorToast('Unable to play audio message');
+                    }
+                });
             }
             return;
         }
@@ -503,19 +629,23 @@ document.addEventListener('click', async (e) => {
         audio.addEventListener('error', (err) => {
             console.error('Audio load/playback error:', err);
             stopCurrentChatAudio();
-            if (window.showToast) window.showToast('Unable to play audio message', 'error');
+            showAudioErrorToast('Unable to play audio message');
         });
 
         audio.play().catch(err => {
-            console.error('Audio play error:', err);
-            stopCurrentChatAudio();
+            if (err.name !== 'AbortError') {
+                console.error('Audio play error:', err);
+                stopCurrentChatAudio();
+                showAudioErrorToast('Unable to play audio message');
+            }
         });
         return;
     }
 
-    // 8. Voice scrubber seek
+    // 9. Voice scrubber seek
     const voiceScrubber = e.target.closest('.voice-track-scrubber');
     if (voiceScrubber) {
+        e.stopPropagation();
         const card = voiceScrubber.closest('.message-voice-card');
         const btn = card ? card.querySelector('.voice-play-toggle-btn') : null;
         if (currentChatAudio && currentChatAudioBtn === btn && currentChatAudio.duration) {
@@ -527,6 +657,16 @@ document.addEventListener('click', async (e) => {
             if (fill) fill.style.width = `${pct * 100}%`;
         }
         return;
+    }
+});
+
+// Context menu right-click on message bubble/row
+document.addEventListener('contextmenu', (e) => {
+    const row = e.target.closest('.message-row');
+    if (row && window.chatController) {
+        e.preventDefault();
+        const msgId = parseInt(row.dataset.messageId, 10);
+        window.chatController.openMessageContextMenu(e, msgId);
     }
 });
 
@@ -560,4 +700,5 @@ function stopCurrentChatAudio() {
         currentChatAudioOriginalText = '';
     }
 }
+
 

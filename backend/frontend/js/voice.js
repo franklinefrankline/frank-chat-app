@@ -115,6 +115,7 @@ class VoiceRecorderController {
 
         this.audioChunks = [];
         this.recordedSeconds = 0;
+        this.startTime = Date.now();
 
         this.mediaRecorder.ondataavailable = (e) => {
             if (e.data && e.data.size > 0) {
@@ -139,7 +140,8 @@ class VoiceRecorderController {
     startTimer() {
         if (this.dom.recordingTimerText) this.dom.recordingTimerText.textContent = '00:00';
         this.recordingTimer = setInterval(() => {
-            this.recordedSeconds++;
+            const elapsed = Math.max(0, Math.round((Date.now() - this.startTime) / 1000));
+            this.recordedSeconds = elapsed;
             if (this.dom.recordingTimerText) {
                 this.dom.recordingTimerText.textContent = this.formatTime(this.recordedSeconds);
             }
@@ -147,7 +149,7 @@ class VoiceRecorderController {
             if (this.recordedSeconds >= 600) {
                 this.stopRecording();
             }
-        }, 1000);
+        }, 500);
     }
 
     stopTimer() {
@@ -169,6 +171,7 @@ class VoiceRecorderController {
         this.releaseMicrophone();
         this.audioChunks = [];
         this.recordedBlob = null;
+        this.recordedFile = null;
 
         this.resetToNormalComposer();
     }
@@ -191,6 +194,9 @@ class VoiceRecorderController {
     }
 
     handleRecordingComplete() {
+        const elapsedSecs = this.startTime ? Math.max(1, Math.round((Date.now() - this.startTime) / 1000)) : this.recordedSeconds;
+        this.recordedSeconds = elapsedSecs;
+
         if (this.audioChunks.length === 0 || this.recordedSeconds < 1) {
             showToast('Voice message too short.', 'info');
             this.resetToNormalComposer();
@@ -199,6 +205,15 @@ class VoiceRecorderController {
 
         const mimeType = (this.mediaRecorder && this.mediaRecorder.mimeType) || 'audio/webm';
         this.recordedBlob = new Blob(this.audioChunks, { type: mimeType });
+
+        const ext = mimeType.includes('mp4') ? '.m4a' : (mimeType.includes('ogg') ? '.ogg' : '.webm');
+        const filename = `voice-message-${Date.now()}${ext}`;
+        try {
+            this.recordedFile = new File([this.recordedBlob], filename, { type: mimeType });
+        } catch {
+            this.recordedFile = this.recordedBlob;
+        }
+
         this.recordedUrl = URL.createObjectURL(this.recordedBlob);
 
         // Setup audio element for preview
@@ -272,6 +287,7 @@ class VoiceRecorderController {
             this.recordedUrl = null;
         }
         this.recordedBlob = null;
+        this.recordedFile = null;
         this.resetToNormalComposer();
     }
 
@@ -305,12 +321,13 @@ class VoiceRecorderController {
         }
 
         // Determine filename & ext
-        const ext = this.recordedBlob.type.includes('mp4') ? '.m4a' : (this.recordedBlob.type.includes('ogg') ? '.ogg' : '.webm');
+        const mime = this.recordedBlob.type || 'audio/webm';
+        const ext = mime.includes('mp4') ? '.m4a' : (mime.includes('ogg') ? '.ogg' : '.webm');
         const filename = `voice-message-${Date.now()}${ext}`;
         const durationSecs = Math.max(1, this.recordedSeconds);
 
         const formData = new FormData();
-        formData.append('file', this.recordedBlob, filename);
+        formData.append('file', this.recordedFile || this.recordedBlob, filename);
         formData.append('duration', durationSecs);
 
         if (chat.activeType === 'direct') {
@@ -357,12 +374,21 @@ class VoiceRecorderController {
 
         } catch (err) {
             console.error('Voice send error:', err);
-            showToast(err.message || 'Failed to send voice message.', 'error');
+            let friendlyError = err.message || 'Voice message upload failed. Please try again.';
+            if (err.status === 401) {
+                friendlyError = 'Your session expired. Please log in again.';
+            } else if (err.status === 403) {
+                friendlyError = 'You do not have permission to send voice messages here.';
+            } else if (err.status === 413) {
+                friendlyError = 'Voice message is too large.';
+            }
+            showToast(friendlyError, 'error');
             if (sendBtn) {
                 sendBtn.disabled = false;
                 sendBtn.innerHTML = origBtnHtml;
             }
         }
+
     }
 
     get audioBlob() {

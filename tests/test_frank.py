@@ -150,7 +150,8 @@ def run_tests():
             content="Testing accurate timestamps in FRANK",
             message_type="text"
         )
-        created_msg = messages_module.send_message(new_msg_in, current_user=test_user, db=db)
+        import asyncio
+        created_msg = asyncio.run(messages_module.send_message(new_msg_in, current_user=test_user, db=db))
         assert created_msg.id is not None
         assert created_msg.created_at is not None
         formatted_created_at = schemas.format_iso_utc(created_msg.created_at)
@@ -161,7 +162,7 @@ def run_tests():
 
         # 11. Test Message Edit (created_at preserved, updated_at set)
         edit_in = schemas.MessageUpdate(content="Testing accurate timestamps in FRANK (Edited)")
-        edited_msg = messages_module.edit_message(created_msg.id, edit_in, current_user=test_user, db=db)
+        edited_msg = asyncio.run(messages_module.edit_message(created_msg.id, edit_in, current_user=test_user, db=db))
         assert edited_msg.content == "Testing accurate timestamps in FRANK (Edited)"
         # Verify created_at is strictly preserved
         assert edited_msg.created_at == original_created_at, "created_at must NOT change when message is edited!"
@@ -173,7 +174,7 @@ def run_tests():
         # 12. Test Unauthorized Message Edit Prevention
         unauthorized = False
         try:
-            messages_module.edit_message(created_msg.id, edit_in, current_user=sarah, db=db)
+            asyncio.run(messages_module.edit_message(created_msg.id, edit_in, current_user=sarah, db=db))
         except Exception as e:
             unauthorized = True
         assert unauthorized is True, "Other users must not be allowed to edit a message"

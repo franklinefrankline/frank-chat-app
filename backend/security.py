@@ -131,7 +131,24 @@ def get_current_user(
     if user is None:
         raise credentials_exception
 
+    if getattr(user, "account_status", "active") == "disabled":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been disabled by an administrator."
+        )
+
     return user
+
+
+def get_current_admin_user(
+    current_user: models.User = Depends(get_current_user)
+) -> models.User:
+    if getattr(current_user, "role", "user") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrative privileges required."
+        )
+    return current_user
 
 
 def get_user_from_token(token: str, db: Session) -> Optional[models.User]:
@@ -143,3 +160,4 @@ def get_user_from_token(token: str, db: Session) -> Optional[models.User]:
     if not username:
         return None
     return db.query(models.User).filter(models.User.username == username).first()
+

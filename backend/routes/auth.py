@@ -56,11 +56,35 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
         frank_id=frank_id,
         full_name=user_in.full_name.strip(),
         hashed_password=hash_password(user_in.password),
-        bio="Hey there! I am using FRANK."
+        bio="Hey there! I am using FRANK.",
+        role="user",
+        account_status="active"
     )
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Real-time WebSocket event to admin
+    try:
+        from websocket.chat import manager
+        import asyncio
+        asyncio.create_task(manager.broadcast_admin({
+            "type": "admin_user_created",
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "full_name": user.full_name,
+                "frank_id": user.frank_id,
+                "role": user.role,
+                "account_status": user.account_status,
+                "is_online": False,
+                "created_at": schemas.format_iso_utc(user.created_at)
+            }
+        }))
+        asyncio.create_task(manager.broadcast_admin_metrics(db))
+    except Exception:
+        pass
 
     # Generate token
     token_str = create_access_token(
@@ -90,6 +114,12 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password.",
             headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    if getattr(user, "account_status", "active") == "disabled":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been disabled by an administrator."
         )
 
     # Issue token

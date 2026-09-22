@@ -157,6 +157,25 @@ def create_group(
     db.commit()
 
     count = db.query(models.GroupMember).filter(models.GroupMember.group_id == group.id).count()
+
+    # Real-time WebSocket event to admin
+    try:
+        from websocket.chat import manager
+        import asyncio
+        asyncio.create_task(manager.broadcast_admin({
+            "type": "admin_group_created",
+            "group": {
+                "id": group.id,
+                "name": group.name,
+                "privacy": group.privacy,
+                "created_by": group.created_by,
+                "members_count": count
+            }
+        }))
+        asyncio.create_task(manager.broadcast_admin_metrics(db))
+    except Exception:
+        pass
+
     return schemas.GroupResponse(
         id=group.id,
         name=group.name,

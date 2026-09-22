@@ -90,10 +90,7 @@ def get_or_create_private_conversation(
     if not target_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found.")
 
-    if target_user.id == current_user.id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot start a private conversation with yourself.")
-
-    # Canonical order enforces single conversation guarantee
+    # Canonical order enforces single conversation guarantee (supports self-conversation)
     user_a = min(current_user.id, target_user.id)
     user_b = max(current_user.id, target_user.id)
 
@@ -118,6 +115,101 @@ def get_or_create_private_conversation(
     )
 
 
+@router.get("/conversations/preferences")
+def get_conversation_preferences(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    prefs = db.query(models.ConversationPreference).filter(
+        models.ConversationPreference.user_id == current_user.id
+    ).all()
+    pinned = []
+    favorites = []
+    muted = []
+    for p in prefs:
+        key = f"{p.conversation_type}_{p.conversation_id}"
+        if p.is_pinned:
+            pinned.append(key)
+        if p.is_favorite:
+            favorites.append(key)
+        if p.is_muted:
+            muted.append(key)
+    return {
+        "pinned": pinned,
+        "favorites": favorites,
+        "muted": muted
+    }
+
+
+@router.post("/conversations/preferences")
+def update_conversation_preference(
+    pref_data: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    conv_type = pref_data.get("conversation_type", "direct")
+    conv_id = int(pref_data.get("conversation_id", 0))
+
+    pref = db.query(models.ConversationPreference).filter(
+        models.ConversationPreference.user_id == current_user.id,
+        models.ConversationPreference.conversation_type == conv_type,
+        models.ConversationPreference.conversation_id == conv_id
+    ).first()
+
+    if not pref:
+        pref = models.ConversationPreference(
+            user_id=current_user.id,
+            conversation_type=conv_type,
+            conversation_id=conv_id
+        )
+        db.add(pref)
+
+    # Support key/value format (key="favorite", value=True)
+    pref_key = pref_data.get("key")
+    if pref_key:
+        value = bool(pref_data.get("value", True))
+        if pref_key in ["favorite", "is_favorite"]:
+            pref.is_favorite = value
+        elif pref_key in ["pin", "is_pinned"]:
+            pref.is_pinned = value
+        elif pref_key in ["mute", "is_muted"]:
+            pref.is_muted = value
+
+    # Support direct boolean flags (is_favorite=True, is_pinned=True, is_muted=False)
+    if "is_favorite" in pref_data:
+        pref.is_favorite = bool(pref_data["is_favorite"])
+    if "is_pinned" in pref_data:
+        pref.is_pinned = bool(pref_data["is_pinned"])
+    if "is_muted" in pref_data:
+        pref.is_muted = bool(pref_data["is_muted"])
+
+    db.commit()
+    return {
+        "success": True,
+        "is_favorite": pref.is_favorite,
+        "is_pinned": pref.is_pinned,
+        "is_muted": pref.is_muted
+    }
+
+
+@router.delete("/conversations/direct/{partner_id}")
+def delete_direct_conversation(
+    partner_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    ua = min(current_user.id, partner_id)
+    ub = max(current_user.id, partner_id)
+    conv = db.query(models.Conversation).filter(
+        models.Conversation.user_a_id == ua,
+        models.Conversation.user_b_id == ub
+    ).first()
+    if conv:
+        db.delete(conv)
+        db.commit()
+    return {"success": True, "message": "Conversation removed"}
+
+
 @router.get("/conversations")
 def get_conversations(
     current_user: models.User = Depends(get_current_user),
@@ -129,6 +221,12 @@ def get_conversations(
     """
     conversations = {}
 
+    # Load preferences
+    prefs = db.query(models.ConversationPreference).filter(
+        models.ConversationPreference.user_id == current_user.id
+    ).all()
+    pref_map = {f"{p.conversation_type}_{p.conversation_id}": p for p in prefs}
+
     # 1. Fetch established direct conversations for current user
     stored_convs = db.query(models.Conversation).filter(
         or_(
@@ -138,22 +236,28 @@ def get_conversations(
     ).all()
 
     for sc in stored_convs:
-        partner_id = sc.user_b_id if sc.user_a_id == current_user.id else sc.user_a_id
+        is_self = (sc.user_a_id == current_user.id and sc.user_b_id == current_user.id)
+        partner_id = current_user.id if is_self else (sc.user_b_id if sc.user_a_id == current_user.id else sc.user_a_id)
         partner = db.query(models.User).filter(models.User.id == partner_id).first()
         if not partner:
             continue
         conv_key = f"direct_{partner_id}"
+        p = pref_map.get(conv_key)
         conversations[conv_key] = {
             "id": partner.id,
             "type": "direct",
-            "name": partner.full_name,
+            "name": f"{partner.full_name} (You)" if is_self else partner.full_name,
             "username": partner.username,
             "frank_id": partner.frank_id,
+            "bio": "Message yourself • Notes & bookmarks" if is_self else partner.bio,
             "avatar_url": partner.avatar_url,
             "is_online": partner.is_online,
             "last_seen": schemas.format_iso_utc(partner.last_seen) if partner.last_seen else None,
             "last_message": None,
-            "unread_count": 0
+            "unread_count": 0,
+            "is_pinned": p.is_pinned if p else False,
+            "is_favorite": p.is_favorite if p else False,
+            "is_muted": p.is_muted if p else False
         }
 
     # 2. Fetch direct messages involving current user to populate last_message & unread_count
@@ -167,6 +271,7 @@ def get_conversations(
 
     for msg in messages:
         partner_id = msg.recipient_id if msg.sender_id == current_user.id else msg.sender_id
+        is_self = (partner_id == current_user.id and msg.sender_id == current_user.id)
         conv_key = f"direct_{partner_id}"
         partner = db.query(models.User).filter(models.User.id == partner_id).first()
         if not partner:
@@ -178,18 +283,23 @@ def get_conversations(
             models.Message.status != "read"
         ).count()
 
+        p = pref_map.get(conv_key)
         if conv_key not in conversations:
             conversations[conv_key] = {
                 "id": partner.id,
                 "type": "direct",
-                "name": partner.full_name,
+                "name": f"{partner.full_name} (You)" if is_self else partner.full_name,
                 "username": partner.username,
                 "frank_id": partner.frank_id,
+                "bio": "Message yourself • Notes & bookmarks" if is_self else partner.bio,
                 "avatar_url": partner.avatar_url,
                 "is_online": partner.is_online,
                 "last_seen": schemas.format_iso_utc(partner.last_seen) if partner.last_seen else None,
                 "last_message": None,
-                "unread_count": 0
+                "unread_count": 0,
+                "is_pinned": p.is_pinned if p else False,
+                "is_favorite": p.is_favorite if p else False,
+                "is_muted": p.is_muted if p else False
             }
 
         if conversations[conv_key]["last_message"] is None:
@@ -203,8 +313,7 @@ def get_conversations(
             }
             conversations[conv_key]["unread_count"] = unread
 
-
-    # 2. Fetch all groups user is a member of
+    # 3. Fetch all groups user is a member of
     memberships = db.query(models.GroupMember).filter(models.GroupMember.user_id == current_user.id).all()
     for m in memberships:
         group = db.query(models.Group).filter(models.Group.id == m.group_id).first()
@@ -231,6 +340,7 @@ def get_conversations(
                 "status": last_grp_msg.status
             }
 
+        p = pref_map.get(conv_key)
         conversations[conv_key] = {
             "id": group.id,
             "type": "group",
@@ -242,13 +352,40 @@ def get_conversations(
             "is_online": True,
             "last_seen": None,
             "last_message": last_msg_dict,
-            "unread_count": 0
+            "unread_count": 0,
+            "is_pinned": p.is_pinned if p else False,
+            "is_favorite": p.is_favorite if p else False,
+            "is_muted": p.is_muted if p else False
+        }
+
+    # 4. Guarantee self-conversation (Notes to Self) is always present
+    self_key = f"direct_{current_user.id}"
+    if self_key not in conversations:
+        p = pref_map.get(self_key)
+        conversations[self_key] = {
+            "id": current_user.id,
+            "type": "direct",
+            "name": f"{current_user.full_name} (You)",
+            "username": current_user.username,
+            "frank_id": current_user.frank_id,
+            "bio": "Message yourself • Notes & bookmarks",
+            "avatar_url": current_user.avatar_url,
+            "is_online": True,
+            "last_seen": None,
+            "last_message": None,
+            "unread_count": 0,
+            "is_pinned": p.is_pinned if p else False,
+            "is_favorite": p.is_favorite if p else False,
+            "is_muted": p.is_muted if p else False
         }
 
     conv_list = list(conversations.values())
-    # Sort by recent message time descending
+    # Sort: pinned first, then by recent message time descending
     conv_list.sort(
-        key=lambda c: c["last_message"]["created_at"] if c.get("last_message") else "1970-01-01T00:00:00",
+        key=lambda c: (
+            1 if c.get("is_pinned") else 0,
+            c["last_message"]["created_at"] if c.get("last_message") else "1970-01-01T00:00:00"
+        ),
         reverse=True
     )
     return conv_list
@@ -264,3 +401,4 @@ def get_user_by_id(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
+

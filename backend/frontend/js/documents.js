@@ -33,8 +33,16 @@ class DocumentsController {
             trayProgressWrap: document.getElementById('trayProgressWrap'),
             trayProgressBar: document.getElementById('trayProgressBar'),
             trayProgressText: document.getElementById('trayProgressText'),
+            trayCancelBtn: document.getElementById('trayCancelBtn'),
+            traySendBtn: document.getElementById('traySendBtn'),
             trayCancelUploadBtn: document.getElementById('trayCancelUploadBtn'),
-            trayRemoveBtn: document.getElementById('trayRemoveBtn')
+            trayRemoveBtn: document.getElementById('trayRemoveBtn'),
+            viewerModal: document.getElementById('attachmentViewerModal'),
+            viewerTitle: document.getElementById('attachmentViewerTitle'),
+            viewerIcon: document.getElementById('attachmentViewerIcon'),
+            viewerBody: document.getElementById('attachmentViewerBody'),
+            viewerDownloadBtn: document.getElementById('attachmentViewerDownloadBtn'),
+            closeViewerBtn: document.getElementById('closeAttachmentViewerBtn')
         };
 
         this.init();
@@ -44,6 +52,190 @@ class DocumentsController {
         this.bindNativeInputs();
         this.bindMenuTriggers();
         this.bindTrayControls();
+        this.bindViewerModal();
+    }
+
+    bindViewerModal() {
+        this.dom.closeViewerBtn?.addEventListener('click', () => this.closeViewerModal());
+        this.dom.viewerModal?.addEventListener('click', (e) => {
+            if (e.target === this.dom.viewerModal) {
+                this.closeViewerModal();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.dom.viewerModal && this.dom.viewerModal.style.display !== 'none') {
+                this.closeViewerModal();
+            }
+        });
+    }
+
+    closeViewerModal() {
+        if (typeof closeModal === 'function') {
+            closeModal('attachmentViewerModal');
+        }
+        if (this.dom.viewerModal) {
+            this.dom.viewerModal.classList.remove('open');
+            this.dom.viewerModal.style.display = 'none';
+            this.dom.viewerModal.style.visibility = 'hidden';
+            this.dom.viewerModal.style.opacity = '0';
+            if (this.dom.viewerBody) {
+                const vid = this.dom.viewerBody.querySelector('video');
+                if (vid) {
+                    vid.pause();
+                    vid.src = '';
+                }
+                this.dom.viewerBody.innerHTML = '';
+            }
+        }
+    }
+
+    openDocument(fileId, fileType, filename) {
+        console.log('>>> [DOCUMENTS] openDocument called with:', fileId, fileType, filename);
+        if (!this.dom.viewerModal || !fileId) {
+            console.log('>>> [DOCUMENTS] viewerModal missing or fileId empty:', !!this.dom.viewerModal, fileId);
+            return;
+        }
+
+        const token = api.getToken();
+        const viewUrl = api.getFileViewUrl(fileId);
+
+        if (this.dom.viewerTitle) this.dom.viewerTitle.textContent = filename || 'Document';
+        if (this.dom.viewerDownloadBtn) {
+            this.dom.viewerDownloadBtn.onclick = () => this.downloadDocument(fileId, filename);
+        }
+
+        if (this.dom.viewerIcon) {
+            if (fileType === 'image') this.dom.viewerIcon.textContent = '🖼️';
+            else if (fileType === 'video') this.dom.viewerIcon.textContent = '🎥';
+            else if (fileType === 'pdf') this.dom.viewerIcon.textContent = '📕';
+            else if (fileType === 'excel') this.dom.viewerIcon.textContent = '📊';
+            else if (fileType === 'word') this.dom.viewerIcon.textContent = '📘';
+            else this.dom.viewerIcon.textContent = '📄';
+        }
+
+        if (this.dom.viewerBody) {
+            this.dom.viewerBody.innerHTML = '';
+
+            if (fileType === 'image') {
+                const img = document.createElement('img');
+                img.src = viewUrl;
+                img.alt = filename;
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = 'calc(90vh - 100px)';
+                img.style.objectFit = 'contain';
+                img.style.borderRadius = 'var(--radius-md)';
+                this.dom.viewerBody.appendChild(img);
+            } else if (fileType === 'video') {
+                const video = document.createElement('video');
+                video.src = viewUrl;
+                video.controls = true;
+                video.autoplay = true;
+                video.style.maxWidth = '100%';
+                video.style.maxHeight = 'calc(90vh - 100px)';
+                video.style.borderRadius = 'var(--radius-md)';
+                this.dom.viewerBody.appendChild(video);
+            } else if (fileType === 'audio') {
+                const audioWrap = document.createElement('div');
+                audioWrap.style.textAlign = 'center';
+                audioWrap.style.padding = '30px 20px';
+                audioWrap.style.width = '100%';
+                audioWrap.innerHTML = `
+                    <div style="font-size: 56px; margin-bottom: 16px;">🎵</div>
+                    <div style="font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px;">${messagesModule.escapeHTML(filename || 'Audio File')}</div>
+                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">Audio message / recording playback</div>
+                    <audio controls autoplay style="width: 100%; max-width: 480px; margin: 0 auto; display: block;" src="${viewUrl}"></audio>
+                `;
+                this.dom.viewerBody.appendChild(audioWrap);
+            } else if (fileType === 'pdf') {
+                const iframe = document.createElement('iframe');
+                iframe.src = viewUrl;
+                iframe.style.width = '100%';
+                iframe.style.height = 'calc(90vh - 100px)';
+                iframe.style.border = 'none';
+                iframe.style.borderRadius = 'var(--radius-md)';
+                this.dom.viewerBody.appendChild(iframe);
+            } else if (fileType === 'text') {
+                const pre = document.createElement('pre');
+                pre.style.width = '100%';
+                pre.style.height = 'calc(90vh - 100px)';
+                pre.style.overflow = 'auto';
+                pre.style.padding = '16px';
+                pre.style.background = 'var(--surface-elevated)';
+                pre.style.borderRadius = 'var(--radius-md)';
+                pre.style.fontFamily = 'monospace';
+                pre.style.fontSize = '13px';
+                pre.textContent = 'Loading text...';
+                this.dom.viewerBody.appendChild(pre);
+
+                fetch(viewUrl).then(r => r.text()).then(t => {
+                    pre.textContent = t;
+                }).catch(() => {
+                    pre.textContent = 'Unable to load text preview.';
+                });
+            } else {
+                this.dom.viewerBody.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
+                        <div style="font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px;">Preview unavailable</div>
+                        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">This file type cannot be previewed in the browser. You can download it to view on your device.</div>
+                        <button type="button" class="btn btn-primary" onclick="if (window.documentsController) window.documentsController.downloadDocument('${fileId}', '${messagesModule.escapeHTML(filename)}');">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Download ${messagesModule.escapeHTML(filename)}
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        if (typeof openModal === 'function') {
+            openModal('attachmentViewerModal');
+        }
+        if (this.dom.viewerModal) {
+            this.dom.viewerModal.classList.add('open');
+            this.dom.viewerModal.style.display = 'flex';
+            this.dom.viewerModal.style.visibility = 'visible';
+            this.dom.viewerModal.style.opacity = '1';
+        }
+    }
+
+    async downloadDocument(fileId, filename) {
+        if (!fileId) return;
+        const url = api.getFileDownloadUrl(fileId);
+        try {
+            // First attempt: fetch blob without custom headers (token is already in query param to avoid CORS preflight)
+            const res = await fetch(url);
+            if (res.ok) {
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = filename || 'download';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+                showToast('Download started', 'success');
+                return;
+            }
+        } catch (fetchErr) {
+            console.warn('Fetch blob download encountered error, using direct anchor fallback:', fetchErr);
+        }
+
+        // Direct native browser download fallback (guaranteed never to fail with "Failed to fetch")
+        try {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename || 'download';
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('Download started', 'success');
+        } catch (err) {
+            console.error('Download fallback error:', err);
+            showToast('Unable to download file. Please check connection.', 'error');
+        }
     }
 
     // ---------------- NATIVE OS FILE PICKER TRIGGERS ----------------
@@ -137,6 +329,21 @@ class DocumentsController {
     }
 
     bindTrayControls() {
+        // Cancel button in staging tray
+        this.dom.trayCancelBtn?.addEventListener('click', () => {
+            this.clearStagedFile();
+        });
+
+        // Send button in staging tray
+        this.dom.traySendBtn?.addEventListener('click', () => {
+            const caption = window.chatController ? (window.chatController.dom.textarea?.value || '') : '';
+            if (window.chatController && window.chatController.dom.textarea) {
+                window.chatController.dom.textarea.value = '';
+                window.chatController.autoResizeTextarea();
+            }
+            this.uploadAndSendStagedFile(caption);
+        });
+
         // Remove button in staging tray
         this.dom.trayRemoveBtn?.addEventListener('click', () => {
             this.clearStagedFile();
@@ -160,7 +367,7 @@ class DocumentsController {
         const ext = '.' + filename.split('.').pop().toLowerCase();
         if (['.mp4', '.mov', '.webm', '.mkv'].includes(ext)) return 'video';
         if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'].includes(ext)) return 'image';
-        if (['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.opus'].includes(ext)) return 'audio';
+        if (['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.opus', '.weba'].includes(ext)) return 'audio';
         if (['.pdf'].includes(ext)) return 'pdf';
         if (['.doc', '.docx'].includes(ext)) return 'word';
         if (['.xls', '.xlsx', '.csv'].includes(ext)) return 'excel';
@@ -277,10 +484,18 @@ class DocumentsController {
             }
         }
 
-        // Reset progress bar
+        // Reset progress bar & show action buttons
         if (this.dom.trayProgressWrap) this.dom.trayProgressWrap.style.display = 'none';
-        if (this.dom.trayProgressBar) this.dom.trayProgressBar.style.width = '0%';
+        if (this.dom.trayProgressBar) {
+            this.dom.trayProgressBar.style.width = '0%';
+            this.dom.trayProgressBar.style.background = 'var(--primary)';
+        }
         if (this.dom.trayCancelUploadBtn) this.dom.trayCancelUploadBtn.style.display = 'none';
+        if (this.dom.trayCancelBtn) this.dom.trayCancelBtn.style.display = 'inline-block';
+        if (this.dom.traySendBtn) {
+            this.dom.traySendBtn.style.display = 'inline-flex';
+            this.dom.traySendBtn.disabled = false;
+        }
         if (this.dom.trayRemoveBtn) this.dom.trayRemoveBtn.style.display = 'flex';
 
         // Show staging tray
@@ -346,9 +561,17 @@ class DocumentsController {
 
         // Show progress UI in tray
         if (this.dom.trayProgressWrap) this.dom.trayProgressWrap.style.display = 'block';
-        if (this.dom.trayProgressBar) this.dom.trayProgressBar.style.width = '0%';
+        if (this.dom.trayProgressBar) {
+            this.dom.trayProgressBar.style.width = '0%';
+            this.dom.trayProgressBar.style.background = 'var(--primary)';
+        }
         if (this.dom.trayProgressText) this.dom.trayProgressText.textContent = 'Uploading... 0%';
         if (this.dom.trayCancelUploadBtn) this.dom.trayCancelUploadBtn.style.display = 'inline-block';
+        if (this.dom.trayCancelBtn) this.dom.trayCancelBtn.style.display = 'none';
+        if (this.dom.traySendBtn) {
+            this.dom.traySendBtn.disabled = true;
+            this.dom.traySendBtn.innerHTML = '<span class="spinner-sm"></span> Sending...';
+        }
         if (this.dom.trayRemoveBtn) this.dom.trayRemoveBtn.style.display = 'none';
 
         const formData = new FormData();
@@ -417,46 +640,37 @@ class DocumentsController {
             if (this.dom.trayProgressText) this.dom.trayProgressText.textContent = 'Upload failed';
             if (this.dom.trayProgressBar) this.dom.trayProgressBar.style.background = 'var(--danger)';
             if (this.dom.trayCancelUploadBtn) this.dom.trayCancelUploadBtn.style.display = 'none';
+            if (this.dom.trayCancelBtn) this.dom.trayCancelBtn.style.display = 'inline-block';
+            if (this.dom.traySendBtn) {
+                this.dom.traySendBtn.disabled = false;
+                this.dom.traySendBtn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    <span>Send</span>
+                `;
+            }
             if (this.dom.trayRemoveBtn) this.dom.trayRemoveBtn.style.display = 'flex';
 
             if (err.message && err.message.toLowerCase().includes('abort')) {
-                // Was cancelled
                 return false;
             }
 
-            const friendlyError = err.message && err.message.includes('NetworkError')
-                ? 'Connection lost. Upload could not be completed.'
-                : (err.message || 'Upload failed. Please try again.');
+            let friendlyError = err.message || (category === 'image' ? 'Photo upload failed. Please try again.' : 'Document upload failed. Please try again.');
+            if (err.status === 401) {
+                friendlyError = 'Your session expired. Please log in again.';
+            } else if (err.status === 403) {
+                friendlyError = 'You do not have permission to upload this file.';
+            } else if (err.status === 413) {
+                friendlyError = 'File is too large.';
+            } else if (err.status === 415) {
+                friendlyError = 'Unsupported file type.';
+            }
             showToast(friendlyError, 'error');
             return false;
         }
-    }
 
-    // ---------------- AUTHENTICATED VIEWER & DOWNLOADER ----------------
-    openDocument(fileId, fileType, originalFilename) {
-        if (!fileId) return;
-
-        const viewableTypes = ['pdf', 'image', 'video', 'text'];
-        const viewUrl = api.getFileViewUrl(fileId);
-
-        if (viewableTypes.includes(fileType)) {
-            window.open(viewUrl, '_blank', 'noopener,noreferrer');
-        } else {
-            this.downloadDocument(fileId, originalFilename);
-        }
-    }
-
-    downloadDocument(fileId, originalFilename) {
-        if (!fileId) return;
-
-        const downloadUrl = api.getFileDownloadUrl(fileId);
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = originalFilename || 'document';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        showToast(`Downloading ${originalFilename || 'file'}...`, 'info', 1800);
     }
 }
 

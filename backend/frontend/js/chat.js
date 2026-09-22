@@ -44,9 +44,17 @@ class ChatController {
             chatMoreBtn: document.getElementById('chatMoreBtn'),
             chatMoreMenu: document.getElementById('chatMoreMenu'),
             detailsDrawer: document.getElementById('detailsDrawer'),
-            closeDrawerBtn: document.getElementById('closeDrawerBtn')
+            closeDrawerBtn: document.getElementById('closeDrawerBtn'),
+            editStrip: document.getElementById('composerEditStrip'),
+            composerEditText: document.getElementById('composerEditText'),
+            cancelEditBtn: document.getElementById('cancelEditBtn'),
+            saveEditBtn: document.getElementById('saveEditBtn'),
+            moreFavoriteBtn: document.getElementById('moreFavoriteBtn'),
+            moreFavoriteText: document.getElementById('moreFavoriteText'),
+            moreDeleteChatBtn: document.getElementById('moreDeleteChatBtn')
         };
 
+        this.editingMessageId = null;
         this.init();
     }
 
@@ -58,8 +66,22 @@ class ChatController {
         this.setupDrawer();
         this.setupChatSearch();
         this.setupHeaderMoreMenu();
+        this.setupContextMenuDismissal();
         this.setupWebSocketListeners();
         this.setupPollingFallback();
+    }
+
+    setupContextMenuDismissal() {
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#activeMessageContextMenu') && !e.target.closest('.msg-action-more-btn, .bubble-more-trigger')) {
+                this.closeMessageContextMenu();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.closeMessageContextMenu();
+            }
+        });
     }
 
     // ---------------- DIRECT CHAT SELECTION ----------------
@@ -68,24 +90,36 @@ class ChatController {
         this.activeId = partner.id;
         this.activePartner = partner;
         this.clearReplying();
+        this.cancelEditing();
         this.closeMoreMenu();
+        this.updateMoreMenu('direct');
         if (window.documentsController) window.documentsController.clearStagedFile();
         if (window.voiceRecorder) window.voiceRecorder.cancelRecording();
         this.updateComposerActionButton();
 
+        const currentUser = auth.getUser();
+        const isSelf = currentUser && Number(partner.id) === Number(currentUser.id);
+
         // Update Header UI
         if (this.dom.partnerName) {
-            this.dom.partnerName.textContent = partner.name || partner.full_name || partner.username;
+            this.dom.partnerName.textContent = isSelf
+                ? `${currentUser.full_name || currentUser.username} (You)`
+                : (partner.name || partner.full_name || partner.username);
         }
         if (this.dom.partnerInitials) {
-            const name = partner.name || partner.full_name || partner.username || '??';
-            this.dom.partnerInitials.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            const name = isSelf ? (currentUser.full_name || currentUser.username || 'ME') : (partner.name || partner.full_name || partner.username || '??');
+            this.dom.partnerInitials.textContent = isSelf ? '📝' : name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
         }
 
-        const isOnline = !!partner.is_online;
+        const isOnline = isSelf ? true : !!partner.is_online;
         if (this.dom.partnerPresence) {
-            this.dom.partnerPresence.textContent = isOnline ? 'Online' : (partner.last_seen ? `Last seen ${messagesModule.formatRelativeTime(partner.last_seen)}` : 'Offline');
-            this.dom.partnerPresence.className = `chat-partner-presence ${isOnline ? 'online' : ''}`;
+            if (isSelf) {
+                this.dom.partnerPresence.textContent = 'Message yourself • Notes & bookmarks';
+                this.dom.partnerPresence.className = 'chat-partner-presence online';
+            } else {
+                this.dom.partnerPresence.textContent = isOnline ? 'Online' : (partner.last_seen ? `Last seen ${messagesModule.formatRelativeTime(partner.last_seen)}` : 'Offline');
+                this.dom.partnerPresence.className = `chat-partner-presence ${isOnline ? 'online' : ''}`;
+            }
         }
         if (this.dom.partnerStatusDot) {
             this.dom.partnerStatusDot.style.display = 'block';
@@ -123,7 +157,9 @@ class ChatController {
         this.activeId = group.id;
         this.activePartner = group;
         this.clearReplying();
+        this.cancelEditing();
         this.closeMoreMenu();
+        this.updateMoreMenu('group');
         if (window.documentsController) window.documentsController.clearStagedFile();
         if (window.voiceRecorder) window.voiceRecorder.cancelRecording();
         this.updateComposerActionButton();
@@ -360,6 +396,12 @@ class ChatController {
             return;
         }
 
+        // 0. If in editing mode
+        if (this.editingMessageId) {
+            await this.saveEditing();
+            return;
+        }
+
         // 1. If an attachment is staged in tray
         if (window.documentsController && window.documentsController.selectedFile) {
             const caption = (this.dom.textarea?.value || '').trim();
@@ -472,6 +514,8 @@ class ChatController {
             }
         });
         this.dom.cancelReplyBtn?.addEventListener('click', () => this.clearReplying());
+        this.dom.cancelEditBtn?.addEventListener('click', () => this.cancelEditing());
+        this.dom.saveEditBtn?.addEventListener('click', () => this.saveEditing());
 
         // Mobile virtual keyboard handling: auto-scroll to latest message on focus
         this.dom.textarea.addEventListener('focus', () => {
@@ -518,16 +562,26 @@ class ChatController {
     }
 
     setReplying(id, sender, content) {
+        this.cancelEditing();
         this.replyTo = { id, sender, content };
         if (this.dom.replySender) this.dom.replySender.textContent = `Replying to ${sender}`;
         if (this.dom.replyText) this.dom.replyText.textContent = content;
-        if (this.dom.replyStrip) this.dom.replyStrip.classList.add('show');
+        if (this.dom.replyStrip) {
+            this.dom.replyStrip.classList.add('show');
+            this.dom.replyStrip.style.display = 'flex';
+        }
+        this.updateComposerActionButton();
         this.dom.textarea?.focus();
     }
 
     clearReplying() {
         this.replyTo = null;
-        if (this.dom.replyStrip) this.dom.replyStrip.classList.remove('show');
+        if (this.dom.replyStrip) {
+            this.dom.replyStrip.classList.remove('show');
+            this.dom.replyStrip.style.display = 'none';
+        }
+        if (this.dom.replyText) this.dom.replyText.textContent = '';
+        this.updateComposerActionButton();
     }
 
     // ---------------- EMOJI PICKER ----------------
@@ -730,10 +784,363 @@ class ChatController {
                 showToast('Leave group is only available for group chats', 'info');
             }
         });
+
+        // Favorite Toggle
+        document.getElementById('moreFavoriteBtn')?.addEventListener('click', async () => {
+            this.closeMoreMenu();
+            if (!this.activeId || !this.activeType) return;
+            try {
+                const prefs = await api.getConversationPreferences();
+                const existing = (prefs || []).find(p => p.conversation_type === this.activeType && p.conversation_id === this.activeId);
+                const nextVal = !(existing && existing.is_favorite);
+                await api.updateConversationPreference(this.activeType, this.activeId, { is_favorite: nextVal });
+                showToast(nextVal ? 'Added to favorites' : 'Removed from favorites', 'success');
+                if (window.appController) window.appController.loadConversations(false);
+            } catch (err) {
+                showToast(err.message || 'Failed to update favorite', 'error');
+            }
+        });
+
+        // Delete Direct Conversation
+        document.getElementById('moreDeleteChatBtn')?.addEventListener('click', () => {
+            this.closeMoreMenu();
+            if (this.activeType !== 'direct' || !this.activeId) return;
+            createConfirmModal('Delete Conversation', 'Delete this conversation and all its messages? This action cannot be undone.', async () => {
+                try {
+                    await api.deleteDirectConversation(this.activeId);
+                    showToast('Conversation deleted', 'info');
+                    this.closeActiveChat();
+                    if (window.appController) window.appController.loadConversations(false);
+                } catch (err) {
+                    showToast(err.message || 'Failed to delete conversation', 'error');
+                }
+            });
+        });
+    }
+
+    updateMoreMenu(type) {
+        // Group-only actions: Add Members, Invite Link, Leave Group, divider
+        document.querySelectorAll('#chatMoreMenu .group-only-action').forEach(el => {
+            el.style.display = (type === 'group') ? '' : 'none';
+        });
+
+        const groupInfoText = document.getElementById('moreGroupInfoText');
+        const deleteChatBtn = document.getElementById('moreDeleteChatBtn');
+
+        const currentUser = auth.getUser();
+        const isSelf = type === 'direct' && currentUser && Number(this.activeId) === Number(currentUser.id);
+
+        if (type === 'direct') {
+            if (groupInfoText) groupInfoText.textContent = isSelf ? 'Notes Info' : 'Contact Info';
+            if (deleteChatBtn) {
+                deleteChatBtn.style.display = '';
+                deleteChatBtn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    ${isSelf ? 'Delete Notes' : 'Delete Chat'}
+                `;
+            }
+        } else {
+            if (groupInfoText) groupInfoText.textContent = 'Group Info';
+            if (deleteChatBtn) deleteChatBtn.style.display = 'none';
+        }
     }
 
     closeMoreMenu() {
         this.dom.chatMoreMenu?.classList.remove('show');
+    }
+
+    // ---------------- IN-MESSAGE FUNCTIONS & CONTEXT MENU ----------------
+    openMessageContextMenu(e, msgId) {
+        this.closeMessageContextMenu();
+        const numId = Number(msgId);
+        const msg = this.activeMessages.find(m => Number(m.id || m.message_id) === numId);
+        const row = document.getElementById(`msgRow-${numId}`);
+        if (!row) return;
+
+        const currentUser = auth.getUser();
+        const currentUserId = currentUser ? currentUser.id : null;
+        const isSent = msg ? (Number(msg.sender_id) === Number(currentUserId)) : row.classList.contains('sent');
+        const isDoc = !!row.querySelector('.message-document-card');
+        const isPhoto = !!row.querySelector('.message-photo-card');
+        const isVideo = !!row.querySelector('.message-video-card');
+        const hasMedia = isDoc || isPhoto || isVideo;
+        const liveEl = row.querySelector('.message-text-content');
+        const textContent = (msg ? msg.content : (liveEl ? liveEl.textContent : '')) || '';
+        const hasRealText = textContent && !textContent.startsWith('Shared a file:') && textContent !== 'Voice message';
+        const senderName = isSent ? 'You' : (msg && msg.sender ? (msg.sender.full_name || msg.sender.username) : 'User');
+
+        const menu = document.createElement('div');
+        menu.className = 'message-context-menu';
+        menu.id = 'activeMessageContextMenu';
+
+        const replySvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>`;
+        const copySvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+        const editSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+        const pinSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
+        const starSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
+        const infoSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+        const openSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`;
+        const downloadSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+        const deleteSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+
+        let itemsHtml = `
+            <div class="message-context-header">Message Options</div>
+            <button type="button" class="message-context-item ctx-reply">
+                ${replySvg} <span>Reply</span>
+            </button>
+            ${hasRealText ? `
+                <button type="button" class="message-context-item ctx-copy">
+                    ${copySvg} <span>Copy Text</span>
+                </button>
+            ` : ''}
+            ${(isSent && hasRealText) ? `
+                <button type="button" class="message-context-item ctx-edit">
+                    ${editSvg} <span>Edit Message</span>
+                </button>
+            ` : ''}
+            <button type="button" class="message-context-item ctx-pin">
+                ${pinSvg} <span>${msg?.is_pinned ? 'Unpin Message' : 'Pin Message'}</span>
+            </button>
+            <button type="button" class="message-context-item ctx-star">
+                ${starSvg} <span>${msg?.is_starred ? 'Remove Star' : 'Star Message'}</span>
+            </button>
+            <button type="button" class="message-context-item ctx-info">
+                ${infoSvg} <span>Message Info</span>
+            </button>
+        `;
+
+        if (hasMedia) {
+            itemsHtml += `
+                <div class="message-context-divider"></div>
+                <button type="button" class="message-context-item ctx-open">
+                    ${openSvg} <span>Open</span>
+                </button>
+                <button type="button" class="message-context-item ctx-download">
+                    ${downloadSvg} <span>Download</span>
+                </button>
+            `;
+        }
+
+        if (isSent) {
+            itemsHtml += `
+                <div class="message-context-divider"></div>
+                <button type="button" class="message-context-item danger ctx-delete">
+                    ${deleteSvg} <span>Delete Message</span>
+                </button>
+            `;
+        }
+
+        menu.innerHTML = itemsHtml;
+        document.body.appendChild(menu);
+
+        // Position menu
+        const menuRect = menu.getBoundingClientRect();
+        let posX = e.clientX || 0;
+        let posY = e.clientY || 0;
+
+        if (e.target && e.target.closest('.action-tool-btn, .bubble-more-trigger')) {
+            const btn = e.target.closest('.action-tool-btn, .bubble-more-trigger');
+            const btnRect = btn.getBoundingClientRect();
+            posX = isSent ? (btnRect.right - menuRect.width) : btnRect.left;
+            posY = btnRect.bottom + 4;
+        }
+
+        if (posX + menuRect.width > window.innerWidth - 12) posX = window.innerWidth - menuRect.width - 12;
+        if (posX < 12) posX = 12;
+        if (posY + menuRect.height > window.innerHeight - 12) posY = (e.clientY ? e.clientY - menuRect.height : posY - menuRect.height - 20);
+        if (posY < 12) posY = 12;
+
+        menu.style.left = `${posX}px`;
+        menu.style.top = `${posY}px`;
+
+        // Wire actions
+        menu.querySelector('.ctx-reply')?.addEventListener('click', () => {
+            this.closeMessageContextMenu();
+            this.setReplying(numId, senderName, textContent);
+        });
+
+        menu.querySelector('.ctx-copy')?.addEventListener('click', () => {
+            this.closeMessageContextMenu();
+            if (textContent) {
+                navigator.clipboard.writeText(textContent).then(() => {
+                    showToast('✓ Copied to clipboard', 'success', 1500);
+                }).catch(() => {
+                    showToast('Unable to copy', 'error');
+                });
+            }
+        });
+
+        menu.querySelector('.ctx-edit')?.addEventListener('click', () => {
+            this.closeMessageContextMenu();
+            this.setEditing(numId, textContent);
+        });
+
+        menu.querySelector('.ctx-pin')?.addEventListener('click', () => {
+            this.closeMessageContextMenu();
+            this.togglePinMessage(numId);
+        });
+
+        menu.querySelector('.ctx-star')?.addEventListener('click', () => {
+            this.closeMessageContextMenu();
+            this.toggleStarMessage(numId);
+        });
+
+        menu.querySelector('.ctx-info')?.addEventListener('click', () => {
+            this.closeMessageContextMenu();
+            this.showMessageInfo(numId);
+        });
+
+        menu.querySelector('.ctx-open')?.addEventListener('click', () => {
+            this.closeMessageContextMenu();
+            const openBtn = row.querySelector('.msg-doc-open-btn, .msg-action-open-doc, .msg-photo-img');
+            if (openBtn) openBtn.click();
+        });
+
+        menu.querySelector('.ctx-download')?.addEventListener('click', () => {
+            this.closeMessageContextMenu();
+            const downBtn = row.querySelector('.msg-doc-download-btn, .msg-action-download-doc');
+            if (downBtn) downBtn.click();
+        });
+
+        menu.querySelector('.ctx-delete')?.addEventListener('click', () => {
+            this.closeMessageContextMenu();
+            const delBtn = row.querySelector('.msg-action-delete');
+            if (delBtn) delBtn.click();
+        });
+    }
+
+    closeMessageContextMenu() {
+        const existing = document.getElementById('activeMessageContextMenu');
+        if (existing) existing.remove();
+    }
+
+    togglePinMessage(msgId) {
+        const numId = Number(msgId);
+        let msg = this.activeMessages.find(m => Number(m.id || m.message_id) === numId);
+        if (!msg) {
+            msg = { id: numId };
+            this.activeMessages.push(msg);
+        }
+        msg.is_pinned = !msg.is_pinned;
+        const row = document.getElementById(`msgRow-${numId}`);
+        if (row) {
+            let pinEl = row.querySelector('.message-pin-indicator');
+            if (msg.is_pinned) {
+                if (!pinEl) {
+                    const timeEl = row.querySelector('.message-time');
+                    if (timeEl) {
+                        const span = document.createElement('span');
+                        span.className = 'message-pin-indicator';
+                        span.title = 'Pinned message';
+                        span.textContent = '📌';
+                        timeEl.prepend(span);
+                    }
+                }
+                showToast('Message pinned to conversation', 'success');
+            } else {
+                if (pinEl) pinEl.remove();
+                showToast('Message unpinned', 'info');
+            }
+        }
+    }
+
+    toggleStarMessage(msgId) {
+        const numId = Number(msgId);
+        let msg = this.activeMessages.find(m => Number(m.id || m.message_id) === numId);
+        if (!msg) {
+            msg = { id: numId };
+            this.activeMessages.push(msg);
+        }
+        msg.is_starred = !msg.is_starred;
+        const row = document.getElementById(`msgRow-${numId}`);
+        if (row) {
+            let starEl = row.querySelector('.message-star-indicator');
+            if (msg.is_starred) {
+                if (!starEl) {
+                    const timeEl = row.querySelector('.message-time');
+                    if (timeEl) {
+                        const span = document.createElement('span');
+                        span.className = 'message-star-indicator';
+                        span.title = 'Starred message';
+                        span.textContent = '⭐';
+                        timeEl.prepend(span);
+                    }
+                }
+                showToast('Message starred', 'success');
+            } else {
+                if (starEl) starEl.remove();
+                showToast('Message removed from starred', 'info');
+            }
+        }
+    }
+
+    showMessageInfo(msgId) {
+        const numId = Number(msgId);
+        const msg = this.activeMessages.find(m => Number(m.id || m.message_id) === numId);
+        const row = document.getElementById(`msgRow-${numId}`);
+        const currentUser = auth.getUser();
+        const currentUserId = currentUser ? currentUser.id : null;
+        const isSent = msg ? (Number(msg.sender_id) === Number(currentUserId)) : (row ? row.classList.contains('sent') : false);
+        const sender = isSent ? 'You' : (msg && msg.sender ? (msg.sender.full_name || msg.sender.username) : 'User');
+        const createdDate = msg && msg.created_at ? (messagesModule.parseDate(msg.created_at) || new Date()) : new Date();
+        const sentTime = createdDate.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+        const editedDate = msg && msg.updated_at && msg.updated_at !== msg.created_at ? messagesModule.parseDate(msg.updated_at) : null;
+        const editedTime = editedDate ? editedDate.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : null;
+        const content = msg ? msg.content : (row ? (row.querySelector('.message-text-content')?.textContent || '') : '');
+        const charCount = content ? `${content.length} characters` : 'N/A';
+        const statusText = isSent ? (msg?.status ? msg.status.charAt(0).toUpperCase() + msg.status.slice(1) : 'Delivered') : 'Received';
+        const typeText = msg?.message_type ? msg.message_type.charAt(0).toUpperCase() + msg.message_type.slice(1) : 'Text';
+
+        const modalHtml = `
+            <div class="modal-backdrop open" id="messageInfoBackdrop" style="position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(4px); z-index:1150; display:flex; align-items:center; justify-content:center;">
+                <div class="modal-card" style="background:#0f172a; border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:22px; max-width:380px; width:90%; box-shadow:0 20px 40px rgba(0,0,0,0.6); color:#f8fafc;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                        <h3 style="font-size:16px; font-weight:700; margin:0; display:flex; align-items:center; gap:8px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                            Message Info
+                        </h3>
+                        <button type="button" id="closeMsgInfoBtn" style="background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; padding:4px;">✕</button>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:10px; font-size:13px;">
+                        <div style="display:flex; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.06);">
+                            <span style="color:var(--text-muted);">From</span>
+                            <span style="font-weight:600;">${messagesModule.escapeHTML(sender)}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.06);">
+                            <span style="color:var(--text-muted);">Status</span>
+                            <span style="font-weight:600; color:var(--primary);">${statusText}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.06);">
+                            <span style="color:var(--text-muted);">Sent</span>
+                            <span style="font-weight:500;">${sentTime}</span>
+                        </div>
+                        ${editedTime ? `
+                            <div style="display:flex; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.06);">
+                                <span style="color:var(--text-muted);">Edited</span>
+                                <span style="font-weight:500;">${editedTime}</span>
+                            </div>
+                        ` : ''}
+                        <div style="display:flex; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.06);">
+                            <span style="color:var(--text-muted);">Type</span>
+                            <span style="font-weight:500;">${typeText}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--text-muted);">Size</span>
+                            <span style="font-weight:500;">${charCount}</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-full btn-sm" id="dismissMsgInfoBtn" style="margin-top:18px;">Close</button>
+                </div>
+            </div>
+        `;
+        const div = document.createElement('div');
+        div.innerHTML = modalHtml;
+        const modal = div.firstElementChild;
+        document.body.appendChild(modal);
+        const close = () => modal.remove();
+        modal.querySelector('#closeMsgInfoBtn')?.addEventListener('click', close);
+        modal.querySelector('#dismissMsgInfoBtn')?.addEventListener('click', close);
+        modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
     }
 
     exportChatHistory() {
@@ -838,10 +1245,15 @@ class ChatController {
         const membersSec = document.getElementById('drawerMembersSection');
         const leaveBtn = document.getElementById('drawerLeaveGroupBtn');
 
-        const name = target.name || target.full_name || target.username || 'Conversation';
+        const currentUser = auth.getUser();
+        const isSelf = !isGroup && currentUser && Number(target.id) === Number(currentUser.id);
+
+        const name = isSelf
+            ? `${currentUser.full_name || currentUser.username} (You)`
+            : (target.name || target.full_name || target.username || 'Conversation');
         if (nameEl) nameEl.textContent = name;
         if (initialsEl) {
-            initialsEl.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            initialsEl.textContent = isSelf ? '📝' : name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
         }
 
         if (isGroup) {
@@ -852,6 +1264,13 @@ class ChatController {
             if (membersSec) membersSec.style.display = 'block';
 
             this.loadGroupMembersList(target.id);
+        } else if (isSelf) {
+            const frankBadge = target.frank_id ? ` • ID: ${target.frank_id}` : '';
+            if (subtitleEl) subtitleEl.textContent = `@${target.username || 'user'}${frankBadge}`;
+            if (bioEl) bioEl.textContent = 'Message yourself • Keep personal notes, files, drafts, to-dos, and bookmarks.';
+            if (tabsBar) tabsBar.style.display = 'flex';
+            if (membersSec) membersSec.style.display = 'none';
+            if (leaveBtn) leaveBtn.style.display = 'none';
         } else {
             const frankBadge = target.frank_id ? ` • ID: ${target.frank_id}` : '';
             if (subtitleEl) subtitleEl.textContent = `@${target.username || 'user'}${frankBadge}`;
@@ -1067,10 +1486,58 @@ class ChatController {
         }
     }
 
+    setEditing(messageId, currentContent) {
+        this.clearReplying();
+        this.editingMessageId = messageId;
+        if (this.dom.editStrip) this.dom.editStrip.style.display = 'flex';
+        if (this.dom.composerEditText) this.dom.composerEditText.textContent = currentContent;
+        if (this.dom.textarea) {
+            this.dom.textarea.value = currentContent;
+            this.autoResizeTextarea();
+            this.dom.textarea.focus();
+        }
+        this.updateComposerActionButton();
+    }
+
+    cancelEditing() {
+        this.editingMessageId = null;
+        if (this.dom.editStrip) this.dom.editStrip.style.display = 'none';
+        if (this.dom.composerEditText) this.dom.composerEditText.textContent = '';
+        if (this.dom.textarea) {
+            this.dom.textarea.value = '';
+            this.autoResizeTextarea();
+        }
+        this.updateComposerActionButton();
+    }
+
+    async saveEditing() {
+        const text = (this.dom.textarea?.value || '').trim();
+        if (!text || !this.editingMessageId) return;
+        const msgId = this.editingMessageId;
+
+        try {
+            if (window.wsClient && window.wsClient.isConnected) {
+                if (typeof window.wsClient.sendEditMessage === 'function') {
+                    window.wsClient.sendEditMessage(msgId, text);
+                } else if (typeof window.wsClient.sendMessageEdit === 'function') {
+                    window.wsClient.sendMessageEdit(msgId, text);
+                }
+            }
+            await api.editMessage(msgId, text);
+            this.handleMessageEdited({ id: msgId, content: text, updated_at: new Date().toISOString() });
+            this.cancelEditing();
+            showToast('Message edited', 'success');
+            if (window.appController) window.appController.loadConversations(false);
+        } catch (err) {
+            console.error('Failed to edit message:', err);
+            showToast(err.message || 'Failed to edit message', 'error');
+        }
+    }
+
     handleMessageEdited(msg) {
         if (!msg) return;
         const msgId = msg.id || msg.message_id;
-        const found = this.activeMessages.find(m => m.id === msgId);
+        const found = this.activeMessages.find(m => Number(m.id || m.message_id) === Number(msgId));
         if (found) {
             found.content = msg.content;
             found.updated_at = msg.updated_at;
@@ -1080,15 +1547,42 @@ class ChatController {
         if (row) {
             const textEl = row.querySelector('.message-text-content');
             if (textEl) {
-                textEl.innerHTML = messagesModule.escapeHTML(msg.content);
+                textEl.innerHTML = messagesModule.linkify(messagesModule.escapeHTML(msg.content));
+            }
+            const copyBtn = row.querySelector('.msg-action-copy');
+            if (copyBtn) {
+                copyBtn.dataset.content = msg.content;
+            }
+            const replyBtn = row.querySelector('.msg-action-reply');
+            if (replyBtn) {
+                replyBtn.dataset.content = msg.content;
             }
             const timeEl = row.querySelector('.message-time');
             if (timeEl) {
                 const createdAt = msg.created_at || (found ? found.created_at : null);
                 const timeFormatted = messagesModule.formatMessageTimestamp(createdAt);
-                timeEl.textContent = `${timeFormatted} · Edited`;
+                timeEl.innerHTML = `${timeFormatted} <span class="message-edited-badge" style="font-size:10px; opacity:0.75; font-style:italic;" title="Edited">(Edited)</span>`;
                 timeEl.title = `Sent: ${messagesModule.formatMessageTimestamp(createdAt)} · Edited: ${messagesModule.formatMessageTimestamp(msg.updated_at)}`;
             }
+        }
+    }
+
+    handleMessageDeleted(messageId) {
+        if (!messageId) return;
+        const numId = Number(messageId);
+        this.activeMessages = this.activeMessages.filter(m => Number(m.id || m.message_id) !== numId);
+        const row = document.getElementById(`msgRow-${numId}`);
+        if (row) {
+            row.remove();
+        }
+        if (this.activeMessages.length === 0 && this.dom.messagesContainer) {
+            this.dom.messagesContainer.innerHTML = `
+                <div class="empty-state" style="margin: auto;">
+                    <div style="font-size: 36px; margin-bottom: 8px;">💬</div>
+                    <h3 class="empty-state-title">No messages</h3>
+                    <p class="empty-state-desc">Start the conversation by sending a message.</p>
+                </div>
+            `;
         }
     }
 
@@ -1141,6 +1635,17 @@ class ChatController {
             const msg = data.message;
             if (msg) {
                 this.handleMessageEdited(msg);
+                if (typeof window.appController !== 'undefined') {
+                    window.appController.loadConversations(false);
+                }
+            }
+        });
+
+        // 3. Message Deleted Events
+        window.wsClient.on('message_deleted', (data) => {
+            const msgId = data.message_id || data.id;
+            if (msgId) {
+                this.handleMessageDeleted(msgId);
                 if (typeof window.appController !== 'undefined') {
                     window.appController.loadConversations(false);
                 }

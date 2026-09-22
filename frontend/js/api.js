@@ -252,12 +252,6 @@ function handleMockRequest(endpoint, options = {}) {
             throw err;
         }
 
-        if (target.id === currentUser.id) {
-            const err = new Error('Cannot start conversation with yourself.');
-            err.status = 400;
-            throw err;
-        }
-
         const ua = Math.min(currentUser.id, target.id);
         const ub = Math.max(currentUser.id, target.id);
         if (!db.conversations) db.conversations = [];
@@ -308,8 +302,31 @@ function handleMockRequest(endpoint, options = {}) {
 
     // 5. Conversations
     if (endpoint === '/api/users/conversations') {
+        const selfMsgs = db.messages.filter(m => m.sender_id === currentUser.id && m.recipient_id === currentUser.id && !m.group_id);
+        const lastSelfMsg = selfMsgs.length > 0 ? selfMsgs[selfMsgs.length - 1] : null;
+        const selfConv = {
+            id: currentUser.id,
+            type: 'direct',
+            name: `${currentUser.full_name || currentUser.username} (You)`,
+            username: currentUser.username,
+            frank_id: currentUser.frank_id,
+            avatar_url: currentUser.avatar_url,
+            is_online: true,
+            user: currentUser,
+            bio: 'Message yourself • Notes & bookmarks',
+            last_message: lastSelfMsg ? {
+                id: lastSelfMsg.id,
+                content: lastSelfMsg.content,
+                message_type: lastSelfMsg.message_type || 'text',
+                sender_id: lastSelfMsg.sender_id,
+                created_at: lastSelfMsg.created_at,
+                status: lastSelfMsg.status
+            } : null,
+            unread_count: 0
+        };
+
         const partners = db.users.filter(u => u.id !== currentUser.id);
-        return partners.map(p => {
+        const partnerConvs = partners.map(p => {
             const chatMsgs = db.messages.filter(m =>
                 (m.sender_id === currentUser.id && m.recipient_id === p.id) ||
                 (m.sender_id === p.id && m.recipient_id === currentUser.id)
@@ -335,12 +352,17 @@ function handleMockRequest(endpoint, options = {}) {
                 unread_count: 0
             };
         });
+
+        return [selfConv, ...partnerConvs];
     }
 
 
     // 6. Direct Messages
     if (endpoint.startsWith('/api/messages/direct/') && method === 'GET') {
         const partnerId = Number(endpoint.replace('/api/messages/direct/', ''));
+        if (partnerId === currentUser.id) {
+            return db.messages.filter(m => m.sender_id === currentUser.id && m.recipient_id === currentUser.id && !m.group_id);
+        }
         return db.messages.filter(m =>
             (m.sender_id === currentUser.id && m.recipient_id === partnerId) ||
             (m.sender_id === partnerId && m.recipient_id === currentUser.id)
@@ -364,8 +386,8 @@ function handleMockRequest(endpoint, options = {}) {
         db.messages.push(newMsg);
         saveMockDb(db);
 
-        // Friendly auto-reply after 1.2s for direct messages
-        if (newMsg.recipient_id && !newMsg.group_id) {
+        // Friendly auto-reply after 1.2s for direct messages (skip for self-messages)
+        if (newMsg.recipient_id && !newMsg.group_id && Number(newMsg.recipient_id) !== Number(currentUser.id)) {
             const partnerId = newMsg.recipient_id;
             setTimeout(() => {
                 const refreshed = getMockDb();
@@ -753,63 +775,9 @@ const api = {
     // Document & File Endpoints
     uploadFile(formData, onProgress) {
         return new Promise((resolve, reject) => {
-            const buildMockDoc = () => {
-                let file = null;
-                let duration = null;
-                if (formData && typeof formData.get === 'function') {
-                    file = formData.get('file');
-                    duration = formData.get('duration');
-                }
-                const id = Date.now();
-                let filename = 'Document_' + id.toString().slice(-4) + '.pdf';
-                let fileType = 'pdf';
-                let fileSize = 1024 * 65;
-                let url = '';
-
-                if (file && file.name) {
-                    filename = file.name;
-                    fileSize = file.size || fileSize;
-                    const ext = '.' + filename.split('.').pop().toLowerCase();
-                    if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'].includes(ext) || (file.type && file.type.startsWith('image/'))) {
-                        fileType = 'image';
-                    } else if (['.mp4', '.mov', '.mkv'].includes(ext) || (file.type && file.type.startsWith('video/'))) {
-                        fileType = 'video';
-                    } else if (['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.opus'].includes(ext) || (file.type && file.type.startsWith('audio/')) || filename.startsWith('voice_note_')) {
-                        fileType = 'audio';
-                    } else {
-                        fileType = 'document';
-                    }
-
-                    try {
-                        url = URL.createObjectURL(file);
-                    } catch {
-                        url = '';
-                    }
-                }
-
-                const mockDoc = {
-                    id: id,
-                    filename: filename,
-                    original_filename: filename,
-                    file_type: fileType,
-                    file_size: fileSize,
-                    url: url,
-                    duration: duration ? parseFloat(duration) : (fileType === 'audio' ? 5.0 : null),
-                    created_at: new Date().toISOString()
-                };
-
-                try {
-                    const db = getMockDb();
-                    if (!db.documents) db.documents = [];
-                    db.documents.push(mockDoc);
-                    saveMockDb(db);
-                } catch {}
-
-                return mockDoc;
-            };
-
+            const baseUrl = this.baseUrl || API_BASE;
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', `${this.baseUrl}/api/files/upload`);
+            xhr.open('POST', `${baseUrl}/api/files/upload`);
 
             const token = this.getToken();
             if (token) {
@@ -826,26 +794,47 @@ const api = {
             }
 
             xhr.onload = () => {
-                let data;
+                let data = null;
                 try {
                     data = JSON.parse(xhr.responseText);
                 } catch {
-                    data = { detail: 'Invalid server response' };
+                    data = { detail: xhr.responseText || 'Invalid server response' };
                 }
 
                 if (xhr.status >= 200 && xhr.status < 300) {
                     resolve(data);
-                } else if (xhr.status === 404 || xhr.status >= 500) {
-                    // Resilient mock file fallback
-                    resolve(buildMockDoc());
                 } else {
-                    reject(new Error(data.detail || `Upload failed with status ${xhr.status}`));
+                    let errMsg = `Upload failed with status ${xhr.status}`;
+                    if (data && data.detail) {
+                        if (typeof data.detail === 'string') {
+                            errMsg = data.detail;
+                        } else if (Array.isArray(data.detail)) {
+                            errMsg = data.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+                        }
+                    } else if (xhr.status === 413) {
+                        errMsg = 'File is too large.';
+                    } else if (xhr.status === 415) {
+                        errMsg = 'Unsupported file type.';
+                    } else if (xhr.status === 401) {
+                        errMsg = 'Your session expired. Please log in again.';
+                    } else if (xhr.status === 403) {
+                        errMsg = 'You do not have permission to upload this file.';
+                    }
+                    const err = new Error(errMsg);
+                    err.status = xhr.status;
+                    err.data = data;
+                    reject(err);
                 }
             };
 
             xhr.onerror = () => {
-                // Resilient mock file fallback on network error
-                resolve(buildMockDoc());
+                const err = new Error('Unable to connect to the server. Please check your connection and try again.');
+                err.status = 0;
+                reject(err);
+            };
+
+            xhr.onabort = () => {
+                reject(new Error('Upload cancelled.'));
             };
 
             xhr.send(formData);
@@ -853,28 +842,46 @@ const api = {
     },
 
     getFileViewUrl(fileId) {
-        try {
-            const db = getMockDb();
-            if (db && db.documents) {
-                const doc = db.documents.find(d => d.id == fileId);
-                if (doc && doc.url) return doc.url;
-            }
-        } catch {}
+        if (!fileId) return '';
+        const baseUrl = this.baseUrl || API_BASE;
         const token = this.getToken();
-        return `${this.baseUrl}/api/files/${fileId}/view${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+        return `${baseUrl}/api/files/${fileId}/view${token ? `?token=${encodeURIComponent(token)}` : ''}`;
     },
 
     getFileDownloadUrl(fileId) {
-        try {
-            const db = getMockDb();
-            if (db && db.documents) {
-                const doc = db.documents.find(d => d.id == fileId);
-                if (doc && doc.url) return doc.url;
-            }
-        } catch {}
+        if (!fileId) return '';
+        const baseUrl = this.baseUrl || API_BASE;
         const token = this.getToken();
-        return `${this.baseUrl}/api/files/${fileId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+        return `${baseUrl}/api/files/${fileId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
     },
+
+    async getConversationPreferences() {
+        return this.request('/api/users/conversations/preferences');
+    },
+
+    async updateConversationPreference(convType, convId, keyOrObj, maybeValue) {
+        const payload = {
+            conversation_type: convType,
+            conversation_id: convId
+        };
+        if (typeof keyOrObj === 'object') {
+            Object.assign(payload, keyOrObj);
+        } else {
+            payload.key = keyOrObj;
+            payload.value = maybeValue;
+        }
+        return this.request('/api/users/conversations/preferences', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+    },
+
+    async deleteDirectConversation(partnerId) {
+        return this.request(`/api/users/conversations/direct/${partnerId}`, {
+            method: 'DELETE'
+        });
+    },
+
 
     async getFileMetadata(fileId) {
         return this.request(`/api/files/${fileId}`);
@@ -886,6 +893,61 @@ const api = {
 
     async getGroupDocuments(groupId) {
         return this.request(`/api/files/group/${groupId}`);
+    },
+
+    // ---------------- ADMIN API METHODS ----------------
+    async getAdminMetrics() {
+        return this.request('/api/admin/metrics');
+    },
+
+    async getAdminUsers(params = {}) {
+        const query = new URLSearchParams();
+        if (params.q) query.set('q', params.q);
+        if (params.status) query.set('status', params.status);
+        if (params.role) query.set('role', params.role);
+        if (params.page) query.set('page', params.page);
+        if (params.limit) query.set('limit', params.limit);
+        const qs = query.toString();
+        return this.request(`/api/admin/users${qs ? `?${qs}` : ''}`);
+    },
+
+    async getAdminUserDetails(userId) {
+        return this.request(`/api/admin/users/${userId}`);
+    },
+
+    async updateAdminUserStatus(userId, status) {
+        return this.request(`/api/admin/users/${userId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status })
+        });
+    },
+
+    async deleteAdminUserData(userId) {
+        return this.request(`/api/admin/users/${userId}/data`, {
+            method: 'DELETE'
+        });
+    },
+
+    async deleteAdminUserAccount(userId) {
+        return this.request(`/api/admin/users/${userId}`, {
+            method: 'DELETE'
+        });
+    },
+
+    async getAdminGroups() {
+        return this.request('/api/admin/groups');
+    },
+
+    async getAdminAuditLogs(params = {}) {
+        const query = new URLSearchParams();
+        if (params.page) query.set('page', params.page);
+        if (params.limit) query.set('limit', params.limit);
+        const qs = query.toString();
+        return this.request(`/api/admin/audit-logs${qs ? `?${qs}` : ''}`);
+    },
+
+    async getAdminActivity() {
+        return this.request('/api/admin/activity');
     },
 
     // Logout

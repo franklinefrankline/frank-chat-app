@@ -16,7 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from database import engine, Base, SessionLocal
 import models
 from security import hash_password
-from routes import auth, users, messages, groups, files
+from routes import auth, users, messages, groups, files, admin
 from websocket.chat import handle_websocket_connection
 
 # Create database tables automatically
@@ -51,7 +51,24 @@ except Exception as e:
 def seed_demo_users():
     db = SessionLocal()
     try:
-        if db.query(models.User).count() == 0:
+        # Ensure default administrator exists
+        admin_user = db.query(models.User).filter(models.User.username == "admin").first()
+        if not admin_user:
+            admin_user = models.User(
+                username="admin",
+                email="admin@frank.app",
+                frank_id="ADM001",
+                full_name="FRANK Administrator",
+                bio="System Administrator",
+                hashed_password=hash_password("Admin@123456"),
+                role="admin",
+                account_status="active",
+                is_online=False
+            )
+            db.add(admin_user)
+            db.commit()
+
+        if db.query(models.User).filter(models.User.role != "admin").count() == 0:
             demo_users = [
                 {
                     "username": "alex",
@@ -92,6 +109,8 @@ def seed_demo_users():
                     bio=u["bio"],
                     avatar_url=u["avatar_url"],
                     hashed_password=hash_password("password123"),
+                    role="user",
+                    account_status="active",
                     is_online=u["is_online"]
                 )
                 db.add(user)
@@ -122,7 +141,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
+        path = request.url.path
+        if "/files/" in path and ("/view" in path or "/download" in path):
+            response.headers["X-Frame-Options"] = "SAMEORIGIN"
+            response.headers["Content-Security-Policy"] = "frame-ancestors 'self' *"
+        else:
+            response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         return response
 
@@ -140,8 +164,15 @@ default_origins = [
     "https://frank-chat-vercel.vercel.app",
     "http://localhost:8000",
     "http://localhost:3000",
+    "http://localhost:5500",
+    "http://localhost:5173",
+    "http://localhost:8080",
     "http://127.0.0.1:8000",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5500",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+    "null"
 ]
 
 env_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
@@ -154,7 +185,7 @@ allowed_origins = list(set(default_origins + env_origins))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins if "*" not in env_origins else ["*"],
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origin_regex=r".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -166,7 +197,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 @app.middleware("http")
 async def ensure_api_prefix(request: Request, call_next):
     path = request.url.path
-    for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health"]:
+    for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health", "/admin"]:
         if path.startswith(pfx):
             request.scope["path"] = "/api" + path
             break
@@ -174,7 +205,7 @@ async def ensure_api_prefix(request: Request, call_next):
     return response
 
 # Include Routers with both /api prefix and root prefix
-for r in [auth.router, users.router, messages.router, groups.router, files.router]:
+for r in [auth.router, users.router, messages.router, groups.router, files.router, admin.router]:
     app.include_router(r, prefix="/api")
     app.include_router(r)
 
@@ -249,6 +280,10 @@ if frontend_dir and frontend_dir.exists():
     @app.get("/profile")
     def serve_profile():
         return FileResponse(frontend_dir / "profile.html")
+
+    @app.get("/admin")
+    def serve_admin():
+        return FileResponse(frontend_dir / "admin.html")
 
     @app.get("/{filename}.html")
     def serve_html_page(filename: str):

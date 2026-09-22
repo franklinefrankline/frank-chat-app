@@ -21,6 +21,8 @@ class User(Base):
     avatar_url = Column(String(255), default="")
     theme = Column(String(20), default="light")
     status = Column(String(20), default="offline")
+    role = Column(String(20), default="user", nullable=False)
+    account_status = Column(String(20), default="active", nullable=False)
     is_online = Column(Boolean, default=False)
     last_seen = Column(DateTime(timezone=True), default=get_utc_now)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
@@ -31,6 +33,7 @@ class User(Base):
     group_memberships = relationship("GroupMember", back_populates="user")
     reactions = relationship("Reaction", back_populates="user")
     uploaded_documents = relationship("Document", back_populates="uploader")
+    audit_logs = relationship("AuditLog", back_populates="admin", foreign_keys="AuditLog.admin_id")
 
 
 class Message(Base):
@@ -131,4 +134,38 @@ class Conversation(Base):
 
     user_a = relationship("User", foreign_keys=[user_a_id])
     user_b = relationship("User", foreign_keys=[user_b_id])
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    admin_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    action = Column(String(50), nullable=False)
+    target_type = Column(String(50), nullable=False)  # user, group, system
+    target_id = Column(Integer, nullable=True)
+    target_name = Column(String(100), nullable=True)
+    details = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
+
+    admin = relationship("User", back_populates="audit_logs", foreign_keys=[admin_id])
+
+
+class ConversationPreference(Base):
+    __tablename__ = "conversation_preferences"
+    __table_args__ = (
+        UniqueConstraint("user_id", "conversation_type", "conversation_id", name="uq_user_conv_pref"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    conversation_type = Column(String(20), nullable=False)  # direct, group
+    conversation_id = Column(Integer, nullable=False, index=True)
+    is_pinned = Column(Boolean, default=False)
+    is_favorite = Column(Boolean, default=False)
+    is_muted = Column(Boolean, default=False)
+    is_archived = Column(Boolean, default=False)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+
 

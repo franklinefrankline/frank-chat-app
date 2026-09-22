@@ -69,6 +69,7 @@ ALLOWED_EXTENSIONS = {
     ".m4a": ("audio/mp4", "audio"),
     ".aac": ("audio/aac", "audio"),
     ".opus": ("audio/opus", "audio"),
+    ".weba": ("audio/webm", "audio"),
 }
 
 # Optional S3-compatible Object Storage (AWS S3, Cloudflare R2, Supabase)
@@ -171,6 +172,7 @@ def verify_document_access(doc: models.Document, user: models.User, db: Session)
 async def upload_file(
     file: UploadFile = File(...),
     partner_id: Optional[int] = Form(None),
+    conversation_id: Optional[int] = Form(None),
     group_id: Optional[int] = Form(None),
     duration: Optional[float] = Form(None),
     current_user: models.User = Depends(get_current_user),
@@ -178,6 +180,8 @@ async def upload_file(
 ):
     if not file.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No file selected.")
+
+    target_partner_id = partner_id if partner_id is not None else conversation_id
 
     original_name = sanitize_filename(file.filename)
     ext = Path(original_name).suffix.lower()
@@ -189,7 +193,9 @@ async def upload_file(
         )
 
     # If mime is audio or video and ext is webm, detect audio vs video
-    if ext == ".webm" and file.content_type and "audio" in file.content_type:
+    if (ext in [".webm", ".weba"] or original_name.startswith("voice-") or original_name.startswith("audio-")) and (
+        (file.content_type and "audio" in file.content_type) or original_name.startswith("voice-")
+    ):
         expected_mime, file_type = ("audio/webm", "audio")
     elif ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -210,8 +216,8 @@ async def upload_file(
         if not membership:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group.")
 
-    if partner_id:
-        partner = db.query(models.User).filter(models.User.id == partner_id).first()
+    if target_partner_id:
+        partner = db.query(models.User).filter(models.User.id == target_partner_id).first()
         if not partner:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found.")
 
@@ -273,7 +279,7 @@ async def upload_file(
     # Create document record
     doc = models.Document(
         uploader_id=current_user.id,
-        conversation_id=partner_id,
+        conversation_id=target_partner_id,
         group_id=group_id,
         original_filename=original_name,
         stored_filename=unique_name,
@@ -286,7 +292,20 @@ async def upload_file(
     db.commit()
     db.refresh(doc)
 
+    # Broadcast file count update to admin connections
+    try:
+        from websocket.chat import manager
+        import asyncio
+        asyncio.create_task(manager.broadcast_admin({
+            "type": "admin_file_count_updated",
+            "files": db.query(models.Document).count()
+        }))
+        asyncio.create_task(manager.broadcast_admin_metrics(db))
+    except Exception:
+        pass
+
     return doc
+
 
 
 @router.get("/{file_id}", response_model=schemas.DocumentResponse)

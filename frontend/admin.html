@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>FRANK — THINK • ADMIN</title>
+    <meta name="description" content="FRANK Administrator Dashboard — Real-time user management, system metrics, and audit logs.">
+    <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin-body">
+
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="mobile-overlay" id="adminMobileOverlay"></div>
+
+    <div class="admin-app" id="adminApp">
+
+        <!-- ================= 1. ADMIN SIDEBAR ================= -->
+        <aside class="admin-sidebar" id="adminSidebar">
+            <div class="sidebar-brand">
+                <a href="admin.html" class="brand-text" title="FRANK — THINK • ADMIN">
+                    <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" class="brand-logo-img" style="width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;">
+                    <div class="brand-title-wrap">
+                        <span class="brand-title-text">FRANK</span>
+                        <span class="brand-tagline-text">THINK • ADMIN</span>
+                    </div>
+                </a>
+                <span class="brand-badge admin-badge">ADMIN</span>
+            </div>
+
+            <!-- Navigation Sections -->
+            <nav class="sidebar-nav" aria-label="Admin Navigation">
+                <button type="button" class="nav-item active" data-section="overview" id="navOverviewBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span>Overview &amp; Metrics</span>
+                </button>
+
+                <button type="button" class="nav-item" data-section="users" id="navUsersBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span>User Management</span>
+                </button>
+
+                <button type="button" class="nav-item" data-section="groups" id="navGroupsBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>Groups &amp; Chats</span>
+                </button>
+
+                <button type="button" class="nav-item" data-section="audit" id="navAuditBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span>Audit Logs</span>
+                </button>
+
+                <div class="sidebar-section-title">Account</div>
+
+                <button type="button" class="nav-item" data-section="profile" id="navProfileBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span>Admin Profile</span>
+                </button>
+            </nav>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <div class="sidebar-user" id="adminSidebarUserCard">
+                    <div class="avatar avatar-md" id="adminSidebarAvatar">
+                        <span id="adminSidebarInitials">AD</span>
+                        <span class="avatar-status online"></span>
+                    </div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name" id="adminSidebarName">Administrator</div>
+                        <div style="font-size: 11px; color: var(--accent-cyan); font-weight: 700;">Role: Admin</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px; display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-full btn-sm" id="adminSignOutBtn" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ================= 2. MAIN CONTENT AREA ================= -->
+        <main class="admin-main" id="adminMain">
+
+            <!-- Mobile Top Header -->
+            <header class="admin-topbar">
+                <button type="button" class="btn btn-ghost btn-icon mobile-nav-toggle" id="adminMobileNavBtn" aria-label="Open navigation">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <div class="admin-topbar-title" id="adminTopbarTitle">Overview &amp; Metrics</div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="adminRefreshBtn" title="Refresh all administrative data">
+                        <svg class="refresh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        <span>Refresh</span>
+                    </button>
+                    <span class="live-status-pill" id="adminLiveBadge">
+                        <span class="live-dot"></span> LIVE
+                    </span>
+                </div>
+            </header>
+
+            <!-- SECTION 1: OVERVIEW & METRICS -->
+            <section class="admin-section active" id="sectionOverview">
+                <div class="section-header">
+                    <div>
+                        <h1 class="section-title">System Overview &amp; Live Metrics</h1>
+                        <p class="section-subtitle">Real-time statistics sourced directly from the production database.</p>
+                    </div>
+                </div>
+
+                <!-- 7 Live Metric Cards -->
+                <div class="metrics-grid">
+                    <!-- Total Users -->
+                    <div class="metric-card" id="cardTotalUsers">
+                        <div class="metric-icon-wrap" style="background: rgba(37, 99, 235, 0.12); color: #3b82f6;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <div class="metric-label">TOTAL USERS</div>
+                        <div class="metric-value" id="metricTotalUsers">--</div>
+                        <div class="metric-footer">Real PostgreSQL count</div>
+                    </div>
+
+                    <!-- Active Accounts -->
+                    <div class="metric-card" id="cardActiveAccounts">
+                        <div class="metric-icon-wrap" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div class="metric-label">ACTIVE ACCOUNTS</div>
+                        <div class="metric-value" id="metricActiveAccounts">--</div>
+                        <div class="metric-footer">Permitted to authenticate</div>
+                    </div>
+
+                    <!-- Disabled Accounts -->
+                    <div class="metric-card" id="cardDisabledAccounts">
+                        <div class="metric-icon-wrap" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                            </svg>
+                        </div>
+                        <div class="metric-label">DISABLED ACCOUNTS</div>
+                        <div class="metric-value" id="metricDisabledAccounts">--</div>
+                        <div class="metric-footer">Access suspended</div>
+                    </div>
+
+                    <!-- Email Verification -->
+                    <div class="metric-card" id="cardEmailVerified">
+                        <div class="metric-icon-wrap" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                        </div>
+                        <div class="metric-label">EMAIL VERIFICATION</div>
+                        <div class="metric-value" id="metricEmailVerified">--</div>
+                        <div class="metric-footer">Verified user records</div>
+                    </div>
+
+                    <!-- Total Messages -->
+                    <div class="metric-card" id="cardTotalMessages">
+                        <div class="metric-icon-wrap" style="background: rgba(6, 182, 212, 0.12); color: #06b6d4;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </div>
+                        <div class="metric-label">TOTAL MESSAGES</div>
+                        <div class="metric-value" id="metricTotalMessages">--</div>
+                        <div class="metric-footer">Persisted message count</div>
+                    </div>
+
+                    <!-- Groups & Channels -->
+                    <div class="metric-card" id="cardTotalGroups">
+                        <div class="metric-icon-wrap" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <div class="metric-label">GROUPS &amp; CHANNELS</div>
+                        <div class="metric-value" id="metricTotalGroups">--</div>
+                        <div class="metric-footer">Active team channels</div>
+                    </div>
+
+                    <!-- Files & Documents -->
+                    <div class="metric-card" id="cardTotalFiles">
+                        <div class="metric-icon-wrap" style="background: rgba(236, 72, 153, 0.12); color: #ec4899;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                <polyline points="13 2 13 9 20 9"></polyline>
+                            </svg>
+                        </div>
+                        <div class="metric-label">FILES &amp; DOCUMENTS</div>
+                        <div class="metric-value" id="metricTotalFiles">--</div>
+                        <div class="metric-footer">Stored document assets</div>
+                    </div>
+                </div>
+
+                <!-- Live System Activity Section -->
+                <div class="admin-card" style="margin-top: 24px;">
+                    <div class="admin-card-header">
+                        <div>
+                            <h2 class="admin-card-title">Live Activity Stream</h2>
+                            <p class="admin-card-desc">System events and administrative actions (Metadata only — zero message contents).</p>
+                        </div>
+                    </div>
+                    <div class="activity-stream" id="liveActivityList">
+                        <div class="empty-state" style="padding: 24px;">
+                            <div class="spinner"></div>
+                            <div style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">Loading activity...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: USER MANAGEMENT -->
+            <section class="admin-section" id="sectionUsers">
+                <div class="section-header">
+                    <div>
+                        <h1 class="section-title">User Management</h1>
+                        <p class="section-subtitle">View, search, filter, enable, disable, and manage production user accounts.</p>
+                    </div>
+                </div>
+
+                <!-- Controls: Search & Filters -->
+                <div class="admin-controls-bar">
+                    <div class="search-input-wrap">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="adminUserSearchInput" placeholder="Search by Name, Email, or 6-char FRANK ID..." autocomplete="off">
+                        <button type="button" id="adminClearSearchBtn" style="display:none; color:var(--text-muted); border:none; background:transparent; cursor:pointer;">✕</button>
+                    </div>
+
+                    <div class="filter-chips-row" id="userFilterChips">
+                        <button type="button" class="filter-chip active" data-filter="all">All Users</button>
+                        <button type="button" class="filter-chip" data-filter="active">Active</button>
+                        <button type="button" class="filter-chip" data-filter="disabled">Disabled</button>
+                        <button type="button" class="filter-chip" data-filter="admin">Administrators</button>
+                        <button type="button" class="filter-chip" data-filter="user">Normal Users</button>
+                    </div>
+                </div>
+
+                <!-- Users Table Container -->
+                <div class="admin-card" style="padding: 0; overflow: hidden;">
+                    <div class="table-responsive" id="usersTableWrap">
+                        <table class="admin-table" id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>FRANK ID</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 32px;">
+                                        <div class="spinner" style="margin: 0 auto 8px auto;"></div>
+                                        <div style="font-size: 13px; color: var(--text-muted);">Loading users...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Server-Side Pagination Bar -->
+                    <div class="pagination-bar">
+                        <div class="pagination-info" id="usersPaginationInfo">Showing 0 of 0 users</div>
+                        <div class="pagination-controls">
+                            <button type="button" class="btn btn-secondary btn-sm" id="usersPrevBtn" disabled>Previous</button>
+                            <span class="pagination-page-number" id="usersPageNum">Page 1</span>
+                            <button type="button" class="btn btn-secondary btn-sm" id="usersNextBtn" disabled>Next</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: GROUPS & CHATS -->
+            <section class="admin-section" id="sectionGroups">
+                <div class="section-header">
+                    <div>
+                        <h1 class="section-title">Groups &amp; Channels</h1>
+                        <p class="section-subtitle">Administrative metadata for team groups and channels. (Private messages strictly omitted).</p>
+                    </div>
+                </div>
+
+                <div class="admin-card" style="padding: 0; overflow: hidden;">
+                    <div class="table-responsive">
+                        <table class="admin-table" id="groupsTable">
+                            <thead>
+                                <tr>
+                                    <th>Group Name</th>
+                                    <th>Group ID</th>
+                                    <th>Privacy</th>
+                                    <th>Creator</th>
+                                    <th>Members</th>
+                                    <th>Created Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="groupsTableBody">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 32px;">
+                                        <div class="spinner" style="margin: 0 auto 8px auto;"></div>
+                                        <div style="font-size: 13px; color: var(--text-muted);">Loading groups...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 4: AUDIT LOGS -->
+            <section class="admin-section" id="sectionAudit">
+                <div class="section-header">
+                    <div>
+                        <h1 class="section-title">Audit Logs</h1>
+                        <p class="section-subtitle">Chronological record of all administrative operations performed in FRANK.</p>
+                    </div>
+                </div>
+
+                <div class="admin-card" style="padding: 0; overflow: hidden;">
+                    <div class="table-responsive">
+                        <table class="admin-table" id="auditTable">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Administrator</th>
+                                    <th>Action</th>
+                                    <th>Target</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 32px;">
+                                        <div class="spinner" style="margin: 0 auto 8px auto;"></div>
+                                        <div style="font-size: 13px; color: var(--text-muted);">Loading audit logs...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination-bar">
+                        <div class="pagination-info" id="auditPaginationInfo">Showing 0 logs</div>
+                        <div class="pagination-controls">
+                            <button type="button" class="btn btn-secondary btn-sm" id="auditPrevBtn" disabled>Previous</button>
+                            <span class="pagination-page-number" id="auditPageNum">Page 1</span>
+                            <button type="button" class="btn btn-secondary btn-sm" id="auditNextBtn" disabled>Next</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 5: ADMIN PROFILE -->
+            <section class="admin-section" id="sectionProfile">
+                <div class="section-header">
+                    <div>
+                        <h1 class="section-title">Admin Profile</h1>
+                        <p class="section-subtitle">Your active administrator identity and session security.</p>
+                    </div>
+                </div>
+
+                <div class="admin-card" style="max-width: 600px;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+                        <div class="avatar avatar-lg" id="profileCardAvatar">
+                            <span id="profileCardInitials">AD</span>
+                            <span class="avatar-status online"></span>
+                        </div>
+                        <div>
+                            <div style="font-size: 18px; font-weight: 800; color: var(--text);" id="profileCardName">Administrator</div>
+                            <div style="font-size: 13px; color: var(--text-muted);" id="profileCardUsername">@admin</div>
+                            <span class="badge badge-primary" style="margin-top: 4px; display: inline-block;">System Administrator</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Email</span>
+                        <span class="detail-value" id="profileCardEmail">admin@frank.app</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">FRANK ID</span>
+                        <span class="detail-value" id="profileCardFrankId" style="font-family: monospace; font-weight: 800; color: var(--accent-cyan);">ADM001</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Security Role</span>
+                        <span class="detail-value">Administrator</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Session Status</span>
+                        <span class="detail-value" style="color: var(--success); font-weight: 700;">Active &amp; Authenticated</span>
+                    </div>
+
+                    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+                        <button type="button" class="btn btn-secondary" id="profileSignOutBtn">Sign Out of Admin Session</button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- User Details Modal (Safe Metadata Only) -->
+    <div class="modal-backdrop" id="adminUserDetailsModal" role="dialog" aria-modal="true" aria-labelledby="modalUserDetailsTitle">
+        <div class="modal-card" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalUserDetailsTitle">User Details</h2>
+                <button type="button" class="modal-close" id="closeUserDetailsModalBtn" aria-label="Close modal">✕</button>
+            </div>
+            <div class="modal-body" id="userDetailsModalBody">
+                <div class="spinner" style="margin: 20px auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reusable Confirmation Dialog Modal -->
+    <div class="modal-backdrop" id="adminConfirmModal" role="dialog" aria-modal="true" aria-labelledby="adminConfirmTitle">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="adminConfirmTitle">Confirm Action</h2>
+                <button type="button" class="modal-close" id="adminConfirmCloseBtn" aria-label="Close modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <p id="adminConfirmMessage" style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px;">Are you sure?</p>
+                <div id="adminConfirmWarning" style="display: none; padding: 10px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); font-size: 13px; color: var(--danger); font-weight: 600; margin-top: 12px;">
+                    This action cannot be undone.
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="btn btn-secondary" id="adminConfirmCancelBtn">Cancel</button>
+                <button type="button" class="btn btn-danger" id="adminConfirmSubmitBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/modal.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

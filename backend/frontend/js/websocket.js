@@ -150,6 +150,17 @@ class ChatWebSocketClient {
         });
     }
 
+    sendMessageEdit(messageId, content) {
+        return this.sendEditMessage(messageId, content);
+    }
+
+    sendDeleteMessage(messageId) {
+        return this.send({
+            type: 'delete_message',
+            message_id: messageId
+        });
+    }
+
     // Event Listener Subscription
     on(event, callback) {
         if (!this.listeners.has(event)) {

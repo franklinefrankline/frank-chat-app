@@ -40,6 +40,8 @@ class UserResponse(UserBase):
     frank_id: str
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
+    role: str = "user"
+    account_status: str = "active"
     is_online: bool = False
     last_seen: Optional[datetime] = None
     created_at: datetime
@@ -59,6 +61,95 @@ class UserPreviewResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ---------------- ADMIN SCHEMAS ----------------
+
+class AdminMetricsResponse(BaseModel):
+    total_users: int
+    active_accounts: int
+    disabled_accounts: int
+    email_verified: int
+    total_messages: int
+    groups: int
+    files: int
+
+
+class AdminUserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    full_name: str
+    frank_id: str
+    role: str = "user"
+    account_status: str = "active"
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    is_online: bool = False
+    last_seen: Optional[datetime] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdminUserListResponse(BaseModel):
+    total: int
+    page: int
+    limit: int
+    pages: int
+    users: List[AdminUserResponse]
+
+
+class AdminUserStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(active|disabled)$")
+
+
+class AdminGroupResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = ""
+    privacy: str = "private"
+    created_by: int
+    creator_name: Optional[str] = "User"
+    members_count: int = 1
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AuditLogResponse(BaseModel):
+    id: int
+    admin_id: int
+    admin_name: Optional[str] = "Admin"
+    admin_username: Optional[str] = "admin"
+    action: str
+    target_type: str
+    target_id: Optional[int] = None
+    target_name: Optional[str] = None
+    details: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AuditLogListResponse(BaseModel):
+    total: int
+    page: int
+    limit: int
+    pages: int
+    logs: List[AuditLogResponse]
+
+
+class ActivityItem(BaseModel):
+    id: str
+    title: str
+    description: str
+    category: str
+    created_at: str
+
 
 
 # ---------------- CONVERSATION SCHEMAS ----------------
