@@ -174,7 +174,9 @@ def toggle_reaction(
             id=message_id,
             sender_id=current_user.id,
             content="[Message]",
-            message_type="text"
+            message_type="text",
+            status="sent",
+            created_at=datetime.now(timezone.utc)
         )
         db.add(msg)
         try:
@@ -273,7 +275,9 @@ async def edit_message(
             id=message_id,
             sender_id=current_user.id,
             content=update_in.content.strip(),
-            message_type="text"
+            message_type="text",
+            status="sent",
+            created_at=datetime.now(timezone.utc)
         )
         db.add(msg)
         try:

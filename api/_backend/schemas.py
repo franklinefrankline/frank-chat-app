@@ -242,8 +242,8 @@ class MessageResponse(BaseModel):
     message_type: str = "text"
     file_id: Optional[int] = None
     reply_to_id: Optional[int] = None
-    status: str
-    created_at: datetime
+    status: Optional[str] = "sent"
+    created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     sender: Optional[UserResponse] = None
     document: Optional[DocumentResponse] = None
