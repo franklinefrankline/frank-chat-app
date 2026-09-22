@@ -34,8 +34,10 @@ engine_kwargs = {
 if DATABASE_URL.startswith("sqlite"):
     engine_kwargs["connect_args"] = {"check_same_thread": False}
 else:
-    engine_kwargs["pool_size"] = int(os.getenv("DB_POOL_SIZE", "10"))
-    engine_kwargs["max_overflow"] = int(os.getenv("DB_MAX_OVERFLOW", "20"))
+    pool_str = (os.getenv("DB_POOL_SIZE") or "").strip()
+    engine_kwargs["pool_size"] = int(pool_str) if pool_str.isdigit() else 10
+    overflow_str = (os.getenv("DB_MAX_OVERFLOW") or "").strip()
+    engine_kwargs["max_overflow"] = int(overflow_str) if overflow_str.isdigit() else 20
 
 engine = create_engine(
     DATABASE_URL,

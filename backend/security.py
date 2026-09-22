@@ -11,9 +11,14 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 
-SECRET_KEY = os.getenv("SECRET_KEY", "chatapp_super_secret_jwt_key_change_in_production_2026")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+SECRET_KEY = os.getenv("SECRET_KEY") or "chatapp_super_secret_jwt_key_change_in_production_2026"
+ALGORITHM = os.getenv("ALGORITHM") or "HS256"
+
+def _get_int_env(key: str, default: int) -> int:
+    val = (os.getenv(key) or "").strip()
+    return int(val) if val.isdigit() else default
+
+ACCESS_TOKEN_EXPIRE_MINUTES = _get_int_env("ACCESS_TOKEN_EXPIRE_MINUTES", 1440)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 

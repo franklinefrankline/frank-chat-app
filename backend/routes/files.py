@@ -27,7 +27,11 @@ try:
 except Exception as e:
     print(f"Upload dir init note: {e}")
 
-MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "25"))
+def _get_int_env(key: str, default: int) -> int:
+    val = (os.getenv(key) or "").strip()
+    return int(val) if val.isdigit() else default
+
+MAX_FILE_SIZE_MB = _get_int_env("MAX_FILE_SIZE_MB", 25)
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 # Allowed extensions and classification
@@ -231,20 +235,17 @@ async def upload_file(
 
     # Configurable limits
     if file_type == "video":
-        max_limit = int(os.getenv("MAX_VIDEO_SIZE_MB", "100")) * 1024 * 1024
-        max_label = f"{int(os.getenv('MAX_VIDEO_SIZE_MB', '100'))} MB"
+        limit_mb = _get_int_env("MAX_VIDEO_SIZE_MB", 100)
     elif file_type == "image":
-        max_limit = int(os.getenv("MAX_IMAGE_SIZE_MB", "10")) * 1024 * 1024
-        max_label = f"{int(os.getenv('MAX_IMAGE_SIZE_MB', '10'))} MB"
+        limit_mb = _get_int_env("MAX_IMAGE_SIZE_MB", 10)
     elif file_type == "audio":
-        max_limit = int(os.getenv("MAX_AUDIO_SIZE_MB", "25")) * 1024 * 1024
-        max_label = f"{int(os.getenv('MAX_AUDIO_SIZE_MB', '25'))} MB"
+        limit_mb = _get_int_env("MAX_AUDIO_SIZE_MB", 25)
     elif file_type == "archive":
-        max_limit = int(os.getenv("MAX_ARCHIVE_SIZE_MB", "50")) * 1024 * 1024
-        max_label = f"{int(os.getenv('MAX_ARCHIVE_SIZE_MB', '50'))} MB"
+        limit_mb = _get_int_env("MAX_ARCHIVE_SIZE_MB", 50)
     else:
-        max_limit = int(os.getenv("MAX_DOC_SIZE_MB", "25")) * 1024 * 1024
-        max_label = f"{int(os.getenv('MAX_DOC_SIZE_MB', '25'))} MB"
+        limit_mb = _get_int_env("MAX_DOC_SIZE_MB", 25)
+    max_limit = limit_mb * 1024 * 1024
+    max_label = f"{limit_mb} MB"
 
     if file_size > max_limit:
         raise HTTPException(
