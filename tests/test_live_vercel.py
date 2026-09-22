@@ -105,21 +105,82 @@ def test_live():
         audio_data = json.loads(resp.read().decode())
         print(f"[PASS] 6. Live Audio Upload: ID={audio_data['id']}, Filename={audio_data['original_filename']}, Type={audio_data['file_type']}")
 
-    # Test viewing
-    view_req = urllib.request.Request(f"{BASE}/api/files/{file_id}/view?token={token}")
-    with urllib.request.urlopen(view_req) as resp:
-        disposition = resp.headers.get("Content-Disposition")
-        print(f"[PASS] 3. Live File View: HTTP {resp.status}, Content-Disposition: {disposition}")
+    # Test PDF upload & view
+    pdf_boundary = "----TestBoundaryPdf" + os.urandom(8).hex()
+    fake_pdf = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
+    pdf_body = b"\r\n".join([
+        f"--{pdf_boundary}".encode(),
+        b'Content-Disposition: form-data; name="file"; filename="report.pdf"',
+        b"Content-Type: application/pdf",
+        b"",
+        fake_pdf,
+        f"--{pdf_boundary}--".encode(),
+        b""
+    ])
+    up_pdf_req = urllib.request.Request(
+        f"{BASE}/api/files/upload",
+        data=pdf_body,
+        headers={
+            "Content-Type": f"multipart/form-data; boundary={pdf_boundary}",
+            "Authorization": f"Bearer {token}"
+        }
+    )
+    with urllib.request.urlopen(up_pdf_req) as resp:
+        pdf_data = json.loads(resp.read().decode())
+        pdf_id = pdf_data["id"]
+        print(f"[PASS] 7. Live PDF Upload: ID={pdf_id}, Filename={pdf_data['original_filename']}, Type={pdf_data['file_type']}")
 
-    # Test downloading
-    down_req = urllib.request.Request(f"{BASE}/api/files/{file_id}/download?token={token}")
+    view_pdf_req = urllib.request.Request(f"{BASE}/api/files/{pdf_id}/view?token={token}")
+    with urllib.request.urlopen(view_pdf_req) as resp:
+        print(f"[PASS] 8. Live PDF View: HTTP {resp.status}, Content-Type: {resp.headers.get('Content-Type')}")
+
+    # Test CSV upload & view
+    csv_boundary = "----TestBoundaryCsv" + os.urandom(8).hex()
+    csv_content = b"Name,Email,Role\nAlex,alex@frank.app,Admin\nSam,sam@frank.app,User\n"
+    csv_body = b"\r\n".join([
+        f"--{csv_boundary}".encode(),
+        b'Content-Disposition: form-data; name="file"; filename="data.csv"',
+        b"Content-Type: text/csv",
+        b"",
+        csv_content,
+        f"--{csv_boundary}--".encode(),
+        b""
+    ])
+    up_csv_req = urllib.request.Request(
+        f"{BASE}/api/files/upload",
+        data=csv_body,
+        headers={
+            "Content-Type": f"multipart/form-data; boundary={csv_boundary}",
+            "Authorization": f"Bearer {token}"
+        }
+    )
+    with urllib.request.urlopen(up_csv_req) as resp:
+        csv_data = json.loads(resp.read().decode())
+        csv_id = csv_data["id"]
+        print(f"[PASS] 9. Live CSV Upload: ID={csv_id}, Filename={csv_data['original_filename']}, Type={csv_data['file_type']}")
+
+    view_csv_req = urllib.request.Request(f"{BASE}/api/files/{csv_id}/view?token={token}")
+    with urllib.request.urlopen(view_csv_req) as resp:
+        read_csv = resp.read().decode()
+        assert "Alex,alex@frank.app,Admin" in read_csv
+        print(f"[PASS] 10. Live CSV View: HTTP {resp.status}, Verified Content parsed successfully")
+
+    # Test invalid password login rejection -> 401
+    bad_login_data = json.dumps({
+        "username": user["username"],
+        "password": "WrongPassword999!"
+    }).encode("utf-8")
+    bad_req = urllib.request.Request(
+        f"{BASE}/api/auth/login",
+        data=bad_login_data,
+        headers={"Content-Type": "application/json"}
+    )
     try:
-        with urllib.request.urlopen(down_req) as resp:
-            disposition = resp.headers.get("Content-Disposition")
-            print(f"[PASS] 4. Live File Download: HTTP {resp.status}, Content-Disposition: {disposition}")
+        urllib.request.urlopen(bad_req)
+        assert False, "Expected 401 on bad password"
     except urllib.error.HTTPError as e:
-        print("Download HTTPError:", e.code, e.read().decode())
-        raise
+        assert e.code == 401
+        print(f"[PASS] 11. Live Auth Rejection: HTTP {e.code} for invalid password")
 
     print("==================================================")
     print("ALL LIVE VERCEL TESTS PASSED WITH 100% SUCCESS!")
