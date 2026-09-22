@@ -92,7 +92,14 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
 
     # Generate token
     token_str = create_access_token(
-        data={"sub": user.username, "user_id": user.id},
+        data={
+            "sub": user.username,
+            "user_id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "frank_id": user.frank_id,
+            "role": user.role
+        },
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
@@ -135,7 +142,14 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
 
     # Issue token
     token_str = create_access_token(
-        data={"sub": user.username, "user_id": user.id},
+        data={
+            "sub": user.username,
+            "user_id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "frank_id": user.frank_id,
+            "role": user.role
+        },
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 

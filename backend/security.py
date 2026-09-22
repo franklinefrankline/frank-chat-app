@@ -111,6 +111,35 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
 
 # ---------------- CURRENT USER DEPENDENCY ----------------
 
+def _resolve_user_from_payload(payload: dict, db: Session) -> Optional[models.User]:
+    username = payload.get("sub")
+    if not username:
+        return None
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if user is None and payload.get("frank_id"):
+        # Self-heal user in ephemeral serverless container from verified cryptographic JWT
+        try:
+            uid = payload.get("user_id")
+            user = models.User(
+                username=username,
+                email=payload.get("email") or f"{username}@frank.app",
+                frank_id=payload.get("frank_id"),
+                full_name=payload.get("full_name") or username,
+                hashed_password=hash_password(username + "_ephemeral"),
+                role=payload.get("role") or "user",
+                account_status="active"
+            )
+            if uid and isinstance(uid, int):
+                user.id = uid
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        except Exception:
+            db.rollback()
+            user = db.query(models.User).filter(models.User.username == username).first()
+    return user
+
+
 def get_current_user(
     token: Optional[str] = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
@@ -128,11 +157,7 @@ def get_current_user(
     if payload is None:
         raise credentials_exception
 
-    username: str = payload.get("sub")
-    if username is None:
-        raise credentials_exception
-
-    user = db.query(models.User).filter(models.User.username == username).first()
+    user = _resolve_user_from_payload(payload, db)
     if user is None:
         raise credentials_exception
 
@@ -161,8 +186,4 @@ def get_user_from_token(token: str, db: Session) -> Optional[models.User]:
     payload = decode_token(token)
     if not payload:
         return None
-    username = payload.get("sub")
-    if not username:
-        return None
-    return db.query(models.User).filter(models.User.username == username).first()
-
+    return _resolve_user_from_payload(payload, db)
