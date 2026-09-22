@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>FRANK — Think</title>
+    <meta name="description" content="FRANK is a modern real-time communication platform for simple, secure and seamless conversations. Think.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
+
+    <!-- Open Graph / Meta -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="FRANK — Think">
+    <meta property="og:description" content="Think">
+    <meta property="og:image" content="assets/brand/frank-logo.svg">
+    <meta name="theme-color" content="#2563eb">
+
+    <!-- Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- CSS Architecture -->
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+    <!-- Desktop Custom Cursor (Miniature FRANK F) -->
+
+    <!-- Top Navigation Header -->
+    <header class="landing-header">
+        <a href="index.html" class="brand-link" aria-label="FRANK Home">
+            <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="34" height="34" style="border-radius: 8px;">
+            <span style="color: var(--text); font-weight: 900; letter-spacing: 1px;">FRANK</span>
+        </a>
+
+        <nav class="landing-nav" aria-label="Main Navigation">
+            <a href="#features">Features</a>
+            <a href="#security">Security</a>
+            <a href="#preview">Experience</a>
+            <a href="#about">About</a>
+        </nav>
+
+        <div class="header-actions">
+            <!-- Theme Toggle -->
+            <button class="btn btn-ghost btn-icon" id="themeToggleBtn" aria-label="Toggle Theme">
+                <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+            <a href="login.html" class="btn btn-ghost">Sign In</a>
+            <a href="register.html" class="btn btn-primary">Start Chatting</a>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <div class="badge badge-primary">
+                    <span style="display:inline-block; width:6px; height:6px; background:var(--cyan); border-radius:50%; box-shadow: 0 0 8px var(--cyan);"></span>
+                    Think
+                </div>
+                <h1>Communication, <span>Reimagined.</span></h1>
+                <p>Chat, connect and collaborate with people in a secure, beautifully designed messaging experience.</p>
+
+                <div class="hero-actions">
+                    <a href="register.html" class="btn btn-primary btn-large">
+                        Start Chatting
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </a>
+                    <a href="#features" class="btn btn-secondary btn-large">Explore Features</a>
+                </div>
+
+                <div class="hero-stats">
+                    <div class="hero-stat-item">
+                        <strong>&lt; 50ms</strong>
+                        <span>WebSocket Latency</span>
+                    </div>
+                    <div class="hero-stat-item">
+                        <strong>99.99%</strong>
+                        <span>Engineered Uptime</span>
+                    </div>
+                    <div class="hero-stat-item">
+                        <strong>256-bit</strong>
+                        <span>Cryptographic Tokens</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Live Chat Mockup -->
+            <div class="hero-preview" id="preview">
+                <div class="preview-bar">
+                    <div class="preview-window-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <span style="font-size: 12px; font-weight: 700; color: var(--text-secondary);">FRANK Web Client</span>
+                    <div class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">Live Demo</div>
+                </div>
+
+                <div class="preview-body">
+                    <!-- Preview Sidebar -->
+                    <div class="preview-sidebar">
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 6px; background: var(--primary-soft); border-radius: 8px;">
+                            <div class="avatar avatar-sm">SC<span class="avatar-status online"></span></div>
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="font-size: 11px; font-weight: 700; color: var(--text);">Sarah Connor</div>
+                                <div style="font-size: 9px; color: var(--primary);">Typing...</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 8px;">
+                            <div class="avatar avatar-sm">DC<span class="avatar-status away"></span></div>
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="font-size: 11px; font-weight: 600; color: var(--text);">David Chen</div>
+                                <div style="font-size: 9px; color: var(--text-muted);">See you tomorrow!</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Chat Area -->
+                    <div class="preview-chat-area">
+                        <div class="preview-chat-header">
+                            <div class="avatar avatar-sm">SC<span class="avatar-status online"></span></div>
+                            <div>
+                                <div style="font-size: 12px; font-weight: 700; color: var(--text);">Sarah Connor</div>
+                                <div style="font-size: 10px; color: var(--success); font-weight: 600;">Active Now</div>
+                            </div>
+                        </div>
+
+                        <div class="preview-messages" id="previewMessagesContainer">
+                            <div class="preview-bubble received">
+                                Hey there! Have you tested the new FRANK interface? ⚡
+                            </div>
+                            <div class="preview-bubble sent">
+                                Yes, it feels incredibly snappy and clean!
+                            </div>
+                            <div class="preview-bubble received">
+                                The typing indicators and message reactions are so smooth.
+                            </div>
+                        </div>
+
+                        <div class="preview-input-strip">
+                            <span>Type a message...</span>
+                            <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Grid Section -->
+        <section id="features" class="section">
+            <div class="section-heading">
+                <span class="section-label">Enterprise Capabilities</span>
+                <h2>Everything you need for effortless communication</h2>
+                <p>Designed from the ground up for high reliability, zero latency, and seamless interaction across all your devices.</p>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                    </div>
+                    <h3>Real-Time Messaging</h3>
+                    <p>Sub-millisecond WebSocket data dispatch ensures instantaneous message delivery and updates without page refreshes.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                    <h3>Secure Authentication</h3>
+                    <p>Cryptographically hashed credentials with PBKDF2 and HMAC-SHA256 JWT tokens safeguarding each API and socket request.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <h3>Group Conversations</h3>
+                    <p>Organize discussions into focused groups with multi-member broadcasting, administrative controls, and activity tracking.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <h3>Live Online Presence</h3>
+                    <p>Real-time presence engine updates online/away statuses and interactive typing indicators across all active users.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
+                    <h3>Smart Search</h3>
+                    <p>Find past conversations, direct contacts, and team members with client-side debounced search indexing.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </div>
+                    <h3>Tailored Dark Theme</h3>
+                    <p>Designed with bespoke dark mode tokens for comfortable night-time communication without jarring high-contrast glare.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Security Section -->
+        <section id="security" class="section">
+            <div class="security-grid">
+                <div>
+                    <span class="section-label">Enterprise Architecture</span>
+                    <h2>Private conversations. Protected by design.</h2>
+                    <p style="color: var(--text-secondary); line-height: 1.6; margin-top: 8px;">
+                        FRANK is built on authoritative server-side validation, secure token handshakes, and strict data isolation to ensure confidentiality and integrity.
+                    </p>
+
+                    <div class="security-checklist">
+                        <div class="security-item">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            PBKDF2 Password Hashing
+                        </div>
+                        <div class="security-item">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            JWT Bearer Authorization
+                        </div>
+                        <div class="security-item">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            WebSocket Token Auth
+                        </div>
+                        <div class="security-item">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Strict CORS &amp; Security Headers
+                        </div>
+                        <div class="security-item">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            SQL Injection Immunity
+                        </div>
+                        <div class="security-item">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            XSS-Safe DOM Rendering
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: var(--space-8); text-align: center; box-shadow: var(--shadow-lg);">
+                    <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--success-soft); color: var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-4);">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <h3 style="font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 6px;">Protected Environment</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Every request is authenticated through signed headers, preventing impersonation or unauthorized message snooping.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section id="about" class="cta-banner">
+            <h2>Ready to experience seamless communication?</h2>
+            <p>Join thousands of modern communicators today on FRANK. Set up your account in 30 seconds with no credit card required.</p>
+            <a href="register.html" class="btn btn-secondary btn-large" style="background: #ffffff; color: var(--primary); font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
+                Get Started with FRANK →
+            </a>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <img src="assets/brand/frank-icon.svg" alt="FRANK" width="22" height="22" style="border-radius: 5px;">
+            <strong>FRANK</strong> — &copy; 2026 FRANK. All rights reserved.
+        </div>
+        <div>
+            Think
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/theme.js"></script>
+    <script src="js/ui.js"></script>
+</body>
+</html>

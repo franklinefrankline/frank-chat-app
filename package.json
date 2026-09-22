@@ -21,7 +21,7 @@
     "url": "https://github.com/franklinefrankline/frank-chat-app/issues"
   },
   "homepage": "https://github.com/franklinefrankline/frank-chat-app#readme",
-  "devDependencies": {
+  "dependencies": {
     "playwright": "^1.63.0"
   }
 }

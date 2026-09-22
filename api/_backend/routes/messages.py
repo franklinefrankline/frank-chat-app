@@ -145,7 +145,16 @@ async def send_message(
             await manager.broadcast_to_group(msg.group_id, msg_payload, sender_id=current_user.id)
         elif msg.recipient_id:
             await manager.send_to_user(msg.recipient_id, msg_payload)
-            await manager.send_to_user(current_user.id, msg_payload)
+            if msg.recipient_id != current_user.id:
+                await manager.send_to_user(current_user.id, msg_payload)
+
+        # Real-time metric update for admin (metadata count only — zero message plaintext)
+        total_msgs = db.query(models.Message).count()
+        await manager.broadcast_admin({
+            "type": "admin_message_count_updated",
+            "total_messages": total_msgs
+        })
+        await manager.broadcast_admin_metrics(db)
     except Exception:
         pass
 
@@ -191,25 +200,53 @@ def toggle_reaction(
 
 
 @router.delete("/{message_id}")
-def delete_message(
+async def delete_message(
     message_id: int,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     msg = db.query(models.Message).filter(models.Message.id == message_id).first()
     if not msg:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found")
+        return {"success": True, "message": "Message already deleted"}
 
     if msg.sender_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete other users' messages")
 
+    recip_id = msg.recipient_id
+    grp_id = msg.group_id
+    del_msg_id = msg.id
+
     db.delete(msg)
     db.commit()
+
+    # Broadcast message_deleted via WebSocket
+    try:
+        from websocket.chat import manager
+        del_payload = {
+            "type": "message_deleted",
+            "message_id": del_msg_id
+        }
+        if grp_id:
+            await manager.broadcast_to_group(grp_id, del_payload, sender_id=current_user.id)
+        elif recip_id:
+            await manager.send_to_user(recip_id, del_payload)
+            await manager.send_to_user(current_user.id, del_payload)
+
+        # Real-time metric update for admin
+        total_msgs = db.query(models.Message).count()
+        await manager.broadcast_admin({
+            "type": "admin_message_count_updated",
+            "total_messages": total_msgs
+        })
+        await manager.broadcast_admin_metrics(db)
+    except Exception:
+        pass
+
     return {"success": True, "message": "Message deleted"}
 
 
 @router.put("/{message_id}", response_model=schemas.MessageResponse)
-def edit_message(
+async def edit_message(
     message_id: int,
     update_in: schemas.MessageUpdate,
     current_user: models.User = Depends(get_current_user),
@@ -226,4 +263,30 @@ def edit_message(
     msg.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(msg)
+
+    # Broadcast message_edit via WebSocket
+    try:
+        from websocket.chat import manager
+        edit_payload = {
+            "type": "message_edit",
+            "message": {
+                "id": msg.id,
+                "message_id": msg.id,
+                "sender_id": msg.sender_id,
+                "recipient_id": msg.recipient_id,
+                "group_id": msg.group_id,
+                "content": msg.content,
+                "created_at": schemas.format_iso_utc(msg.created_at),
+                "updated_at": schemas.format_iso_utc(msg.updated_at)
+            }
+        }
+        if msg.group_id:
+            await manager.broadcast_to_group(msg.group_id, edit_payload, sender_id=current_user.id)
+        elif msg.recipient_id:
+            await manager.send_to_user(msg.recipient_id, edit_payload)
+            await manager.send_to_user(current_user.id, edit_payload)
+    except Exception:
+        pass
+
     return msg
+

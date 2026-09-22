@@ -352,7 +352,8 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                                 db_session.commit()
                                 msg_payload["message"]["status"] = "delivered"
 
-                            await manager.send_to_user(recipient_id, msg_payload)
+                            if recipient_id != user_id:
+                                await manager.send_to_user(recipient_id, msg_payload)
 
                         # Broadcast updated message count to admin (metadata count only — zero message content)
                         total_cnt = db_session.query(models.Message).count()

@@ -205,7 +205,8 @@ async def upload_file(
     else:
         expected_mime, file_type = ALLOWED_EXTENSIONS[ext]
 
-    mime_type = file.content_type or expected_mime
+    raw_mime = file.content_type or expected_mime
+    mime_type = raw_mime.split(";")[0].strip()
 
     # Verify conversation target permissions
     if group_id:
@@ -256,11 +257,12 @@ async def upload_file(
     stored_path = UPLOAD_DIR / unique_name
 
     try:
+        stored_path.parent.mkdir(parents=True, exist_ok=True)
         with open(stored_path, "wb") as f:
             f.write(content)
     except Exception as e:
         if not s3_client:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save file on server.")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to save file on server: {e}")
 
     # Persistent cloud object storage (S3/R2/Supabase)
     if s3_client and STORAGE_BUCKET:
@@ -352,7 +354,11 @@ def view_file_content(
                 print(f"S3 signed URL error: {e}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Physical file not found on server.")
 
-    # Inline disposition allows PDFs, videos, and images to render directly in browser tabs
+    # Clean media type (strip codec parameters for broad browser audio/video player support)
+    raw_mime = doc.mime_type or "application/octet-stream"
+    clean_mime = raw_mime.split(";")[0].strip()
+
+    # Inline disposition allows PDFs, videos, audio, and images to render directly in browser
     encoded_filename = urllib.parse.quote(doc.original_filename)
     headers = {
         "Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}",
@@ -362,9 +368,10 @@ def view_file_content(
 
     return FileResponse(
         path=str(file_path),
-        media_type=doc.mime_type,
+        media_type=clean_mime,
         headers=headers
     )
+
 
 
 @router.get("/{file_id}/download")

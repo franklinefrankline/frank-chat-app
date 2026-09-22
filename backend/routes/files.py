@@ -257,11 +257,12 @@ async def upload_file(
     stored_path = UPLOAD_DIR / unique_name
 
     try:
+        stored_path.parent.mkdir(parents=True, exist_ok=True)
         with open(stored_path, "wb") as f:
             f.write(content)
     except Exception as e:
         if not s3_client:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save file on server.")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to save file on server: {e}")
 
     # Persistent cloud object storage (S3/R2/Supabase)
     if s3_client and STORAGE_BUCKET:

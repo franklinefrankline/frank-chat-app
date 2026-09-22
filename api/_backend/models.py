@@ -151,3 +151,21 @@ class AuditLog(Base):
     admin = relationship("User", back_populates="audit_logs", foreign_keys=[admin_id])
 
 
+class ConversationPreference(Base):
+    __tablename__ = "conversation_preferences"
+    __table_args__ = (
+        UniqueConstraint("user_id", "conversation_type", "conversation_id", name="uq_user_conv_pref"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    conversation_type = Column(String(20), nullable=False)  # direct, group
+    conversation_id = Column(Integer, nullable=False, index=True)
+    is_pinned = Column(Boolean, default=False)
+    is_favorite = Column(Boolean, default=False)
+    is_muted = Column(Boolean, default=False)
+    is_archived = Column(Boolean, default=False)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+
+

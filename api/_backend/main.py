@@ -205,6 +205,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.add_middleware(SecurityHeadersMiddleware)
 
 # Handle both /api/... and stripped paths in case of serverless path rewriting

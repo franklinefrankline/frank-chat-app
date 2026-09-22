@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 48" width="250" height="48" fill="none">
+    <defs>
+        <linearGradient id="frankDarkSpine" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#3B82F6" />
+            <stop offset="50%" stop-color="#8B5CF6" />
+            <stop offset="100%" stop-color="#D946EF" />
+        </linearGradient>
+        <linearGradient id="frankDarkTop" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#2563EB" />
+            <stop offset="60%" stop-color="#38BDF8" />
+            <stop offset="100%" stop-color="#22D3EE" />
+        </linearGradient>
+        <linearGradient id="frankDarkMid" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#8B5CF6" />
+            <stop offset="70%" stop-color="#C026D3" />
+            <stop offset="100%" stop-color="#F43F5E" />
+        </linearGradient>
+        <linearGradient id="frankDarkBg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#080C22" />
+            <stop offset="100%" stop-color="#12183D" />
+        </linearGradient>
+        <filter id="frankDarkGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+    </defs>
+    <!-- F Symbol Emblem -->
+    <g transform="translate(2, 2)">
+        <rect width="44" height="44" rx="11" fill="url(#frankDarkBg)" stroke="rgba(59, 130, 246, 0.4)" stroke-width="1.2" />
+        <!-- Top Beam -->
+        <path d="M 11 13 C 11 10.5 13 8.5 15.5 8.5 L 31 8.5 C 33.5 8.5 35.5 10.5 35.5 13 C 35.5 15.5 33.5 17.5 31 17.5 L 15.5 17.5 C 13 17.5 11 15.5 11 13 Z" fill="url(#frankDarkTop)" filter="url(#frankDarkGlow)" />
+        <!-- Spine with Tail -->
+        <path d="M 11 13 L 11 31 C 11 33.5 13 35.5 15.5 35.5 C 18 35.5 20 33.5 20 31 L 20 13 Z" fill="url(#frankDarkSpine)" />
+        <path d="M 11 30 L 7 35 C 6.4 35.8 7 37 8 37 L 13.5 37 C 14.5 37 15 36.2 14.5 35.5 L 11 30 Z" fill="#D946EF" />
+        <!-- Mid Beam -->
+        <path d="M 15.5 21 L 25.5 21 C 28 21 30 23 30 25.5 C 30 28 28 30 25.5 30 L 15.5 30 Z" fill="url(#frankDarkMid)" />
+        <!-- Spark Dot -->
+        <circle cx="31.5" cy="13" r="2.2" fill="#22D3EE" filter="url(#frankDarkGlow)" />
+    </g>
+    <!-- Wordmark & Tagline -->
+    <g transform="translate(56, 0)">
+        <text x="0" y="26" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="900" letter-spacing="1.5" fill="#FFFFFF">FRANK</text>
+        <text x="1" y="41" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" letter-spacing="0.8" fill="#94A3B8">Think</text>
+    </g>
+</svg>

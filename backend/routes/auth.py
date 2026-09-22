@@ -1,6 +1,7 @@
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from database import get_db
 import models
 import schemas
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 import secrets
 
-FRANK_ID_CHARACTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+FRANK_ID_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 
 def generate_unique_frank_id(db: Session) -> str:
@@ -32,18 +33,21 @@ def generate_unique_frank_id(db: Session) -> str:
 
 @router.post("/register", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
 def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
-    # Check username
-    if db.query(models.User).filter(models.User.username == user_in.username).first():
+    clean_username = user_in.username.strip()
+    clean_email = user_in.email.strip().lower()
+
+    # Check username (case-insensitive)
+    if db.query(models.User).filter(func.lower(models.User.username) == clean_username.lower()).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already taken. Please choose another one."
         )
 
-    # Check email
-    if db.query(models.User).filter(models.User.email == user_in.email).first():
+    # Check email (case-insensitive)
+    if db.query(models.User).filter(func.lower(models.User.email) == clean_email).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email address already registered."
+            detail="An account with this email already exists."
         )
 
     # Generate unique 6-character FRANK ID
@@ -51,8 +55,8 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
 
     # Create user
     user = models.User(
-        username=user_in.username.strip(),
-        email=user_in.email.strip().lower(),
+        username=clean_username,
+        email=clean_email,
         frank_id=frank_id,
         full_name=user_in.full_name.strip(),
         hashed_password=hash_password(user_in.password),
@@ -103,15 +107,16 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
 @router.post("/login", response_model=schemas.Token)
 def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
     identifier = login_data.username.strip()
+    ident_lower = identifier.lower()
 
-    # Allow login by username or email (case-insensitive for email and admin aliases)
+    # Allow login by username or email (case-insensitive for both username and email)
     user = db.query(models.User).filter(
-        (models.User.username == identifier) | 
-        (models.User.email == identifier.lower()) |
-        ((models.User.email == "frankline30999112@gmail.com") & (
-            (identifier.lower() == "frankline") | 
-            (identifier.lower() == "admin") | 
-            (identifier.lower() == "frankline30999112@gmail.com")
+        (func.lower(models.User.username) == ident_lower) | 
+        (func.lower(models.User.email) == ident_lower) |
+        ((func.lower(models.User.email) == "frankline30999112@gmail.com") & (
+            (ident_lower == "frankline") | 
+            (ident_lower == "admin") | 
+            (ident_lower == "frankline30999112@gmail.com")
         ))
     ).first()
 

@@ -8,7 +8,9 @@ const API_BASE = (window.FRANK_CONFIG && window.FRANK_CONFIG.API_BASE)
     ? window.FRANK_CONFIG.API_BASE
     : (window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
         ? window.location.origin
-        : 'http://localhost:8000');
+        : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || !window.location.hostname
+            ? 'http://localhost:8000'
+            : window.location.origin));
 
 // Resilient Offline/Demo Database
 const MOCK_STORAGE_KEY = 'frank_offline_db';
@@ -591,7 +593,8 @@ const api = {
 
             // If backend is unavailable or not found (404/500/502/503), fall back gracefully
             if (!res.ok) {
-                if (res.status === 404 || res.status >= 500) {
+                const isAuthEndpoint = endpoint.startsWith('/api/auth/') || endpoint.startsWith('/auth/');
+                if (!isAuthEndpoint && (res.status === 404 || res.status >= 500)) {
                     console.warn(`[FRANK API] Backend returned ${res.status} for ${endpoint}. Falling back to resilient local demo database.`);
                     return handleMockRequest(endpoint, options);
                 }
@@ -604,8 +607,9 @@ const api = {
 
             return data;
         } catch (error) {
-            // If fetch failed due to NetworkError, CORS, or offline server, engage fallback
-            if (error && (error.name === 'TypeError' || String(error).includes('fetch') || String(error).includes('NetworkError'))) {
+            const isAuthEndpoint = endpoint.startsWith('/api/auth/') || endpoint.startsWith('/auth/');
+            // If fetch failed due to NetworkError, CORS, or offline server, engage fallback only for non-auth requests
+            if (!isAuthEndpoint && error && (error.name === 'TypeError' || String(error).includes('fetch') || String(error).includes('NetworkError'))) {
                 console.warn(`[FRANK API] Network fetch failed for ${endpoint}. Falling back to resilient local demo database.`);
                 return handleMockRequest(endpoint, options);
             }
@@ -805,8 +809,12 @@ const api = {
                     resolve(data);
                 } else {
                     let errMsg = `Upload failed with status ${xhr.status}`;
-                    if (xhr.status === 404) {
-                        errMsg = 'Upload endpoint not found (404). Please ensure the backend is running.';
+                    if (data && data.detail) {
+                        if (typeof data.detail === 'string') {
+                            errMsg = data.detail;
+                        } else if (Array.isArray(data.detail)) {
+                            errMsg = data.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+                        }
                     } else if (xhr.status === 413) {
                         errMsg = 'File is too large.';
                     } else if (xhr.status === 415) {
@@ -815,16 +823,6 @@ const api = {
                         errMsg = 'Your session expired. Please log in again.';
                     } else if (xhr.status === 403) {
                         errMsg = 'You do not have permission to upload this file.';
-                    } else if (data && data.detail) {
-                        if (typeof data.detail === 'string') {
-                            if (data.detail.includes('NOT_FOUND') || data.detail.includes('<html') || data.detail.includes('<!DOCTYPE')) {
-                                errMsg = `Server returned an invalid response (${xhr.status}). Please try again.`;
-                            } else {
-                                errMsg = data.detail;
-                            }
-                        } else if (Array.isArray(data.detail)) {
-                            errMsg = data.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
-                        }
                     }
                     const err = new Error(errMsg);
                     err.status = xhr.status;

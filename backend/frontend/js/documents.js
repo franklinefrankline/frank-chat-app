@@ -75,12 +75,11 @@ class DocumentsController {
         }
         if (this.dom.viewerModal) {
             this.dom.viewerModal.classList.remove('open');
-            this.dom.viewerModal.classList.remove('active');
             this.dom.viewerModal.style.display = 'none';
             this.dom.viewerModal.style.visibility = 'hidden';
             this.dom.viewerModal.style.opacity = '0';
             if (this.dom.viewerBody) {
-                const vid = this.dom.viewerBody.querySelector('video, audio');
+                const vid = this.dom.viewerBody.querySelector('video');
                 if (vid) {
                     vid.pause();
                     vid.src = '';
@@ -92,59 +91,53 @@ class DocumentsController {
 
     openDocument(fileId, fileType, filename, directUrl) {
         console.log('>>> [DOCUMENTS] openDocument called with:', fileId, fileType, filename, directUrl);
-        if (!this.dom.viewerModal) {
-            this.dom.viewerModal = document.getElementById('attachmentViewerModal');
-            this.dom.viewerTitle = document.getElementById('attachmentViewerTitle');
-            this.dom.viewerIcon = document.getElementById('attachmentViewerIcon');
-            this.dom.viewerBody = document.getElementById('attachmentViewerBody');
-            this.dom.viewerDownloadBtn = document.getElementById('attachmentViewerDownloadBtn');
-            this.dom.closeViewerBtn = document.getElementById('closeAttachmentViewerBtn');
-            this.bindViewerModal();
-        }
-
-        if (!this.dom.viewerModal) {
-            console.error('>>> [DOCUMENTS] attachmentViewerModal missing from DOM');
-            return;
-        }
-
         const validFileId = (fileId && !isNaN(fileId) && parseInt(fileId, 10) > 0) ? parseInt(fileId, 10) : null;
-        let viewUrl = validFileId ? api.getFileViewUrl(validFileId) : (directUrl || '');
-
-        if (!viewUrl) {
-            console.warn('>>> [DOCUMENTS] Neither valid fileId nor directUrl provided');
-            if (typeof showToast === 'function') {
-                showToast('Unable to open document: file source is unavailable', 'warning');
-            }
+        if (!validFileId && !directUrl) {
+            console.log('>>> [DOCUMENTS] viewerModal missing or fileId and directUrl empty');
             return;
         }
 
-        if (this.dom.viewerTitle) this.dom.viewerTitle.textContent = filename || 'Document';
-        if (this.dom.viewerDownloadBtn) {
-            this.dom.viewerDownloadBtn.onclick = () => this.downloadDocument(validFileId, filename, directUrl);
+        const modal = this.dom.viewerModal || document.getElementById('attachmentViewerModal');
+        if (!modal) {
+            console.log('>>> [DOCUMENTS] attachmentViewerModal not found');
+            return;
         }
 
-        if (this.dom.viewerIcon) {
-            if (fileType === 'image') this.dom.viewerIcon.textContent = '🖼️';
-            else if (fileType === 'video') this.dom.viewerIcon.textContent = '🎥';
-            else if (fileType === 'pdf') this.dom.viewerIcon.textContent = '📕';
-            else if (fileType === 'excel') this.dom.viewerIcon.textContent = '📊';
-            else if (fileType === 'word') this.dom.viewerIcon.textContent = '📘';
-            else if (fileType === 'audio') this.dom.viewerIcon.textContent = '🎵';
-            else this.dom.viewerIcon.textContent = '📄';
+        const token = api.getToken();
+        const viewUrl = validFileId ? api.getFileViewUrl(validFileId) : directUrl;
+        const filenameClean = filename || 'Document';
+
+        const titleEl = this.dom.viewerTitle || modal.querySelector('#attachmentViewerTitle');
+        if (titleEl) titleEl.textContent = filenameClean;
+
+        const downloadBtn = this.dom.viewerDownloadBtn || modal.querySelector('#attachmentViewerDownloadBtn');
+        if (downloadBtn) {
+            downloadBtn.onclick = () => this.downloadDocument(validFileId, filenameClean, directUrl);
         }
 
-        if (this.dom.viewerBody) {
-            this.dom.viewerBody.innerHTML = '';
+        const iconEl = this.dom.viewerIcon || modal.querySelector('#attachmentViewerIcon');
+        if (iconEl) {
+            if (fileType === 'image') iconEl.textContent = '🖼️';
+            else if (fileType === 'video') iconEl.textContent = '🎥';
+            else if (fileType === 'pdf') iconEl.textContent = '📕';
+            else if (fileType === 'excel') iconEl.textContent = '📊';
+            else if (fileType === 'word') iconEl.textContent = '📘';
+            else iconEl.textContent = '📄';
+        }
+
+        const bodyEl = this.dom.viewerBody || modal.querySelector('#attachmentViewerBody');
+        if (bodyEl) {
+            bodyEl.innerHTML = '';
 
             if (fileType === 'image') {
                 const img = document.createElement('img');
                 img.src = viewUrl;
-                img.alt = filename || 'Image';
+                img.alt = filenameClean;
                 img.style.maxWidth = '100%';
                 img.style.maxHeight = 'calc(90vh - 100px)';
                 img.style.objectFit = 'contain';
                 img.style.borderRadius = 'var(--radius-md)';
-                this.dom.viewerBody.appendChild(img);
+                bodyEl.appendChild(img);
             } else if (fileType === 'video') {
                 const video = document.createElement('video');
                 video.src = viewUrl;
@@ -153,20 +146,19 @@ class DocumentsController {
                 video.style.maxWidth = '100%';
                 video.style.maxHeight = 'calc(90vh - 100px)';
                 video.style.borderRadius = 'var(--radius-md)';
-                this.dom.viewerBody.appendChild(video);
+                bodyEl.appendChild(video);
             } else if (fileType === 'audio') {
                 const audioWrap = document.createElement('div');
                 audioWrap.style.textAlign = 'center';
                 audioWrap.style.padding = '30px 20px';
                 audioWrap.style.width = '100%';
-                const safeName = (typeof messagesModule !== 'undefined' && messagesModule.escapeHTML) ? messagesModule.escapeHTML(filename || 'Audio File') : (filename || 'Audio File');
                 audioWrap.innerHTML = `
                     <div style="font-size: 56px; margin-bottom: 16px;">🎵</div>
-                    <div style="font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px;">${safeName}</div>
+                    <div style="font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px;">${messagesModule.escapeHTML(filenameClean)}</div>
                     <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">Audio message / recording playback</div>
                     <audio controls autoplay style="width: 100%; max-width: 480px; margin: 0 auto; display: block;" src="${viewUrl}"></audio>
                 `;
-                this.dom.viewerBody.appendChild(audioWrap);
+                bodyEl.appendChild(audioWrap);
             } else if (fileType === 'pdf') {
                 const iframe = document.createElement('iframe');
                 iframe.src = viewUrl;
@@ -174,7 +166,7 @@ class DocumentsController {
                 iframe.style.height = 'calc(90vh - 100px)';
                 iframe.style.border = 'none';
                 iframe.style.borderRadius = 'var(--radius-md)';
-                this.dom.viewerBody.appendChild(iframe);
+                bodyEl.appendChild(iframe);
             } else if (fileType === 'text') {
                 const pre = document.createElement('pre');
                 pre.style.width = '100%';
@@ -186,7 +178,7 @@ class DocumentsController {
                 pre.style.fontFamily = 'monospace';
                 pre.style.fontSize = '13px';
                 pre.textContent = 'Loading text...';
-                this.dom.viewerBody.appendChild(pre);
+                bodyEl.appendChild(pre);
 
                 fetch(viewUrl).then(r => r.text()).then(t => {
                     pre.textContent = t;
@@ -194,21 +186,20 @@ class DocumentsController {
                     pre.textContent = 'Unable to load text preview.';
                 });
             } else {
-                const safeName = (typeof messagesModule !== 'undefined' && messagesModule.escapeHTML) ? messagesModule.escapeHTML(filename || 'File') : (filename || 'File');
-                this.dom.viewerBody.innerHTML = `
+                bodyEl.innerHTML = `
                     <div style="text-align: center; padding: 40px 20px;">
                         <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
                         <div style="font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px;">Preview unavailable</div>
                         <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">This file type cannot be previewed in the browser. You can download it to view on your device.</div>
                         <button type="button" class="btn btn-primary" id="fallbackDownloadBtn">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            Download ${safeName}
+                            Download ${messagesModule.escapeHTML(filenameClean)}
                         </button>
                     </div>
                 `;
-                const fbBtn = this.dom.viewerBody.querySelector('#fallbackDownloadBtn');
+                const fbBtn = bodyEl.querySelector('#fallbackDownloadBtn');
                 if (fbBtn) {
-                    fbBtn.onclick = () => this.downloadDocument(validFileId, filename, directUrl);
+                    fbBtn.onclick = () => this.downloadDocument(validFileId, filenameClean, directUrl);
                 }
             }
         }
@@ -216,13 +207,11 @@ class DocumentsController {
         if (typeof openModal === 'function') {
             openModal('attachmentViewerModal');
         }
-        if (this.dom.viewerModal) {
-            this.dom.viewerModal.classList.add('open');
-            this.dom.viewerModal.classList.add('active');
-            this.dom.viewerModal.style.display = 'flex';
-            this.dom.viewerModal.style.visibility = 'visible';
-            this.dom.viewerModal.style.opacity = '1';
-        }
+        modal.classList.add('open');
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+        modal.style.visibility = 'visible';
+        modal.style.opacity = '1';
     }
 
     async downloadDocument(fileId, filename, directUrl) {
@@ -230,7 +219,6 @@ class DocumentsController {
         const url = validFileId ? api.getFileDownloadUrl(validFileId) : directUrl;
         if (!url) return;
         try {
-            // First attempt: fetch blob without custom headers (token is already in query param to avoid CORS preflight)
             const res = await fetch(url);
             if (res.ok) {
                 const blob = await res.blob();
@@ -249,7 +237,6 @@ class DocumentsController {
             console.warn('Fetch blob download encountered error, using direct anchor fallback:', fetchErr);
         }
 
-        // Direct native browser download fallback (guaranteed never to fail with "Failed to fetch")
         try {
             const a = document.createElement('a');
             a.href = url;

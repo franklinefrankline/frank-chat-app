@@ -19,10 +19,7 @@ if env_path.exists():
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
-        import tempfile
-        tmp_dir = Path("/tmp") if Path("/tmp").exists() else Path(tempfile.gettempdir())
-        db_path = (tmp_dir / "chatapp.db").as_posix()
-        DATABASE_URL = f"sqlite:///{db_path}"
+        DATABASE_URL = "sqlite:////tmp/chatapp.db"
     else:
         DATABASE_URL = "sqlite:///./chatapp.db"
 

@@ -209,13 +209,14 @@ const messagesModule = {
         let docFilename = '';
         let docFileId = '';
         let docFileType = 'document';
+        let viewUrl = '';
 
         if (hasAttachment) {
             const doc = msg.document || {};
             docFileId = doc.id || msg.file_id || '';
             docFilename = doc.original_filename || msg.filename || (isAudio ? 'voice-message.webm' : (isVideo ? 'video.mp4' : (isImage ? 'photo.jpg' : 'Document')));
             docFileType = doc.file_type || (window.documentsController ? window.documentsController.getFileCategory(docFilename) : (isAudio ? 'audio' : (isVideo ? 'video' : (isImage ? 'image' : 'document'))));
-            const viewUrl = api.getFileViewUrl(docFileId);
+            viewUrl = (docFileId ? api.getFileViewUrl(docFileId) : '') || doc.file_url || msg.file_url || msg.attachment_url || '';
             const ext = docFilename.split('.').pop().toUpperCase();
             const sizeStr = (doc.file_size && window.documentsController) ? window.documentsController.formatFileSize(doc.file_size) : '';
 
@@ -227,7 +228,7 @@ const messagesModule = {
                     : '00:12';
 
                 bodyHtml = `
-                    <div class="message-voice-card" data-file-id="${docFileId}">
+                    <div class="message-voice-card" data-file-id="${docFileId}" data-direct-url="${viewUrl}">
                         <div class="voice-card-header">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
                             <span style="font-weight: 700; font-size: 13px;">Voice message</span>
@@ -248,9 +249,9 @@ const messagesModule = {
             } else if (isImage) {
                 // 2. PHOTO MESSAGE
                 bodyHtml = `
-                    <div class="message-photo-card" data-file-id="${docFileId}">
+                    <div class="message-photo-card" data-file-id="${docFileId}" data-direct-url="${viewUrl}">
                         <div class="msg-photo-wrap">
-                            <img loading="lazy" class="msg-photo-img" src="${viewUrl}" alt="${this.escapeHTML(docFilename)}" data-file-id="${docFileId}" data-file-type="image" data-filename="${this.escapeHTML(docFilename)}">
+                            <img loading="lazy" class="msg-photo-img" src="${viewUrl}" alt="${this.escapeHTML(docFilename)}" data-file-id="${docFileId}" data-file-type="image" data-filename="${this.escapeHTML(docFilename)}" data-direct-url="${viewUrl}">
                         </div>
                         ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${linkedContent}</div>` : ''}
                     </div>
@@ -258,9 +259,9 @@ const messagesModule = {
             } else if (isVideo) {
                 // 3. VIDEO MESSAGE
                 bodyHtml = `
-                    <div class="message-video-card" data-file-id="${docFileId}">
+                    <div class="message-video-card" data-file-id="${docFileId}" data-direct-url="${viewUrl}">
                         <div class="msg-video-wrap">
-                            <video controls playsinline preload="metadata" class="msg-video-player" src="${viewUrl}"></video>
+                            <video controls playsinline preload="metadata" class="msg-video-player" src="${viewUrl}" data-direct-url="${viewUrl}"></video>
                         </div>
                         ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${linkedContent}</div>` : ''}
                     </div>
@@ -269,7 +270,7 @@ const messagesModule = {
                 // 4. DOCUMENT MESSAGE
                 const badgeHtml = window.documentsController ? window.documentsController.getFileBadgeMarkup(docFileType, ext) : `<div class="doc-badge-icon">📄</div>`;
                 bodyHtml = `
-                    <div class="message-document-card" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
+                    <div class="message-document-card" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}" data-direct-url="${viewUrl}">
                         <div class="message-doc-header">
                             ${badgeHtml}
                             <div class="message-doc-meta">
@@ -279,11 +280,11 @@ const messagesModule = {
                         </div>
                         ${(safeContent && !safeContent.startsWith('Shared a file:')) ? `<div class="message-caption">${linkedContent}</div>` : ''}
                         <div class="message-doc-actions">
-                            <button type="button" class="btn btn-sm btn-primary msg-doc-open-btn" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
+                            <button type="button" class="btn btn-sm btn-primary msg-doc-open-btn" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}" data-direct-url="${viewUrl}">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                                 Open
                             </button>
-                            <button type="button" class="btn btn-sm btn-secondary msg-doc-download-btn" data-file-id="${docFileId}" data-filename="${this.escapeHTML(docFilename)}" title="Download">
+                            <button type="button" class="btn btn-sm btn-secondary msg-doc-download-btn" data-file-id="${docFileId}" data-filename="${this.escapeHTML(docFilename)}" data-direct-url="${viewUrl}" title="Download">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                 Download
                             </button>
@@ -322,11 +323,11 @@ const messagesModule = {
 
                     ${hasAttachment ? `
                         ${(isDocument || isImage || isVideo) ? `
-                            <button type="button" class="action-tool-btn msg-action-open-doc" title="Open" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}">
+                            <button type="button" class="action-tool-btn msg-action-open-doc" title="Open" data-file-id="${docFileId}" data-file-type="${docFileType}" data-filename="${this.escapeHTML(docFilename)}" data-direct-url="${viewUrl}">
                                 ${openSvg}
                             </button>
                         ` : ''}
-                        <button type="button" class="action-tool-btn msg-action-download-doc" title="Download" data-file-id="${docFileId}" data-filename="${this.escapeHTML(docFilename)}">
+                        <button type="button" class="action-tool-btn msg-action-download-doc" title="Download" data-file-id="${docFileId}" data-filename="${this.escapeHTML(docFilename)}" data-direct-url="${viewUrl}">
                             ${downloadSvg}
                         </button>
                         ${hasRealText ? `
@@ -536,7 +537,7 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
         const card = openDocBtn.closest('.message-photo-card, .message-document-card, .message-video-card, .message-voice-card, .message-row');
         const rawFileId = openDocBtn.dataset.fileId || (card ? card.dataset.fileId : '') || (card ? card.dataset.messageId : '');
-        const fileId = rawFileId ? parseInt(rawFileId, 10) : null;
+        const fileId = (rawFileId && !isNaN(rawFileId) && parseInt(rawFileId, 10) > 0) ? parseInt(rawFileId, 10) : null;
         let fileType = openDocBtn.dataset.fileType;
         if (!fileType) {
             if (openDocBtn.classList.contains('msg-photo-img') || openDocBtn.classList.contains('message-photo-card')) fileType = 'image';
@@ -544,8 +545,8 @@ document.addEventListener('click', async (e) => {
             else fileType = card?.dataset.fileType || 'document';
         }
         const filename = openDocBtn.dataset.filename || card?.dataset.filename || openDocBtn.getAttribute('alt') || 'Document';
-        const directUrl = openDocBtn.dataset.viewUrl || card?.dataset.viewUrl || openDocBtn.src || openDocBtn.querySelector('img, video, audio')?.src || '';
-        if (window.documentsController) {
+        const directUrl = openDocBtn.dataset.directUrl || (card ? card.dataset.directUrl : '') || (openDocBtn.tagName === 'IMG' || openDocBtn.tagName === 'VIDEO' ? openDocBtn.src : '');
+        if (window.documentsController && (fileId || directUrl)) {
             window.documentsController.openDocument(fileId, fileType, filename, directUrl);
         }
         return;
@@ -557,10 +558,10 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
         const card = downloadDocBtn.closest('.message-photo-card, .message-document-card, .message-video-card, .message-voice-card, .message-row');
         const rawFileId = downloadDocBtn.dataset.fileId || (card ? card.dataset.fileId : '');
-        const fileId = rawFileId ? parseInt(rawFileId, 10) : null;
+        const fileId = (rawFileId && !isNaN(rawFileId) && parseInt(rawFileId, 10) > 0) ? parseInt(rawFileId, 10) : null;
         const filename = downloadDocBtn.dataset.filename || card?.dataset.filename || 'document';
-        const directUrl = downloadDocBtn.dataset.viewUrl || card?.dataset.viewUrl || '';
-        if (window.documentsController) {
+        const directUrl = downloadDocBtn.dataset.directUrl || (card ? card.dataset.directUrl : '');
+        if (window.documentsController && (fileId || directUrl)) {
             window.documentsController.downloadDocument(fileId, filename, directUrl);
         }
         return;

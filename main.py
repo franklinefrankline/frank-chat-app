@@ -15,7 +15,10 @@ try:
     import main as backend_main
     app = getattr(backend_main, "app", None)
 except Exception:
-    app = None
+    try:
+        from backend.main import app
+    except Exception:
+        app = None
 
 if __name__ == "__main__":
     import uvicorn
