@@ -1470,10 +1470,10 @@ class ChatController {
                         <div class="drawer-doc-meta">${sizeStr} • ${dateStr}</div>
                     </div>
                     <div class="drawer-doc-actions">
-                        <button type="button" class="btn btn-ghost btn-icon btn-sm msg-doc-open-btn" data-file-id="${doc.id}" data-file-type="${category}" data-filename="${messagesModule.escapeHTML(doc.original_filename)}" title="Open Document">
+                        <button type="button" class="btn btn-ghost btn-icon btn-sm msg-doc-open-btn" data-file-id="${doc.id}" data-file-type="${category}" data-filename="${messagesModule.escapeHTML(doc.original_filename)}" data-direct-url="${api.getFileViewUrl(doc.id)}" title="Open Document">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                         </button>
-                        <button type="button" class="btn btn-ghost btn-icon btn-sm msg-doc-download-btn" data-file-id="${doc.id}" data-filename="${messagesModule.escapeHTML(doc.original_filename)}" title="Download">
+                        <button type="button" class="btn btn-ghost btn-icon btn-sm msg-doc-download-btn" data-file-id="${doc.id}" data-filename="${messagesModule.escapeHTML(doc.original_filename)}" data-direct-url="${api.getFileDownloadUrl(doc.id)}" title="Download">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         </button>
                     </div>

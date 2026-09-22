@@ -73,6 +73,7 @@ class Document(Base):
     mime_type = Column(String(100), nullable=False)
     file_type = Column(String(50), default="document")  # pdf, word, excel, ppt, text, archive, image, video, audio, other
     duration = Column(Float, nullable=True)  # in seconds for audio/voice and video
+    file_data = Column(Text, nullable=True)  # Base64 payload for resilient multi-instance serverless retrieval
     created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
 
     uploader = relationship("User", back_populates="uploaded_documents")

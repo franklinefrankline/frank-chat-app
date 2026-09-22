@@ -113,13 +113,18 @@ def test_live():
 
     # Test downloading
     down_req = urllib.request.Request(f"{BASE}/api/files/{file_id}/download?token={token}")
-    with urllib.request.urlopen(down_req) as resp:
-        disposition = resp.headers.get("Content-Disposition")
-        print(f"[PASS] 4. Live File Download: HTTP {resp.status}, Content-Disposition: {disposition}")
+    try:
+        with urllib.request.urlopen(down_req) as resp:
+            disposition = resp.headers.get("Content-Disposition")
+            print(f"[PASS] 4. Live File Download: HTTP {resp.status}, Content-Disposition: {disposition}")
+    except urllib.error.HTTPError as e:
+        print("Download HTTPError:", e.code, e.read().decode())
+        raise
 
     print("==================================================")
     print("ALL LIVE VERCEL TESTS PASSED WITH 100% SUCCESS!")
     print("==================================================")
+
 
 if __name__ == "__main__":
     test_live()

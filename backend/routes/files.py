@@ -279,6 +279,15 @@ async def upload_file(
             if not stored_path.exists():
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save file to object storage.")
 
+    # Multi-instance serverless resilience: store base64 payload for docs <= 10MB
+    b64_data = None
+    if file_size <= 10 * 1024 * 1024:
+        import base64
+        try:
+            b64_data = base64.b64encode(content).decode("ascii")
+        except Exception:
+            pass
+
     # Create document record
     doc = models.Document(
         uploader_id=current_user.id,
@@ -289,7 +298,8 @@ async def upload_file(
         file_size=file_size,
         mime_type=mime_type,
         file_type=file_type,
-        duration=duration
+        duration=duration,
+        file_data=b64_data
     )
     db.add(doc)
     db.commit()
@@ -341,6 +351,14 @@ def view_file_content(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this document.")
 
     file_path = UPLOAD_DIR / doc.stored_filename
+    if not file_path.exists() and getattr(doc, "file_data", None):
+        try:
+            import base64
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, "wb") as f:
+                f.write(base64.b64decode(doc.file_data))
+        except Exception as e:
+            print(f"Restore from DB note: {e}")
     if not file_path.exists():
         if s3_client and STORAGE_BUCKET:
             try:
@@ -389,6 +407,14 @@ def download_file(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this document.")
 
     file_path = UPLOAD_DIR / doc.stored_filename
+    if not file_path.exists() and getattr(doc, "file_data", None):
+        try:
+            import base64
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, "wb") as f:
+                f.write(base64.b64decode(doc.file_data))
+        except Exception as e:
+            print(f"Restore from DB note: {e}")
     if not file_path.exists():
         if s3_client and STORAGE_BUCKET:
             try:

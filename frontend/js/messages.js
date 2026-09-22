@@ -535,7 +535,7 @@ document.addEventListener('click', async (e) => {
     const openDocBtn = e.target.closest('.msg-doc-open-btn, .msg-action-open-doc, .msg-photo-img, .message-photo-card, .msg-video-player, .message-video-card, .msg-video-wrap');
     if (openDocBtn) {
         e.stopPropagation();
-        const card = openDocBtn.closest('.message-photo-card, .message-document-card, .message-video-card, .message-voice-card, .message-row');
+        const card = openDocBtn.closest('.message-photo-card, .message-document-card, .message-video-card, .message-voice-card, .message-row, .drawer-doc-item');
         const rawFileId = openDocBtn.dataset.fileId || (card ? card.dataset.fileId : '') || (card ? card.dataset.messageId : '');
         const fileId = (rawFileId && !isNaN(rawFileId) && parseInt(rawFileId, 10) > 0) ? parseInt(rawFileId, 10) : null;
         let fileType = openDocBtn.dataset.fileType;
@@ -546,8 +546,15 @@ document.addEventListener('click', async (e) => {
         }
         const filename = openDocBtn.dataset.filename || card?.dataset.filename || openDocBtn.getAttribute('alt') || 'Document';
         const directUrl = openDocBtn.dataset.directUrl || (card ? card.dataset.directUrl : '') || (openDocBtn.tagName === 'IMG' || openDocBtn.tagName === 'VIDEO' ? openDocBtn.src : '');
+
+        if (!window.documentsController && typeof DocumentsController !== 'undefined') {
+            window.documentsController = new DocumentsController();
+        }
+
         if (window.documentsController && (fileId || directUrl)) {
             window.documentsController.openDocument(fileId, fileType, filename, directUrl);
+        } else if (directUrl) {
+            window.open(directUrl, '_blank');
         }
         return;
     }
@@ -556,13 +563,25 @@ document.addEventListener('click', async (e) => {
     const downloadDocBtn = e.target.closest('.msg-doc-download-btn, .msg-action-download-doc');
     if (downloadDocBtn) {
         e.stopPropagation();
-        const card = downloadDocBtn.closest('.message-photo-card, .message-document-card, .message-video-card, .message-voice-card, .message-row');
+        const card = downloadDocBtn.closest('.message-photo-card, .message-document-card, .message-video-card, .message-voice-card, .message-row, .drawer-doc-item');
         const rawFileId = downloadDocBtn.dataset.fileId || (card ? card.dataset.fileId : '');
         const fileId = (rawFileId && !isNaN(rawFileId) && parseInt(rawFileId, 10) > 0) ? parseInt(rawFileId, 10) : null;
         const filename = downloadDocBtn.dataset.filename || card?.dataset.filename || 'document';
         const directUrl = downloadDocBtn.dataset.directUrl || (card ? card.dataset.directUrl : '');
+
+        if (!window.documentsController && typeof DocumentsController !== 'undefined') {
+            window.documentsController = new DocumentsController();
+        }
+
         if (window.documentsController && (fileId || directUrl)) {
             window.documentsController.downloadDocument(fileId, filename, directUrl);
+        } else if (directUrl) {
+            const a = document.createElement('a');
+            a.href = directUrl;
+            a.download = filename || 'document';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
         }
         return;
     }

@@ -100,6 +100,16 @@ class DocumentsController {
         const modal = this.dom.viewerModal || document.getElementById('attachmentViewerModal');
         if (!modal) {
             console.log('>>> [DOCUMENTS] attachmentViewerModal not found');
+            if (directUrl) window.open(directUrl, '_blank');
+            return;
+        }
+
+        const closeBtn = this.dom.closeViewerBtn || modal.querySelector('#closeAttachmentViewerBtn') || document.getElementById('closeAttachmentViewerBtn');
+        if (closeBtn) {
+            closeBtn.onclick = () => this.closeViewerModal();
+        }
+        if (!modal) {
+            console.log('>>> [DOCUMENTS] attachmentViewerModal not found');
             return;
         }
 
@@ -690,8 +700,13 @@ class DocumentsController {
 }
 
 // Global initialization
-document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('frankPhotoInput') || document.getElementById('mainComposerBar')) {
+function initDocumentsController() {
+    if (!window.documentsController) {
         window.documentsController = new DocumentsController();
     }
-});
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDocumentsController);
+} else {
+    initDocumentsController();
+}

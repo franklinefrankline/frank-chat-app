@@ -80,6 +80,8 @@ def check_and_migrate_db():
                 columns = [col["name"] for col in inspector.get_columns("documents")]
                 if "duration" not in columns:
                     conn.execute(text("ALTER TABLE documents ADD COLUMN duration FLOAT NULL"))
+                if "file_data" not in columns:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN file_data TEXT NULL"))
 
             if "groups" in tables:
                 columns = [col["name"] for col in inspector.get_columns("groups")]
