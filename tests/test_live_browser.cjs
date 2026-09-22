@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
         await page.fill('#regEmail', email);
         await page.fill('#regPassword', 'Password123!');
         await page.fill('#regConfirmPassword', 'Password123!');
-        await page.click('#agreeTerms');
+        await page.click('#regTerms');
         await page.click('#registerSubmitBtn');
 
         await page.waitForURL('**/dashboard.html', { timeout: 20000 });
@@ -40,7 +40,10 @@ const { chromium } = require('playwright');
             if (userItem) {
                 await userItem.click();
                 console.log('Started chat from new chat modal');
+                await page.waitForTimeout(500);
             }
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(500);
         }
 
         // Wait for composer
@@ -79,6 +82,10 @@ const { chromium } = require('playwright');
 
                 const modalTitle = await page.$eval('#attachmentViewerTitle', el => el.textContent);
                 console.log('Modal title is:', modalTitle);
+
+                await page.waitForTimeout(1000);
+                await page.screenshot({ path: 'tests/live_modal_open_success.png' });
+                console.log('[PASS] Captured screenshot of live modal at tests/live_modal_open_success.png');
             }
         }
 
