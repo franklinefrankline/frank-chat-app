@@ -589,3 +589,75 @@
 .custom-cursor-dot {
     display: none !important;
 }
+
+/* ---------------- PROFESSIONAL FRANK ID BADGE & COPY BUTTON ---------------- */
+.frank-id-badge {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--accent-cyan, #06B6D4);
+    background: rgba(6, 182, 212, 0.12);
+    padding: 2px 6px;
+    border-radius: var(--radius-xs, 4px);
+    border: 1px solid rgba(6, 182, 212, 0.28);
+    letter-spacing: 0.6px;
+    display: inline-flex;
+    align-items: center;
+    user-select: all;
+    line-height: 1.2;
+}
+
+.btn-copy-frank-id {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    min-width: 26px;
+    min-height: 26px;
+    border-radius: var(--radius-xs, 4px);
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast, 150ms ease);
+    position: relative;
+    outline: none;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.btn-copy-frank-id:hover {
+    color: var(--primary, #2563EB);
+    border-color: var(--primary, #2563EB);
+    background: var(--primary-soft, rgba(37, 99, 235, 0.12));
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.2);
+}
+
+.btn-copy-frank-id:active {
+    transform: scale(0.95);
+}
+
+.btn-copy-frank-id:focus-visible {
+    outline: 2px solid var(--primary, #2563EB);
+    outline-offset: 2px;
+}
+
+.btn-copy-frank-id.copied {
+    color: var(--success, #10B981) !important;
+    border-color: var(--success, #10B981) !important;
+    background: var(--success-soft, rgba(16, 185, 129, 0.12)) !important;
+}
+
+/* Touch target for mobile accessibility (minimum 40-44px tap area) */
+@media (max-width: 768px) {
+    .btn-copy-frank-id::after {
+        content: '';
+        position: absolute;
+        top: -9px;
+        bottom: -9px;
+        left: -9px;
+        right: -9px;
+        min-width: 44px;
+        min-height: 44px;
+    }
+}

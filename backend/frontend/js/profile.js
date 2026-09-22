@@ -60,12 +60,15 @@ const profileModule = {
             const copyBtn = document.getElementById('copyFrankIdBtn');
             if (copyBtn && !copyBtn.dataset.wired) {
                 copyBtn.dataset.wired = 'true';
+                if (user.frank_id) copyBtn.dataset.frankId = user.frank_id;
                 copyBtn.addEventListener('click', async () => {
-                    const fid = user.frank_id;
-                    if (fid) {
+                    const fid = user.frank_id || (auth.getUser() && auth.getUser().frank_id);
+                    if (typeof window.copyFrankId === 'function') {
+                        window.copyFrankId(fid, copyBtn);
+                    } else if (fid) {
                         try {
                             await navigator.clipboard.writeText(fid);
-                            showToast(`FRANK ID ${fid} copied to clipboard!`, 'success');
+                            showToast('FRANK ID copied', 'success');
                         } catch (_) {
                             showToast(`FRANK ID: ${fid}`, 'info');
                         }

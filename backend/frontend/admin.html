@@ -441,7 +441,18 @@
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">FRANK ID</span>
-                        <span class="detail-value" id="profileCardFrankId" style="font-family: monospace; font-weight: 800; color: var(--accent-cyan);">ADM001</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="detail-value frank-id-badge" id="profileCardFrankId">ADM001</span>
+                            <button type="button" class="btn-copy-frank-id" aria-label="Copy FRANK ID" title="Copy FRANK ID">
+                                <svg class="copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <svg class="check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none; color: var(--success, #10B981);">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Security Role</span>
@@ -504,6 +515,7 @@
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/websocket.js"></script>
+    <script src="js/ui.js"></script>
     <script src="js/admin.js"></script>
 </body>
 </html>

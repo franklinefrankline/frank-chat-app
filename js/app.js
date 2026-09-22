@@ -90,14 +90,29 @@ class AppController {
         const nameEl = document.getElementById('sidebarUserName');
         const initialsEl = document.getElementById('sidebarUserInitials');
         const frankIdEl = document.getElementById('sidebarUserFrankId');
+        const menuFrankIdEl = document.getElementById('menuUserFrankId');
+        const copySidebarBtn = document.getElementById('copySidebarFrankIdBtn');
+        const copyMenuBtn = document.getElementById('copyMenuFrankIdBtn');
+
         if (nameEl) nameEl.textContent = user.full_name || user.username;
         if (initialsEl) {
             const name = user.full_name || user.username || '??';
             initialsEl.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
         }
-        if (frankIdEl && user.frank_id) {
-            frankIdEl.textContent = user.frank_id;
-            frankIdEl.title = `Your permanent FRANK ID: ${user.frank_id} (Click to copy)`;
+        if (user.frank_id) {
+            if (frankIdEl) {
+                frankIdEl.textContent = user.frank_id;
+                frankIdEl.title = `Your permanent FRANK ID: ${user.frank_id}`;
+            }
+            if (menuFrankIdEl) {
+                menuFrankIdEl.textContent = user.frank_id;
+            }
+            if (copySidebarBtn) {
+                copySidebarBtn.dataset.frankId = user.frank_id;
+            }
+            if (copyMenuBtn) {
+                copyMenuBtn.dataset.frankId = user.frank_id;
+            }
         }
     }
 
@@ -324,10 +339,10 @@ class AppController {
 
         overlay?.addEventListener('click', closeSidebar);
 
-        // Auto-close mobile drawer when tapping any link or button inside it
+        // Auto-close mobile drawer when tapping any link or button inside it (except copy button and user card)
         sidebar?.querySelectorAll('button, a').forEach(el => {
             el.addEventListener('click', () => {
-                if (window.innerWidth <= 768 && !el.classList.contains('sidebar-user')) {
+                if (window.innerWidth <= 768 && !el.classList.contains('sidebar-user') && !el.closest('.btn-copy-frank-id')) {
                     closeSidebar();
                 }
             });
