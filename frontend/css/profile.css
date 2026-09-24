@@ -1,5 +1,6 @@
 /* -------------------------------------------------------------------------
    USER PROFILE PAGE STYLING
+   Theme 1: Monochrome | Theme 2: Sandstone
    ------------------------------------------------------------------------- */
 
 .profile-page-container {
@@ -18,28 +19,34 @@
 
 .profile-banner {
     height: 160px;
-    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 30%, #4338ca 65%, #6366f1 90%, #06b6d4 100%);
+    background: var(--surface-elevated);
     position: relative;
     overflow: hidden;
+    border-bottom: 1px solid var(--border);
 }
 
-.profile-banner::before {
+/* Monochrome Profile Banner */
+[data-theme="monochrome"] .profile-banner {
+    background: linear-gradient(160deg, #111111 0%, #171717 50%, #202020 100%);
+}
+[data-theme="monochrome"] .profile-banner::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 85% 20%, rgba(99, 102, 241, 0.4) 0%, transparent 60%),
-                radial-gradient(circle at 15% 90%, rgba(6, 182, 212, 0.25) 0%, transparent 50%);
+    background: radial-gradient(circle at 85% 20%, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
     pointer-events: none;
 }
 
-.profile-banner::after {
+/* Sandstone Profile Banner */
+[data-theme="sandstone"] .profile-banner {
+    background: linear-gradient(160deg, #EADCC8 0%, #E2CFB7 50%, #D9BE98 100%);
+}
+[data-theme="sandstone"] .profile-banner::before {
     content: '';
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    inset: 0;
+    background: radial-gradient(circle at 85% 20%, rgba(184, 107, 61, 0.15) 0%, transparent 60%);
+    pointer-events: none;
 }
 
 .profile-header-content {
@@ -56,7 +63,7 @@
     position: relative;
     border: 4px solid var(--surface);
     border-radius: 50%;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-md);
     background: var(--surface);
 }
 
@@ -65,14 +72,26 @@
     height: 96px;
     font-size: 32px;
     font-weight: 800;
-    color: #ffffff;
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #3b82f6 100%);
+    color: var(--text-inverse);
+    background: var(--primary);
     letter-spacing: 0.5px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
     position: relative;
+}
+
+[data-theme="monochrome"] .profile-avatar-wrap .avatar {
+    background: #202020;
+    color: #FFFFFF;
+    border: 1px solid #444444;
+}
+
+[data-theme="sandstone"] .profile-avatar-wrap .avatar {
+    background: #EADCC8;
+    color: #2D241D;
+    border: 1px solid #D8C5AA;
 }
 
 .profile-avatar-wrap .avatar-status {
@@ -81,6 +100,7 @@
     border: 3px solid var(--surface);
     bottom: 2px;
     right: 2px;
+    border-radius: 50%;
 }
 
 .profile-info-block {
@@ -98,6 +118,38 @@
     font-size: 14px;
     color: var(--text-muted);
     margin-bottom: var(--space-4);
+}
+
+/* FRANK ID Card */
+.frank-id-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: var(--frank-id-card-bg);
+    border: 1px solid var(--frank-id-card-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-5);
+    margin: var(--space-4) 0 var(--space-6) 0;
+    transition: all var(--transition-fast);
+}
+
+.frank-id-card-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.frank-id-card-number {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    color: var(--text);
 }
 
 .profile-bio-text {
@@ -165,4 +217,3 @@
         gap: var(--space-3);
     }
 }
-

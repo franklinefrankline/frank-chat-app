@@ -33,6 +33,9 @@ const auth = {
     setUser(user) {
         if (user) {
             localStorage.setItem('chatapp_user', JSON.stringify(user));
+            if (user.theme && typeof window.theme !== 'undefined') {
+                window.theme.apply(user.theme, false);
+            }
         } else {
             localStorage.removeItem('chatapp_user');
         }

@@ -80,6 +80,14 @@
 
             <!-- Sidebar Navigation Sections -->
             <nav class="sidebar-nav" aria-label="Sidebar Sections">
+                <a href="profile.html" class="nav-item" id="sidebarProfileLink">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span>Profile</span>
+                </a>
+
                 <button type="button" class="nav-item active" data-section="chats">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -155,6 +163,31 @@
                 <!-- Settings Section -->
                 <div class="sidebar-section-title">Settings</div>
 
+                <a href="settings.html" class="nav-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    <span>Settings</span>
+                </a>
+
+                <a href="settings.html?tab=privacy" class="nav-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span>Privacy</span>
+                </a>
+
+                <a href="settings.html?tab=help" class="nav-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <span>Help &amp; Support</span>
+                </a>
+
                 <a href="settings.html?tab=notifications" class="nav-item">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -169,22 +202,6 @@
                         <path d="M12 2a10 10 0 0 0 0 20v-20z"></path>
                     </svg>
                     <span>Appearance</span>
-                </a>
-
-                <a href="settings.html?tab=privacy" class="nav-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                    <span>Privacy</span>
-                </a>
-
-                <a href="settings.html" class="nav-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                    </svg>
-                    <span>Settings</span>
                 </a>
             </nav>
 
@@ -256,10 +273,11 @@
                 <!-- Utilities: Theme & Direct Sign Out -->
                 <div class="sidebar-footer-utilities" style="display: flex; flex-direction: column; gap: 8px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 4px;">
-                        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Dark Theme</span>
-                        <button type="button" class="btn btn-ghost btn-icon" id="dashboardThemeBtn" aria-label="Toggle Dark Mode">
-                            <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);" id="sidebarThemeLabel">Theme</span>
+                        <button type="button" class="btn btn-ghost btn-icon" id="dashboardThemeBtn" aria-label="Toggle Theme" title="Toggle Theme">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor"></path>
                             </svg>
                         </button>
                     </div>
@@ -278,40 +296,61 @@
 
         <!-- ================= 2. CONVERSATION / GROUP PANEL (340px) ================= -->
         <section class="conversation-panel" id="conversationPanel">
+            <!-- Mobile & Desktop Unified Header -->
             <div class="conversation-header">
-                <button type="button" class="btn btn-ghost btn-icon mobile-nav-toggle" id="openSidebarBtn" aria-label="Open Sidebar Menu">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="3" y1="12" x2="21" y2="12"></line>
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <line x1="3" y1="18" x2="21" y2="18"></line>
-                    </svg>
-                </button>
+                <!-- Mobile Logo Header (Screen 1) -->
+                <div class="mobile-header-brand" id="mobileHeaderBrand">
+                    <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" class="brand-logo-img" width="28" height="28" style="border-radius: 8px; flex-shrink: 0;">
+                    <div class="brand-title-wrap">
+                        <span class="brand-title-text mobile-brand-title" style="font-size: 17px; font-weight: 900; letter-spacing: 0.5px;">FRANK</span>
+                    </div>
+                </div>
 
-                <h1 class="conversation-header-title">Messages</h1>
+                <!-- Desktop Title -->
+                <h1 class="conversation-header-title desktop-header-title">Messages</h1>
 
-                <button type="button" class="btn btn-primary btn-sm" id="newChatModalBtn" data-open-modal="newChatModal" aria-label="New Conversation" title="New Conversation" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; white-space: nowrap; padding: 6px 12px; font-size: 13px;">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    <span>+ New Conversation</span>
-                </button>
+                <div class="conversation-header-actions">
+                    <!-- Desktop New Conversation Button -->
+                    <button type="button" class="btn btn-primary btn-sm desktop-new-chat-btn" id="newChatModalBtn" data-open-modal="newChatModal" aria-label="New Conversation" title="New Conversation" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; white-space: nowrap; padding: 6px 12px; font-size: 13px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <span>+ New Conversation</span>
+                    </button>
+
+                    <!-- Mobile Menu / More Drawer Trigger (Screen 1) -->
+                    <button type="button" class="btn btn-ghost btn-icon mobile-menu-btn" id="openSidebarBtn" aria-label="Open menu" title="Open menu">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="1.5"></circle>
+                            <circle cx="12" cy="5" r="1.5"></circle>
+                            <circle cx="12" cy="19" r="1.5"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Tabs (Chats, Groups, Contacts) -->
+            <div class="mobile-tabs-container" id="mobileTabsContainer">
+                <button type="button" class="mobile-tab-btn active" id="tabBtnChats" data-tab="chats" aria-label="Chats">Chats</button>
+                <button type="button" class="mobile-tab-btn" id="tabBtnGroups" data-tab="groups" aria-label="Groups">Groups</button>
+                <button type="button" class="mobile-tab-btn" id="tabBtnContacts" data-tab="contacts" aria-label="Contacts">Contacts</button>
             </div>
 
             <!-- Search Bar -->
             <div class="conversation-search-wrap">
                 <div class="conversation-search">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    <input type="text" id="conversationSearchInput" placeholder="Search conversations or groups...">
-                    <button type="button" id="clearSearchBtn" style="display:none; color:var(--text-muted);">✕</button>
+                    <input type="text" id="conversationSearchInput" placeholder="Search conversations..." aria-label="Search conversations">
+                    <button type="button" id="clearSearchBtn" aria-label="Clear search" style="display:none; color:var(--text-muted);">✕</button>
                 </div>
             </div>
 
-            <!-- Filter Tabs -->
-            <div class="conversation-filters">
+            <!-- Desktop Filter Tabs -->
+            <div class="conversation-filters desktop-filters">
                 <button type="button" class="filter-chip active" data-filter="all">All</button>
                 <button type="button" class="filter-chip" data-filter="unread">Unread</button>
                 <button type="button" class="filter-chip" data-filter="groups">Groups</button>
@@ -325,6 +364,47 @@
                     <div style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">Syncing messages...</div>
                 </div>
             </div>
+
+            <!-- Mobile Bottom Navigation (Chats, Groups, Contacts, Favorites, Settings) -->
+            <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Mobile Navigation">
+                <button type="button" class="mobile-bottom-nav-item active" id="bottomNavChats" data-tab="chats" aria-label="Chats">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>Chats</span>
+                </button>
+                <button type="button" class="mobile-bottom-nav-item" id="bottomNavGroups" data-tab="groups" aria-label="Groups">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span>Groups</span>
+                </button>
+                <button type="button" class="mobile-bottom-nav-item" id="bottomNavContacts" data-tab="contacts" aria-label="Contacts">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    <span>Contacts</span>
+                </button>
+                <button type="button" class="mobile-bottom-nav-item" id="bottomNavFavorites" data-tab="favorites" aria-label="Favorites">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    <span>Favorites</span>
+                </button>
+                <button type="button" class="mobile-bottom-nav-item" id="bottomNavSettings" data-tab="settings" aria-label="Settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    <span>Settings</span>
+                </button>
+            </nav>
         </section>
 
         <!-- ================= 3. ACTIVE CHAT WINDOW (Remaining Width) ================= -->
@@ -698,7 +778,7 @@
                         <textarea 
                             class="composer-textarea" 
                             id="messageComposerTextarea" 
-                            placeholder="Type a message (Enter to send, Shift+Enter for new line)..." 
+                            placeholder="Message..." 
                             rows="1"
                             aria-label="Message Input"
                         ></textarea>

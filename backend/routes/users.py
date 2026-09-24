@@ -45,6 +45,10 @@ def update_profile(
         current_user.bio = user_update.bio.strip()
     if user_update.avatar_url is not None:
         current_user.avatar_url = user_update.avatar_url.strip()
+    if user_update.theme is not None:
+        clean_theme = user_update.theme.strip().lower()
+        if clean_theme in ["monochrome", "sandstone", "dark", "light"]:
+            current_user.theme = "sandstone" if clean_theme in ["sandstone", "light"] else "monochrome"
 
     db.commit()
     db.refresh(current_user)

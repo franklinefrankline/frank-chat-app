@@ -19,6 +19,8 @@
     white-space: nowrap;
     position: relative;
     overflow: hidden;
+    cursor: pointer;
+    font-family: var(--font-sans);
 }
 
 .btn:active:not(:disabled) {
@@ -31,55 +33,119 @@
     pointer-events: none;
 }
 
+.btn-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+}
+
 .btn-primary {
     background: var(--primary);
-    color: #ffffff;
+    color: var(--primary-text, var(--text-inverse, #000000)) !important;
     box-shadow: 0 2px 8px var(--primary-glow);
+    border: 1px solid transparent;
+}
+
+.btn-primary,
+.btn-primary .btn-text,
+.btn-primary span {
+    color: var(--primary-text, var(--text-inverse, #000000)) !important;
+    font-weight: 700;
+}
+
+.btn-primary svg {
+    color: var(--primary-text, var(--text-inverse, #000000)) !important;
+    stroke: currentColor;
 }
 
 .btn-primary:hover:not(:disabled) {
     background: var(--primary-hover);
+    color: var(--primary-text, var(--text-inverse, #000000)) !important;
     box-shadow: 0 4px 14px var(--primary-glow);
+}
+
+.btn-primary:hover:not(:disabled) .btn-text,
+.btn-primary:hover:not(:disabled) span {
+    color: var(--primary-text, var(--text-inverse, #000000)) !important;
 }
 
 .btn-secondary {
     background: var(--surface-elevated);
-    color: var(--text);
+    color: var(--text) !important;
     border-color: var(--border);
+}
+
+.btn-secondary,
+.btn-secondary .btn-text,
+.btn-secondary span {
+    color: var(--text) !important;
 }
 
 .btn-secondary:hover:not(:disabled) {
     background: var(--surface-muted);
     border-color: var(--border-hover);
+    color: var(--text) !important;
 }
 
 .btn-outline {
     background: transparent;
-    color: var(--primary);
-    border-color: var(--primary);
+    color: var(--text) !important;
+    border-color: var(--border-strong, var(--border));
+}
+
+.btn-outline,
+.btn-outline .btn-text,
+.btn-outline span {
+    color: var(--text) !important;
 }
 
 .btn-outline:hover:not(:disabled) {
-    background: var(--primary-soft);
+    background: var(--surface-elevated);
+    border-color: var(--primary);
+    color: var(--text) !important;
 }
 
 .btn-ghost {
     background: transparent;
-    color: var(--text-secondary);
+    color: var(--text-secondary) !important;
+}
+
+.btn-ghost,
+.btn-ghost .btn-text,
+.btn-ghost span {
+    color: var(--text-secondary) !important;
 }
 
 .btn-ghost:hover:not(:disabled) {
     background: var(--surface-elevated);
-    color: var(--text);
+    color: var(--text) !important;
+}
+
+.btn-ghost:hover:not(:disabled) .btn-text,
+.btn-ghost:hover:not(:disabled) span {
+    color: var(--text) !important;
 }
 
 .btn-danger {
-    background: var(--danger);
-    color: #ffffff;
+    background: #DC2626;
+    color: #FFFFFF !important;
+    border-color: transparent;
+}
+
+.btn-danger,
+.btn-danger .btn-text,
+.btn-danger span {
+    color: #FFFFFF !important;
+    font-weight: 600;
 }
 
 .btn-danger:hover:not(:disabled) {
-    background: #dc2626;
+    background: #B91C1C;
+    color: #FFFFFF !important;
 }
 
 .btn-icon {
@@ -243,6 +309,22 @@
 
 .toggle-switch input:checked + .toggle-slider:before {
     transform: translateX(20px);
+}
+
+[data-theme="monochrome"] .toggle-switch input:checked + .toggle-slider {
+    background-color: #FFFFFF;
+}
+
+[data-theme="monochrome"] .toggle-switch input:checked + .toggle-slider:before {
+    background-color: #000000;
+}
+
+[data-theme="sandstone"] .toggle-switch input:checked + .toggle-slider {
+    background-color: #C8754D;
+}
+
+[data-theme="sandstone"] .toggle-switch input:checked + .toggle-slider:before {
+    background-color: #FFFFFF;
 }
 
 /* ---------------- BADGES & PILLS ---------------- */
@@ -595,16 +677,28 @@
     font-family: var(--font-mono, monospace);
     font-size: 11px;
     font-weight: 800;
-    color: var(--accent-cyan, #06B6D4);
-    background: rgba(6, 182, 212, 0.12);
+    color: var(--text);
+    background: var(--surface-elevated);
     padding: 2px 6px;
     border-radius: var(--radius-xs, 4px);
-    border: 1px solid rgba(6, 182, 212, 0.28);
+    border: 1px solid var(--border);
     letter-spacing: 0.6px;
     display: inline-flex;
     align-items: center;
     user-select: all;
     line-height: 1.2;
+}
+
+[data-theme="monochrome"] .frank-id-badge {
+    color: #FFFFFF;
+    background: #181818;
+    border-color: #303030;
+}
+
+[data-theme="sandstone"] .frank-id-badge {
+    color: #76543B;
+    background: #F8EFE2;
+    border-color: #D8C5AA;
 }
 
 .btn-copy-frank-id {

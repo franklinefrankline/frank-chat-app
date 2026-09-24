@@ -36,6 +36,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
+    theme: Optional[str] = None
 
 
 class UserResponse(UserBase):
@@ -43,6 +44,7 @@ class UserResponse(UserBase):
     frank_id: str
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
+    theme: Optional[str] = "monochrome"
     role: str = "user"
     account_status: str = "active"
     is_online: bool = False

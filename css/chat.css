@@ -15,7 +15,7 @@
 /* ---------------- 1. SIDEBAR (240px) ---------------- */
 .sidebar {
     width: 260px;
-    background: var(--surface);
+    background: var(--sidebar-bg, var(--surface));
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -134,13 +134,13 @@
 }
 
 .nav-item:hover {
-    background: var(--surface-elevated);
+    background: var(--sidebar-item-hover, var(--surface-elevated));
     color: var(--text);
 }
 
 .nav-item.active {
-    background: var(--primary-soft);
-    color: var(--primary);
+    background: var(--sidebar-item-active, var(--surface-elevated));
+    color: var(--sidebar-item-active-text, var(--text));
 }
 
 .nav-item.active::before {
@@ -150,7 +150,7 @@
     top: 20%;
     bottom: 20%;
     width: 3px;
-    background: var(--primary);
+    background: var(--sidebar-item-active-border, var(--primary));
     border-radius: var(--radius-full);
 }
 
@@ -176,7 +176,7 @@
 /* ---------------- 2. CONVERSATION PANEL (340px) ---------------- */
 .conversation-panel {
     width: 340px;
-    background: var(--surface);
+    background: var(--chat-list-bg, var(--surface));
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -280,11 +280,11 @@
 }
 
 .conversation-card:hover {
-    background: var(--surface-elevated);
+    background: var(--chat-item-hover, var(--surface-elevated));
 }
 
 .conversation-card.active {
-    background: var(--primary-soft);
+    background: var(--chat-item-selected, var(--surface-elevated));
     border-left-color: var(--primary);
 }
 
@@ -325,7 +325,7 @@
 }
 
 .conversation-card.active .conversation-snippet {
-    color: var(--primary-dark);
+    color: var(--text-secondary);
 }
 
 .unread-badge {
@@ -333,8 +333,8 @@
     height: 18px;
     padding: 0 5px;
     border-radius: var(--radius-full);
-    background: var(--primary);
-    color: #ffffff;
+    background: var(--unread-bg, var(--primary));
+    color: var(--unread-text, #ffffff);
     font-size: 10px;
     font-weight: 700;
     display: flex;
@@ -350,7 +350,7 @@
     flex-direction: column;
     height: 100vh;
     min-width: 0;
-    background: var(--background);
+    background: var(--chat-bg, var(--background));
     position: relative;
 }
 
@@ -368,7 +368,7 @@
 .chat-header {
     height: 68px;
     padding: 0 var(--space-5);
-    background: var(--surface);
+    background: var(--chat-header-bg, var(--surface));
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -464,7 +464,7 @@
 
 .message-bubble {
     padding: 10px 14px;
-    border-radius: var(--radius-lg);
+    border-radius: 16px;
     font-size: 14px;
     line-height: 1.45;
     position: relative;
@@ -473,15 +473,17 @@
 }
 
 .message-row.sent .message-bubble {
-    background: var(--primary);
-    color: #ffffff;
+    background: var(--message-sent);
+    color: var(--message-sent-text);
+    border-radius: 16px;
     border-bottom-right-radius: 4px;
 }
 
 .message-row.received .message-bubble {
-    background: var(--surface);
-    color: var(--text);
+    background: var(--message-received);
+    color: var(--message-received-text);
     border: 1px solid var(--border);
+    border-radius: 16px;
     border-bottom-left-radius: 4px;
 }
 
@@ -880,7 +882,7 @@
 /* ---------------- 4. MESSAGE COMPOSER ---------------- */
 .chat-composer-container {
     padding: var(--space-3) var(--space-6) var(--space-4);
-    background: var(--surface);
+    background: var(--composer-container-bg, var(--surface));
     border-top: 1px solid var(--border);
     position: relative;
     flex-shrink: 0;
@@ -915,17 +917,17 @@
     display: flex;
     align-items: flex-end;
     gap: var(--space-2);
-    background: var(--surface-elevated);
-    border: 1px solid var(--border);
+    background: var(--composer-input-bg, var(--surface-elevated));
+    border: 1px solid var(--composer-border, var(--border));
     border-radius: var(--radius-xl);
     padding: 6px 8px 6px 14px;
     transition: all var(--transition-fast);
 }
 
 .chat-composer:focus-within {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--primary-soft);
-    background: var(--surface);
+    border-color: var(--border-strong);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+    background: var(--composer-input-bg);
 }
 
 .composer-textarea {
@@ -935,10 +937,25 @@
     background: transparent;
     font-size: 14px;
     line-height: 1.45;
-    color: var(--text);
+    color: var(--composer-text, var(--text));
     resize: none;
     max-height: 130px;
     padding: 6px 0;
+}
+
+.composer-textarea::placeholder {
+    color: var(--composer-placeholder, var(--text-muted));
+}
+
+.chat-composer .btn-icon,
+.composer-mic-btn {
+    color: var(--composer-icon, var(--text-secondary));
+}
+
+.chat-composer .btn-icon:hover,
+.composer-mic-btn:hover {
+    color: var(--composer-icon-hover, var(--text));
+    background: var(--surface-muted);
 }
 
 .composer-tools {
@@ -1216,13 +1233,15 @@ body.dark .connection-banner.connected {
 }
 
 .message-row.sent .message-bubble.document-bubble {
-    background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
-    color: #ffffff;
-    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+    background: var(--message-sent);
+    color: var(--message-sent-text);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
 }
 
 .message-row.received .message-bubble.document-bubble {
-    background: var(--surface);
+    background: var(--message-received);
+    color: var(--message-received-text);
     border: 1px solid var(--border);
 }
 
@@ -1242,6 +1261,8 @@ body.dark .connection-banner.connected {
     width: 44px;
     height: 44px;
     border-radius: var(--radius-md);
+    background: var(--surface-muted);
+    color: var(--file-icon-color, var(--primary));
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1256,7 +1277,8 @@ body.dark .connection-banner.connected {
     right: -2px;
     font-size: 8px;
     font-weight: 800;
-    color: #ffffff;
+    color: var(--text-inverse);
+    background: var(--primary);
     padding: 1px 4px;
     border-radius: 4px;
     letter-spacing: 0.5px;
@@ -1278,11 +1300,11 @@ body.dark .connection-banner.connected {
 }
 
 .message-row.sent .message-doc-title {
-    color: #ffffff;
+    color: var(--message-sent-text);
 }
 
 .message-row.received .message-doc-title {
-    color: var(--text);
+    color: var(--message-received-text);
 }
 
 .message-doc-sub {
@@ -1296,7 +1318,7 @@ body.dark .connection-banner.connected {
     align-items: center;
     gap: 8px;
     padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-top: 1px solid var(--border);
 }
 
 .message-row.received .message-doc-actions {
@@ -1304,23 +1326,23 @@ body.dark .connection-banner.connected {
 }
 
 .message-row.sent .message-doc-actions .btn-primary {
-    background: #ffffff;
-    color: var(--primary);
+    background: var(--primary);
+    color: var(--text-inverse);
     font-weight: 700;
 }
 
 .message-row.sent .message-doc-actions .btn-primary:hover {
-    background: #f1f5f9;
+    background: var(--primary-hover);
 }
 
 .message-row.sent .message-doc-actions .btn-secondary {
-    background: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
-    border-color: transparent;
+    background: var(--surface-elevated);
+    color: var(--text);
+    border-color: var(--border);
 }
 
 .message-row.sent .message-doc-actions .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--surface-muted);
 }
 
 /* ---------------- 9. PREVIEW MODAL & UPLOAD PROGRESS ---------------- */
@@ -1551,14 +1573,14 @@ body.dark .connection-banner.connected {
 }
 
 .composer-action-btn.mode-send {
-    background: linear-gradient(135deg, #0A58CA 0%, #0D6EFD 100%);
-    color: #ffffff;
-    box-shadow: 0 4px 14px rgba(13, 110, 253, 0.35);
+    background: var(--composer-send-bg, var(--primary));
+    color: var(--composer-send-text, #ffffff);
+    box-shadow: 0 2px 8px var(--primary-glow);
 }
 
 .composer-action-btn.mode-send:hover {
     transform: scale(1.06);
-    box-shadow: 0 6px 18px rgba(13, 110, 253, 0.5);
+    background: var(--composer-send-hover, var(--primary-hover));
 }
 
 .composer-action-btn.mode-send .icon-mic {
@@ -1806,7 +1828,7 @@ body.dark .connection-banner.connected {
 
 .voice-preview-fill {
     height: 100%;
-    background: linear-gradient(90deg, #6366F1, #8B5CF6);
+    background: var(--primary);
     border-radius: var(--radius-full);
     transition: width 0.1s linear;
 }
@@ -2195,13 +2217,13 @@ body.dark .connection-banner.connected {
 }
 
 .composer-action-btn.mode-send {
-    background: var(--primary);
-    color: #ffffff;
+    background: var(--composer-send-bg, var(--primary));
+    color: var(--composer-send-text, #ffffff);
     box-shadow: 0 2px 8px var(--primary-glow);
 }
 
 .composer-action-btn.mode-send:hover {
-    background: var(--primary-hover);
+    background: var(--composer-send-hover, var(--primary-hover));
     transform: scale(1.06);
 }
 

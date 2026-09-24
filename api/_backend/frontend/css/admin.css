@@ -738,3 +738,81 @@
         width: 100%;
     }
 }
+
+/* =========================================================================
+   ADMIN THEME OVERRIDES (MONOCHROME & SANDSTONE)
+   ========================================================================= */
+
+/* Monochrome Admin Theme */
+[data-theme="monochrome"] .admin-sidebar {
+    background-color: #171717;
+    border-right-color: #303030;
+}
+
+[data-theme="monochrome"] .sidebar-brand,
+[data-theme="monochrome"] .admin-topbar,
+[data-theme="monochrome"] .admin-table th,
+[data-theme="monochrome"] .admin-table td {
+    border-color: #303030;
+}
+
+[data-theme="monochrome"] .metric-card,
+[data-theme="monochrome"] .admin-card {
+    background-color: #181818;
+    border-color: #303030;
+}
+
+[data-theme="monochrome"] .metric-icon-wrap {
+    background: #202020 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #303030;
+}
+
+[data-theme="monochrome"] .admin-badge {
+    background: #262626;
+    color: #FFFFFF;
+    border-color: #444444;
+}
+
+/* Sandstone Admin Theme */
+[data-theme="sandstone"] .admin-sidebar {
+    background-color: #FFF9F0;
+    border-right-color: #D8C5AA;
+}
+
+[data-theme="sandstone"] .sidebar-brand,
+[data-theme="sandstone"] .admin-topbar,
+[data-theme="sandstone"] .admin-table th,
+[data-theme="sandstone"] .admin-table td {
+    border-color: #D8C5AA;
+}
+
+[data-theme="sandstone"] .metric-card,
+[data-theme="sandstone"] .admin-card {
+    background-color: #FFFDF8;
+    border-color: #D8C5AA;
+    box-shadow: var(--shadow-sm);
+}
+
+[data-theme="sandstone"] .metric-icon-wrap {
+    background: #F8EFE2 !important;
+    color: #B86B3D !important;
+    border: 1px solid #D8C5AA;
+}
+
+[data-theme="sandstone"] .admin-badge {
+    background: #F8EFE2;
+    color: #B86B3D;
+    border-color: #D8C5AA;
+}
+
+[data-theme="sandstone"] .nav-item.active {
+    background: #E5D1B5;
+    color: #2D241D;
+}
+
+[data-theme="monochrome"] .nav-item.active {
+    background: #262626;
+    color: #FFFFFF;
+}
+

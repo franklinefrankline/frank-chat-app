@@ -549,19 +549,22 @@ function handleMockRequest(endpoint, options = {}) {
 const api = {
     baseUrl: API_BASE,
     getToken() {
-        return localStorage.getItem('chatapp_token');
+        return localStorage.getItem('chatapp_token') || localStorage.getItem('frank_token') || sessionStorage.getItem('frank_token');
     },
 
     setToken(token) {
         if (token) {
             localStorage.setItem('chatapp_token', token);
+            localStorage.setItem('frank_token', token);
         } else {
             localStorage.removeItem('chatapp_token');
+            localStorage.removeItem('frank_token');
+            sessionStorage.removeItem('frank_token');
         }
     },
 
     async request(endpoint, options = {}) {
-        const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+        let url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
         const headers = {
             'Content-Type': 'application/json',
             ...(options.headers || {})
@@ -578,7 +581,26 @@ const api = {
         };
 
         try {
-            const res = await fetch(url, config);
+            let res;
+            try {
+                res = await fetch(url, config);
+            } catch (networkErr) {
+                // If local server is not running, seamlessly fallback to live Vercel cloud backend
+                if (url.includes('localhost:8000') || url.includes('127.0.0.1:8000')) {
+                    const cloudBase = (window.FRANK_CONFIG && window.FRANK_CONFIG.CLOUD_API) || 'https://frank-chat-app.vercel.app';
+                    const cloudUrl = `${cloudBase}${endpoint}`;
+                    console.info(`[FRANK API] Local server unreachable. Retrying with live cloud backend: ${cloudUrl}`);
+                    try {
+                        res = await fetch(cloudUrl, config);
+                    } catch (cloudErr) {
+                        console.warn(`[FRANK API] Live cloud also unreachable. Falling back to offline DB for ${endpoint}`);
+                        return handleMockRequest(endpoint, options);
+                    }
+                } else {
+                    console.warn(`[FRANK API] Network fetch error for ${url}. Falling back to offline DB for ${endpoint}`);
+                    return handleMockRequest(endpoint, options);
+                }
+            }
 
             // Handle 401 Unauthorized
             if (res.status === 401) {
@@ -599,10 +621,6 @@ const api = {
 
             // If backend returned non-OK response
             if (!res.ok) {
-                if (window.isDemoMode) {
-                    console.warn(`[FRANK API] Demo mode active. Falling back for ${endpoint}.`);
-                    return handleMockRequest(endpoint, options);
-                }
                 const errorMsg = (data && (data.detail || data.message)) || `Request failed with status ${res.status}`;
                 const err = new Error(errorMsg);
                 err.status = res.status;
@@ -612,8 +630,8 @@ const api = {
 
             return data;
         } catch (error) {
-            if (window.isDemoMode && error && (error.name === 'TypeError' || String(error).includes('fetch') || String(error).includes('NetworkError'))) {
-                console.warn(`[FRANK API] Demo mode fallback for ${endpoint}.`);
+            if (error && (error.name === 'TypeError' || String(error).includes('fetch') || String(error).includes('NetworkError'))) {
+                console.warn(`[FRANK API] Network error caught. Falling back to offline DB for ${endpoint}.`);
                 return handleMockRequest(endpoint, options);
             }
             console.error(`API Error [${endpoint}]:`, error);

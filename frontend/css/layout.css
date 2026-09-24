@@ -200,15 +200,18 @@ body.dark .landing-header {
 }
 
 .preview-bubble.received {
-    background: var(--surface);
+    background: var(--message-received);
+    color: var(--message-received-text);
     align-self: flex-start;
     border: 1px solid var(--border);
+    border-radius: 14px;
 }
 
 .preview-bubble.sent {
-    background: var(--primary);
-    color: #ffffff;
+    background: var(--message-sent);
+    color: var(--message-sent-text);
     align-self: flex-end;
+    border-radius: 14px;
 }
 
 .preview-input-strip {

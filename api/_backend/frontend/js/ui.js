@@ -179,7 +179,7 @@ async function copyFrankId(rawId, btnEl) {
 
     if (success) {
         if (typeof showToast === 'function') {
-            showToast('FRANK ID copied', 'success');
+            showToast('✓ FRANK ID copied', 'success');
         }
 
         // Apply temporary visual feedback to button(s)

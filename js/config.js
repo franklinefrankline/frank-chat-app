@@ -15,9 +15,7 @@
     const isHttps = window.location.protocol === 'https:';
 
     // Production backend defaults (can be overridden via localStorage or window.__FRANK_CONFIG__)
-    // If you have deployed a separate Render/Railway WebSocket backend, specify it here or via localStorage.
-    // Otherwise, when hosted on Vercel, it uses same-origin (window.location.origin) to hit the Vercel API.
-    const DEFAULT_PROD_API = '';
+    const CLOUD_API_FALLBACK = 'https://frank-chat-app.vercel.app';
     const DEFAULT_PROD_WS = '';
 
     let apiBase = '';
@@ -32,11 +30,10 @@
         apiBase = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
             ? window.location.origin
             : 'http://localhost:8000';
-    } else if (DEFAULT_PROD_API) {
-        apiBase = DEFAULT_PROD_API;
-    } else {
-        // Production host (e.g., frank-chat-app.vercel.app)
+    } else if (host.endsWith('.vercel.app') || host.includes('vercel.app')) {
         apiBase = window.location.origin;
+    } else {
+        apiBase = CLOUD_API_FALLBACK;
     }
 
     // Determine if running on a serverless host without native persistent WebSocket
@@ -78,6 +75,7 @@
         TAGLINE: 'Think',
         FRONTEND_URL: 'https://frank-chat-app.vercel.app',
         API_BASE: apiBase,
+        CLOUD_API: CLOUD_API_FALLBACK,
         WS_BASE: wsBase,
         IS_LOCAL: isLocal,
         IS_SECURE: isHttps,

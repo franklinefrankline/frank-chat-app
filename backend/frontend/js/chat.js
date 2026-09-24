@@ -501,10 +501,12 @@ class ChatController {
             }
         });
 
-        this.dom.textarea.addEventListener('input', () => {
-            this.autoResizeTextarea();
-            this.emitTyping();
-            this.updateComposerActionButton();
+        ['input', 'keyup', 'change', 'paste'].forEach(evt => {
+            this.dom.textarea.addEventListener(evt, () => {
+                this.autoResizeTextarea();
+                if (evt === 'input') this.emitTyping();
+                this.updateComposerActionButton();
+            });
         });
 
         this.dom.sendBtn?.addEventListener('click', () => this.handleComposerActionButtonClick());

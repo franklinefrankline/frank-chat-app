@@ -153,6 +153,16 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
             import main as backend_main
             if hasattr(backend_main, "seed_demo_users"):
                 backend_main.seed_demo_users()
+        except Exception:
+            pass
+        if "frank_serverless_backend" in sys.modules:
+            try:
+                mod = sys.modules["frank_serverless_backend"]
+                if hasattr(mod, "seed_demo_users"):
+                    mod.seed_demo_users()
+            except Exception:
+                pass
+        try:
             candidates = db.query(models.User).filter(
                 (func.lower(models.User.email) == ident_lower) |
                 (func.lower(models.User.full_name) == ident_lower) |

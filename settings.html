@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="monochrome">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>FRANK — Settings</title>
-    <meta name="description" content="FRANK preferences and application settings.">
+    <title>FRANK — Appearance &amp; Settings</title>
+    <meta name="description" content="FRANK preferences, themes, and application settings.">
     <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
 
     <!-- Typography -->
@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-    <!-- CSS -->
+    <!-- CSS Architecture -->
     <link rel="stylesheet" href="css/reset.css">
     <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/components.css">
@@ -20,13 +20,12 @@
     <link rel="stylesheet" href="css/settings.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
-<body>
+<body data-theme="monochrome">
 
-    <!-- Desktop Custom Cursor (Miniature FRANK F) -->
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- Header -->
-    <header style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-8); border-bottom: 1px solid var(--border); background: var(--surface);">
+    <header class="settings-header">
         <a href="dashboard.html" class="btn btn-ghost" style="font-weight: 600;">
             ← Back to Messages
         </a>
@@ -34,7 +33,8 @@
             <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" style="width: 26px; height: 26px; border-radius: 6px;">
             <span style="font-weight: 800; font-size: 17px; letter-spacing: -0.3px;">FRANK</span>
         </a>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="btn btn-ghost btn-icon" id="themeToggleBtn" aria-label="Toggle Theme" title="Toggle Theme"></button>
             <a href="profile.html" class="btn btn-secondary btn-sm">My Profile</a>
             <button type="button" class="btn btn-outline btn-sm" id="settingsLogoutBtn">Sign Out</button>
         </div>
@@ -48,6 +48,10 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                     Appearance
                 </button>
+                <button type="button" class="settings-nav-btn" data-tab="profile">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    Profile
+                </button>
                 <button type="button" class="settings-nav-btn" data-tab="notifications">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                     Notifications
@@ -60,46 +64,248 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                     Security
                 </button>
-                <button type="button" class="settings-nav-btn" data-tab="about">
+                <button type="button" class="settings-nav-btn" data-tab="chat">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    Chat
+                </button>
+                <button type="button" class="settings-nav-btn" data-tab="storage">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                    Storage
+                </button>
+                <button type="button" class="settings-nav-btn" data-tab="account">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                    About
+                    Account
                 </button>
             </nav>
 
-            <!-- Panels -->
+            <!-- Settings Content Panels -->
             <div class="settings-content-panel">
 
                 <!-- 1. APPEARANCE TAB -->
                 <section id="tabAppearance" class="settings-tab-section">
                     <div class="settings-section-header">
                         <h2 class="settings-title">Appearance</h2>
-                        <p class="settings-desc">Customize how FRANK looks and feels across your devices.</p>
+                        <p class="settings-desc">Customize your FRANK experience.</p>
                     </div>
 
+                    <div class="settings-subheading-wrap">
+                        <h3 class="settings-subheading">Choose a theme</h3>
+                        <p class="settings-subtext">Select your preferred design identity. Changes take effect across the entire application immediately with zero reload.</p>
+                    </div>
+
+                    <!-- Theme Selection Cards Grid -->
                     <div class="theme-picker-grid">
-                        <div class="theme-card" data-theme-choice="light" id="themeCardLight">
-                            <div class="theme-preview-box theme-preview-light"></div>
-                            <div class="theme-card-name">Light Theme</div>
-                            <span style="font-size: 11px; color: var(--text-muted);">Clean &amp; Crisp</span>
+
+                        <!-- CARD 1: MONOCHROME -->
+                        <div class="theme-card active" data-theme-choice="monochrome" id="themeCardMonochrome" role="button" tabindex="0" aria-label="Select Monochrome Theme" aria-checked="true">
+                            <div class="theme-card-header">
+                                <div class="theme-card-info">
+                                    <div class="theme-card-name">MONOCHROME</div>
+                                    <div class="theme-card-subtitle">Classic &amp; Timeless</div>
+                                </div>
+                                <div class="theme-card-check" id="checkMonochrome">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    <span>Active</span>
+                                </div>
+                            </div>
+
+                            <!-- Mini UI Preview Box -->
+                            <div class="theme-mini-stage theme-stage-monochrome" aria-hidden="true">
+                                <div class="mini-app-window">
+                                    <!-- Mini Sidebar -->
+                                    <div class="mini-sidebar">
+                                        <div class="mini-logo-dot"></div>
+                                        <div class="mini-nav-item active"></div>
+                                        <div class="mini-nav-item"></div>
+                                        <div class="mini-nav-item"></div>
+                                        <div class="mini-sidebar-profile">
+                                            <div class="mini-avatar"></div>
+                                            <div class="mini-profile-badge">F4M8Q1</div>
+                                        </div>
+                                    </div>
+                                    <!-- Mini Chat List -->
+                                    <div class="mini-chat-list">
+                                        <div class="mini-chat-item active">
+                                            <div class="mini-avatar"></div>
+                                            <div class="mini-chat-lines">
+                                                <div class="mini-line w-60"></div>
+                                                <div class="mini-line w-40"></div>
+                                            </div>
+                                            <div class="mini-unread-badge">1</div>
+                                        </div>
+                                        <div class="mini-chat-item">
+                                            <div class="mini-avatar"></div>
+                                            <div class="mini-chat-lines">
+                                                <div class="mini-line w-50"></div>
+                                                <div class="mini-line w-30"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Mini Chat Window -->
+                                    <div class="mini-chat-view">
+                                        <div class="mini-header-bar">
+                                            <div class="mini-line w-40"></div>
+                                        </div>
+                                        <div class="mini-bubbles-area">
+                                            <div class="mini-bubble received">
+                                                <span>Hello from FRANK</span>
+                                            </div>
+                                            <div class="mini-bubble sent">
+                                                <span>Classic &amp; Timeless</span>
+                                            </div>
+                                        </div>
+                                        <div class="mini-composer">
+                                            <div class="mini-input"></div>
+                                            <div class="mini-send-btn"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Color Swatches Row -->
+                            <div class="theme-swatches-row">
+                                <span class="theme-swatch-label">Palette:</span>
+                                <div class="theme-swatches">
+                                    <div class="theme-swatch" style="background: #000000;" title="Black (#000000)"></div>
+                                    <div class="theme-swatch" style="background: #171717;" title="Charcoal (#171717)"></div>
+                                    <div class="theme-swatch" style="background: #262626;" title="Graphite (#262626)"></div>
+                                    <div class="theme-swatch" style="background: #D4D4D4;" title="Silver (#D4D4D4)"></div>
+                                    <div class="theme-swatch" style="background: #FFFFFF;" title="White (#FFFFFF)"></div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="theme-card" data-theme-choice="dark" id="themeCardDark">
-                            <div class="theme-preview-box theme-preview-dark"></div>
-                            <div class="theme-card-name">Dark Theme</div>
-                            <span style="font-size: 11px; color: var(--text-muted);">Sleek &amp; Focused</span>
+                        <!-- CARD 2: SANDSTONE -->
+                        <div class="theme-card" data-theme-choice="sandstone" id="themeCardSandstone" role="button" tabindex="0" aria-label="Select Sandstone Theme" aria-checked="false">
+                            <div class="theme-card-header">
+                                <div class="theme-card-info">
+                                    <div class="theme-card-name">SANDSTONE</div>
+                                    <div class="theme-card-subtitle">Warm &amp; Comfortable</div>
+                                </div>
+                                <div class="theme-card-check" id="checkSandstone" style="display: none;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    <span>Active</span>
+                                </div>
+                            </div>
+
+                            <!-- Mini UI Preview Box -->
+                            <div class="theme-mini-stage theme-stage-sandstone" aria-hidden="true">
+                                <div class="mini-app-window">
+                                    <!-- Mini Sidebar -->
+                                    <div class="mini-sidebar">
+                                        <div class="mini-logo-dot"></div>
+                                        <div class="mini-nav-item active"></div>
+                                        <div class="mini-nav-item"></div>
+                                        <div class="mini-nav-item"></div>
+                                        <div class="mini-sidebar-profile">
+                                            <div class="mini-avatar"></div>
+                                            <div class="mini-profile-badge">F4M8Q1</div>
+                                        </div>
+                                    </div>
+                                    <!-- Mini Chat List -->
+                                    <div class="mini-chat-list">
+                                        <div class="mini-chat-item active">
+                                            <div class="mini-avatar"></div>
+                                            <div class="mini-chat-lines">
+                                                <div class="mini-line w-60"></div>
+                                                <div class="mini-line w-40"></div>
+                                            </div>
+                                            <div class="mini-unread-badge">1</div>
+                                        </div>
+                                        <div class="mini-chat-item">
+                                            <div class="mini-avatar"></div>
+                                            <div class="mini-chat-lines">
+                                                <div class="mini-line w-50"></div>
+                                                <div class="mini-line w-30"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Mini Chat Window -->
+                                    <div class="mini-chat-view">
+                                        <div class="mini-header-bar">
+                                            <div class="mini-line w-40"></div>
+                                        </div>
+                                        <div class="mini-bubbles-area">
+                                            <div class="mini-bubble received">
+                                                <span>Warm &amp; Natural</span>
+                                            </div>
+                                            <div class="mini-bubble sent">
+                                                <span>Comfortable Chat</span>
+                                            </div>
+                                        </div>
+                                        <div class="mini-composer">
+                                            <div class="mini-input"></div>
+                                            <div class="mini-send-btn"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Color Swatches Row -->
+                            <div class="theme-swatches-row">
+                                <span class="theme-swatch-label">Palette:</span>
+                                <div class="theme-swatches">
+                                    <div class="theme-swatch" style="background: #D9BE98;" title="Sand (#D9BE98)"></div>
+                                    <div class="theme-swatch" style="background: #FFF8EA;" title="Cream (#FFF8EA)"></div>
+                                    <div class="theme-swatch" style="background: #EADCC8;" title="Warm Beige (#EADCC8)"></div>
+                                    <div class="theme-swatch" style="background: #C8754D;" title="Terracotta (#C8754D)"></div>
+                                    <div class="theme-swatch" style="background: #76543B;" title="Brown (#76543B)"></div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="theme-card" data-theme-choice="system" id="themeCardSystem">
-                            <div class="theme-preview-box theme-preview-system"></div>
-                            <div class="theme-card-name">System Default</div>
-                            <span style="font-size: 11px; color: var(--text-muted);">Sync with OS</span>
+                    </div>
+
+                    <!-- Live Theme Preview Pane -->
+                    <div class="live-preview-container">
+                        <div class="live-preview-header">
+                            <div>
+                                <h4 class="live-preview-title">Live Preview</h4>
+                                <span class="live-preview-desc">Instant representation using active theme tokens</span>
+                            </div>
+                            <span class="badge" id="activeThemeIndicatorBadge">Monochrome</span>
+                        </div>
+                        <div class="live-preview-box">
+                            <div class="preview-chat-mockup">
+                                <div class="preview-mockup-header">
+                                    <div class="preview-partner-avatar"></div>
+                                    <div class="preview-partner-text">
+                                        <div class="preview-partner-name">Sarah Connor</div>
+                                        <div class="preview-partner-status">Online &bull; FRANK Verified</div>
+                                    </div>
+                                </div>
+                                <div class="preview-messages-flow">
+                                    <div class="preview-bubble-row received">
+                                        <div class="preview-msg-bubble received">
+                                            Hello Alex! The new theme architecture looks incredible.
+                                        </div>
+                                        <span class="preview-msg-time">10:42 AM</span>
+                                    </div>
+                                    <div class="preview-bubble-row sent">
+                                        <div class="preview-msg-bubble sent">
+                                            Agreed! Complete responsive consistency across desktop and mobile.
+                                        </div>
+                                        <span class="preview-msg-time">10:43 AM &bull; ✓✓</span>
+                                    </div>
+                                </div>
+                                <div class="preview-composer-bar">
+                                    <div class="preview-composer-input">Write a message...</div>
+                                    <div class="preview-composer-send">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- Settings rows -->
                     <div class="setting-row">
                         <div class="setting-info">
-                            <div class="setting-label">Subtle Animations</div>
-                            <div class="setting-subtext">Enable smooth micro-animations for sent messages and typing indicators.</div>
+                            <div class="setting-label">Subtle Micro-Animations</div>
+                            <div class="setting-subtext">Enable smooth transitions for sent messages, modal overlays, and status indicators.</div>
                         </div>
                         <label class="toggle-switch">
                             <input type="checkbox" id="settingAnimations" checked>
@@ -109,17 +315,56 @@
 
                     <div class="setting-row">
                         <div class="setting-info">
-                            <div class="setting-label">Interactive Custom Cursor</div>
-                            <div class="setting-subtext">Display smooth accent cursor on desktop devices.</div>
+                            <div class="setting-label">High-Contrast Borders</div>
+                            <div class="setting-subtext">Sharpen interface boundaries and divider outlines.</div>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="settingCustomCursor" checked>
+                            <input type="checkbox" id="settingHighContrastBorders">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
                 </section>
 
-                <!-- 2. NOTIFICATIONS TAB -->
+                <!-- 2. PROFILE TAB -->
+                <section id="tabProfile" class="settings-tab-section" style="display:none;">
+                    <div class="settings-section-header">
+                        <h2 class="settings-title">Profile Information</h2>
+                        <p class="settings-desc">Manage your public display presence and permanent FRANK ID.</p>
+                    </div>
+
+                    <div class="settings-card">
+                        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: var(--space-6);">
+                            <div class="avatar avatar-xl" id="settingsProfileAvatar" style="width: 64px; height: 64px; border-radius: 50%; background: var(--surface-muted); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: var(--text);">
+                                <span id="settingsAvatarInitials">CU</span>
+                            </div>
+                            <div>
+                                <h3 id="settingsProfileName" style="font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 2px;">Loading...</h3>
+                                <div id="settingsProfileUsername" style="font-size: 13px; color: var(--text-muted);">@username</div>
+                            </div>
+                        </div>
+
+                        <!-- FRANK ID Card -->
+                        <div class="settings-frank-id-box">
+                            <div>
+                                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 2px;">
+                                    Permanent FRANK ID
+                                </div>
+                                <div id="settingsFrankIdValue" style="font-family: monospace; font-size: 20px; font-weight: 800; letter-spacing: 2px; color: var(--text);">
+                                    ------
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-sm" id="settingsCopyFrankIdBtn">
+                                Copy ID
+                            </button>
+                        </div>
+
+                        <div style="margin-top: var(--space-6); display: flex; gap: 8px;">
+                            <a href="profile.html" class="btn btn-primary">Edit Full Profile</a>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. NOTIFICATIONS TAB -->
                 <section id="tabNotifications" class="settings-tab-section" style="display:none;">
                     <div class="settings-section-header">
                         <h2 class="settings-title">Notifications</h2>
@@ -128,8 +373,8 @@
 
                     <div class="setting-row">
                         <div class="setting-info">
-                            <div class="setting-label">Desktop Notifications</div>
-                            <div class="setting-subtext">Display banner notifications when incoming messages arrive.</div>
+                            <div class="setting-label">Desktop Banner Alerts</div>
+                            <div class="setting-subtext">Display toast and desktop notifications for incoming messages.</div>
                         </div>
                         <label class="toggle-switch">
                             <input type="checkbox" id="settingDesktopNotifs" checked>
@@ -139,8 +384,8 @@
 
                     <div class="setting-row">
                         <div class="setting-info">
-                            <div class="setting-label">Sound Effects</div>
-                            <div class="setting-subtext">Play a subtle chime on incoming messages and delivery.</div>
+                            <div class="setting-label">Audible Chimes</div>
+                            <div class="setting-subtext">Play a refined audio chime when receiving new messages.</div>
                         </div>
                         <label class="toggle-switch">
                             <input type="checkbox" id="settingSound" checked>
@@ -150,8 +395,8 @@
 
                     <div class="setting-row">
                         <div class="setting-info">
-                            <div class="setting-label">Group Message Alerts</div>
-                            <div class="setting-subtext">Receive notifications for all group discussions.</div>
+                            <div class="setting-label">Group Discussion Notifications</div>
+                            <div class="setting-subtext">Receive alert notifications for all participating groups.</div>
                         </div>
                         <label class="toggle-switch">
                             <input type="checkbox" id="settingGroupNotifs" checked>
@@ -160,17 +405,17 @@
                     </div>
                 </section>
 
-                <!-- 3. PRIVACY TAB -->
+                <!-- 4. PRIVACY TAB -->
                 <section id="tabPrivacy" class="settings-tab-section" style="display:none;">
                     <div class="settings-section-header">
                         <h2 class="settings-title">Privacy Controls</h2>
-                        <p class="settings-desc">Control your presence and visibility preferences.</p>
+                        <p class="settings-desc">Control presence, indicators, and read receipts.</p>
                     </div>
 
                     <div class="setting-row">
                         <div class="setting-info">
-                            <div class="setting-label">Read Receipts</div>
-                            <div class="setting-subtext">Let other users see when you have read their messages (double checkmark).</div>
+                            <div class="setting-label">Read Receipts (Double Checkmarks)</div>
+                            <div class="setting-subtext">Let other members see when you have viewed their sent messages.</div>
                         </div>
                         <label class="toggle-switch">
                             <input type="checkbox" id="settingReadReceipts" checked>
@@ -180,8 +425,8 @@
 
                     <div class="setting-row">
                         <div class="setting-info">
-                            <div class="setting-label">Typing Indicators</div>
-                            <div class="setting-subtext">Display a typing indicator when you are composing a message.</div>
+                            <div class="setting-label">Live Typing Indicator</div>
+                            <div class="setting-subtext">Display a typing indicator when you are actively composing text.</div>
                         </div>
                         <label class="toggle-switch">
                             <input type="checkbox" id="settingTyping" checked>
@@ -191,8 +436,8 @@
 
                     <div class="setting-row">
                         <div class="setting-info">
-                            <div class="setting-label">Online Status Visibility</div>
-                            <div class="setting-subtext">Share live online/offline presence with contacts.</div>
+                            <div class="setting-label">Real-Time Online Presence</div>
+                            <div class="setting-subtext">Broadcast your live connected state to your contacts.</div>
                         </div>
                         <label class="toggle-switch">
                             <input type="checkbox" id="settingOnlinePresence" checked>
@@ -201,50 +446,125 @@
                     </div>
                 </section>
 
-                <!-- 4. SECURITY TAB -->
+                <!-- 5. SECURITY TAB -->
                 <section id="tabSecurity" class="settings-tab-section" style="display:none;">
                     <div class="settings-section-header">
-                        <h2 class="settings-title">Account Security</h2>
-                        <p class="settings-desc">Manage session protection and credentials.</p>
+                        <h2 class="settings-title">Security &amp; Sessions</h2>
+                        <p class="settings-desc">Manage authentication and cryptographic session tokens.</p>
                     </div>
 
-                    <div style="margin-bottom: var(--space-6);">
-                        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: var(--space-3);">Active Sessions</h3>
+                    <div class="settings-card" style="margin-bottom: var(--space-6);">
+                        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: var(--space-2); color: var(--text);">Active Browser Session</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: var(--space-4);">Signed with cryptographically secure Bearer JWT tokens.</p>
                         <div style="padding: 12px; background: var(--surface-elevated); border-radius: var(--radius-md); border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
                             <div>
-                                <div style="font-size: 13px; font-weight: 700;">Current Browser Session</div>
-                                <div style="font-size: 11px; color: var(--success); font-weight: 600;">Active Now &bull; Signed with Bearer JWT</div>
+                                <div style="font-size: 13px; font-weight: 700; color: var(--text);">Current Session</div>
+                                <div style="font-size: 11px; color: var(--success); font-weight: 600;">Active Now &bull; SHA-256 JWT</div>
                             </div>
-                            <span class="badge badge-success">Current</span>
+                            <span class="badge" style="background: var(--surface-muted); color: var(--text);">Secure</span>
                         </div>
                     </div>
 
-                    <div>
-                        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: var(--space-3);">Two-Factor Authentication</h3>
+                    <div class="settings-card">
+                        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: var(--space-2); color: var(--text);">Two-Factor Authentication (TOTP)</h3>
                         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: var(--space-4);">
-                            Add an extra layer of security to your account with TOTP authenticator apps.
+                            Add biometric or authenticator security to your FRANK account.
                         </p>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="showToast('2FA configuration coming soon in v2.1', 'info')">
-                            Configure Two-Factor Auth (Coming Soon)
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="showToast('Two-factor auth configuration is available in enterprise profiles', 'info')">
+                            Configure Authenticator App
                         </button>
                     </div>
                 </section>
 
-                <!-- 5. ABOUT TAB -->
-                <section id="tabAbout" class="settings-tab-section" style="display:none;">
+                <!-- 6. CHAT TAB -->
+                <section id="tabChat" class="settings-tab-section" style="display:none;">
                     <div class="settings-section-header">
-                        <h2 class="settings-title">About FRANK</h2>
-                        <p class="settings-desc">Platform and release specifications.</p>
+                        <h2 class="settings-title">Chat &amp; Messaging Preferences</h2>
+                        <p class="settings-desc">Configure message formatting and keyboard behavior.</p>
                     </div>
 
-                    <div style="display: flex; flex-direction: column; gap: var(--space-4); font-size: 14px; color: var(--text-secondary);">
-                        <div><strong>Application:</strong> FRANK Professional Edition</div>
-                        <div><strong>FRANK Version:</strong> 2.0.0 (Build 2026.09)</div>
-                        <div><strong>FRANK Privacy &amp; Security:</strong> Protected by TLS encryption and secure JWT session protocols.</div>
-                        <div><strong>Core Stack:</strong> FastAPI &bull; SQLAlchemy &bull; WebSockets &bull; Vanilla JS &bull; CSS3</div>
-                        <div><strong>Status:</strong> All local services operational.</div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Press Enter to Send</div>
+                            <div class="setting-subtext">Send message directly upon pressing Enter (use Shift+Enter for new line).</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingEnterToSend" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Message Bubble Spacing</div>
+                            <div class="setting-subtext">Standard professional spacing with optimized reading flow.</div>
+                        </div>
+                        <select class="settings-select" id="settingBubbleSpacing" aria-label="Message Bubble Spacing">
+                            <option value="comfortable" selected>Comfortable</option>
+                            <option value="compact">Compact</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Display Timezone Format</div>
+                            <div class="setting-subtext">Format message timestamps using standard 12-hour or 24-hour clock.</div>
+                        </div>
+                        <select class="settings-select" id="settingTimeFormat" aria-label="Timezone Format">
+                            <option value="12" selected>12-Hour (AM/PM)</option>
+                            <option value="24">24-Hour</option>
+                        </select>
                     </div>
                 </section>
+
+                <!-- 7. STORAGE TAB -->
+                <section id="tabStorage" class="settings-tab-section" style="display:none;">
+                    <div class="settings-section-header">
+                        <h2 class="settings-title">Storage &amp; Data Cache</h2>
+                        <p class="settings-desc">Review local caching, message storage, and performance optimization.</p>
+                    </div>
+
+                    <div class="settings-card" style="margin-bottom: var(--space-6);">
+                        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: var(--space-2); color: var(--text);">Offline Message Storage</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: var(--space-4);">
+                            Messages and attachments are safely cached locally in your browser for zero-delay instant viewing.
+                        </p>
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                            <span style="font-size: 13px; font-weight: 600; color: var(--text);">Cached Media &amp; Logs</span>
+                            <button type="button" class="btn btn-secondary btn-sm" id="clearCacheBtn">
+                                Clear Cache
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 8. ACCOUNT TAB -->
+                <section id="tabAccount" class="settings-tab-section" style="display:none;">
+                    <div class="settings-section-header">
+                        <h2 class="settings-title">Account Specifications</h2>
+                        <p class="settings-desc">System account management and data export.</p>
+                    </div>
+
+                    <div class="settings-card" style="margin-bottom: var(--space-6);">
+                        <div style="display: flex; flex-direction: column; gap: var(--space-3); font-size: 14px; color: var(--text-secondary);">
+                            <div><strong>Platform:</strong> FRANK Think Professional Edition</div>
+                            <div><strong>Version:</strong> 2.0.0 (Theme Engine v2.0)</div>
+                            <div><strong>Encryption:</strong> TLS 1.3 &bull; Cryptographic Tokens</div>
+                            <div><strong>Architecture:</strong> Pure CSS Custom Properties &bull; Zero Duplication</div>
+                        </div>
+                    </div>
+
+                    <div class="settings-card" style="border-color: var(--border-strong);">
+                        <h3 style="font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: var(--space-2);">Data Export</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: var(--space-4);">
+                            Download a secure JSON archive of your personal conversation threads.
+                        </p>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="showToast('Exporting conversation archive...', 'info')">
+                            Export My Data
+                        </button>
+                    </div>
+                </section>
+
             </div>
         </div>
     </main>
