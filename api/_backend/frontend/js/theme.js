@@ -70,11 +70,16 @@ const theme = {
     },
 
     persistToBackend(activeTheme) {
-        const token = localStorage.getItem('frank_token') || sessionStorage.getItem('frank_token');
+        if (typeof api !== 'undefined' && typeof api.updateProfile === 'function') {
+            api.updateProfile({ theme: activeTheme }).catch(() => {});
+            return;
+        }
+        const token = localStorage.getItem('frank_token') || localStorage.getItem('chatapp_token');
         if (!token) return;
 
-        // Fire background update to user profile without blocking UI
-        const apiUrl = (typeof window.API_BASE_URL !== 'undefined') ? window.API_BASE_URL : '/api';
+        const base = (window.FRANK_CONFIG && window.FRANK_CONFIG.API_BASE) || '';
+        if (base.startsWith('file:') || window.location.protocol === 'file:') return;
+        const apiUrl = base ? `${base}/api` : '/api';
         fetch(`${apiUrl}/users/profile`, {
             method: 'PUT',
             headers: {
@@ -82,9 +87,7 @@ const theme = {
                 'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({ theme: activeTheme })
-        }).catch(() => {
-            // Silently ignore network failure for background preference sync
-        });
+        }).catch(() => {});
     },
 
     updateButtons(activeTheme) {
