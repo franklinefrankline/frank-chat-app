@@ -329,7 +329,7 @@
     font-size: 26px;
     font-weight: 900;
     letter-spacing: 2px;
-    color: #ffffff;
+    color: var(--showcase-wordmark, var(--theme-text));
     opacity: 0;
     transform: translateY(10px);
     animation: frankTextReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) 1.55s forwards;
@@ -344,7 +344,7 @@
     font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.5px;
-    color: #94A3B8;
+    color: var(--showcase-subtitle, var(--theme-text-secondary));
     opacity: 0;
     transform: translateY(8px);
     animation: frankTextReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) 1.85s forwards;
@@ -424,15 +424,12 @@
 }
 
 /* -------------------------------------------------------------------------
-   FUTURISTIC SHOWCASE LIGHTING & AMBIENT EFFECTS (Sections 2 & 7)
-   Deep navy background with blue, cyan, violet, magenta glows, light streaks,
-   and subtle circular rings for the login/register left panel.
+   SHOWCASE LIGHTING & AMBIENT EFFECTS (Theme Responsive)
+   Seamlessly adapts between Monochrome (classic luxury) and Sandstone (warm editorial).
+   Zero hardcoded dark navy or neon leakage in Sandstone mode.
    ------------------------------------------------------------------------- */
 .frank-showcase-bg {
-    background: radial-gradient(circle at 25% 30%, rgba(37, 99, 235, 0.18) 0%, transparent 50%),
-                radial-gradient(circle at 75% 70%, rgba(124, 58, 237, 0.16) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.12) 0%, transparent 65%),
-                linear-gradient(160deg, #050817 0%, #0B1026 55%, #080D2A 100%) !important;
+    background: var(--showcase-bg, linear-gradient(160deg, #0A0A0A 0%, #111111 60%, #171717 100%)) !important;
     position: relative;
     overflow: hidden;
 }
@@ -440,8 +437,6 @@
 .frank-light-ring {
     position: absolute;
     border-radius: 50%;
-    border: 1px solid rgba(59, 130, 246, 0.15);
-    box-shadow: 0 0 45px rgba(37, 99, 235, 0.08);
     pointer-events: none;
     z-index: 1;
 }
@@ -451,7 +446,8 @@
     height: 380px;
     top: -60px;
     left: -80px;
-    border-color: rgba(6, 182, 212, 0.18);
+    border: 1px solid var(--showcase-ring-1, rgba(255, 255, 255, 0.07));
+    box-shadow: 0 0 35px var(--showcase-logo-glow, rgba(255, 255, 255, 0.05));
 }
 
 .frank-light-ring-2 {
@@ -459,20 +455,21 @@
     height: 500px;
     bottom: -100px;
     right: -120px;
-    border-color: rgba(124, 58, 237, 0.15);
+    border: 1px solid var(--showcase-ring-2, rgba(255, 255, 255, 0.04));
+    box-shadow: 0 0 45px var(--showcase-logo-glow, rgba(255, 255, 255, 0.04));
 }
 
 .frank-glow-streak {
     position: absolute;
     width: 140%;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(6, 182, 212, 0.25) 30%, rgba(124, 58, 237, 0.35) 60%, rgba(217, 70, 239, 0.25) 85%, transparent 100%);
+    background: var(--showcase-streak, linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.12) 50%, transparent 100%));
     transform: rotate(-25deg);
     top: 35%;
     left: -20%;
     pointer-events: none;
     filter: blur(0.5px);
-    opacity: 0.65;
+    opacity: 0.55;
     z-index: 1;
 }
 
