@@ -607,7 +607,10 @@ const api = {
                 if (!url.includes('/api/auth/login') && !url.includes('/api/auth/register')) {
                     this.setToken(null);
                     localStorage.removeItem('chatapp_user');
-                    if (!window.location.pathname.endsWith('login.html') && !window.location.pathname.endsWith('index.html')) {
+                    const currentPath = (window.location.pathname || '').toLowerCase();
+                    const guestPages = ['login.html', 'register.html', 'index.html', 'forgot-password.html', 'reset-password.html', '404.html'];
+                    const isGuest = guestPages.some(page => currentPath.endsWith(page) || currentPath.endsWith('/' + page.replace('.html', '')) || currentPath === '/' || currentPath === '');
+                    if (!isGuest && window.location.protocol !== 'file:') {
                         window.location.href = 'login.html?expired=1';
                     }
                 }

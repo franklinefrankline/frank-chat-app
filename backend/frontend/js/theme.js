@@ -70,15 +70,21 @@ const theme = {
     },
 
     persistToBackend(activeTheme) {
+        if (window.location.protocol === 'file:') return;
+
+        const token = (typeof api !== 'undefined' && typeof api.getToken === 'function')
+            ? api.getToken()
+            : (localStorage.getItem('frank_token') || localStorage.getItem('chatapp_token'));
+        if (!token) return;
+
+        const base = (window.FRANK_CONFIG && window.FRANK_CONFIG.API_BASE) || '';
+        if (base.startsWith('file:')) return;
+
         if (typeof api !== 'undefined' && typeof api.updateProfile === 'function') {
             api.updateProfile({ theme: activeTheme }).catch(() => {});
             return;
         }
-        const token = localStorage.getItem('frank_token') || localStorage.getItem('chatapp_token');
-        if (!token) return;
 
-        const base = (window.FRANK_CONFIG && window.FRANK_CONFIG.API_BASE) || '';
-        if (base.startsWith('file:') || window.location.protocol === 'file:') return;
         const apiUrl = base ? `${base}/api` : '/api';
         fetch(`${apiUrl}/users/profile`, {
             method: 'PUT',

@@ -97,7 +97,7 @@ def run_comprehensive_suite():
             ("notes.txt", b"Plain text note content", "text/plain", "text"),
             ("sheet.xlsx", b"PK\x03\x04test xlsx content", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "excel"),
             ("slides.pptx", b"PK\x03\x04test pptx content", "application/vnd.openxmlformats-officedocument.presentationml.presentation", "presentation"),
-            ("data.csv", b"id,name,score\n1,Alex,95\n2,Sarah,98", "text/csv", "excel"),
+            ("data.csv", b"id,name,score\n1,Alex,95\n2,Sarah,98", "text/csv", "csv"),
             ("archive.zip", b"PK\x03\x04test zip content", "application/zip", "archive"),
             ("voice.webm", b"\x1aE\xdf\xa3\x9fB\x86\x81\x01B\xf7\x81\x01\x42\xf2\x81\x04", "audio/webm;codecs=opus", "audio"),
         ]
