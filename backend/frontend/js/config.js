@@ -1,6 +1,14 @@
 /**
  * FRANK Runtime Client Configuration
  * Dynamic backend resolution, protocol switching, and environment customization.
+ *
+ * PRODUCTION SETUP (Vercel + Railway):
+ * If your frontend (Vercel) and backend (Railway) are on different URLs,
+ * set the Railway backend URL in your Vercel environment as:
+ *   FRANK_BACKEND_URL=https://your-app.up.railway.app
+ *
+ * Alternatively, set it in localStorage:
+ *   localStorage.setItem('frank_api_url', 'https://your-app.up.railway.app')
  */
 (function() {
     'use strict';
@@ -15,8 +23,14 @@
     const isHttps = window.location.protocol === 'https:';
 
     // Production backend defaults (can be overridden via localStorage or window.__FRANK_CONFIG__)
+    // IMPORTANT: If your Vercel deployment injects FRANK_BACKEND_URL, it will be used here.
+    // Otherwise, the app calls the Vercel serverless API (which needs DATABASE_URL set in Vercel env vars).
     const CLOUD_API_FALLBACK = 'https://frank-chat-app.vercel.app';
-    const DEFAULT_PROD_WS = '';
+
+    // Support for Railway backend URL injected at build time (via window.__FRANK_BACKEND_URL__)
+    const RAILWAY_BACKEND = window.__FRANK_BACKEND_URL__ || '';
+
+    const DEFAULT_PROD_WS = RAILWAY_BACKEND ? RAILWAY_BACKEND.replace(/^https?/, RAILWAY_BACKEND.startsWith('https') ? 'wss' : 'ws') : '';
 
     let apiBase = '';
     let wsBase = '';
@@ -25,12 +39,17 @@
         apiBase = injectedConfig.API_BASE;
     } else if (storedApiUrl) {
         apiBase = storedApiUrl;
+    } else if (RAILWAY_BACKEND) {
+        // Use Railway backend directly when configured
+        apiBase = RAILWAY_BACKEND;
     } else if (isLocal) {
         // If served by FastAPI directly on port 8000, use relative or origin
         apiBase = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
             ? window.location.origin
             : 'http://localhost:8000';
     } else if (host.endsWith('.vercel.app') || host.includes('vercel.app')) {
+        // On Vercel: use same-origin API (the Vercel serverless function)
+        // For persistent users: set DATABASE_URL in Vercel env vars pointing to Railway PostgreSQL
         apiBase = window.location.origin;
     } else {
         apiBase = CLOUD_API_FALLBACK;
@@ -38,13 +57,19 @@
 
     // Determine if running on a serverless host without native persistent WebSocket
     const isVercelHost = host.endsWith('.vercel.app') || host.includes('vercel.app');
-    let isServerless = isVercelHost;
+    let isServerless = isVercelHost && !RAILWAY_BACKEND;
 
     if (injectedConfig.WS_BASE) {
         wsBase = injectedConfig.WS_BASE;
         isServerless = false;
     } else if (storedWsUrl) {
         wsBase = storedWsUrl;
+        isServerless = false;
+    } else if (RAILWAY_BACKEND) {
+        // Use Railway backend WebSocket
+        const wsProtocol = RAILWAY_BACKEND.startsWith('https') ? 'wss:' : 'ws:';
+        const wsHostRailway = RAILWAY_BACKEND.replace(/^https?:\/\//, '');
+        wsBase = `${wsProtocol}//${wsHostRailway}`;
         isServerless = false;
     } else if (isLocal) {
         const wsProtocol = isHttps ? 'wss:' : 'ws:';

@@ -18,10 +18,12 @@ class UserBase(BaseModel):
     username: Optional[str] = Field(None, max_length=50)
     email: str = Field(..., min_length=5, max_length=120)
     full_name: str = Field(..., min_length=1, max_length=100)
+    name: Optional[str] = Field(None, max_length=100)
 
 
 class UserRegister(BaseModel):
     full_name: str = Field(..., min_length=1, max_length=100)
+    name: Optional[str] = Field(None, max_length=100)
     email: str = Field(..., min_length=5, max_length=120)
     password: str = Field(..., min_length=6, max_length=128)
     username: Optional[str] = Field(None, max_length=50)
@@ -29,12 +31,15 @@ class UserRegister(BaseModel):
 
 
 class UserLogin(BaseModel):
-    username: str
+    email: Optional[str] = None
+    username: Optional[str] = None
+    identifier: Optional[str] = None
     password: str
 
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
+    name: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     theme: Optional[str] = None
@@ -44,18 +49,22 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     id: int
     frank_id: str
+    name: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     theme: Optional[str] = "monochrome"
     language: Optional[str] = "en"
     role: str = "user"
+    status: str = "active"
     account_status: str = "active"
     is_online: bool = False
     last_seen: Optional[datetime] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
 
 
 class UserPreviewResponse(BaseModel):

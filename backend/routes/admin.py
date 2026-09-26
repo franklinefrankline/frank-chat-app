@@ -135,6 +135,7 @@ async def _set_user_status(user_id: int, new_status: str, current_admin: models.
         clean_status = "disabled" if "disab" in clean_status else "active"
 
     user.account_status = clean_status
+    user.status = clean_status
     if clean_status == "disabled":
         user.is_online = False
 

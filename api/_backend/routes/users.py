@@ -29,6 +29,11 @@ def get_users(
     return query.order_by(models.User.full_name).limit(50).all()
 
 
+@router.get("/me", response_model=schemas.UserResponse)
+def get_users_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
+
+
 @router.get("/profile", response_model=schemas.UserResponse)
 def get_profile(current_user: models.User = Depends(get_current_user)):
     return current_user
@@ -42,6 +47,10 @@ def update_profile(
 ):
     if user_update.full_name is not None:
         current_user.full_name = user_update.full_name.strip()
+        current_user.name = current_user.full_name
+    elif user_update.name is not None:
+        current_user.name = user_update.name.strip()
+        current_user.full_name = current_user.name
     if user_update.bio is not None:
         current_user.bio = user_update.bio.strip()
     if user_update.avatar_url is not None:

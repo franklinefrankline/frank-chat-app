@@ -34,10 +34,58 @@ html, body {
 .chat-more-header,
 .chat-more-cancel,
 .mobile-header-brand,
-.mobile-menu-btn,
 .mobile-tabs-container,
 .mobile-bottom-nav {
     display: none !important;
+}
+
+/* Desktop: Hide the old h1 title (replaced by FRANK brand in header) */
+.desktop-header-title {
+    display: none !important;
+}
+
+/* Desktop: Show desktop-only elements */
+.desktop-header-brand,
+.desktop-profile-btn-wrap {
+    display: flex !important;
+}
+
+/* Desktop: Show desktop new chat button and more menu trigger */
+.desktop-new-chat-btn,
+#openSidebarBtn {
+    display: inline-flex !important;
+}
+
+/* Desktop layout: Sidebar + Conversation Panel + Chat Window */
+@media (min-width: 769px) {
+    .sidebar {
+        display: flex !important;
+        flex-direction: column !important;
+        flex-shrink: 0 !important;
+        z-index: 20 !important;
+        position: relative !important;
+        transform: none !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+
+    .conversation-panel {
+        display: flex !important;
+        flex-shrink: 0 !important;
+        position: relative !important;
+        z-index: 10 !important;
+    }
+
+    .chat-window {
+        position: relative !important;
+        inset: auto !important;
+        width: auto !important;
+        height: 100vh !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+        display: flex !important;
+        z-index: 1 !important;
+    }
 }
 
 /* -------------------------------------------------------------------------
@@ -49,12 +97,17 @@ html, body {
         height: 100dvh;
     }
 
-    .conversation-panel {
-        width: 360px;
+    .sidebar {
+        width: 260px !important;
     }
 
-    .sidebar {
-        width: 260px;
+    .conversation-panel {
+        width: 360px !important;
+    }
+
+    /* Widen the new chat button on large screens */
+    .desktop-new-chat-btn span[data-i18n] {
+        display: inline !important;
     }
 }
 
@@ -85,12 +138,13 @@ html, body {
    ------------------------------------------------------------------------- */
 @media (min-width: 769px) and (max-width: 1024px) {
     .sidebar {
-        width: 220px;
+        width: 220px !important;
         padding: var(--space-3);
+        display: flex !important;
     }
 
     .conversation-panel {
-        width: 300px;
+        width: 280px !important;
     }
 
     .brand-title-wrap {
@@ -341,7 +395,10 @@ html, body {
 
     .desktop-header-title,
     .desktop-new-chat-btn,
-    .desktop-filters {
+    .desktop-filters,
+    .desktop-header-brand,
+    .desktop-profile-btn-wrap,
+    #dashLangSelector {
         display: none !important;
     }
 

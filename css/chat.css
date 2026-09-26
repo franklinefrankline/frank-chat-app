@@ -12,7 +12,7 @@
     position: relative;
 }
 
-/* ---------------- 1. SIDEBAR (240px) ---------------- */
+/* ---------------- 1. SIDEBAR (260px) ---------------- */
 .sidebar {
     width: 260px;
     background: var(--sidebar-bg, var(--surface));
@@ -23,6 +23,8 @@
     padding: var(--space-4);
     z-index: 50;
     transition: transform var(--transition-smooth);
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .sidebar-brand {
@@ -185,12 +187,72 @@
 }
 
 .conversation-header {
-    padding: var(--space-4) var(--space-5);
+    padding: var(--space-3) var(--space-4);
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid var(--border);
-    height: 68px;
+    height: 64px;
+    gap: 8px;
+}
+
+/* Desktop: show brand, hide h1 title */
+.desktop-header-brand {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.conversation-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.desktop-profile-btn-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.desktop-profile-dropdown {
+    display: none;
+}
+
+.desktop-profile-dropdown.open,
+.desktop-profile-dropdown.show {
+    display: block !important;
+}
+
+/* Desktop profile trigger button styling */
+.desktop-profile-trigger {
+    padding: 3px;
+    border-radius: 50%;
+}
+
+.desktop-profile-trigger:hover {
+    background: var(--surface-elevated);
+}
+
+.desktop-new-chat-btn {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90px;
+    flex-shrink: 1;
+}
+
+.desktop-new-chat-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Hide the desktop-only new chat button label on narrow widths */
+@media (max-width: 1100px) {
+    .desktop-new-chat-btn span[data-i18n] {
+        display: none;
+    }
 }
 
 .conversation-header-title {

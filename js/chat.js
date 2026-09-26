@@ -134,11 +134,13 @@ class ChatController {
         this.updateDetailsDrawer(partner);
 
         // Mobile responsive switch
-        document.getElementById('chatApp')?.classList.add('has-active-chat');
-        document.getElementById('chatWindow')?.classList.add('mobile-open');
-        const panel = document.getElementById('conversationPanel');
-        if (panel && window.innerWidth <= 768) {
-            panel.style.display = '';
+        if (window.innerWidth <= 768) {
+            document.getElementById('chatApp')?.classList.add('has-active-chat');
+            document.getElementById('chatWindow')?.classList.add('mobile-open');
+            const panel = document.getElementById('conversationPanel');
+            if (panel) {
+                panel.style.display = '';
+            }
         }
 
         // Highlight active conversation card in list
@@ -192,11 +194,13 @@ class ChatController {
         this.updateDetailsDrawer(group);
 
         // Mobile responsive switch
-        document.getElementById('chatApp')?.classList.add('has-active-chat');
-        document.getElementById('chatWindow')?.classList.add('mobile-open');
-        const panel = document.getElementById('conversationPanel');
-        if (panel && window.innerWidth <= 768) {
-            panel.style.display = '';
+        if (window.innerWidth <= 768) {
+            document.getElementById('chatApp')?.classList.add('has-active-chat');
+            document.getElementById('chatWindow')?.classList.add('mobile-open');
+            const panel = document.getElementById('conversationPanel');
+            if (panel) {
+                panel.style.display = '';
+            }
         }
 
         // Highlight active group card

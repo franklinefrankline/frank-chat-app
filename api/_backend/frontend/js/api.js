@@ -593,27 +593,40 @@ const api = {
                     try {
                         res = await fetch(cloudUrl, config);
                     } catch (cloudErr) {
-                        console.warn(`[FRANK API] Live cloud also unreachable. Falling back to offline DB for ${endpoint}`);
-                        return handleMockRequest(endpoint, options);
+                        if (window.location.protocol === 'file:') {
+                            console.warn(`[FRANK API] Live cloud also unreachable. Falling back to offline DB for ${endpoint}`);
+                            return handleMockRequest(endpoint, options);
+                        }
+                        throw new Error(`Unable to connect to FRANK server at ${url}. Please verify the backend is running.`);
                     }
-                } else {
+                } else if (window.location.protocol === 'file:') {
                     console.warn(`[FRANK API] Network fetch error for ${url}. Falling back to offline DB for ${endpoint}`);
                     return handleMockRequest(endpoint, options);
+                } else {
+                    throw networkErr;
                 }
             }
 
-            // Handle 401 Unauthorized
+            // Handle 401 Unauthorized — SMART SESSION HANDLER
+            // Never destroy the session prematurely on initial dashboard bootstrap.
+            // Only force-logout if the token is genuinely expired or permanently invalid.
             if (res.status === 401) {
                 if (!url.includes('/api/auth/login') && !url.includes('/api/auth/register')) {
-                    this.setToken(null);
-                    localStorage.removeItem('chatapp_user');
-                    const currentPath = (window.location.pathname || '').toLowerCase();
-                    const guestPages = ['login.html', 'register.html', 'index.html', 'forgot-password.html', 'reset-password.html', '404.html'];
-                    const isGuest = guestPages.some(page => currentPath.endsWith(page) || currentPath.endsWith('/' + page.replace('.html', '')) || currentPath === '/' || currentPath === '');
-                    if (!isGuest && window.location.protocol !== 'file:') {
-                        window.location.href = 'login.html?expired=1';
+                    const token = this.getToken();
+                    if (this.isTokenExpired(token)) {
+                        this.setToken(null);
+                        localStorage.removeItem('chatapp_user');
+                        const currentPath = (window.location.pathname || '').toLowerCase();
+                        const guestPages = ['login.html', 'register.html', 'index.html', 'forgot-password.html', 'reset-password.html', '404.html'];
+                        const isGuest = guestPages.some(page => currentPath.endsWith(page) || currentPath.endsWith('/' + page.replace('.html', '')) || currentPath === '/' || currentPath === '');
+                        if (!isGuest && window.location.protocol !== 'file:') {
+                            window.location.href = 'login.html?expired=1';
+                        }
                     }
                 }
+            } else {
+                // Reset counter on any non-401 response
+                this._consecutive401 = 0;
             }
 
             let data = null;
@@ -633,8 +646,8 @@ const api = {
 
             return data;
         } catch (error) {
-            if (error && (error.name === 'TypeError' || String(error).includes('fetch') || String(error).includes('NetworkError'))) {
-                console.warn(`[FRANK API] Network error caught. Falling back to offline DB for ${endpoint}.`);
+            if (window.location.protocol === 'file:' && (error && (error.name === 'TypeError' || String(error).includes('fetch') || String(error).includes('NetworkError')))) {
+                console.warn(`[FRANK API] Network error caught on file protocol. Falling back to offline DB for ${endpoint}.`);
                 return handleMockRequest(endpoint, options);
             }
             console.error(`API Error [${endpoint}]:`, error);
@@ -642,23 +655,53 @@ const api = {
         }
     },
 
+    isTokenExpired(token) {
+        if (!token) return true;
+        try {
+            const parts = token.split('.');
+            if (parts.length !== 3) return false;
+            const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+            if (payload && payload.exp) {
+                return (Date.now() / 1000) > payload.exp;
+            }
+        } catch {}
+        return false;
+    },
+
     // Auth endpoints
-    async login(username, password) {
+    async login(identifier, password) {
+        const cleanIdent = (identifier || '').trim();
         return this.request('/api/auth/login', {
             method: 'POST',
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({
+                email: cleanIdent,
+                username: cleanIdent,
+                identifier: cleanIdent,
+                password
+            })
         });
     },
 
     async register(data) {
+        const cleanEmail = (data.email || '').trim().toLowerCase();
+        const fullName = (data.full_name || data.name || '').trim();
         return this.request('/api/auth/register', {
             method: 'POST',
-            body: JSON.stringify(data)
+            body: JSON.stringify({
+                ...data,
+                email: cleanEmail,
+                full_name: fullName,
+                name: fullName
+            })
         });
     },
 
     async getCurrentUser() {
         return this.request('/api/auth/me');
+    },
+
+    async getUsersMe() {
+        return this.request('/api/users/me');
     },
 
     async forgotPassword(email) {

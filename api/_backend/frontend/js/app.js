@@ -33,6 +33,19 @@ class AppController {
             e.stopPropagation();
             auth.logout();
         });
+        document.getElementById('desktopDropdownLogoutBtn')?.addEventListener('click', () => {
+            auth.logout();
+        });
+        document.getElementById('desktopThemeToggleBtn')?.addEventListener('click', () => {
+            if (typeof window.theme !== 'undefined' && window.theme.toggle) {
+                window.theme.toggle();
+            } else if (typeof window.dashboardThemeBtn !== 'undefined') {
+                document.getElementById('dashboardThemeBtn')?.click();
+            }
+        });
+
+        // Desktop profile dropdown toggle
+        this.setupDesktopProfileDropdown();
 
         const dismissLoader = () => {
             const loader = document.getElementById('appLoadingScreen');
@@ -45,9 +58,31 @@ class AppController {
         setTimeout(dismissLoader, 800);
 
         try {
-            this.currentUser = await api.getCurrentUser();
-            auth.setUser(this.currentUser);
-            this.updateSidebarUser(this.currentUser);
+            // First try to get cached user so dashboard can render immediately
+            const cachedUser = auth.getUser();
+            if (cachedUser) {
+                this.currentUser = cachedUser;
+                this.updateSidebarUser(this.currentUser);
+            }
+
+            // Then fetch fresh user from backend (may fail if token expired)
+            try {
+                const freshUser = await api.getCurrentUser();
+                if (freshUser && freshUser.id) {
+                    this.currentUser = freshUser;
+                    auth.setUser(freshUser);
+                    this.updateSidebarUser(freshUser);
+                }
+            } catch (userErr) {
+                // If API call fails but we have a cached user, continue with cached data
+                // This prevents auto-logout on transient network/auth issues
+                if (this.currentUser) {
+                    console.warn('[FRANK] Could not refresh user from backend, using cached user:', userErr.message || userErr);
+                } else if (!auth.isAuthenticated()) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+            }
 
             // Connect real-time WebSocket
             if (window.wsClient) {
@@ -68,6 +103,61 @@ class AppController {
         } finally {
             dismissLoader();
         }
+    }
+
+    setupDesktopProfileDropdown() {
+        const profileBtn = document.getElementById('desktopProfileBtn');
+        const dropdown = document.getElementById('desktopProfileDropdown');
+        const openBtn = document.getElementById('openSidebarBtn');
+        if (!dropdown) return;
+
+        const closeDropdown = () => {
+            dropdown.classList.remove('open', 'show');
+            dropdown.style.display = 'none';
+            profileBtn?.setAttribute('aria-expanded', 'false');
+        };
+
+        const openDropdown = () => {
+            dropdown.classList.add('open', 'show');
+            dropdown.style.display = 'block';
+            profileBtn?.setAttribute('aria-expanded', 'true');
+        };
+
+        const toggleDropdown = (e) => {
+            e.stopPropagation();
+            if (dropdown.classList.contains('open') || dropdown.classList.contains('show') || dropdown.style.display === 'block') {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
+        };
+
+        profileBtn?.addEventListener('click', toggleDropdown);
+        openBtn?.addEventListener('click', (e) => {
+            if (window.innerWidth > 768) {
+                toggleDropdown(e);
+            }
+        });
+
+        // Auto-close on any item click
+        dropdown.querySelectorAll('a, button').forEach(el => {
+            el.addEventListener('click', () => {
+                closeDropdown();
+            });
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#desktopProfileBtn') || e.target.closest('#desktopProfileDropdown') || e.target.closest('#openSidebarBtn')) {
+                return;
+            }
+            closeDropdown();
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeDropdown();
+        });
     }
 
     checkFirstTimeOnboarding() {
@@ -94,6 +184,11 @@ class AppController {
     }
 
     updateSidebarUser(user) {
+        if (!user) return;
+        const name = user.full_name || user.username || '??';
+        const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+        // Update sidebar (mobile drawer) elements
         const nameEl = document.getElementById('sidebarUserName');
         const initialsEl = document.getElementById('sidebarUserInitials');
         const frankIdEl = document.getElementById('sidebarUserFrankId');
@@ -101,26 +196,26 @@ class AppController {
         const copySidebarBtn = document.getElementById('copySidebarFrankIdBtn');
         const copyMenuBtn = document.getElementById('copyMenuFrankIdBtn');
 
-        if (nameEl) nameEl.textContent = user.full_name || user.username;
-        if (initialsEl) {
-            const name = user.full_name || user.username || '??';
-            initialsEl.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-        }
+        if (nameEl) nameEl.textContent = name;
+        if (initialsEl) initialsEl.textContent = initials;
         if (user.frank_id) {
             if (frankIdEl) {
                 frankIdEl.textContent = user.frank_id;
                 frankIdEl.title = `Your permanent FRANK ID: ${user.frank_id}`;
             }
-            if (menuFrankIdEl) {
-                menuFrankIdEl.textContent = user.frank_id;
-            }
-            if (copySidebarBtn) {
-                copySidebarBtn.dataset.frankId = user.frank_id;
-            }
-            if (copyMenuBtn) {
-                copyMenuBtn.dataset.frankId = user.frank_id;
-            }
+            if (menuFrankIdEl) menuFrankIdEl.textContent = user.frank_id;
+            if (copySidebarBtn) copySidebarBtn.dataset.frankId = user.frank_id;
+            if (copyMenuBtn) copyMenuBtn.dataset.frankId = user.frank_id;
         }
+
+        // Update desktop header profile elements
+        const desktopInitialsEl = document.getElementById('desktopHeaderInitials');
+        const desktopNameEl = document.getElementById('desktopDropdownName');
+        const desktopFrankIdEl = document.getElementById('desktopDropdownFrankId');
+        if (desktopInitialsEl) desktopInitialsEl.textContent = initials;
+        if (desktopNameEl) desktopNameEl.textContent = name;
+        if (desktopFrankIdEl && user.frank_id) desktopFrankIdEl.textContent = user.frank_id;
+
         if (typeof updateSidebarPresence === 'function') {
             const isWsConnected = window.wsClient && window.wsClient.isConnected;
             updateSidebarPresence(isWsConnected || navigator.onLine);
@@ -527,9 +622,11 @@ class AppController {
         };
 
         openBtn?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            sidebar?.classList.add('open');
-            overlay?.classList.add('show');
+            if (window.innerWidth <= 768) {
+                e.stopPropagation();
+                sidebar?.classList.add('open');
+                overlay?.classList.add('show');
+            }
         });
 
         overlay?.addEventListener('click', closeSidebar);

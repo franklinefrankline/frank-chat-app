@@ -5,7 +5,7 @@
 
 const auth = {
     isAuthenticated() {
-        return !!localStorage.getItem('chatapp_token');
+        return !!(localStorage.getItem('chatapp_token') || localStorage.getItem('frank_token'));
     },
 
     getUser() {

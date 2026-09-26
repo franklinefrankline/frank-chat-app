@@ -1,4 +1,5 @@
 from datetime import timedelta
+import sys
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -34,9 +35,9 @@ def generate_unique_frank_id(db: Session) -> str:
 @router.post("/register", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
 def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
     clean_email = user_in.email.strip().lower()
-    clean_full_name = user_in.full_name.strip()
+    clean_full_name = (user_in.full_name or user_in.name or "").strip()
 
-    # Check email (case-insensitive)
+    # Check email duplicate (case-insensitive)
     if db.query(models.User).filter(func.lower(models.User.email) == clean_email).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -68,48 +69,73 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
             clean_username = f"{base_username}{counter}"
             counter += 1
 
-    # Generate unique 6-character FRANK ID
+    # Generate unique 6-character permanent FRANK ID
     frank_id = generate_unique_frank_id(db)
 
-    # Create user
+    # Securely hash password
+    pw_hash = hash_password(user_in.password)
+    now_dt = models.get_utc_now()
+
+    # Create user with all required PostgreSQL columns populated
     user = models.User(
         username=clean_username,
         email=clean_email,
         frank_id=frank_id,
         full_name=clean_full_name,
-        hashed_password=hash_password(user_in.password),
+        name=clean_full_name,
+        hashed_password=pw_hash,
+        password_hash=pw_hash,
         bio="Hey there! I am using FRANK.",
         language=user_in.language if (user_in.language and user_in.language.strip().lower() in ["en", "ta", "hi"]) else "en",
         role="user",
-        account_status="active"
+        account_status="active",
+        status="active",
+        created_at=now_dt,
+        updated_at=now_dt
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
 
-    # Real-time WebSocket event to admin
+    # Execute database transaction with rollback guarantee
     try:
-        from websocket.chat import manager
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: database transaction could not be committed. {str(e)}"
+        )
+
+    # Real-time WebSocket event to admin (safe non-blocking notification)
+    try:
         import asyncio
-        asyncio.create_task(manager.broadcast_admin({
-            "type": "admin_user_created",
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "full_name": user.full_name,
-                "frank_id": user.frank_id,
-                "role": user.role,
-                "account_status": user.account_status,
-                "is_online": False,
-                "created_at": schemas.format_iso_utc(user.created_at)
-            }
-        }))
-        asyncio.create_task(manager.broadcast_admin_metrics(db))
+        loop = None
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        if loop and loop.is_running():
+            from websocket.chat import manager
+            loop.create_task(manager.broadcast_admin({
+                "type": "admin_user_created",
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "frank_id": user.frank_id,
+                    "role": user.role,
+                    "account_status": user.account_status,
+                    "status": user.status,
+                    "is_online": False,
+                    "created_at": schemas.format_iso_utc(user.created_at)
+                }
+            }))
+            loop.create_task(manager.broadcast_admin_metrics(None))
     except Exception:
         pass
 
-    # Generate token
+    # Generate permanent session token after commit succeeds
     token_str = create_access_token(
         data={
             "sub": user.username,
@@ -129,16 +155,22 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
     )
 
 
-
 @router.post("/login", response_model=schemas.Token)
 def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
-    identifier = login_data.username.strip()
-    ident_lower = identifier.lower()
+    # Support email, username, or identifier field
+    raw_ident = (login_data.email or login_data.username or login_data.identifier or "").strip()
+    if not raw_ident:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email address is required."
+        )
+    ident_lower = raw_ident.lower()
 
-    # Allow login by email, full_name, username, or frank_id (case-insensitive)
+    # Allow login by email, full_name, name, username, or frank_id (case-insensitive)
     candidates = db.query(models.User).filter(
         (func.lower(models.User.email) == ident_lower) | 
         (func.lower(models.User.full_name) == ident_lower) |
+        (func.lower(models.User.name) == ident_lower) |
         (func.lower(models.User.username) == ident_lower) | 
         (func.lower(models.User.frank_id) == ident_lower) |
         ((func.lower(models.User.email) == "frankline30999112@gmail.com") & (
@@ -179,32 +211,28 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"}
         )
 
+    # Check if candidate account is disabled first
+    for cand in candidates:
+        cand_status = str(getattr(cand, "account_status", "") or getattr(cand, "status", "") or "active").lower()
+        if cand_status == "disabled":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your account has been disabled. Account is disabled. Please contact an administrator."
+            )
+
     # Match candidate whose password verifies
     user = None
-    disabled_match = None
     for cand in candidates:
-        if str(getattr(cand, "account_status", "active") or "").lower() == "disabled":
-            disabled_match = cand
-        if verify_password(login_data.password, cand.hashed_password):
+        pwd_hash = getattr(cand, "password_hash", None) or getattr(cand, "hashed_password", None) or ""
+        if verify_password(login_data.password, pwd_hash):
             user = cand
             break
 
     if not user:
-        if disabled_match:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Account is disabled. Please contact an administrator."
-            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password.",
             headers={"WWW-Authenticate": "Bearer"}
-        )
-
-    if str(getattr(user, "account_status", "active") or "").lower() == "disabled":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled. Please contact an administrator."
         )
 
     # Issue token

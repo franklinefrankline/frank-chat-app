@@ -21,7 +21,9 @@ if not DATABASE_URL:
     if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
         DATABASE_URL = "sqlite:////tmp/chatapp.db"
     else:
-        DATABASE_URL = "sqlite:///./chatapp.db"
+        db_file = (Path(__file__).resolve().parent / "chatapp.db").as_posix()
+        DATABASE_URL = f"sqlite:///{db_file}"
+
 
 # Normalize PostgreSQL URL for SQLAlchemy 2.0+
 if DATABASE_URL.startswith("postgres://"):
@@ -105,6 +107,29 @@ def check_and_migrate_db():
 
             if "users" in tables:
                 columns = [col["name"] for col in inspector.get_columns("users")]
+                if "name" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN name VARCHAR(100) NULL"))
+                    if "full_name" in columns:
+                        conn.execute(text("UPDATE users SET name = full_name WHERE name IS NULL"))
+                if "full_name" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN full_name VARCHAR(100) NULL"))
+                    if "name" in columns:
+                        conn.execute(text("UPDATE users SET full_name = name WHERE full_name IS NULL"))
+                if "password_hash" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255) NULL"))
+                    if "hashed_password" in columns:
+                        conn.execute(text("UPDATE users SET password_hash = hashed_password WHERE password_hash IS NULL"))
+                if "hashed_password" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN hashed_password VARCHAR(255) NULL"))
+                    if "password_hash" in columns:
+                        conn.execute(text("UPDATE users SET hashed_password = password_hash WHERE hashed_password IS NULL"))
+                if "updated_at" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP NULL"))
+                    if "created_at" in columns:
+                        conn.execute(text("UPDATE users SET updated_at = created_at WHERE updated_at IS NULL"))
+                if "status" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN status VARCHAR(20) DEFAULT 'active'"))
+                conn.execute(text("UPDATE users SET status = 'active' WHERE status IS NULL OR status IN ('offline', 'online', '')"))
                 if "frank_id" not in columns:
                     conn.execute(text("ALTER TABLE users ADD COLUMN frank_id VARCHAR(6) NULL"))
                 if "role" not in columns:
