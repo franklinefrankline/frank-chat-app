@@ -27,10 +27,11 @@
     // Otherwise, the app calls the Vercel serverless API (which needs DATABASE_URL set in Vercel env vars).
     const CLOUD_API_FALLBACK = 'https://frank-chat-app.vercel.app';
 
-    // Support for Railway backend URL injected at build time (via window.__FRANK_BACKEND_URL__)
-    const RAILWAY_BACKEND = window.__FRANK_BACKEND_URL__ || '';
+    // Support for persistent backend URL (Render or Railway) injected at build time or window
+    const PERSISTENT_BACKEND = window.__FRANK_BACKEND_URL__ || window.__FRANK_BACKEND__ || '';
+    const RAILWAY_BACKEND = PERSISTENT_BACKEND;
 
-    const DEFAULT_PROD_WS = RAILWAY_BACKEND ? RAILWAY_BACKEND.replace(/^https?/, RAILWAY_BACKEND.startsWith('https') ? 'wss' : 'ws') : '';
+    const DEFAULT_PROD_WS = PERSISTENT_BACKEND ? PERSISTENT_BACKEND.replace(/^https?/, PERSISTENT_BACKEND.startsWith('https') ? 'wss' : 'ws') : '';
 
     let apiBase = '';
     let wsBase = '';
@@ -39,9 +40,9 @@
         apiBase = injectedConfig.API_BASE;
     } else if (storedApiUrl) {
         apiBase = storedApiUrl;
-    } else if (RAILWAY_BACKEND) {
-        // Use Railway backend directly when configured
-        apiBase = RAILWAY_BACKEND;
+    } else if (PERSISTENT_BACKEND) {
+        // Use persistent backend directly when configured (Render / Railway)
+        apiBase = PERSISTENT_BACKEND;
     } else if (isLocal) {
         // If served by FastAPI directly on port 8000, use relative or origin
         apiBase = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
@@ -49,7 +50,6 @@
             : 'http://localhost:8000';
     } else if (host.endsWith('.vercel.app') || host.includes('vercel.app')) {
         // On Vercel: use same-origin API (the Vercel serverless function)
-        // For persistent users: set DATABASE_URL in Vercel env vars pointing to Railway PostgreSQL
         apiBase = window.location.origin;
     } else {
         apiBase = CLOUD_API_FALLBACK;
@@ -57,7 +57,7 @@
 
     // Determine if running on a serverless host without native persistent WebSocket
     const isVercelHost = host.endsWith('.vercel.app') || host.includes('vercel.app');
-    let isServerless = isVercelHost && !RAILWAY_BACKEND;
+    let isServerless = isVercelHost && !PERSISTENT_BACKEND && !storedApiUrl;
 
     if (injectedConfig.WS_BASE) {
         wsBase = injectedConfig.WS_BASE;
@@ -65,11 +65,16 @@
     } else if (storedWsUrl) {
         wsBase = storedWsUrl;
         isServerless = false;
-    } else if (RAILWAY_BACKEND) {
-        // Use Railway backend WebSocket
-        const wsProtocol = RAILWAY_BACKEND.startsWith('https') ? 'wss:' : 'ws:';
-        const wsHostRailway = RAILWAY_BACKEND.replace(/^https?:\/\//, '');
-        wsBase = `${wsProtocol}//${wsHostRailway}`;
+    } else if (storedApiUrl && (storedApiUrl.startsWith('http://') || storedApiUrl.startsWith('https://'))) {
+        const wsProtocol = storedApiUrl.startsWith('https') ? 'wss:' : 'ws:';
+        const wsHost = storedApiUrl.replace(/^https?:\/\//, '');
+        wsBase = `${wsProtocol}//${wsHost}`;
+        isServerless = false;
+    } else if (PERSISTENT_BACKEND) {
+        // Use persistent backend WebSocket (Render / Railway)
+        const wsProtocol = PERSISTENT_BACKEND.startsWith('https') ? 'wss:' : 'ws:';
+        const wsHost = PERSISTENT_BACKEND.replace(/^https?:\/\//, '');
+        wsBase = `${wsProtocol}//${wsHost}`;
         isServerless = false;
     } else if (isLocal) {
         const wsProtocol = isHttps ? 'wss:' : 'ws:';
