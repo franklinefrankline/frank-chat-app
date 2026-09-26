@@ -25,6 +25,7 @@ class UserRegister(BaseModel):
     email: str = Field(..., min_length=5, max_length=120)
     password: str = Field(..., min_length=6, max_length=128)
     username: Optional[str] = Field(None, max_length=50)
+    language: Optional[str] = Field("en", max_length=10)
 
 
 class UserLogin(BaseModel):
@@ -37,6 +38,7 @@ class UserUpdate(BaseModel):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     theme: Optional[str] = None
+    language: Optional[str] = None
 
 
 class UserResponse(UserBase):
@@ -45,6 +47,7 @@ class UserResponse(UserBase):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     theme: Optional[str] = "monochrome"
+    language: Optional[str] = "en"
     role: str = "user"
     account_status: str = "active"
     is_online: bool = False

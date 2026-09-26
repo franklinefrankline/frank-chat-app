@@ -544,7 +544,7 @@
 
                 const deleteAccountBtn = isSelf
                     ? `<button type="button" class="btn-action btn-action-delete" disabled title="Cannot delete your own admin account" style="opacity:0.4; cursor:not-allowed;">Delete</button>`
-                    : `<button type="button" class="btn-action btn-action-delete" data-action="delete-account" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}" data-email="${this.escapeHtml(u.email)}">Delete</button>`;
+                    : `<button type="button" class="btn-action btn-action-delete" data-action="delete-account" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}" data-email="${this.escapeHtml(u.email || '')}" data-frank-id="${this.escapeHtml(u.frank_id || '')}">Delete</button>`;
 
                 return `
                     <tr data-user-id="${u.id}">
@@ -620,7 +620,8 @@
                 } else if (action === 'delete-data') {
                     this.handleDeleteUserData(userId, userName);
                 } else if (action === 'delete-account') {
-                    this.handleDeleteUserAccount(userId, userName, userEmail);
+                    const userFid = btn.getAttribute('data-frank-id') || '';
+                    this.handleDeleteUserAccount(userId, userName, userEmail, userFid);
                 }
             });
         }
@@ -640,13 +641,15 @@
                     return;
                 }
 
+                const isSelf = this.currentUser && this.currentUser.id === user.id;
+
                 body.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
                         <div class="avatar avatar-lg">
                             <span>${this.getInitials(user.full_name || user.username)}</span>
                         </div>
                         <div>
-                            <div style="font-size: 16px; font-weight: 800; color: var(--text);">${this.escapeHtml(user.full_name || user.username)}</div>
+                            <div style="font-size: 16px; font-weight: 800; color: var(--text);">${this.escapeHtml(user.full_name || user.username)} ${isSelf ? '<span style="font-size:11px; color:var(--primary); font-weight:800;">(YOU)</span>' : ''}</div>
                             <div style="font-size: 13px; color: var(--text-muted);">@${this.escapeHtml(user.username)}</div>
                             <div style="margin-top: 4px; display: flex; gap: 6px;">
                                 <span class="${user.role === 'admin' ? 'badge-role-admin' : 'badge-role-user'}">${user.role}</span>
@@ -668,36 +671,70 @@
                         <span class="detail-value" style="font-family: monospace; color: var(--accent-cyan); font-weight: 800;">${this.escapeHtml(user.frank_id || '—')}</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label">Email Verified</span>
-                        <span class="detail-value">${user.email_verified ? 'Yes (Verified)' : 'No (Pending)'}</span>
-                    </div>
-                    <div class="detail-row">
                         <span class="detail-label">Registered At</span>
                         <span class="detail-value">${this.formatDate(user.created_at)}</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label">Last Updated</span>
-                        <span class="detail-value">${this.formatDate(user.updated_at)}</span>
+                        <span class="detail-label">Last Seen</span>
+                        <span class="detail-value">${user.last_seen ? this.formatDate(user.last_seen) : 'Never'}</span>
                     </div>
 
-                    <div style="margin-top: 20px; padding: 14px; background: var(--surface-elevated); border-radius: var(--radius-md); border: 1px solid var(--border);">
-                        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Activity Summary (Metadata Only)</div>
+                    <div style="margin-top: 16px; padding: 14px; background: var(--surface-elevated); border-radius: var(--radius-md); border: 1px solid var(--border);">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Activity Summary (Metadata Only)</div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center;">
                             <div>
-                                <div style="font-size: 18px; font-weight: 800; color: var(--text);">${user.message_count || 0}</div>
+                                <div style="font-size: 18px; font-weight: 800; color: var(--text);">${user.messages_count ?? user.message_count ?? 0}</div>
                                 <div style="font-size: 11px; color: var(--text-muted);">Messages</div>
                             </div>
                             <div>
-                                <div style="font-size: 18px; font-weight: 800; color: var(--text);">${user.file_count || 0}</div>
+                                <div style="font-size: 18px; font-weight: 800; color: var(--text);">${user.files_count ?? user.file_count ?? 0}</div>
                                 <div style="font-size: 11px; color: var(--text-muted);">Files</div>
                             </div>
                             <div>
-                                <div style="font-size: 18px; font-weight: 800; color: var(--text);">${user.group_count || 0}</div>
+                                <div style="font-size: 18px; font-weight: 800; color: var(--text);">${user.groups_count ?? user.group_count ?? 0}</div>
                                 <div style="font-size: 11px; color: var(--text-muted);">Groups</div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Administrator Account Deletion Control -->
+                    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                        <div>
+                            ${isSelf ? `
+                                <span style="font-size: 12px; color: var(--text-muted); font-style: italic;">Cannot delete your own admin account</span>
+                            ` : `
+                                <button type="button" class="btn btn-danger btn-sm" id="modalDeleteAccountBtn" data-id="${user.id}" data-name="${this.escapeHtml(user.full_name || user.username)}" data-email="${this.escapeHtml(user.email || '')}" data-frank-id="${this.escapeHtml(user.frank_id || '')}" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                    Delete Account
+                                </button>
+                            `}
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" id="modalCloseDetailsBtn">Close</button>
+                    </div>
                 `;
+
+                // Wire modal action buttons
+                const modalDeleteBtn = document.getElementById('modalDeleteAccountBtn');
+                if (modalDeleteBtn) {
+                    modalDeleteBtn.addEventListener('click', () => {
+                        modal.classList.remove('open', 'active');
+                        this.handleDeleteUserAccount(
+                            user.id,
+                            user.full_name || user.username,
+                            user.email || '',
+                            user.frank_id || ''
+                        );
+                    });
+                }
+                const modalCloseBtn = document.getElementById('modalCloseDetailsBtn');
+                if (modalCloseBtn) {
+                    modalCloseBtn.addEventListener('click', () => {
+                        modal.classList.remove('open', 'active');
+                    });
+                }
             } catch (err) {
                 body.innerHTML = `<p style="color:var(--danger); text-align:center;">Error: ${this.escapeHtml(err.message || '')}</p>`;
             }
@@ -781,18 +818,30 @@
             });
         }
 
-        handleDeleteUserAccount(userId, userName, userEmail) {
+        handleDeleteUserAccount(userId, userName, userEmail, userFrankId) {
+            const fidText = userFrankId ? ` (FRANK ID: ${userFrankId})` : '';
+            const emailText = userEmail ? ` [${userEmail}]` : '';
             this.showConfirmDialog({
                 title: 'Delete Account?',
-                message: `Are you sure you want to permanently delete the account for ${userName} (${userEmail})?`,
-                warning: 'This action cannot be undone.',
+                message: `Are you sure you want to permanently delete the account for ${userName}${emailText}${fidText}? This permanently removes this user account and prevents the user from signing in again. This action cannot be automatically undone.`,
+                warning: 'This permanently removes this user account from Railway PostgreSQL. This action cannot be undone.',
                 confirmText: 'Delete Account',
                 confirmClass: 'btn-danger',
                 onConfirm: async () => {
                     try {
-                        await api.deleteAdminUserAccount(userId);
-                        toast.success(`Account for ${userName} permanently deleted`);
-                        await Promise.all([this.loadUsers(), this.loadMetrics(), this.loadAuditLogs()]);
+                        const res = await api.deleteAdminUserAccount(userId);
+                        toast.success(res?.message || `Account for ${userName} permanently deleted`);
+                        
+                        // Close details modal if open
+                        const detailsModal = document.getElementById('adminUserDetailsModal');
+                        if (detailsModal) detailsModal.classList.remove('open', 'active');
+
+                        // Immediately update UI
+                        await Promise.all([
+                            this.loadUsers(),
+                            this.loadMetrics(),
+                            this.loadAuditLogs()
+                        ]);
                     } catch (err) {
                         toast.error(err.message || 'Failed to delete user account');
                     }

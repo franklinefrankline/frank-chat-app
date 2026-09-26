@@ -7,6 +7,7 @@ const uiModule = {
     init() {
         this.setupCustomCursor();
         this.setupDropdowns();
+        this.setupLandingMobileDrawer();
         this.setupLandingPreviewAnimation();
     },
 
@@ -20,8 +21,8 @@ const uiModule = {
 
     setupDropdowns() {
         document.addEventListener('click', (e) => {
-            // Ignore dropdown toggle if clicking copy button
-            if (e.target.closest('.btn-copy-frank-id')) {
+            // Ignore dropdown toggle if clicking copy button or language selector
+            if (e.target.closest('.btn-copy-frank-id') || e.target.closest('.lang-selector-container')) {
                 return;
             }
 
@@ -49,6 +50,41 @@ const uiModule = {
                     const parentTrigger = m.closest('[aria-haspopup="true"]');
                     if (parentTrigger) parentTrigger.setAttribute('aria-expanded', 'false');
                 });
+            }
+        });
+    },
+
+    setupLandingMobileDrawer() {
+        const toggleBtn = document.getElementById('landingMobileToggle');
+        const drawer = document.getElementById('landingMobileDrawer');
+        const overlay = document.getElementById('landingMobileOverlay');
+        const closeBtn = document.getElementById('landingMobileCloseBtn');
+
+        if (!drawer) return;
+
+        const openDrawer = () => {
+            drawer.classList.add('open');
+            if (overlay) overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        };
+
+        const closeDrawer = () => {
+            drawer.classList.remove('open');
+            if (overlay) overlay.classList.remove('show');
+            document.body.style.overflow = '';
+        };
+
+        if (toggleBtn) toggleBtn.addEventListener('click', openDrawer);
+        if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+        if (overlay) overlay.addEventListener('click', closeDrawer);
+
+        drawer.querySelectorAll('.landing-mobile-link, .landing-mobile-actions a').forEach(link => {
+            link.addEventListener('click', closeDrawer);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && drawer.classList.contains('open')) {
+                closeDrawer();
             }
         });
     },

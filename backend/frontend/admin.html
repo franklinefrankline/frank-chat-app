@@ -49,7 +49,7 @@
                         <rect x="14" y="14" width="7" height="7"></rect>
                         <rect x="3" y="14" width="7" height="7"></rect>
                     </svg>
-                    <span>Overview &amp; Metrics</span>
+                    <span data-i18n="admin.metrics">Overview &amp; Metrics</span>
                 </button>
 
                 <button type="button" class="nav-item" data-section="users" id="navUsersBtn">
@@ -59,14 +59,14 @@
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                     </svg>
-                    <span>User Management</span>
+                    <span data-i18n="admin.userManagement">User Management</span>
                 </button>
 
                 <button type="button" class="nav-item" data-section="groups" id="navGroupsBtn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                     </svg>
-                    <span>Groups &amp; Chats</span>
+                    <span data-i18n="admin.groupsChats">Groups &amp; Chats</span>
                 </button>
 
                 <button type="button" class="nav-item" data-section="audit" id="navAuditBtn">
@@ -77,17 +77,17 @@
                         <line x1="16" y1="17" x2="8" y2="17"></line>
                         <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
-                    <span>Audit Logs</span>
+                    <span data-i18n="admin.auditLogs">Audit Logs</span>
                 </button>
 
-                <div class="sidebar-section-title">Account</div>
+                <div class="sidebar-section-title" data-i18n="settings.account">Account</div>
 
                 <button type="button" class="nav-item" data-section="profile" id="navProfileBtn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
-                    <span>Admin Profile</span>
+                    <span data-i18n="admin.adminProfile">Admin Profile</span>
                 </button>
             </nav>
 
@@ -129,8 +129,28 @@
                         <line x1="3" y1="18" x2="21" y2="18"></line>
                     </svg>
                 </button>
-                <div class="admin-topbar-title" id="adminTopbarTitle">Overview &amp; Metrics</div>
+                <div class="admin-topbar-title" id="adminTopbarTitle" data-i18n="admin.metrics">Overview &amp; Metrics</div>
                 <div style="display: flex; align-items: center; gap: 8px;">
+                    <!-- Language Selector -->
+                    <div class="lang-selector-container" id="adminLangSelector">
+                        <button type="button" class="btn btn-ghost lang-btn" id="adminLangDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language" style="padding: 5px 10px; font-size: 13px; min-height: 32px;">
+                            <svg class="lang-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                            </svg>
+                            <span class="current-lang-label">English</span>
+                            <svg class="chevron-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="lang-dropdown-menu" id="adminLangDropdownMenu" role="menu" aria-label="Select Language">
+                            <button type="button" class="lang-option active" data-lang="en" role="menuitem">English</button>
+                            <button type="button" class="lang-option" data-lang="ta" role="menuitem">தமிழ்</button>
+                            <button type="button" class="lang-option" data-lang="hi" role="menuitem">हिन्दी</button>
+                        </div>
+                    </div>
+
                     <button type="button" class="btn btn-secondary btn-sm" id="adminRefreshBtn" title="Refresh all administrative data">
                         <svg class="refresh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="23 4 23 10 17 10"></polyline>
@@ -509,6 +529,7 @@
 
     <!-- Scripts -->
     <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/modal.js"></script>

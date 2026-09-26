@@ -27,8 +27,8 @@ def sync_assets():
             if src.exists():
                 shutil.copy2(src, target / html_file)
 
-        # Copy directories: css, js, assets
-        for d in ["css", "js", "assets"]:
+        # Copy directories: css, js, assets, i18n
+        for d in ["css", "js", "assets", "i18n"]:
             src_d = root_dir / d
             dst_d = target / d
             if src_d.exists():

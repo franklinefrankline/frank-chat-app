@@ -315,8 +315,16 @@ async def delete_user_account(
 
     target_name = user.full_name
     target_username = user.username
+    target_email = user.email
+    target_frank_id = user.frank_id
 
-    # 1. Clean up user's physical files
+    # 1. Disconnect any active WebSocket connections immediately
+    try:
+        await manager.disconnect_user(user.id)
+    except Exception:
+        pass
+
+    # 2. Clean up user's physical files and document records
     upload_dir = Path(__file__).resolve().parent.parent / "uploads"
     docs = db.query(models.Document).filter(models.Document.uploader_id == user.id).all()
     for doc in docs:
@@ -329,62 +337,75 @@ async def delete_user_account(
                     pass
         db.delete(doc)
 
-    # 2. Delete user's reactions
+    # 3. Delete user's reactions
     db.query(models.Reaction).filter(models.Reaction.user_id == user.id).delete(synchronize_session=False)
 
-    # 3. Delete messages sent or received by user
+    # 4. Delete messages sent or received by user
     db.query(models.Message).filter(
         or_(models.Message.sender_id == user.id, models.Message.recipient_id == user.id)
     ).delete(synchronize_session=False)
 
-    # 4. Delete group memberships
+    # 5. Delete group memberships
     db.query(models.GroupMember).filter(models.GroupMember.user_id == user.id).delete(synchronize_session=False)
 
-    # 5. Delete private conversations involving user
+    # 6. Reassign any groups created by this user to current_admin so foreign keys are preserved
+    db.query(models.Group).filter(models.Group.created_by == user.id).update(
+        {"created_by": current_admin.id}, synchronize_session=False
+    )
+
+    # 7. Delete conversation preferences involving user
+    db.query(models.ConversationPreference).filter(models.ConversationPreference.user_id == user.id).delete(synchronize_session=False)
+
+    # 8. Delete private conversations involving user
     db.query(models.Conversation).filter(
         or_(models.Conversation.user_a_id == user.id, models.Conversation.user_b_id == user.id)
     ).delete(synchronize_session=False)
 
-    # 6. Disconnect any active WebSocket connections
-    await manager.disconnect_user(user.id)
+    # 9. Reassign any audit logs where user was admin to current admin
+    db.query(models.AuditLog).filter(models.AuditLog.admin_id == user.id).update(
+        {"admin_id": current_admin.id}, synchronize_session=False
+    )
 
-    # 7. Delete user record
+    # 10. Permanently delete user account record
     db.delete(user)
 
-    # 8. Record audit log
+    # 11. Record immutable audit log
     audit = models.AuditLog(
         admin_id=current_admin.id,
         action="account_deleted",
         target_type="user",
         target_id=user_id,
         target_name=target_name,
-        details=f"Permanently deleted user account @{target_username} ({target_name})"
+        details=f"Permanently deleted user account @{target_username} ({target_name}, {target_email}, FRANK ID: {target_frank_id}) from Railway PostgreSQL"
     )
     db.add(audit)
     db.commit()
     db.refresh(audit)
 
-    # Broadcast live updates to admin sockets
-    await manager.broadcast_admin({
-        "type": "admin_user_deleted",
-        "user_id": user_id
-    })
-    await manager.broadcast_admin_metrics(db)
-    await manager.broadcast_admin({
-        "type": "admin_audit_created",
-        "audit": {
-            "id": audit.id,
-            "admin_id": current_admin.id,
-            "admin_name": current_admin.full_name,
-            "admin_username": current_admin.username,
-            "action": audit.action,
-            "target_type": audit.target_type,
-            "target_id": audit.target_id,
-            "target_name": audit.target_name,
-            "details": audit.details,
-            "created_at": schemas.format_iso_utc(audit.created_at)
-        }
-    })
+    # 12. Broadcast live updates to admin sockets
+    try:
+        await manager.broadcast_admin({
+            "type": "admin_user_deleted",
+            "user_id": user_id
+        })
+        await manager.broadcast_admin_metrics(db)
+        await manager.broadcast_admin({
+            "type": "admin_audit_created",
+            "audit": {
+                "id": audit.id,
+                "admin_id": current_admin.id,
+                "admin_name": current_admin.full_name,
+                "admin_username": current_admin.username,
+                "action": audit.action,
+                "target_type": audit.target_type,
+                "target_id": audit.target_id,
+                "target_name": audit.target_name,
+                "details": audit.details,
+                "created_at": schemas.format_iso_utc(audit.created_at)
+            }
+        })
+    except Exception:
+        pass
 
     return {"success": True, "message": f"Account for {target_name} permanently deleted."}
 

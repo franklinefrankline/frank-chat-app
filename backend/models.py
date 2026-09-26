@@ -20,6 +20,7 @@ class User(Base):
     bio = Column(String(255), default="Hey there! I am using FRANK.")
     avatar_url = Column(String(255), default="")
     theme = Column(String(20), default="light")
+    language = Column(String(10), default="en", nullable=False)
     status = Column(String(20), default="offline")
     role = Column(String(20), default="user", nullable=False)
     account_status = Column(String(20), default="active", nullable=False)

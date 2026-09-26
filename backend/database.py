@@ -3,18 +3,18 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Locate .env file in backend directory if available
-env_path = Path(__file__).resolve().parent / ".env"
-if env_path.exists():
-    try:
-        with open(env_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, val = line.split("=", 1)
-                    os.environ.setdefault(key.strip(), val.strip())
-    except Exception:
-        pass
+# Locate .env file in backend directory or root directory if available
+for env_candidate in [Path(__file__).resolve().parent / ".env", Path(__file__).resolve().parent.parent / ".env"]:
+    if env_candidate.exists():
+        try:
+            with open(env_candidate, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        key, val = line.split("=", 1)
+                        os.environ.setdefault(key.strip(), val.strip())
+        except Exception:
+            pass
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
@@ -26,6 +26,19 @@ if not DATABASE_URL:
 # Normalize PostgreSQL URL for SQLAlchemy 2.0+
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Ensure compatible PostgreSQL driver (fallback to pg8000 if psycopg2 is missing)
+if DATABASE_URL.startswith("postgresql://") and not any(
+    DATABASE_URL.startswith(p) for p in ["postgresql+psycopg2://", "postgresql+pg8000://", "postgresql+asyncpg://"]
+):
+    try:
+        import psycopg2  # noqa: F401
+    except ImportError:
+        try:
+            import pg8000  # noqa: F401
+            DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
+        except ImportError:
+            pass
 
 engine_kwargs = {
     "pool_pre_ping": True,
@@ -100,6 +113,9 @@ def check_and_migrate_db():
                 if "account_status" not in columns:
                     conn.execute(text("ALTER TABLE users ADD COLUMN account_status VARCHAR(20) DEFAULT 'active'"))
                     conn.execute(text("UPDATE users SET account_status = 'active' WHERE account_status IS NULL"))
+                if "language" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN language VARCHAR(10) DEFAULT 'en'"))
+                    conn.execute(text("UPDATE users SET language = 'en' WHERE language IS NULL"))
 
                 result = conn.execute(text("SELECT id FROM users WHERE frank_id IS NULL OR frank_id = ''")).fetchall()
                 alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"

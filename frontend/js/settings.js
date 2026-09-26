@@ -7,6 +7,7 @@ const settingsModule = {
     init() {
         this.setupTabs();
         this.setupThemeCards();
+        this.setupLanguageCards();
         this.setupToggles();
         this.loadProfileData();
 
@@ -24,6 +25,45 @@ const settingsModule = {
         window.addEventListener('chatapp_theme_change', (e) => {
             this.highlightThemeCard(e.detail.theme);
             this.updateLivePreview(e.detail.theme);
+        });
+    },
+
+    setupLanguageCards() {
+        const updateLangCards = (currentLang) => {
+            document.querySelectorAll('[data-lang-choice]').forEach(card => {
+                const choice = card.dataset.langChoice;
+                const isSelected = choice === currentLang;
+                card.classList.toggle('active', isSelected);
+                card.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+                const check = card.querySelector('.theme-card-check');
+                if (check) {
+                    check.style.display = isSelected ? 'inline-flex' : 'none';
+                }
+            });
+        };
+
+        const activeLang = (typeof i18n !== 'undefined') ? i18n.currentLang : 'en';
+        updateLangCards(activeLang);
+
+        document.querySelectorAll('[data-lang-choice]').forEach(card => {
+            const handleSelect = () => {
+                const choice = card.dataset.langChoice;
+                if (typeof i18n !== 'undefined') {
+                    i18n.setLanguage(choice);
+                }
+                updateLangCards(choice);
+            };
+            card.addEventListener('click', handleSelect);
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelect();
+                }
+            });
+        });
+
+        window.addEventListener('frank:languageChanged', (e) => {
+            updateLangCards(e.detail.lang);
         });
     },
 

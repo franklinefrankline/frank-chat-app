@@ -34,9 +34,28 @@
             <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" style="width: 26px; height: 26px; border-radius: 6px;">
             <span style="font-weight: 800; font-size: 17px; letter-spacing: -0.3px;">FRANK</span>
         </a>
-        <div style="display: flex; gap: 8px;">
-            <a href="settings.html" class="btn btn-secondary btn-sm">Settings</a>
-            <button type="button" class="btn btn-outline btn-sm" id="profileLogoutBtn">Sign Out</button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <!-- Language Selector -->
+            <div class="lang-selector-container" id="profileLangSelector">
+                <button type="button" class="btn btn-ghost lang-btn" id="profileLangDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language">
+                    <svg class="lang-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    <span class="current-lang-label">English</span>
+                    <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="lang-dropdown-menu" id="profileLangDropdownMenu" role="menu" aria-label="Select Language">
+                    <button type="button" class="lang-option active" data-lang="en" role="menuitem">English</button>
+                    <button type="button" class="lang-option" data-lang="ta" role="menuitem">தமிழ்</button>
+                    <button type="button" class="lang-option" data-lang="hi" role="menuitem">हिन्दी</button>
+                </div>
+            </div>
+            <a href="settings.html" class="btn btn-secondary btn-sm" data-i18n="settings.title">Settings</a>
+            <button type="button" class="btn btn-outline btn-sm" id="profileLogoutBtn" data-i18n="settings.logout">Sign Out</button>
         </div>
     </header>
 
@@ -135,6 +154,7 @@
 
     <!-- Scripts -->
     <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/api.js"></script>

@@ -13,7 +13,7 @@ A modern real-time communication platform built with a FastAPI Python backend, P
                           |
                           v
                  VERCEL FRONTEND
-          (https://frank-chat-vercel.app)
+          (https://frank-chat-app.vercel.app)
                           |
                      HTTPS / WSS
                           |
@@ -78,4 +78,5 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 ## 🚢 Production Deployment
 
 For detailed production deployment instructions across **Vercel** (Frontend) and **Render / Railway / Docker** (Backend & PostgreSQL), refer to:
-👉 [**DEPLOYMENT.md**](file:///d:/chat-app/DEPLOYMENT.md)
+- 👉 [**DEPLOYMENT.md**](file:///c:/Users/inbat/Downloads/frank-chat-app-main/frank-chat-app-main/DEPLOYMENT.md) — Full production deployment manual
+- 👉 [**UPTIMEROBOT.md**](file:///c:/Users/inbat/Downloads/frank-chat-app-main/frank-chat-app-main/UPTIMEROBOT.md) — UptimeRobot monitoring, persistent PostgreSQL & health endpoint guide

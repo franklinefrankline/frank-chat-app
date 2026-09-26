@@ -22,7 +22,8 @@ def get_users(
         query = query.filter(
             or_(
                 models.User.username.ilike(search_pattern),
-                models.User.full_name.ilike(search_pattern)
+                models.User.full_name.ilike(search_pattern),
+                models.User.frank_id.ilike(search_pattern)
             )
         )
     return query.order_by(models.User.full_name).limit(50).all()
@@ -49,6 +50,10 @@ def update_profile(
         clean_theme = user_update.theme.strip().lower()
         if clean_theme in ["monochrome", "sandstone", "dark", "light"]:
             current_user.theme = "sandstone" if clean_theme in ["sandstone", "light"] else "monochrome"
+    if user_update.language is not None:
+        clean_lang = user_update.language.strip().lower()
+        if clean_lang in ["en", "ta", "hi"]:
+            current_user.language = clean_lang
 
     db.commit()
     db.refresh(current_user)
@@ -405,4 +410,102 @@ def get_user_by_id(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
+
+
+async def _perform_user_deletion(target_user: models.User, db: Session):
+    target_id = target_user.id
+    target_username = target_user.username
+
+    # 1. Disconnect active WebSockets
+    try:
+        from websocket.chat import manager
+        await manager.disconnect_user(target_id)
+    except Exception:
+        pass
+
+    # 2. Clean up uploaded files and documents
+    import os
+    from pathlib import Path
+    upload_dir = Path(__file__).resolve().parent.parent / "uploads"
+    docs = db.query(models.Document).filter(models.Document.uploader_id == target_id).all()
+    for doc in docs:
+        if doc.stored_filename:
+            file_path = upload_dir / doc.stored_filename
+            if file_path.exists():
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+        db.delete(doc)
+
+    # 3. Delete reactions
+    db.query(models.Reaction).filter(models.Reaction.user_id == target_id).delete(synchronize_session=False)
+
+    # 4. Delete messages
+    db.query(models.Message).filter(
+        or_(models.Message.sender_id == target_id, models.Message.recipient_id == target_id)
+    ).delete(synchronize_session=False)
+
+    # 5. Delete group memberships
+    db.query(models.GroupMember).filter(models.GroupMember.user_id == target_id).delete(synchronize_session=False)
+
+    # 6. Reassign groups created by user
+    admin_fallback = db.query(models.User).filter(models.User.role == "admin").first()
+    new_owner_id = admin_fallback.id if admin_fallback else None
+    if new_owner_id:
+        db.query(models.Group).filter(models.Group.created_by == target_id).update(
+            {"created_by": new_owner_id}, synchronize_session=False
+        )
+
+    # 7. Delete conversation preferences & conversations
+    db.query(models.ConversationPreference).filter(models.ConversationPreference.user_id == target_id).delete(synchronize_session=False)
+    db.query(models.Conversation).filter(
+        or_(models.Conversation.user_a_id == target_id, models.Conversation.user_b_id == target_id)
+    ).delete(synchronize_session=False)
+
+    # 8. Reassign audit logs if target was admin
+    if new_owner_id and target_id != new_owner_id:
+        db.query(models.AuditLog).filter(models.AuditLog.admin_id == target_id).update(
+            {"admin_id": new_owner_id}, synchronize_session=False
+        )
+
+    # 9. Delete user record from database
+    db.delete(target_user)
+    db.commit()
+
+    return {"success": True, "message": f"Account @{target_username} has been permanently deleted."}
+
+
+@router.delete("/me")
+async def delete_own_account(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Self-account deletion for the authenticated user."""
+    return await _perform_user_deletion(current_user, db)
+
+
+@router.delete("/{user_id}")
+async def delete_user_by_id(
+    user_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete user by ID.
+    NEVER allows an unauthorized normal user to delete another user's account.
+    """
+    if user_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete another user's account."
+        )
+
+    target_user = current_user
+    if user_id != current_user.id and current_user.role == "admin":
+        target_user = db.query(models.User).filter(models.User.id == user_id).first()
+        if not target_user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    return await _perform_user_deletion(target_user, db)
 

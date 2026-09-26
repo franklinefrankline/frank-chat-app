@@ -79,6 +79,7 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
         full_name=clean_full_name,
         hashed_password=hash_password(user_in.password),
         bio="Hey there! I am using FRANK.",
+        language=user_in.language if (user_in.language and user_in.language.strip().lower() in ["en", "ta", "hi"]) else "en",
         role="user",
         account_status="active"
     )

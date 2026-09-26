@@ -112,73 +112,21 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
 # ---------------- CURRENT USER DEPENDENCY ----------------
 
 def _resolve_user_from_payload(payload: dict, db: Session) -> Optional[models.User]:
+    user_id = payload.get("user_id")
     username = payload.get("sub")
-    if not username:
-        return None
     email = payload.get("email")
     frank_id = payload.get("frank_id")
 
-    user = db.query(models.User).filter(models.User.username == username).first()
+    user = None
+    if user_id:
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None and username:
+        user = db.query(models.User).filter(models.User.username == username).first()
     if user is None and email:
         user = db.query(models.User).filter(models.User.email == email).first()
     if user is None and frank_id:
         user = db.query(models.User).filter(models.User.frank_id == frank_id).first()
 
-    if user is not None:
-        return user
-
-    if frank_id:
-        uid = payload.get("user_id")
-        safe_frank_id = frank_id
-        if db.query(models.User).filter(models.User.frank_id == safe_frank_id).first():
-            import uuid
-            safe_frank_id = f"F{uuid.uuid4().hex[:5].upper()}"
-
-        safe_email = email or f"{username}@frank.app"
-        if db.query(models.User).filter(models.User.email == safe_email).first():
-            safe_email = f"{username}_{os.urandom(2).hex()}@frank.app"
-
-        use_custom_id = None
-        if uid and isinstance(uid, int):
-            if not db.query(models.User).filter(models.User.id == uid).first():
-                use_custom_id = uid
-
-        try:
-            user = models.User(
-                username=username,
-                email=safe_email,
-                frank_id=safe_frank_id,
-                full_name=payload.get("full_name") or username,
-                hashed_password=hash_password(username + "_ephemeral"),
-                role=payload.get("role") or "user",
-                account_status="active"
-            )
-            if use_custom_id is not None:
-                user.id = use_custom_id
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-            return user
-        except Exception:
-            db.rollback()
-            try:
-                user = models.User(
-                    username=f"{username}_{os.urandom(2).hex()}",
-                    email=f"{username}_{os.urandom(3).hex()}@frank.app",
-                    frank_id=f"F{os.urandom(2).hex().upper()[:5]}",
-                    full_name=payload.get("full_name") or username,
-                    hashed_password=hash_password(username + "_ephemeral"),
-                    role=payload.get("role") or "user",
-                    account_status="active"
-                )
-                db.add(user)
-                db.commit()
-                db.refresh(user)
-                return user
-            except Exception as e2:
-                db.rollback()
-                print(f"Self-heal fallback note: {e2}")
-                return None
     return user
 
 

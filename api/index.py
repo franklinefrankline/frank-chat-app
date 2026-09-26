@@ -49,6 +49,17 @@ if app is None:
     app = FastAPI(title="FRANK API - Diagnostic Mode")
     startup_error = str(last_err) if last_err else "Backend main.py not found in candidate paths"
 
+    @app.api_route("/health", methods=["GET", "HEAD"])
+    @app.api_route("/api/health", methods=["GET", "HEAD"])
+    def diagnostic_health():
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "database": "disconnected"
+            }
+        )
+
     @app.api_route("/", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
     @app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
     async def startup_error_fallback(full_path: str = ""):

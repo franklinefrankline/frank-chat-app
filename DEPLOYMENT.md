@@ -3,32 +3,40 @@
 **Brand Name:** FRANK  
 **Tagline:** Think  
 **GitHub Repository:** [https://github.com/franklinefrankline/frank-chat-app](https://github.com/franklinefrankline/frank-chat-app)  
-**Production Frontend URL:** [https://frank-chat-vercel.app](https://frank-chat-vercel.app)
+**Production Application URL:** [https://frank-chat-app.vercel.app](https://frank-chat-app.vercel.app)  
+**Production Health Endpoint:** [https://frank-chat-app.vercel.app/health](https://frank-chat-app.vercel.app/health)  
+**Uptime Monitoring Guide:** [`UPTIMEROBOT.md`](file:///c:/Users/inbat/Downloads/frank-chat-app-main/frank-chat-app-main/UPTIMEROBOT.md)
 
 ---
 
-## 1. System Architecture
+## 1. Production Architecture
 
 ```
                     FRANK
                       |
                       |
-                 VERCEL
-                FRONTEND
-      (https://frank-chat-vercel.app)
-                      |
-             HTTPS / WSS
+                 VERCEL FRONTEND
+         (https://frank-chat-app.vercel.app)
                       |
                       v
-              FASTAPI BACKEND
-           (PaaS / ASGI Container)
+             PRODUCTION FASTAPI BACKEND
                       |
-          +-----------+-----------+
-          |                       |
-          v                       v
-     PostgreSQL              File Storage
-   (Managed DB)           (S3 / Cloudflare R2)
+                      v
+            PERSISTENT POSTGRESQL
+                      ^
+                      |
+                 UPTIMEROBOT
+                      |
+                      v
+                 GET /health
+          {"status":"ok","database":"connected"}
 ```
+
+### Core Architecture Rules:
+- **UPTIMEROBOT = BACKEND UPTIME MONITORING & KEEP-ALIVE**
+- **POSTGRESQL = PERMANENT USER DATA STORAGE**
+- **BOTH MUST BE USED TOGETHER.**
+- Health check is **strictly read-only** (`SELECT 1`) and will **NEVER** reset, delete, truncate, or recreate database records.
 
 ---
 
@@ -127,15 +135,35 @@ localStorage.setItem('frank_ws_url', 'wss://YOUR-BACKEND-DOMAIN.com');
 
 ---
 
-## 6. Verification Checklist
+## 6. Production UptimeRobot Configuration
 
-- [x] **Frontend**: Loads at `https://frank-chat-vercel.app` over HTTPS.
+This project **MUST** use UptimeRobot for production backend uptime monitoring:
+
+1. Create an HTTP(s) monitor in [UptimeRobot](https://uptimerobot.com):
+   - **URL:** `https://frank-chat-app.vercel.app/health`
+   - **Method:** `HEAD` or `GET`
+   - **Interval:** `5 minutes` (or `1 minute`)
+   - **Expected Status:** `200`
+   - **Expected Response:** `{"status": "ok", "database": "connected"}`
+2. **Permanent Data Storage**: All user data, credentials, FRANK IDs, conversations, and messages permanently live in **PostgreSQL**.
+3. **No Database Reset**: The `/health` endpoint is strictly read-only (`SELECT 1`) and will **NEVER** reset, drop, truncate, or alter any database state.
+4. Run automated 15-step verification:
+   ```bash
+   python tests/test_production_uptimerobot_suite.py
+   ```
+
+---
+
+## 7. Verification Checklist
+
+- [x] **Frontend**: Loads at `https://frank-chat-app.vercel.app` over HTTPS.
 - [x] **Branding**: Displays `FRANK` with tagline `Think`.
-- [x] **Logo Animation**: 8-step animation executes smoothly on splash/auth.
-- [x] **Custom Cursor**: Desktop-only interactive F cursor with hover, click ripple, and trail.
 - [x] **Database**: PostgreSQL connected with SSL and connection pooling.
+- [x] **Data Persistence**: User accounts, FRANK IDs, conversations, messages remain intact across restarts and redeploys.
+- [x] **Health Check**: Lightweight `GET /health` returns `{"status": "ok", "database": "connected"}`.
+- [x] **UptimeRobot**: UptimeRobot monitor active at `https://frank-chat-app.vercel.app/health`.
 - [x] **Authentication**: User registration, login, and JWT verification.
-- [x] **Real-Time Messaging**: WebSocket (`wss://`) connects and relays messages.
+- [x] **Real-Time Messaging**: Real-time messaging and multi-instance sync engine.
 - [x] **Timestamps**: UTC backend timestamps rendered accurately in local time.
-- [x] **Documents & Video**: File uploads, download buttons, and native `<video controls>` playback.
+- [x] **Documents & Video**: File uploads, chunked uploads, download buttons, and native `<video controls>` playback.
 - [x] **Mobile Responsiveness**: Clean layout on 320px–1280px+ viewports.

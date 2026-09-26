@@ -31,8 +31,6 @@
 </head>
 <body>
 
-    <!-- Desktop Custom Cursor (Miniature FRANK F) -->
-
     <!-- Top Navigation Header -->
     <header class="landing-header">
         <a href="index.html" class="brand-link" aria-label="FRANK Home">
@@ -41,23 +39,101 @@
         </a>
 
         <nav class="landing-nav" aria-label="Main Navigation">
-            <a href="#features">Features</a>
-            <a href="#security">Security</a>
-            <a href="#preview">Experience</a>
-            <a href="#about">About</a>
+            <a href="#features" data-i18n="nav.features">Features</a>
+            <a href="#security" data-i18n="nav.security">Security</a>
+            <a href="#preview" data-i18n="nav.experience">Experience</a>
+            <a href="#about" data-i18n="nav.about">About</a>
         </nav>
 
         <div class="header-actions">
             <!-- Theme Toggle -->
-            <button class="btn btn-ghost btn-icon" id="themeToggleBtn" aria-label="Toggle Theme">
+            <button type="button" class="btn btn-ghost btn-icon" id="themeToggleBtn" aria-label="Toggle Theme" title="Toggle Theme">
                 <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                 </svg>
             </button>
-            <a href="login.html" class="btn btn-ghost">Sign In</a>
-            <a href="register.html" class="btn btn-primary">Start Chatting</a>
+
+            <!-- Language Selector (Desktop) -->
+            <div class="lang-selector-container" id="langSelector">
+                <button type="button" class="btn btn-ghost lang-btn" id="langDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language">
+                    <svg class="lang-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    <span class="current-lang-label" id="currentLangLabel">English</span>
+                    <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="lang-dropdown-menu" id="langDropdownMenu" role="menu" aria-label="Select Language">
+                    <button type="button" class="lang-option active" data-lang="en" role="menuitem">English</button>
+                    <button type="button" class="lang-option" data-lang="ta" role="menuitem">தமிழ்</button>
+                    <button type="button" class="lang-option" data-lang="hi" role="menuitem">हिन्दी</button>
+                </div>
+            </div>
+
+            <a href="login.html" class="btn btn-ghost" data-i18n="nav.signIn">Sign In</a>
+            <a href="register.html" class="btn btn-primary" data-i18n="nav.startChatting">Start Chatting</a>
+
+            <!-- Mobile Navigation Drawer Toggle Button -->
+            <button type="button" class="btn btn-ghost btn-icon landing-mobile-toggle" id="landingMobileToggle" aria-label="Open Navigation Menu" title="Open Menu">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
         </div>
     </header>
+
+    <!-- Mobile Navigation Drawer & Backdrop Overlay -->
+    <div class="landing-mobile-overlay" id="landingMobileOverlay"></div>
+    <div class="landing-mobile-drawer" id="landingMobileDrawer" role="dialog" aria-label="Mobile Navigation">
+        <div class="landing-mobile-drawer-header">
+            <div class="brand-link">
+                <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="28" height="28" style="border-radius: 8px;">
+                <span style="color: var(--text); font-weight: 900; letter-spacing: 1px;">FRANK</span>
+            </div>
+            <button type="button" class="btn btn-ghost btn-icon" id="landingMobileCloseBtn" aria-label="Close Navigation Menu">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <nav class="landing-mobile-nav">
+            <a href="#features" class="landing-mobile-link" data-i18n="nav.features">Features</a>
+            <a href="#security" class="landing-mobile-link" data-i18n="nav.security">Security</a>
+            <a href="#preview" class="landing-mobile-link" data-i18n="nav.experience">Experience</a>
+            <a href="#about" class="landing-mobile-link" data-i18n="nav.about">About</a>
+        </nav>
+        <div class="landing-mobile-actions">
+            <a href="login.html" class="btn btn-ghost btn-full" data-i18n="nav.signIn">Sign In</a>
+            <a href="register.html" class="btn btn-primary btn-full" data-i18n="nav.startChatting">Start Chatting</a>
+        </div>
+        <div class="mobile-lang-box">
+            <span class="mobile-lang-title" data-i18n="nav.language">Language</span>
+            <div class="lang-selector-container mobile-lang-selector" id="mobileLangSelector">
+                <button type="button" class="btn btn-ghost lang-btn" id="mobileLangDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language">
+                    <svg class="lang-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    <span class="current-lang-label" id="mobileCurrentLangLabel">English</span>
+                    <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="lang-dropdown-menu" id="mobileLangDropdownMenu" role="menu" aria-label="Select Language">
+                    <button type="button" class="lang-option active" data-lang="en" role="menuitem">English</button>
+                    <button type="button" class="lang-option" data-lang="ta" role="menuitem">தமிழ்</button>
+                    <button type="button" class="lang-option" data-lang="hi" role="menuitem">हिन्दी</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <main>
         <!-- Hero Section -->
@@ -65,34 +141,34 @@
             <div class="hero-content">
                 <div class="badge badge-primary">
                     <span style="display:inline-block; width:6px; height:6px; background:var(--cyan); border-radius:50%; box-shadow: 0 0 8px var(--cyan);"></span>
-                    Think
+                    <span data-i18n="hero.badge">Think</span>
                 </div>
-                <h1>Communication, <span>Reimagined.</span></h1>
-                <p>Chat, connect and collaborate with people in a secure, beautifully designed messaging experience.</p>
+                <h1 id="heroTitle" data-i18n="hero.title">Communication, Reimagined.</h1>
+                <p data-i18n="hero.subtitle">Chat, connect and collaborate with people in a secure, beautifully designed messaging experience.</p>
 
                 <div class="hero-actions">
                     <a href="register.html" class="btn btn-primary btn-large">
-                        Start Chatting
+                        <span data-i18n="hero.startChatting">Start Chatting</span>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                             <polyline points="12 5 19 12 12 19"></polyline>
                         </svg>
                     </a>
-                    <a href="#features" class="btn btn-secondary btn-large">Explore Features</a>
+                    <a href="#features" class="btn btn-secondary btn-large" data-i18n="hero.exploreFeatures">Explore Features</a>
                 </div>
 
                 <div class="hero-stats">
                     <div class="hero-stat-item">
-                        <strong>&lt; 50ms</strong>
-                        <span>WebSocket Latency</span>
+                        <strong data-i18n="stats.latencyValue">&lt; 50ms</strong>
+                        <span data-i18n="stats.latencyLabel">WebSocket Latency</span>
                     </div>
                     <div class="hero-stat-item">
-                        <strong>99.99%</strong>
-                        <span>Engineered Uptime</span>
+                        <strong data-i18n="stats.uptimeValue">99.99%</strong>
+                        <span data-i18n="stats.uptimeLabel">Engineered Uptime</span>
                     </div>
                     <div class="hero-stat-item">
-                        <strong>256-bit</strong>
-                        <span>Cryptographic Tokens</span>
+                        <strong data-i18n="stats.tokensValue">256-bit</strong>
+                        <span data-i18n="stats.tokensLabel">Cryptographic Tokens</span>
                     </div>
                 </div>
             </div>
@@ -103,8 +179,8 @@
                     <div class="preview-window-dots">
                         <span></span><span></span><span></span>
                     </div>
-                    <span style="font-size: 12px; font-weight: 700; color: var(--text-secondary);">FRANK Web Client</span>
-                    <div class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">Live Demo</div>
+                    <span style="font-size: 12px; font-weight: 700; color: var(--text-secondary);" data-i18n="hero.webClient">FRANK Web Client</span>
+                    <div class="badge badge-success" style="font-size: 10px; padding: 2px 6px;" data-i18n="hero.liveDemo">Live Demo</div>
                 </div>
 
                 <div class="preview-body">
@@ -114,7 +190,7 @@
                             <div class="avatar avatar-sm">SC<span class="avatar-status online"></span></div>
                             <div style="min-width: 0; flex: 1;">
                                 <div style="font-size: 11px; font-weight: 700; color: var(--text);">Sarah Connor</div>
-                                <div style="font-size: 9px; color: var(--primary);">Typing...</div>
+                                <div style="font-size: 9px; color: var(--primary);" data-i18n="hero.typing">Typing...</div>
                             </div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 8px;">
@@ -132,24 +208,24 @@
                             <div class="avatar avatar-sm">SC<span class="avatar-status online"></span></div>
                             <div>
                                 <div style="font-size: 12px; font-weight: 700; color: var(--text);">Sarah Connor</div>
-                                <div style="font-size: 10px; color: var(--success); font-weight: 600;">Active Now</div>
+                                <div style="font-size: 10px; color: var(--success); font-weight: 600;" data-i18n="hero.activeNow">Active Now</div>
                             </div>
                         </div>
 
                         <div class="preview-messages" id="previewMessagesContainer">
-                            <div class="preview-bubble received">
-                                Hey there! Have you tested the new FRANK interface? ⚡
+                            <div class="preview-bubble received" data-i18n="hero.demoMsg1">
+                                Could you send over the updated design assets?
                             </div>
-                            <div class="preview-bubble sent">
-                                Yes, it feels incredibly snappy and clean!
+                            <div class="preview-bubble sent" data-i18n="hero.demoMsg2">
+                                Sending them right now! 📦
                             </div>
-                            <div class="preview-bubble received">
-                                The typing indicators and message reactions are so smooth.
+                            <div class="preview-bubble received" data-i18n="hero.demoMsg3">
+                                Received! The new glassmorphic theme looks stunning.
                             </div>
                         </div>
 
                         <div class="preview-input-strip">
-                            <span>Type a message...</span>
+                            <span data-i18n="hero.inputPlaceholder">Type a message...</span>
                             <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center;">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -165,9 +241,9 @@
         <!-- Features Grid Section -->
         <section id="features" class="section">
             <div class="section-heading">
-                <span class="section-label">Enterprise Capabilities</span>
-                <h2>Everything you need for effortless communication</h2>
-                <p>Designed from the ground up for high reliability, zero latency, and seamless interaction across all your devices.</p>
+                <span class="section-label" data-i18n="features.sectionLabel">Enterprise Capabilities</span>
+                <h2 data-i18n="features.title">Everything you need for effortless communication</h2>
+                <p data-i18n="features.subtitle">Designed from the ground up for high reliability, zero latency, and seamless interaction across all your devices.</p>
             </div>
 
             <div class="feature-grid">
@@ -177,8 +253,8 @@
                             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                         </svg>
                     </div>
-                    <h3>Real-Time Messaging</h3>
-                    <p>Sub-millisecond WebSocket data dispatch ensures instantaneous message delivery and updates without page refreshes.</p>
+                    <h3 data-i18n="features.realTimeTitle">Real-Time Messaging</h3>
+                    <p data-i18n="features.realTimeDesc">Sub-millisecond WebSocket data dispatch ensures instantaneous message delivery and updates without page refreshes.</p>
                 </div>
 
                 <div class="feature-card">
@@ -188,8 +264,8 @@
                             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                         </svg>
                     </div>
-                    <h3>Secure Authentication</h3>
-                    <p>Cryptographically hashed credentials with PBKDF2 and HMAC-SHA256 JWT tokens safeguarding each API and socket request.</p>
+                    <h3 data-i18n="features.secureTitle">Secure Authentication</h3>
+                    <p data-i18n="features.secureDesc">Cryptographically hashed credentials with PBKDF2 and HMAC-SHA256 JWT tokens safeguarding each API and socket request.</p>
                 </div>
 
                 <div class="feature-card">
@@ -201,8 +277,8 @@
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                         </svg>
                     </div>
-                    <h3>Group Conversations</h3>
-                    <p>Organize discussions into focused groups with multi-member broadcasting, administrative controls, and activity tracking.</p>
+                    <h3 data-i18n="features.groupsTitle">Group Conversations</h3>
+                    <p data-i18n="features.groupsDesc">Organize discussions into focused groups with multi-member broadcasting, administrative controls, and activity tracking.</p>
                 </div>
 
                 <div class="feature-card">
@@ -212,8 +288,8 @@
                             <polyline points="12 6 12 12 16 14"></polyline>
                         </svg>
                     </div>
-                    <h3>Live Online Presence</h3>
-                    <p>Real-time presence engine updates online/away statuses and interactive typing indicators across all active users.</p>
+                    <h3 data-i18n="features.presenceTitle">Live Online Presence</h3>
+                    <p data-i18n="features.presenceDesc">Real-time presence engine updates online/away statuses and interactive typing indicators across all active users.</p>
                 </div>
 
                 <div class="feature-card">
@@ -223,8 +299,8 @@
                             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
                     </div>
-                    <h3>Smart Search</h3>
-                    <p>Find past conversations, direct contacts, and team members with client-side debounced search indexing.</p>
+                    <h3 data-i18n="features.searchTitle">Smart Search</h3>
+                    <p data-i18n="features.searchDesc">Find past conversations, direct contacts, and team members with client-side debounced search indexing.</p>
                 </div>
 
                 <div class="feature-card">
@@ -233,8 +309,8 @@
                             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                         </svg>
                     </div>
-                    <h3>Tailored Dark Theme</h3>
-                    <p>Designed with bespoke dark mode tokens for comfortable night-time communication without jarring high-contrast glare.</p>
+                    <h3 data-i18n="features.themeTitle">Tailored Dark Theme</h3>
+                    <p data-i18n="features.themeDesc">Designed with bespoke dark mode tokens for comfortable night-time communication without jarring high-contrast glare.</p>
                 </div>
             </div>
         </section>
@@ -243,9 +319,9 @@
         <section id="security" class="section">
             <div class="security-grid">
                 <div>
-                    <span class="section-label">Enterprise Architecture</span>
-                    <h2>Private conversations. Protected by design.</h2>
-                    <p style="color: var(--text-secondary); line-height: 1.6; margin-top: 8px;">
+                    <span class="section-label" data-i18n="security.sectionLabel">Enterprise Architecture</span>
+                    <h2 data-i18n="security.title">Private conversations. Protected by design.</h2>
+                    <p data-i18n="security.subtitle" style="color: var(--text-secondary); line-height: 1.6; margin-top: 8px;">
                         FRANK is built on authoritative server-side validation, secure token handshakes, and strict data isolation to ensure confidentiality and integrity.
                     </p>
 
@@ -254,37 +330,37 @@
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
-                            PBKDF2 Password Hashing
+                            <span data-i18n="security.hashing">PBKDF2 Password Hashing</span>
                         </div>
                         <div class="security-item">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
-                            JWT Bearer Authorization
+                            <span data-i18n="security.jwt">JWT Bearer Authorization</span>
                         </div>
                         <div class="security-item">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
-                            WebSocket Token Auth
+                            <span data-i18n="security.websocket">WebSocket Token Auth</span>
                         </div>
                         <div class="security-item">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
-                            Strict CORS &amp; Security Headers
+                            <span data-i18n="security.cors">Strict CORS &amp; Security Headers</span>
                         </div>
                         <div class="security-item">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
-                            SQL Injection Immunity
+                            <span data-i18n="security.sql">SQL Injection Immunity</span>
                         </div>
                         <div class="security-item">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
-                            XSS-Safe DOM Rendering
+                            <span data-i18n="security.xss">XSS-Safe DOM Rendering</span>
                         </div>
                     </div>
                 </div>
@@ -295,17 +371,17 @@
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                         </svg>
                     </div>
-                    <h3 style="font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 6px;">Protected Environment</h3>
-                    <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Every request is authenticated through signed headers, preventing impersonation or unauthorized message snooping.</p>
+                    <h3 style="font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 6px;" data-i18n="security.protectedTitle">Protected Environment</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;" data-i18n="security.protectedDesc">Every request is authenticated through signed headers, preventing impersonation or unauthorized message snooping.</p>
                 </div>
             </div>
         </section>
 
         <!-- CTA Section -->
         <section id="about" class="cta-banner">
-            <h2>Ready to experience seamless communication?</h2>
-            <p>Join thousands of modern communicators today on FRANK. Set up your account in 30 seconds with no credit card required.</p>
-            <a href="register.html" class="btn btn-secondary btn-large" style="background: #ffffff; color: var(--primary); font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
+            <h2 data-i18n="cta.title">Ready to experience seamless communication?</h2>
+            <p data-i18n="cta.subtitle">Join thousands of modern communicators today on FRANK. Set up your account in 30 seconds with no credit card required.</p>
+            <a href="register.html" class="btn btn-primary btn-large" data-i18n="cta.button">
                 Get Started with FRANK →
             </a>
         </section>
@@ -315,14 +391,15 @@
     <footer class="footer">
         <div style="display: flex; align-items: center; gap: 8px;">
             <img src="assets/brand/frank-icon.svg" alt="FRANK" width="22" height="22" style="border-radius: 5px;">
-            <strong>FRANK</strong> — &copy; 2026 FRANK. All rights reserved.
+            <strong>FRANK</strong> — <span data-i18n="footer.copyright">&copy; 2026 FRANK. All rights reserved.</span>
         </div>
         <div>
-            Think
+            <span data-i18n="footer.think">Think</span>
         </div>
     </footer>
 
     <!-- Scripts -->
+    <script src="js/i18n.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/ui.js"></script>
 </body>

@@ -36,6 +36,9 @@ const auth = {
             if (user.theme && typeof window.theme !== 'undefined') {
                 window.theme.apply(user.theme, false);
             }
+            if (user.language && typeof window.i18n !== 'undefined') {
+                window.i18n.setLanguage(user.language, { saveToDb: false });
+            }
         } else {
             localStorage.removeItem('chatapp_user');
         }
@@ -246,21 +249,25 @@ if (registerForm) {
         if (hasError) return;
 
         submitBtn.disabled = true;
-        submitBtn.querySelector('.btn-text').textContent = 'Creating account...';
+        const registeringText = (typeof i18n !== 'undefined') ? i18n.t('auth.registering') : 'Creating account...';
+        submitBtn.querySelector('.btn-text').textContent = registeringText;
 
         try {
-            const data = await api.register({ full_name, email, password });
+            const lang = (typeof i18n !== 'undefined' && i18n.currentLang) ? i18n.currentLang : 'en';
+            const data = await api.register({ full_name, email, password, language: lang });
             api.setToken(data.access_token);
             auth.setUser(data.user);
 
-            showToast('Account created successfully!', 'success');
+            const successText = (typeof i18n !== 'undefined') ? i18n.t('auth.registerSuccess') : 'Account created successfully!';
+            showToast(successText, 'success');
             setTimeout(() => {
                 window.location.href = 'dashboard.html';
             }, 500);
         } catch (err) {
             showToast(err.message || 'Registration failed.', 'error');
             submitBtn.disabled = false;
-            submitBtn.querySelector('.btn-text').textContent = 'Create Account';
+            const createAccText = (typeof i18n !== 'undefined') ? i18n.t('auth.createAccount') : 'Create Account';
+            submitBtn.querySelector('.btn-text').textContent = createAccText;
         }
     });
 }

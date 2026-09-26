@@ -754,4 +754,201 @@
         min-width: 44px;
         min-height: 44px;
     }
-}
+}
+
+/* -------------------------------------------------------------------------
+   FRANK MULTILINGUAL (i18n) SELECTOR & DROPDOWN COMPONENT
+   ------------------------------------------------------------------------- */
+.lang-selector-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.lang-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    min-height: 38px;
+    box-sizing: border-box;
+}
+
+.lang-btn:hover,
+.lang-btn:focus-visible {
+    color: var(--text);
+    border-color: var(--theme-border, var(--border));
+    background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+    outline: none;
+}
+
+.lang-btn[aria-expanded="true"] {
+    color: var(--text);
+    border-color: var(--primary);
+    background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+}
+
+.lang-btn .lang-icon {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: var(--text-muted);
+}
+
+.lang-btn .current-lang-label {
+    display: inline-block;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.lang-btn .chevron-icon {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    color: var(--text-muted);
+    transition: transform var(--transition-fast);
+}
+
+.lang-btn[aria-expanded="true"] .chevron-icon {
+    transform: rotate(180deg);
+}
+
+/* Language Dropdown Menu */
+.lang-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 140px;
+    max-width: min(200px, 90vw);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    padding: 6px;
+    z-index: var(--z-dropdown);
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    box-sizing: border-box;
+}
+
+[data-theme="sandstone"] .lang-dropdown-menu {
+    background: #FFF8EA;
+    border-color: #D9BE98;
+    box-shadow: 0 10px 30px rgba(118, 84, 59, 0.15), 0 0 0 1px rgba(118, 84, 59, 0.08);
+}
+
+.lang-dropdown-menu.show {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.lang-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.lang-option:hover,
+.lang-option:focus-visible {
+    color: var(--text);
+    background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+    outline: none;
+}
+
+[data-theme="sandstone"] .lang-option:hover,
+[data-theme="sandstone"] .lang-option:focus-visible {
+    background: rgba(118, 84, 59, 0.08);
+    color: #2D2319;
+}
+
+.lang-option.active {
+    color: var(--primary);
+    font-weight: 700;
+    background: var(--primary-glow, rgba(255, 255, 255, 0.06));
+}
+
+[data-theme="sandstone"] .lang-option.active {
+    background: rgba(200, 117, 77, 0.12);
+    color: #C8754D;
+}
+
+.lang-option::after {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: transparent;
+    transition: background var(--transition-fast);
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.lang-option.active::after {
+    background: currentColor;
+}
+
+/* Mobile specific styling inside navigation menus */
+.mobile-lang-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 14px;
+    width: 100%;
+}
+
+.mobile-lang-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.mobile-lang-selector {
+    width: 100%;
+}
+
+.mobile-lang-selector .lang-btn {
+    width: 100%;
+    justify-content: space-between;
+}
+
+.mobile-lang-selector .lang-dropdown-menu {
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+}
+

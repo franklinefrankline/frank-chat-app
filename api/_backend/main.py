@@ -239,16 +239,43 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
     await handle_websocket_connection(websocket, token)
 
 
-@app.get("/")
+@app.api_route("/health", methods=["GET", "HEAD"])
+@app.api_route("/api/health", methods=["GET", "HEAD"])
+def health_check():
+    """
+    Lightweight, read-only health endpoint for UptimeRobot and uptime monitoring.
+    Verifies backend runtime and database connectivity via a read-only ping.
+    Returns:
+        { "status": "ok", "database": "connected" }
+    Guarantees:
+        - 100% read-only: never modifies, resets, deletes, or recreates data.
+    """
+    db_connected = False
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        db_connected = True
+    except Exception:
+        db_connected = False
+
+    status_code = 200 if db_connected else 503
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "ok" if db_connected else "error",
+            "database": "connected" if db_connected else "disconnected"
+        }
+    )
+
+
 @app.get("/api")
 @app.get("/api/")
 @app.get("/api/index.py")
-@app.get("/api/health")
-@app.get("/health")
-def health_check():
+def api_root():
     return {
-        "status": "healthy",
         "service": "FRANK Backend",
+        "status": "ok",
         "version": "2.0.0"
     }
 
@@ -274,6 +301,8 @@ if frontend_dir and frontend_dir.exists():
         app.mount("/js", StaticFiles(directory=str(frontend_dir / "js")), name="js")
     if (frontend_dir / "assets").exists():
         app.mount("/assets", StaticFiles(directory=str(frontend_dir / "assets")), name="assets")
+    if (frontend_dir / "i18n").exists():
+        app.mount("/i18n", StaticFiles(directory=str(frontend_dir / "i18n")), name="i18n")
 
     @app.get("/")
     def serve_landing():

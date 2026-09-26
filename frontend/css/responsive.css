@@ -119,6 +119,26 @@ html, body {
         grid-template-columns: 1fr;
         padding-top: var(--space-8);
         text-align: center;
+        overflow: hidden;
+    }
+
+    .hero-content {
+        align-items: center;
+        text-align: center;
+        max-width: 100%;
+    }
+
+    .hero-content h1 {
+        font-size: clamp(28px, 7vw, 44px);
+        letter-spacing: -0.5px;
+        word-break: break-word;
+        max-width: 100%;
+    }
+
+    .hero-content p {
+        font-size: 16px;
+        margin: 0 auto;
+        max-width: 100%;
     }
 
     .hero-actions {
@@ -134,6 +154,46 @@ html, body {
 
     .feature-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .header {
+        padding: 0 var(--space-3);
+    }
+
+    .header-actions {
+        gap: var(--space-1);
+    }
+
+    .header-actions .btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .feature-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .security-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .hero-preview {
+        max-width: 100%;
+    }
+
+    .hero-actions .btn {
+        width: 100%;
+        max-width: 280px;
+    }
+
+    .hero-stats {
+        gap: var(--space-4);
+    }
+
+    .hero-stat-item strong {
+        font-size: 18px;
     }
 }
 
