@@ -28,10 +28,10 @@
     const CLOUD_API_FALLBACK = 'https://frank-chat-app.vercel.app';
 
     // Support for persistent backend URL (Render or Railway) injected at build time or window
-    const PERSISTENT_BACKEND = window.__FRANK_BACKEND_URL__ || window.__FRANK_BACKEND__ || '';
+    const PERSISTENT_BACKEND = window.__FRANK_BACKEND_URL__ || window.__FRANK_BACKEND__ || 'https://frank-chat-app.onrender.com';
     const RAILWAY_BACKEND = PERSISTENT_BACKEND;
 
-    const DEFAULT_PROD_WS = PERSISTENT_BACKEND ? PERSISTENT_BACKEND.replace(/^https?/, PERSISTENT_BACKEND.startsWith('https') ? 'wss' : 'ws') : '';
+    const DEFAULT_PROD_WS = PERSISTENT_BACKEND ? PERSISTENT_BACKEND.replace(/^https?/, PERSISTENT_BACKEND.startsWith('https') ? 'wss' : 'ws') : 'wss://frank-chat-app.onrender.com';
 
     let apiBase = '';
     let wsBase = '';
@@ -40,14 +40,14 @@
         apiBase = injectedConfig.API_BASE;
     } else if (storedApiUrl) {
         apiBase = storedApiUrl;
-    } else if (PERSISTENT_BACKEND) {
-        // Use persistent backend directly when configured (Render / Railway)
-        apiBase = PERSISTENT_BACKEND;
     } else if (isLocal) {
         // If served by FastAPI directly on port 8000, use relative or origin
         apiBase = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
             ? window.location.origin
             : 'http://localhost:8000';
+    } else if (PERSISTENT_BACKEND) {
+        // Use persistent backend directly when configured (Render / Railway)
+        apiBase = PERSISTENT_BACKEND;
     } else if (host.endsWith('.vercel.app') || host.includes('vercel.app')) {
         // On Vercel: use same-origin API (the Vercel serverless function)
         apiBase = window.location.origin;
