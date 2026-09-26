@@ -180,8 +180,31 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
         ))
     ).all()
 
-    if not candidates and ident_lower in ["alex", "sarah", "david", "alex@frank.app", "sarah@frank.app", "david@frank.app"]:
+    if not candidates and ident_lower in ["admin", "frankline", "frankline30999112@gmail.com", "alex", "sarah", "david", "alex@frank.app", "sarah@frank.app", "david@frank.app"]:
         # Auto-seed standard accounts in ephemeral serverless container
+        try:
+            admin_cand = db.query(models.User).filter(
+                (models.User.email == "frankline30999112@gmail.com") | (models.User.username == "frankline")
+            ).first()
+            if not admin_cand:
+                admin_cand = models.User(
+                    username="frankline",
+                    email="frankline30999112@gmail.com",
+                    frank_id="A00001",
+                    full_name="Frankline (Super Admin)",
+                    name="Frankline (Super Admin)",
+                    bio="FRANK System Super Administrator",
+                    avatar_url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+                    hashed_password=hash_password("#Frankline2006"),
+                    password_hash=hash_password("#Frankline2006"),
+                    role="admin",
+                    account_status="active",
+                    is_online=True
+                )
+                db.add(admin_cand)
+                db.commit()
+        except Exception:
+            pass
         try:
             import main as backend_main
             if hasattr(backend_main, "seed_demo_users"):

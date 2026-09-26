@@ -126,6 +126,34 @@ def _resolve_user_from_payload(payload: dict, db: Session) -> Optional[models.Us
         user = db.query(models.User).filter(models.User.email == email).first()
     if user is None and frank_id:
         user = db.query(models.User).filter(models.User.frank_id == frank_id).first()
+    if user is None and (os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")):
+        try:
+            now_dt = models.get_utc_now()
+            pw_hash = hash_password("Password123!")
+            clean_name = payload.get("full_name") or username or "FRANK User"
+            user = models.User(
+                id=user_id if isinstance(user_id, int) else None,
+                username=username or f"user_{frank_id or 'anon'}",
+                email=email or f"{username or 'user'}@frank.app",
+                frank_id=frank_id or "F4M8Q1",
+                full_name=clean_name,
+                name=clean_name,
+                hashed_password=pw_hash,
+                password_hash=pw_hash,
+                bio="Hey there! I am using FRANK.",
+                role=payload.get("role", "user"),
+                account_status="active",
+                status="active",
+                created_at=now_dt,
+                updated_at=now_dt
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        except Exception:
+            db.rollback()
+            if user_id:
+                user = db.query(models.User).filter(models.User.id == user_id).first()
 
     return user
 
