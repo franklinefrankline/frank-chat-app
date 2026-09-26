@@ -30,6 +30,7 @@ if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Ensure compatible PostgreSQL driver (fallback to pg8000 if psycopg2 is missing)
+use_pg8000 = False
 if DATABASE_URL.startswith("postgresql://") and not any(
     DATABASE_URL.startswith(p) for p in ["postgresql+psycopg2://", "postgresql+pg8000://", "postgresql+asyncpg://"]
 ):
@@ -39,8 +40,11 @@ if DATABASE_URL.startswith("postgresql://") and not any(
         try:
             import pg8000  # noqa: F401
             DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
+            use_pg8000 = True
         except ImportError:
             pass
+elif DATABASE_URL.startswith("postgresql+pg8000://"):
+    use_pg8000 = True
 
 engine_kwargs = {
     "pool_pre_ping": True,
@@ -54,6 +58,18 @@ else:
     engine_kwargs["pool_size"] = int(pool_str) if pool_str.isdigit() else 10
     overflow_str = (os.getenv("DB_MAX_OVERFLOW") or "").strip()
     engine_kwargs["max_overflow"] = int(overflow_str) if overflow_str.isdigit() else 20
+    if use_pg8000:
+        import ssl
+        import urllib.parse
+        parsed = urllib.parse.urlparse(DATABASE_URL)
+        qs = urllib.parse.parse_qs(parsed.query)
+        needs_ssl = "sslmode" in qs or "ssl" in qs or "neon.tech" in DATABASE_URL or "aws.neon.tech" in DATABASE_URL
+        qs.pop("sslmode", None)
+        qs.pop("ssl", None)
+        new_query = urllib.parse.urlencode(qs, doseq=True)
+        DATABASE_URL = urllib.parse.urlunparse(parsed._replace(query=new_query))
+        if needs_ssl:
+            engine_kwargs["connect_args"] = {"ssl_context": ssl.create_default_context()}
 
 engine = create_engine(
     DATABASE_URL,
