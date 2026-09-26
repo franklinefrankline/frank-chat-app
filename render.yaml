@@ -25,8 +25,8 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: FRONTEND_URL
-        value: https://frank-chat-vercel.app
+        value: https://frank-chat-app.vercel.app
       - key: CORS_ORIGINS
-        value: https://frank-chat-vercel.app,https://frank-chat-vercel.vercel.app,http://localhost:8000
+        value: https://frank-chat-app.vercel.app,https://frank-chat-vercel.app,https://frank-chat-vercel.vercel.app,http://localhost:8000,http://localhost:3000
       - key: MAX_FILE_SIZE_MB
         value: "25"
