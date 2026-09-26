@@ -1,10 +1,3 @@
-databases:
-  - name: frank-postgres
-    databaseName: frankdb
-    user: frank
-    plan: free
-    region: oregon
-
 services:
   - type: web
     name: frank-backend
@@ -17,9 +10,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.8
       - key: DATABASE_URL
-        fromDatabase:
-          name: frank-postgres
-          property: connectionString
+        value: postgresql://neondb_owner:npg_8kgYbEIv9cAj@ep-gentle-butterfly-b4le0fyp.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require
       - key: SECRET_KEY
         generateValue: true
       - key: ENVIRONMENT
