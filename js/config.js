@@ -65,6 +65,13 @@
     } else if (storedWsUrl) {
         wsBase = storedWsUrl;
         isServerless = false;
+    } else if (isLocal) {
+        const wsProtocol = isHttps ? 'wss:' : 'ws:';
+        const wsHost = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
+            ? window.location.host
+            : 'localhost:8000';
+        wsBase = `${wsProtocol}//${wsHost}`;
+        isServerless = false;
     } else if (storedApiUrl && (storedApiUrl.startsWith('http://') || storedApiUrl.startsWith('https://'))) {
         const wsProtocol = storedApiUrl.startsWith('https') ? 'wss:' : 'ws:';
         const wsHost = storedApiUrl.replace(/^https?:\/\//, '');
@@ -74,13 +81,6 @@
         // Use persistent backend WebSocket (Render / Railway)
         const wsProtocol = PERSISTENT_BACKEND.startsWith('https') ? 'wss:' : 'ws:';
         const wsHost = PERSISTENT_BACKEND.replace(/^https?:\/\//, '');
-        wsBase = `${wsProtocol}//${wsHost}`;
-        isServerless = false;
-    } else if (isLocal) {
-        const wsProtocol = isHttps ? 'wss:' : 'ws:';
-        const wsHost = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
-            ? window.location.host
-            : 'localhost:8000';
         wsBase = `${wsProtocol}//${wsHost}`;
         isServerless = false;
     } else if (DEFAULT_PROD_WS) {

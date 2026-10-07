@@ -39,19 +39,29 @@ html, body {
     display: none !important;
 }
 
-/* Desktop: Hide the old h1 title (replaced by FRANK brand in header) */
+/* Desktop: Show chat list title */
 .desktop-header-title {
+    display: flex !important;
+    align-items: center;
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0;
+}
+
+/* Desktop: Hide duplicate header brand and duplicate header new chat button */
+.desktop-header-brand {
     display: none !important;
 }
 
-/* Desktop: Show desktop-only elements */
-.desktop-header-brand,
 .desktop-profile-btn-wrap {
     display: flex !important;
 }
 
-/* Desktop: Show desktop new chat button and more menu trigger */
-.desktop-new-chat-btn,
+.desktop-new-chat-btn {
+    display: none !important;
+}
+
 #openSidebarBtn {
     display: inline-flex !important;
 }

@@ -263,6 +263,8 @@ def get_conversations(
         p = pref_map.get(conv_key)
         conversations[conv_key] = {
             "id": partner.id,
+            "conversation_id": sc.id,
+            "partner_id": partner.id,
             "type": "direct",
             "name": f"{partner.full_name} (You)" if is_self else partner.full_name,
             "username": partner.username,
@@ -303,8 +305,22 @@ def get_conversations(
 
         p = pref_map.get(conv_key)
         if conv_key not in conversations:
+            ua = min(current_user.id, partner_id)
+            ub = max(current_user.id, partner_id)
+            conv_record = db.query(models.Conversation).filter(
+                models.Conversation.user_a_id == ua,
+                models.Conversation.user_b_id == ub
+            ).first()
+            if not conv_record:
+                conv_record = models.Conversation(user_a_id=ua, user_b_id=ub)
+                db.add(conv_record)
+                db.commit()
+                db.refresh(conv_record)
+
             conversations[conv_key] = {
                 "id": partner.id,
+                "conversation_id": conv_record.id,
+                "partner_id": partner.id,
                 "type": "direct",
                 "name": f"{partner.full_name} (You)" if is_self else partner.full_name,
                 "username": partner.username,
@@ -361,6 +377,7 @@ def get_conversations(
         p = pref_map.get(conv_key)
         conversations[conv_key] = {
             "id": group.id,
+            "conversation_id": group.id,
             "type": "group",
             "name": group.name,
             "description": group.description or "",
@@ -378,10 +395,22 @@ def get_conversations(
 
     # 4. Guarantee self-conversation (Notes to Self) is always present
     self_key = f"direct_{current_user.id}"
+    self_conv = db.query(models.Conversation).filter(
+        models.Conversation.user_a_id == current_user.id,
+        models.Conversation.user_b_id == current_user.id
+    ).first()
+    if not self_conv:
+        self_conv = models.Conversation(user_a_id=current_user.id, user_b_id=current_user.id)
+        db.add(self_conv)
+        db.commit()
+        db.refresh(self_conv)
+
     if self_key not in conversations:
         p = pref_map.get(self_key)
         conversations[self_key] = {
             "id": current_user.id,
+            "conversation_id": self_conv.id,
+            "partner_id": current_user.id,
             "type": "direct",
             "name": f"{current_user.full_name} (You)",
             "username": current_user.username,
@@ -396,6 +425,9 @@ def get_conversations(
             "is_favorite": p.is_favorite if p else False,
             "is_muted": p.is_muted if p else False
         }
+    else:
+        conversations[self_key]["conversation_id"] = self_conv.id
+        conversations[self_key]["partner_id"] = current_user.id
 
     conv_list = list(conversations.values())
     # Sort: pinned first, then by recent message time descending

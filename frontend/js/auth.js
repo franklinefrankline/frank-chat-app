@@ -4,6 +4,10 @@
    ------------------------------------------------------------------------- */
 
 const auth = {
+    getToken() {
+        return localStorage.getItem('chatapp_token') || localStorage.getItem('frank_token') || (typeof api !== 'undefined' && api.getToken ? api.getToken() : null);
+    },
+
     isAuthenticated() {
         return !!(localStorage.getItem('chatapp_token') || localStorage.getItem('frank_token'));
     },

@@ -8,6 +8,7 @@ class ChatController {
     constructor() {
         this.activeType = null; // 'direct' or 'group'
         this.activeId = null;   // partnerId or groupId
+        this.activeConversationId = null; // canonical conversation ID
         this.activePartner = null;
         this.replyTo = null;    // { id, sender, content }
         this.typingTimeout = null;
@@ -88,6 +89,7 @@ class ChatController {
     async openDirectChat(partner) {
         this.activeType = 'direct';
         this.activeId = partner.id;
+        this.activeConversationId = partner.conversation_id || null;
         this.activePartner = partner;
         this.clearReplying();
         this.cancelEditing();
@@ -150,6 +152,9 @@ class ChatController {
 
         // Load Messages
         await this.loadDirectMessages(partner.id);
+        if (window.smartController) {
+            window.smartController.onConversationChanged(this.activeConversationId || partner.id, 'direct');
+        }
         this.dom.textarea?.focus();
     }
 
@@ -157,6 +162,7 @@ class ChatController {
     async openGroupChat(group) {
         this.activeType = 'group';
         this.activeId = group.id;
+        this.activeConversationId = group.conversation_id || group.id;
         this.activePartner = group;
         this.clearReplying();
         this.cancelEditing();
@@ -210,7 +216,31 @@ class ChatController {
 
         // Load Messages
         await this.loadGroupMessages(group.id);
+        if (window.smartController) {
+            window.smartController.onConversationChanged(this.activeConversationId || group.id, 'group');
+        }
         this.dom.textarea?.focus();
+    }
+
+    async ensureConversationId() {
+        if (this.activeConversationId) return this.activeConversationId;
+        if (this.activeType === 'group' && this.activeId) {
+            this.activeConversationId = this.activeId;
+            return this.activeConversationId;
+        }
+        if (this.activeType === 'direct' && this.activeId) {
+            try {
+                const res = await api.getOrCreatePrivateConversation({ target_user_id: this.activeId });
+                if (res && res.id) {
+                    this.activeConversationId = res.id;
+                    return res.id;
+                }
+            } catch (e) {
+                console.warn('[ensureConversationId note]:', e);
+            }
+            return this.activeId;
+        }
+        return null;
     }
 
     closeActiveChat() {
@@ -220,6 +250,9 @@ class ChatController {
         if (this.dom.activeChatView) this.dom.activeChatView.style.display = 'none';
         if (this.dom.emptyPlaceholder) this.dom.emptyPlaceholder.style.display = 'flex';
         if (this.dom.detailsDrawer) this.dom.detailsDrawer.style.display = 'none';
+        if (window.smartController && window.smartController.isOpen) {
+            window.smartController.close();
+        }
     }
 
     // ---------------- LOAD MESSAGES ----------------
@@ -315,41 +348,96 @@ class ChatController {
 
     // ---------------- SEND MESSAGE ----------------
     async sendMessage() {
-        const text = (this.dom.textarea?.value || '').trim();
-        if (!text || !this.activeId) return;
+        if (!this.activeId) {
+            showToast('Please select a conversation.', 'info');
+            return;
+        }
+
+        const rawText = this.dom.textarea ? this.dom.textarea.value : '';
+        const text = rawText.trim();
+        if (!text) {
+            // Empty or whitespace only: keep composer unchanged
+            return;
+        }
+
+        if (this.isSending) {
+            return;
+        }
+        this.isSending = true;
+
+        const sendBtn = this.dom.sendBtn;
+        const originalTitle = sendBtn ? sendBtn.getAttribute('title') : '';
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.classList.add('is-sending');
+            sendBtn.setAttribute('title', 'Sending...');
+        }
 
         const replyId = this.replyTo ? this.replyTo.id : null;
+        const activeId = this.activeId;
+        const activeType = this.activeType;
+        const currentUser = auth.getUser();
+        const currentUserId = currentUser ? currentUser.id : null;
 
-        this.dom.textarea.value = '';
-        this.autoResizeTextarea();
-        this.clearReplying();
-        this.dom.emojiPopover?.classList.remove('show');
-        this.dom.attachmentPopover?.classList.remove('show');
-        this.updateComposerActionButton();
+        try {
+            // Persist message to database via REST API, broadcast via WebSocket, and return confirmed message
+            const newMsg = await api.sendMessage({
+                recipient_id: activeType === 'direct' ? Number(activeId) : null,
+                group_id: activeType === 'group' ? Number(activeId) : null,
+                content: text,
+                message_type: 'text',
+                reply_to_id: replyId
+            });
 
-        if (window.wsClient && window.wsClient.isConnected) {
-            window.wsClient.sendChatMessage(
-                this.activeType === 'direct' ? this.activeId : null,
-                this.activeType === 'group' ? this.activeId : null,
-                text,
-                replyId
-            );
-        } else {
-            // REST Fallback
-            try {
-                const newMsg = await api.sendMessage({
-                    recipient_id: this.activeType === 'direct' ? this.activeId : null,
-                    group_id: this.activeType === 'group' ? this.activeId : null,
-                    content: text,
-                    message_type: 'text',
-                    reply_to_id: replyId
-                });
-
-                const currentUser = auth.getUser();
-                this.appendMessage(newMsg, currentUser ? currentUser.id : null);
-            } catch (err) {
-                showToast(err.message || 'Failed to send message', 'error');
+            if (!newMsg || (!newMsg.id && !newMsg.message_id)) {
+                throw new Error('Unable to send the message. Please try again.');
             }
+
+            // Immediately display the confirmed message
+            this.appendMessage(newMsg, currentUserId);
+
+            // CLEAR COMPOSER ONLY AFTER CONFIRMED SUCCESS
+            if (this.dom.textarea) {
+                this.dom.textarea.value = '';
+            }
+            this.autoResizeTextarea();
+            this.clearReplying();
+            if (this.dom.emojiPopover) this.dom.emojiPopover.classList.remove('show');
+            if (this.dom.attachmentPopover) this.dom.attachmentPopover.classList.remove('show');
+            this.updateComposerActionButton();
+
+            // Refresh conversation snippet in sidebar
+            if (typeof window.appController !== 'undefined') {
+                window.appController.loadConversations(false);
+            }
+        } catch (err) {
+            console.error('Error sending message:', err);
+            let errorMsg = 'Unable to send the message. Please try again.';
+            const status = err.status || (err.response && err.response.status);
+            if (status === 401) {
+                errorMsg = 'Your session has expired. Please sign in again.';
+            } else if (status === 403) {
+                errorMsg = "You don't have permission to send messages in this conversation.";
+            } else if (status === 404) {
+                errorMsg = 'Conversation not found.';
+            } else if (status === 422) {
+                errorMsg = 'Invalid message.';
+            } else if (status === 500) {
+                errorMsg = 'Unable to send the message. Please try again.';
+            } else if (err.message && !err.message.includes('fetch') && !err.message.includes('status') && !err.message.includes('HTTP')) {
+                errorMsg = err.message;
+            }
+
+            showToast(errorMsg, 'error');
+            // Retain composer input on error
+        } finally {
+            this.isSending = false;
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.classList.remove('is-sending');
+                if (originalTitle) sendBtn.setAttribute('title', originalTitle);
+            }
+            this.updateComposerActionButton();
         }
     }
 

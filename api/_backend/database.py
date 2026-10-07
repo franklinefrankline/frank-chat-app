@@ -114,6 +114,8 @@ def check_and_migrate_db():
                     conn.execute(text("ALTER TABLE documents ADD COLUMN duration FLOAT NULL"))
                 if "file_data" not in columns:
                     conn.execute(text("ALTER TABLE documents ADD COLUMN file_data TEXT NULL"))
+                if "current_version_number" not in columns:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN current_version_number INTEGER DEFAULT 1"))
 
             if "groups" in tables:
                 columns = [col["name"] for col in inspector.get_columns("groups")]

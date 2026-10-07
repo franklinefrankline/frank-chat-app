@@ -70,11 +70,14 @@ class DocumentsController {
     }
 
     closeViewerModal() {
+        if (window.frankOfficeWorkspace) {
+            window.frankOfficeWorkspace.closeWorkspace();
+        }
         if (typeof closeModal === 'function') {
             closeModal('attachmentViewerModal');
         }
         if (this.dom.viewerModal) {
-            this.dom.viewerModal.classList.remove('open');
+            this.dom.viewerModal.classList.remove('open', 'active');
             this.dom.viewerModal.style.display = 'none';
             this.dom.viewerModal.style.visibility = 'hidden';
             this.dom.viewerModal.style.opacity = '0';
@@ -91,8 +94,17 @@ class DocumentsController {
 
     openDocument(fileId, fileType, filename, directUrl) {
         const validFileId = (fileId && !isNaN(fileId) && parseInt(fileId, 10) > 0) ? parseInt(fileId, 10) : null;
-        if (!validFileId && !directUrl) {
+        if (!validFileId && !directUrl && !filename) {
             console.warn('>>> [DOCUMENTS] openDocument called without valid fileId or directUrl');
+            return;
+        }
+
+        if (!window.frankOfficeWorkspace && typeof FrankOfficeWorkspace !== 'undefined') {
+            window.frankOfficeWorkspace = new FrankOfficeWorkspace();
+        }
+
+        if (window.frankOfficeWorkspace) {
+            window.frankOfficeWorkspace.openDocument(validFileId, fileType, filename, directUrl);
             return;
         }
 
@@ -332,14 +344,19 @@ class DocumentsController {
                     pre.textContent = 'Unable to load text preview.';
                 });
             } else {
+                if (typeof FrankOfficeWorkspace !== 'undefined') {
+                    if (!window.frankOfficeWorkspace) window.frankOfficeWorkspace = new FrankOfficeWorkspace();
+                    window.frankOfficeWorkspace.openDocument(validFileId, fileType, filenameClean, directUrl);
+                    return;
+                }
                 const safeName = typeof messagesModule !== 'undefined' ? messagesModule.escapeHTML(filenameClean) : filenameClean;
                 const extUpper = ext ? ext.toUpperCase() : 'FILE';
                 bodyEl.innerHTML = `
                     <div style="text-align: center; padding: 48px 24px;">
                         <div style="font-size: 56px; margin-bottom: 16px;">📁</div>
-                        <div style="font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 8px;">Preview unavailable</div>
+                        <div style="font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 8px;">Document Preview</div>
                         <div style="font-size: 14px; color: var(--text-muted); max-width: 440px; margin: 0 auto 24px auto; line-height: 1.5;">
-                            This ${extUpper} document cannot be previewed in the browser. You can download it to view on your device.
+                            ${safeName} (${extUpper})
                         </div>
                         <button type="button" class="btn btn-primary" id="fallbackDownloadBtn" style="padding: 10px 24px; font-size: 14px; font-weight: 700;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -845,9 +862,573 @@ function initDocumentsController() {
     if (!window.documentsController) {
         window.documentsController = new DocumentsController();
     }
+    if (!window.documentBrowserController) {
+        window.documentBrowserController = new DocumentBrowserController();
+    }
 }
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initDocumentsController);
 } else {
     initDocumentsController();
 }
+
+/* -------------------------------------------------------------------------
+   FRANK - PART 3: OPEN & EDIT DOCUMENTS BROWSER CONTROLLER
+   Full-featured document browser, real multi-format uploads,
+   filtering, searching, version-aware rendering, send-to-chat modal.
+   ------------------------------------------------------------------------- */
+class DocumentBrowserController {
+    constructor() {
+        this.documents = [];
+        this.currentFilter = 'all';
+        this.searchQuery = '';
+        this.stagedSendDocId = null;
+        this.stagedSendDocName = '';
+        this.selectedRecipient = null;
+        this.debounceTimer = null;
+        this.dom = {};
+        this.init();
+    }
+
+    init() {
+        this.cacheDom();
+        this.bindEvents();
+    }
+
+    cacheDom() {
+        this.dom = {
+            navBtn: document.getElementById('navOpenEditDocsBtn'),
+            workspace: document.getElementById('docBrowserWorkspace'),
+            closeBtn: document.getElementById('docBrowserCloseBtn'),
+            uploadBtn: document.getElementById('docBrowserUploadBtn'),
+            uploadInput: document.getElementById('docBrowserUploadInput'),
+            searchInput: document.getElementById('docBrowserSearchInput'),
+            filterPills: document.getElementById('docBrowserFilterPills'),
+            grid: document.getElementById('docBrowserGrid'),
+            sendModal: document.getElementById('docSendToChatModal'),
+            closeSendModalBtn: document.getElementById('closeDocSendModalBtn'),
+            cancelSendBtn: document.getElementById('cancelDocSendBtn'),
+            confirmSendBtn: document.getElementById('confirmDocSendBtn'),
+            recipientSearch: document.getElementById('docSendRecipientSearch'),
+            recipientList: document.getElementById('docSendRecipientList'),
+            commentInput: document.getElementById('docSendCommentInput')
+        };
+    }
+
+    bindEvents() {
+        // Nav Open
+        this.dom.navBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.openBrowser();
+        });
+
+        // Close / Back
+        this.dom.closeBtn?.addEventListener('click', () => {
+            this.closeBrowser();
+        });
+
+        // Upload Button -> trigger file picker
+        this.dom.uploadBtn?.addEventListener('click', () => {
+            if (this.dom.uploadInput) {
+                this.dom.uploadInput.value = '';
+                this.dom.uploadInput.click();
+            }
+        });
+
+        // Upload Input change -> upload file
+        this.dom.uploadInput?.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) {
+                this.handleUpload(file);
+            }
+        });
+
+        // Search Input
+        this.dom.searchInput?.addEventListener('input', (e) => {
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(() => {
+                this.searchQuery = e.target.value.trim();
+                this.loadDocuments();
+            }, 250);
+        });
+
+        // Filter Pills
+        this.dom.filterPills?.addEventListener('click', (e) => {
+            const pill = e.target.closest('.doc-filter-pill');
+            if (!pill) return;
+            const filter = pill.dataset.filter || 'all';
+            this.currentFilter = filter;
+            this.dom.filterPills.querySelectorAll('.doc-filter-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            this.loadDocuments();
+        });
+
+        // Send to Chat Modal controls
+        this.dom.closeSendModalBtn?.addEventListener('click', () => this.closeSendToChatModal());
+        this.dom.cancelSendBtn?.addEventListener('click', () => this.closeSendToChatModal());
+        this.dom.sendModal?.addEventListener('click', (e) => {
+            if (e.target === this.dom.sendModal) this.closeSendToChatModal();
+        });
+        this.dom.confirmSendBtn?.addEventListener('click', () => this.executeSendToChat());
+        this.dom.recipientSearch?.addEventListener('input', (e) => this.filterRecipients(e.target.value));
+
+        // Escape hotkey
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (this.dom.sendModal && this.dom.sendModal.style.display !== 'none') {
+                    this.closeSendToChatModal();
+                } else if (this.dom.workspace && this.dom.workspace.style.display !== 'none') {
+                    const officeWs = document.getElementById('frankDocumentWorkspace');
+                    if (!officeWs || !officeWs.classList.contains('active')) {
+                        this.closeBrowser();
+                    }
+                }
+            }
+        });
+    }
+
+    async openBrowser() {
+        if (!this.dom.workspace) this.cacheDom();
+        if (!this.dom.workspace) return;
+
+        this.dom.workspace.style.display = 'flex';
+        document.querySelectorAll('.sidebar-nav .nav-item').forEach(b => b.classList.remove('active'));
+        this.dom.navBtn?.classList.add('active');
+
+        await this.loadDocuments();
+    }
+
+    closeBrowser() {
+        if (this.dom.workspace) {
+            this.dom.workspace.style.display = 'none';
+        }
+        const chatsBtn = document.querySelector('.sidebar-nav .nav-item[data-section="chats"]');
+        if (chatsBtn) chatsBtn.classList.add('active');
+    }
+
+    async loadDocuments() {
+        if (!this.dom.grid) this.cacheDom();
+        if (!this.dom.grid) return;
+
+        this.dom.grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);"><div class="spinner"></div><div style="margin-top:10px;">Loading documents...</div></div>';
+
+        try {
+            let url = `/api/files?filter_type=${encodeURIComponent(this.currentFilter)}`;
+            if (this.searchQuery) {
+                url += `&q=${encodeURIComponent(this.searchQuery)}`;
+            }
+
+            const res = await api.request(url);
+            this.documents = Array.isArray(res) ? res : (res && res.files ? res.files : []);
+            this.renderDocumentGrid();
+        } catch (err) {
+            console.error('Failed to load documents:', err);
+            this.dom.grid.innerHTML = `
+                <div class="doc-browser-empty">
+                    <div class="doc-browser-empty-icon">⚠️</div>
+                    <div class="doc-browser-empty-title">Unable to load documents</div>
+                    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Please check your connection and try again.</p>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.documentBrowserController.loadDocuments()">Retry</button>
+                </div>
+            `;
+        }
+    }
+
+    renderDocumentGrid() {
+        if (!this.dom.grid) return;
+
+        if (!this.documents || this.documents.length === 0) {
+            this.dom.grid.innerHTML = `
+                <div class="doc-browser-empty">
+                    <div class="doc-browser-empty-icon">📄</div>
+                    <div class="doc-browser-empty-title">No documents found</div>
+                    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+                        ${this.searchQuery ? `No files matching "${messagesModule.escapeHTML(this.searchQuery)}"` : 'Upload a PDF, Word, Excel, PowerPoint, Text, or CSV file to get started.'}
+                    </p>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('docBrowserUploadBtn').click()">
+                        Upload Document
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        this.documents.forEach(doc => {
+            const ext = (doc.original_filename.split('.').pop() || '').toLowerCase();
+            const cat = this.getCategoryClass(ext, doc.file_type);
+            const icon = this.getCategoryEmoji(cat);
+            const sizeFormatted = this.formatFileSize(doc.file_size || 0);
+            const dateFormatted = doc.created_at ? messagesModule.formatRelativeTime(doc.created_at) : 'Recent';
+            const ver = doc.current_version_number || 1;
+
+            html += `
+                <div class="doc-browser-card" data-doc-id="${doc.id}">
+                    <div class="doc-card-top">
+                        <div class="doc-card-icon ${cat}">${icon}</div>
+                        <div class="doc-card-info">
+                            <div class="doc-card-title" title="${messagesModule.escapeHTML(doc.original_filename)}">
+                                ${messagesModule.escapeHTML(doc.original_filename)}
+                            </div>
+                            <div class="doc-card-meta">
+                                <span class="doc-card-badge">${(doc.file_type || ext || 'FILE').toUpperCase()}</span>
+                                <span>${sizeFormatted}</span>
+                                <span>•</span>
+                                <span>v${ver}</span>
+                                <span>•</span>
+                                <span>${dateFormatted}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="doc-card-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" title="Download Document" onclick="event.stopPropagation(); window.documentBrowserController.downloadDoc(${doc.id}, '${messagesModule.escapeHTML(doc.original_filename)}')">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Download
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" title="Send to Chat" onclick="event.stopPropagation(); window.documentBrowserController.openSendToChatModal(${doc.id}, '${messagesModule.escapeHTML(doc.original_filename)}')">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            Send
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm" title="Open & Edit" onclick="event.stopPropagation(); window.documentBrowserController.openDoc(${doc.id}, '${doc.file_type}', '${messagesModule.escapeHTML(doc.original_filename)}')">
+                            Open &amp; Edit
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        this.dom.grid.innerHTML = html;
+
+        // Card clicks
+        this.dom.grid.querySelectorAll('.doc-browser-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const docId = parseInt(card.dataset.docId, 10);
+                const doc = this.documents.find(d => d.id === docId);
+                if (doc) {
+                    this.openDoc(doc.id, doc.file_type, doc.original_filename);
+                }
+            });
+        });
+    }
+
+    getCategoryClass(ext, fileType) {
+        if (ext === 'pdf' || fileType === 'pdf') return 'pdf';
+        if (['doc', 'docx'].includes(ext) || fileType === 'word') return 'word';
+        if (['xls', 'xlsx'].includes(ext) || fileType === 'excel') return 'excel';
+        if (['ppt', 'pptx'].includes(ext) || fileType === 'pptx' || fileType === 'presentation') return 'presentation';
+        if (['txt', 'text', 'md'].includes(ext) || fileType === 'text') return 'text';
+        if (ext === 'csv' || fileType === 'csv') return 'csv';
+        return 'archive';
+    }
+
+    getCategoryEmoji(cat) {
+        switch (cat) {
+            case 'word': return '📘';
+            case 'excel': return '📊';
+            case 'presentation': return '📽️';
+            case 'pdf': return '📕';
+            case 'text': return '📝';
+            case 'csv': return '📈';
+            default: return '📄';
+        }
+    }
+
+    formatFileSize(bytes) {
+        if (!bytes || bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    async handleUpload(file) {
+        if (!file) return;
+
+        // Validate size (100MB max)
+        const maxSize = 100 * 1024 * 1024;
+        if (file.size > maxSize) {
+            showToast('File is too large. Maximum size is 100 MB.', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        showToast('Uploading document...', 'info');
+
+        try {
+            const token = (typeof auth !== 'undefined' && typeof auth.getToken === 'function') 
+                ? auth.getToken() 
+                : (localStorage.getItem('chatapp_token') || localStorage.getItem('frank_token'));
+            const baseUrl = (window.FRANK_CONFIG && window.FRANK_CONFIG.API_BASE) || '';
+            const res = await fetch(`${baseUrl}/api/files/upload`, {
+                method: 'POST',
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: formData
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || 'Upload failed');
+            }
+
+            const uploadedDoc = await res.json();
+            showToast('Document uploaded successfully!', 'success');
+
+            // Refresh browser list
+            await this.loadDocuments();
+
+            // Automatically open in workspace
+            this.openDoc(uploadedDoc.id, uploadedDoc.file_type, uploadedDoc.original_filename);
+        } catch (err) {
+            console.error('Document upload error:', err);
+            showToast(err.message || 'Upload failed. Please try again.', 'error');
+        }
+    }
+
+    openDoc(fileId, fileType, filename) {
+        if (!window.frankOfficeWorkspace && typeof FrankOfficeWorkspace !== 'undefined') {
+            window.frankOfficeWorkspace = new FrankOfficeWorkspace();
+        }
+
+        if (window.frankOfficeWorkspace) {
+            const baseUrl = (window.FRANK_CONFIG && window.FRANK_CONFIG.API_BASE) || '';
+            const viewUrl = `${baseUrl}/api/files/${fileId}/view`;
+            if (this.dom.workspace) {
+                this.dom.workspace.style.display = 'none';
+            }
+            window.frankOfficeWorkspace.openDocument(fileId, fileType, filename, viewUrl);
+        }
+    }
+
+    downloadDoc(fileId, filename) {
+        const downloadUrl = `/api/files/${fileId}/download`;
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = filename || 'document';
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast('Download started', 'success');
+    }
+
+    // ---------------- SEND TO CHAT WORKFLOW ----------------
+    async openSendToChatModal(docId, filename) {
+        this.stagedSendDocId = docId;
+        this.stagedSendDocName = filename || 'Document';
+        this.selectedRecipient = null;
+
+        if (!this.dom.sendModal) this.cacheDom();
+        if (!this.dom.sendModal) return;
+
+        this.dom.sendModal.style.display = 'flex';
+        if (this.dom.recipientSearch) this.dom.recipientSearch.value = '';
+        if (this.dom.commentInput) this.dom.commentInput.value = `Here is the latest: ${this.stagedSendDocName}`;
+        if (this.dom.confirmSendBtn) this.dom.confirmSendBtn.disabled = true;
+
+        await this.populateRecipientList();
+    }
+
+    closeSendToChatModal() {
+        if (this.dom.sendModal) {
+            this.dom.sendModal.style.display = 'none';
+        }
+        this.stagedSendDocId = null;
+        this.selectedRecipient = null;
+    }
+
+    async populateRecipientList() {
+        if (!this.dom.recipientList) return;
+        this.dom.recipientList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);"><div class="spinner"></div></div>';
+
+        try {
+            const [conversations, allUsers] = await Promise.all([
+                api.getConversations().catch(() => []),
+                api.getUsers().catch(() => [])
+            ]);
+            const currentUser = auth.getUser();
+            const selfId = currentUser ? Number(currentUser.id) : null;
+
+            let recipients = [];
+            const seenUserIds = new Set();
+            if (selfId) seenUserIds.add(selfId);
+
+            // 1. Add self chat
+            if (currentUser) {
+                recipients.push({
+                    id: selfId,
+                    type: 'self',
+                    name: `${currentUser.full_name || currentUser.username} (You)`,
+                    subtitle: 'Notes to self',
+                    icon: '👤'
+                });
+            }
+
+            // 2. Add existing conversations (Recent Chats & Groups)
+            (conversations || []).forEach(c => {
+                const isGroup = c.type === 'group';
+                if (!isGroup) {
+                    const uid = Number(c.id);
+                    if (uid === selfId || seenUserIds.has(uid)) return;
+                    seenUserIds.add(uid);
+                }
+                recipients.push({
+                    id: c.id,
+                    type: isGroup ? 'group' : 'direct',
+                    conversation_id: c.conversation_id || null,
+                    name: c.name || c.username || 'Chat',
+                    subtitle: isGroup ? 'Group Conversation' : `@${c.username || 'user'}`,
+                    icon: isGroup ? '👥' : '💬'
+                });
+            });
+
+            // 3. Add registered contacts (from allUsers)
+            (allUsers || []).forEach(u => {
+                const uid = Number(u.id);
+                if (uid === selfId || seenUserIds.has(uid)) return;
+                seenUserIds.add(uid);
+                recipients.push({
+                    id: uid,
+                    type: 'direct',
+                    conversation_id: null,
+                    name: u.full_name || u.username || 'User',
+                    subtitle: `@${u.username || 'user'}${u.bio ? ' • ' + u.bio : ''}`,
+                    icon: '💬'
+                });
+            });
+
+            this.renderedRecipients = recipients;
+            this.renderRecipientRows(recipients);
+        } catch (err) {
+            console.error('Failed to load recipients:', err);
+            this.dom.recipientList.innerHTML = '<div style="padding:14px;text-align:center;color:var(--danger);">Failed to load contacts</div>';
+        }
+    }
+
+    renderRecipientRows(recipients) {
+        if (!this.dom.recipientList) return;
+        if (!recipients || recipients.length === 0) {
+            this.dom.recipientList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">No recipients found</div>';
+            return;
+        }
+
+        let html = '';
+        recipients.forEach(r => {
+            const isSelected = this.selectedRecipient && this.selectedRecipient.id === r.id && this.selectedRecipient.type === r.type;
+            html += `
+                <div class="doc-send-recipient-row ${isSelected ? 'selected' : ''}" data-id="${r.id}" data-type="${r.type}">
+                    <span style="font-size:18px;">${r.icon}</span>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            ${messagesModule.escapeHTML(r.name)}
+                        </div>
+                        <div style="font-size:11px;color:var(--text-muted);">
+                            ${messagesModule.escapeHTML(r.subtitle)}
+                        </div>
+                    </div>
+                    ${isSelected ? '<span style="color:var(--primary);font-weight:700;">✓</span>' : ''}
+                </div>
+            `;
+        });
+
+        this.dom.recipientList.innerHTML = html;
+
+        this.dom.recipientList.querySelectorAll('.doc-send-recipient-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const id = parseInt(row.dataset.id, 10);
+                const type = row.dataset.type;
+                const rec = (this.renderedRecipients || []).find(r => r.id === id && r.type === type);
+                if (rec) {
+                    this.selectedRecipient = rec;
+                    this.renderRecipientRows(this.renderedRecipients);
+                    if (this.dom.confirmSendBtn) {
+                        this.dom.confirmSendBtn.disabled = false;
+                    }
+                }
+            });
+        });
+    }
+
+    filterRecipients(query) {
+        const q = (query || '').toLowerCase().trim();
+        if (!this.renderedRecipients) return;
+        if (!q) {
+            this.renderRecipientRows(this.renderedRecipients);
+            return;
+        }
+        const filtered = this.renderedRecipients.filter(r => 
+            r.name.toLowerCase().includes(q) || r.subtitle.toLowerCase().includes(q)
+        );
+        this.renderRecipientRows(filtered);
+    }
+
+    async executeSendToChat() {
+        if (!this.stagedSendDocId || !this.selectedRecipient) return;
+
+        const recipient = this.selectedRecipient;
+        const docId = this.stagedSendDocId;
+        const docName = this.stagedSendDocName;
+
+        if (this.dom.confirmSendBtn) {
+            this.dom.confirmSendBtn.disabled = true;
+            this.dom.confirmSendBtn.textContent = 'Sending...';
+        }
+
+        const comment = (this.dom.commentInput?.value || '').trim() || `Shared: ${docName}`;
+
+        const payload = {
+            comment: comment,
+            recipient_id: recipient.type !== 'group' ? recipient.id : null,
+            group_id: recipient.type === 'group' ? recipient.id : null
+        };
+
+        try {
+            const res = await api.sendDocumentToConversation(docId, payload);
+            if (res && res.status === 'sent') {
+                showToast('Document sent to chat successfully!', 'success');
+                this.closeSendToChatModal();
+
+                const officeWs = document.getElementById('frankDocumentWorkspace');
+                if (officeWs && officeWs.classList.contains('active')) {
+                    if (window.frankOfficeWorkspace) {
+                        window.frankOfficeWorkspace.closeWorkspace();
+                    }
+                }
+
+                this.closeBrowser();
+                if (window.chatController) {
+                    if (recipient.type === 'group') {
+                        window.chatController.openGroupChat({ id: recipient.id, name: recipient.name });
+                    } else {
+                        window.chatController.openDirectChat({ id: recipient.id, name: recipient.name, username: recipient.name });
+                    }
+                }
+            } else {
+                throw new Error('Server returned unexpected status');
+            }
+        } catch (err) {
+            console.error('Failed to send document to chat:', err);
+            showToast(err.message || 'Unable to send document to chat', 'error');
+            if (this.dom.confirmSendBtn) {
+                this.dom.confirmSendBtn.disabled = false;
+                this.dom.confirmSendBtn.textContent = 'Send Document';
+            }
+        }
+    }
+}
+
+// Global initialization for document browser
+function initDocumentBrowserController() {
+    if (!window.documentBrowserController) {
+        window.documentBrowserController = new DocumentBrowserController();
+    }
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDocumentBrowserController);
+} else {
+    initDocumentBrowserController();
+}
+

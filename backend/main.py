@@ -16,7 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from database import engine, Base, SessionLocal
 import models
 from security import hash_password
-from routes import auth, users, messages, groups, files, admin
+from routes import auth, users, messages, groups, files, admin, smart
 from websocket.chat import handle_websocket_connection
 
 # Create database tables automatically
@@ -219,7 +219,7 @@ async def ensure_api_prefix(request: Request, call_next):
     path = request.url.path
     # Never rewrite static frontend assets or HTML pages
     if not any(path.endswith(ext) for ext in [".html", ".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".webp", ".woff", ".woff2", ".ttf"]):
-        for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health", "/admin"]:
+        for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health", "/admin", "/conversations", "/smart"]:
             if (path == pfx and pfx != "/admin") or path.startswith(pfx + "/"):
                 request.scope["path"] = "/api" + path
                 break
@@ -227,7 +227,7 @@ async def ensure_api_prefix(request: Request, call_next):
     return response
 
 # Include Routers with both /api prefix and root prefix
-for r in [auth.router, users.router, messages.router, groups.router, files.router, admin.router]:
+for r in [auth.router, users.router, messages.router, groups.router, files.router, admin.router, smart.router]:
     app.include_router(r, prefix="/api")
     app.include_router(r)
 

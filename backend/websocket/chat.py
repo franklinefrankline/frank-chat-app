@@ -258,6 +258,9 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                     db_session = SessionLocal()
                     try:
                         if group_id:
+                            group = db_session.query(models.Group).filter(models.Group.id == group_id).first()
+                            if not group:
+                                continue
                             membership = db_session.query(models.GroupMember).filter(
                                 models.GroupMember.group_id == group_id,
                                 models.GroupMember.user_id == user_id
@@ -266,6 +269,9 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                                 continue
 
                         if recipient_id:
+                            partner = db_session.query(models.User).filter(models.User.id == recipient_id).first()
+                            if not partner:
+                                continue
                             ua = min(user_id, recipient_id)
                             ub = max(user_id, recipient_id)
                             conv = db_session.query(models.Conversation).filter(

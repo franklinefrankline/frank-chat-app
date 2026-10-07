@@ -19,39 +19,203 @@ const uiModule = {
         if (dot) dot.remove();
     },
 
+    positionAnchoredMenu(menu, trigger) {
+        if (!menu || !trigger) return;
+
+        // Make menu visible offscreen/fixed to measure natural dimensions
+        menu.style.visibility = 'hidden';
+        menu.style.display = 'block';
+        menu.style.position = 'fixed';
+        menu.style.zIndex = '350';
+        menu.style.maxHeight = '';
+        menu.style.overflowY = 'visible';
+
+        const triggerRect = trigger.getBoundingClientRect();
+        const viewportW = window.innerWidth;
+        const viewportH = window.innerHeight;
+        const margin = 8;
+
+        let targetWidth = 268;
+        if (viewportW <= 480) {
+            targetWidth = Math.min(360, viewportW - (margin * 2));
+        } else {
+            targetWidth = Math.min(270, viewportW - (margin * 2));
+        }
+        menu.style.width = `${targetWidth}px`;
+
+        const naturalHeight = menu.offsetHeight || menu.scrollHeight || 420;
+        const spaceBelow = viewportH - triggerRect.bottom;
+        const spaceAbove = triggerRect.top;
+
+        let top = 0;
+        let maxHeight = viewportH - (margin * 2);
+
+        // Vertical collision: if space below is limited and space above is larger, open UPWARD
+        if (spaceBelow < (naturalHeight + margin) && spaceAbove > spaceBelow) {
+            top = triggerRect.top - naturalHeight - 6;
+            if (top < margin) {
+                top = margin;
+                maxHeight = Math.max(160, triggerRect.top - margin - 6);
+            } else {
+                maxHeight = Math.max(160, naturalHeight);
+            }
+        } else {
+            // Open DOWNWARD
+            top = triggerRect.bottom + 6;
+            if (top + naturalHeight > viewportH - margin) {
+                maxHeight = Math.max(160, viewportH - top - margin);
+            } else {
+                maxHeight = Math.max(160, naturalHeight);
+            }
+        }
+
+        menu.style.maxHeight = `${maxHeight}px`;
+        menu.style.overflowY = 'auto';
+
+        const finalHeight = menu.offsetHeight;
+        if (spaceBelow < (naturalHeight + margin) && spaceAbove > spaceBelow) {
+            top = Math.max(margin, triggerRect.top - finalHeight - 6);
+        }
+
+        // Horizontal alignment: anchor to trigger
+        let left = 0;
+        if (viewportW <= 480) {
+            left = Math.max(margin, (viewportW - targetWidth) / 2);
+        } else {
+            const triggerCenter = triggerRect.left + (triggerRect.width / 2);
+            if (triggerCenter < viewportW / 2) {
+                left = triggerRect.left;
+                if (left + targetWidth > viewportW - margin) {
+                    left = viewportW - targetWidth - margin;
+                }
+            } else {
+                left = triggerRect.right - targetWidth;
+                if (left < margin) {
+                    left = margin;
+                }
+            }
+        }
+
+        // Viewport bounds clamp
+        left = Math.max(margin, Math.min(left, viewportW - targetWidth - margin));
+        top = Math.max(margin, Math.min(top, viewportH - finalHeight - margin));
+
+        menu.style.top = `${Math.round(top)}px`;
+        menu.style.left = `${Math.round(left)}px`;
+        menu.style.right = 'auto';
+        menu.style.bottom = 'auto';
+        menu.style.visibility = 'visible';
+    },
+
+    closeAllDropdowns() {
+        document.querySelectorAll('.dropdown-menu.show, .dropdown-menu.open').forEach(m => {
+            m.classList.remove('show', 'open');
+            m.style.display = 'none';
+            m.style.visibility = '';
+            const parentTrigger = m.closest('[aria-haspopup="true"]') || document.querySelector(`[aria-controls="${m.id}"]`);
+            if (parentTrigger) parentTrigger.setAttribute('aria-expanded', 'false');
+        });
+        document.querySelectorAll('[aria-haspopup="true"][aria-expanded="true"]').forEach(t => {
+            t.setAttribute('aria-expanded', 'false');
+        });
+        this.activeAnchoredDropdown = null;
+        this.activeAnchoredTrigger = null;
+    },
+
     setupDropdowns() {
+        window.positionAnchoredMenu = this.positionAnchoredMenu.bind(this);
+        window.closeAllDropdowns = this.closeAllDropdowns.bind(this);
+
         document.addEventListener('click', (e) => {
-            // Ignore dropdown toggle if clicking copy button or language selector
-            if (e.target.closest('.btn-copy-frank-id') || e.target.closest('.lang-selector-container')) {
+            // Ignore if clicking copy button, language selector, theme toggle or desktop profile elements
+            if (e.target.closest('.btn-copy-frank-id') || e.target.closest('.lang-selector-container') || e.target.closest('#desktopProfileBtn') || e.target.closest('#desktopProfileDropdown') || e.target.closest('#sidebarThemeToggleBtn, #desktopThemeToggleBtn, #themeToggleBtn, #dashboardThemeBtn')) {
                 return;
             }
 
             // Dropdown trigger buttons
             const trigger = e.target.closest('[aria-haspopup="true"]');
             if (trigger) {
-                const menu = trigger.querySelector('.dropdown-menu');
-                if (menu) {
-                    const isOpen = menu.classList.contains('show');
-                    document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
-                    if (!isOpen) {
-                        menu.classList.add('show');
-                        trigger.setAttribute('aria-expanded', 'true');
-                    } else {
-                        trigger.setAttribute('aria-expanded', 'false');
-                    }
+                let menu = trigger.querySelector('.dropdown-menu');
+                if (!menu && trigger.id === 'sidebarUserCard') {
+                    menu = document.getElementById('sidebarUserMenu');
                 }
-                return;
+
+                if (menu) {
+                    e.stopPropagation();
+                    const isOpen = menu.classList.contains('show') || menu.classList.contains('open');
+                    this.closeAllDropdowns();
+                    if (!isOpen) {
+                        menu.classList.add('show', 'open');
+                        trigger.setAttribute('aria-expanded', 'true');
+                        this.positionAnchoredMenu(menu, trigger);
+                        this.activeAnchoredDropdown = menu;
+                        this.activeAnchoredTrigger = trigger;
+                    }
+                    return;
+                }
             }
 
             // Click outside any open dropdown
             if (!e.target.closest('.dropdown-menu')) {
-                document.querySelectorAll('.dropdown-menu.show').forEach(m => {
-                    m.classList.remove('show');
-                    const parentTrigger = m.closest('[aria-haspopup="true"]');
-                    if (parentTrigger) parentTrigger.setAttribute('aria-expanded', 'false');
-                });
+                this.closeAllDropdowns();
             }
         });
+
+        // Auto-close on link or modal click inside sidebar menu
+        document.addEventListener('click', (e) => {
+            const actionItem = e.target.closest('.sidebar-user-menu a, .sidebar-user-menu [data-open-modal], .sidebar-user-menu .danger');
+            if (actionItem) {
+                setTimeout(() => this.closeAllDropdowns(), 80);
+            }
+        });
+
+        // Escape key closes active dropdown
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.activeAnchoredDropdown) {
+                const trigger = this.activeAnchoredTrigger;
+                this.closeAllDropdowns();
+                trigger?.focus();
+            }
+        });
+
+        // Trigger activation via Enter / Space on trigger
+        document.addEventListener('keydown', (e) => {
+            const trigger = e.target.closest('#sidebarUserCard');
+            if (trigger && (e.key === 'Enter' || e.key === ' ') && !e.target.closest('.btn-copy-frank-id')) {
+                e.preventDefault();
+                trigger.click();
+            }
+        });
+
+        // Arrow navigation inside open dropdown
+        document.addEventListener('keydown', (e) => {
+            if (!this.activeAnchoredDropdown) return;
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                const items = Array.from(this.activeAnchoredDropdown.querySelectorAll('.dropdown-item:not([disabled])'));
+                if (!items.length) return;
+                e.preventDefault();
+                const activeIdx = items.indexOf(document.activeElement);
+                let nextIdx = 0;
+                if (e.key === 'ArrowDown') {
+                    nextIdx = activeIdx >= 0 ? (activeIdx + 1) % items.length : 0;
+                } else {
+                    nextIdx = activeIdx > 0 ? activeIdx - 1 : items.length - 1;
+                }
+                items[nextIdx].focus();
+            }
+        });
+
+        // Window resize & scroll repositioning
+        window.addEventListener('resize', () => {
+            if (this.activeAnchoredDropdown && this.activeAnchoredTrigger) {
+                this.positionAnchoredMenu(this.activeAnchoredDropdown, this.activeAnchoredTrigger);
+            }
+        });
+        window.addEventListener('scroll', () => {
+            if (this.activeAnchoredDropdown && this.activeAnchoredTrigger) {
+                this.positionAnchoredMenu(this.activeAnchoredDropdown, this.activeAnchoredTrigger);
+            }
+        }, true);
     },
 
     setupLandingMobileDrawer() {

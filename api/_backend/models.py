@@ -79,10 +79,29 @@ class Document(Base):
     file_type = Column(String(50), default="document")  # pdf, word, excel, ppt, text, archive, image, video, audio, other
     duration = Column(Float, nullable=True)  # in seconds for audio/voice and video
     file_data = Column(Text, nullable=True)  # Base64 payload for resilient multi-instance serverless retrieval
+    current_version_number = Column(Integer, default=1)
     created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
 
     uploader = relationship("User", back_populates="uploaded_documents")
     group = relationship("Group", back_populates="documents")
+    versions = relationship("DocumentVersion", back_populates="document", cascade="all, delete-orphan", order_by="DocumentVersion.version_number.desc()")
+
+
+class DocumentVersion(Base):
+    __tablename__ = "document_versions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    document_id = Column(Integer, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True)
+    version_number = Column(Integer, nullable=False, default=1)
+    stored_filename = Column(String(255), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    file_data = Column(Text, nullable=True)  # Base64 payload for resilient multi-instance serverless retrieval
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    change_summary = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
+
+    document = relationship("Document", back_populates="versions")
+    created_by = relationship("User")
 
 
 class Reaction(Base):
@@ -185,4 +204,57 @@ class UploadChunk(Base):
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
 
 
+class ConversationSummary(Base):
+    __tablename__ = "conversation_summaries"
 
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, nullable=False, index=True)
+    conversation_type = Column(String(20), default="direct", nullable=False)
+    requested_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    summary = Column(Text, nullable=False)
+    missed_summary = Column(Text, nullable=True)
+    source_message_start = Column(Integer, nullable=True)
+    source_message_end = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+
+class SmartActionItem(Base):
+    __tablename__ = "smart_action_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, nullable=False, index=True)
+    conversation_type = Column(String(20), default="direct", nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    source_message_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
+    action_text = Column(String(500), nullable=False)
+    completed = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+
+class SmartDecision(Base):
+    __tablename__ = "smart_decisions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, nullable=False, index=True)
+    conversation_type = Column(String(20), default="direct", nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    source_message_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
+    decision_text = Column(String(500), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+
+class SmartDate(Base):
+    __tablename__ = "smart_dates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, nullable=False, index=True)
+    conversation_type = Column(String(20), default="direct", nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    source_message_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
+    title = Column(String(255), nullable=False)
+    date_value = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)

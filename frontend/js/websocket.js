@@ -17,6 +17,25 @@ function updateSidebarPresence(isOnline) {
     if (statusDot) {
         statusDot.style.color = isOnline ? 'var(--success, #10B981)' : 'var(--text-muted, #94A3B8)';
     }
+
+    // Update status in dropdown user menus
+    const sidebarMenuStatusDot = document.getElementById('sidebarMenuStatusDot');
+    const sidebarMenuStatusLabel = document.getElementById('sidebarMenuStatusLabel');
+    if (sidebarMenuStatusDot) {
+        sidebarMenuStatusDot.style.background = isOnline ? 'var(--success, #10B981)' : 'var(--text-muted, #94A3B8)';
+    }
+    if (sidebarMenuStatusLabel) {
+        sidebarMenuStatusLabel.textContent = isOnline ? 'Online' : 'Offline';
+    }
+
+    const desktopDropdownStatusDot = document.getElementById('desktopDropdownStatusDot');
+    const desktopDropdownStatusLabel = document.getElementById('desktopDropdownStatusLabel');
+    if (desktopDropdownStatusDot) {
+        desktopDropdownStatusDot.style.background = isOnline ? 'var(--success, #10B981)' : 'var(--text-muted, #94A3B8)';
+    }
+    if (desktopDropdownStatusLabel) {
+        desktopDropdownStatusLabel.textContent = isOnline ? 'Online' : 'Offline';
+    }
 }
 window.updateSidebarPresence = updateSidebarPresence;
 window.addEventListener('online', () => updateSidebarPresence(true));

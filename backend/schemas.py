@@ -213,10 +213,40 @@ class DocumentResponse(BaseModel):
     mime_type: str
     file_type: str
     duration: Optional[float] = None
+    current_version_number: Optional[int] = 1
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class DocumentVersionResponse(BaseModel):
+    id: int
+    document_id: int
+    version_number: int
+    file_size: int
+    created_by_id: int
+    created_by_name: Optional[str] = None
+    change_summary: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DocumentSaveRequest(BaseModel):
+    content: Optional[str] = None
+    base_version_number: Optional[int] = None
+    change_summary: Optional[str] = None
+    save_as_new_version: bool = True
+    structured_data: Optional[dict] = None
+
+
+class SendUpdatedFileRequest(BaseModel):
+    conversation_id: Optional[int] = None
+    recipient_id: Optional[int] = None
+    group_id: Optional[int] = None
+    comment: Optional[str] = None
 
 
 # ---------------- REACTION SCHEMAS ----------------
@@ -336,3 +366,211 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str = Field(..., min_length=6, max_length=128)
+
+
+# ---------------- SMART CONVERSATION SCHEMAS ----------------
+
+class SmartSummaryRequest(BaseModel):
+    conversation_type: Optional[str] = "direct"  # direct or group
+    force_refresh: Optional[bool] = False
+
+
+class SmartSummaryResponse(BaseModel):
+    success: bool = True
+    conversation_id: int
+    conversation_type: str = "direct"
+    summary_bullets: List[str] = []
+    summary_text: str = ""
+    status: str = "ready"  # ready, insufficient_content, not_configured, unavailable
+    message: Optional[str] = None
+    source_message_start: Optional[int] = None
+    source_message_end: Optional[int] = None
+    generated_at: Optional[str] = None
+
+
+class SmartMissedRequest(BaseModel):
+    conversation_type: Optional[str] = "direct"
+    period: str = "last_read"  # last_read, today, yesterday, last_7_days, custom
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+
+class SmartMissedItem(BaseModel):
+    source_message_id: int
+    sender_name: str
+    preview: str
+    timestamp: str
+    category: str = "update"  # update, decision, file, task
+
+
+class SmartMissedResponse(BaseModel):
+    success: bool = True
+    conversation_id: int
+    conversation_type: str = "direct"
+    period: str
+    message_count: int = 0
+    important_updates_count: int = 0
+    files_count: int = 0
+    decisions_count: int = 0
+    explanation: str = ""
+    items: List[SmartMissedItem] = []
+    status: str = "ready"
+    message: Optional[str] = None
+
+
+class SmartImportantMessageItem(BaseModel):
+    source_message_id: int
+    sender_name: str
+    message_preview: str
+    timestamp: str
+    category: str  # deadline, decision, task, announcement, question, shared_info
+    reason: str
+
+
+class SmartImportantResponse(BaseModel):
+    success: bool = True
+    conversation_id: int
+    conversation_type: str = "direct"
+    messages: List[SmartImportantMessageItem] = []
+    status: str = "ready"
+    message: Optional[str] = None
+
+
+class SmartActionItemCreate(BaseModel):
+    conversation_type: Optional[str] = "direct"
+    source_message_id: Optional[int] = None
+    action_text: str = Field(..., min_length=1, max_length=500)
+
+
+class SmartActionItemUpdate(BaseModel):
+    completed: Optional[bool] = None
+    action_text: Optional[str] = None
+
+
+class SmartActionItemResponse(BaseModel):
+    id: int
+    conversation_id: int
+    conversation_type: str = "direct"
+    user_id: int
+    source_message_id: Optional[int] = None
+    action_text: str
+    completed: bool
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_serializer("created_at", "updated_at", check_fields=False)
+    def serialize_utc_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
+        return format_iso_utc(dt)
+
+    class Config:
+        from_attributes = True
+
+
+class SmartDecisionItem(BaseModel):
+    id: Optional[int] = None
+    conversation_id: int
+    conversation_type: str = "direct"
+    source_message_id: Optional[int] = None
+    decision_text: str
+    created_at: Optional[str] = None
+
+
+class SmartDecisionsResponse(BaseModel):
+    success: bool = True
+    conversation_id: int
+    conversation_type: str = "direct"
+    decisions: List[SmartDecisionItem] = []
+    status: str = "ready"
+    message: Optional[str] = None
+
+
+class SmartDateItem(BaseModel):
+    id: Optional[int] = None
+    conversation_id: int
+    conversation_type: str = "direct"
+    source_message_id: Optional[int] = None
+    title: str
+    date_value: str
+    created_at: Optional[str] = None
+
+
+class SmartDatesResponse(BaseModel):
+    success: bool = True
+    conversation_id: int
+    conversation_type: str = "direct"
+    dates: List[SmartDateItem] = []
+    status: str = "ready"
+    message: Optional[str] = None
+
+
+class SmartOverviewResponse(BaseModel):
+    success: bool = True
+    conversation_id: int
+    conversation_type: str = "direct"
+    has_summary: bool = False
+    action_items_count: int = 0
+    pending_action_items_count: int = 0
+    decisions_count: int = 0
+    dates_count: int = 0
+    latest_message_id: Optional[int] = None
+
+
+class SmartFileItem(BaseModel):
+    id: int
+    original_filename: str
+    file_size: int
+    file_type: str = "document"
+    mime_type: str = ""
+    uploader_name: str = "Participant"
+    created_at: Optional[str] = None
+    download_url: Optional[str] = None
+
+
+class SmartFilesResponse(BaseModel):
+    success: bool = True
+    conversation_id: int
+    conversation_type: str = "direct"
+    files: List[SmartFileItem] = []
+    total_files: int = 0
+    status: str = "ready"
+    message: Optional[str] = None
+
+
+class SmartInsightsResponse(BaseModel):
+    success: bool = True
+    conversation_id: int
+    conversation_type: str = "direct"
+    total_messages: int = 0
+    user_messages: int = 0
+    other_messages: int = 0
+    files_count: int = 0
+    action_items_count: int = 0
+    pending_action_items_count: int = 0
+    decisions_count: int = 0
+    dates_count: int = 0
+    active_participants_count: int = 0
+    participants: List[str] = []
+    last_activity: Optional[str] = None
+    unread_messages: int = 0
+    status: str = "ready"
+
+
+class SmartFullResponse(BaseModel):
+    success: bool = True
+    conversation_id: int
+    conversation_type: str = "direct"
+    summary: Optional[SmartSummaryResponse] = None
+    missed: Optional[SmartMissedResponse] = None
+    important: List[SmartImportantMessageItem] = []
+    action_items: List[SmartActionItemResponse] = []
+    decisions: List[SmartDecisionItem] = []
+    dates: List[SmartDateItem] = []
+    files: List[SmartFileItem] = []
+    insights: Optional[SmartInsightsResponse] = None
+    has_summary: bool = False
+    action_items_count: int = 0
+    pending_action_items_count: int = 0
+    decisions_count: int = 0
+    dates_count: int = 0
+    latest_message_id: Optional[int] = None
+

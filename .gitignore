@@ -61,4 +61,7 @@ yarn-error.log*
 # Test artifacts
 test-results/
 tests/*.png
+tests/test_doc_*.docx
+playwright-report/
+coverage/
 

@@ -23,6 +23,8 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/smart.css">
+    <link rel="stylesheet" href="css/office_workspace.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
@@ -70,12 +72,12 @@
             </div>
 
             <!-- New Chat Primary Action Button -->
-            <button type="button" class="btn btn-primary btn-full sidebar-new-chat-btn" id="sidebarNewChatActionBtn" data-open-modal="newChatModal" style="margin-bottom: var(--space-4); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700;">
+            <button type="button" class="btn btn-primary btn-full sidebar-new-chat-btn" id="newChatModalBtn" data-sidebar-action="sidebarNewChatActionBtn" data-open-modal="newChatModal" style="margin-bottom: var(--space-4); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                <span data-i18n="chat.newChat">+ New Conversation</span>
+                <span data-i18n="chat.newChat">+ New Chat</span>
             </button>
 
             <!-- Sidebar Navigation Sections -->
@@ -134,6 +136,17 @@
 
                 <!-- Tools Section -->
                 <div class="sidebar-section-title">Tools</div>
+
+                <button type="button" class="nav-item" id="navOpenEditDocsBtn" data-section="documents">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span>Open &amp; Edit Documents</span>
+                </button>
 
                 <button type="button" class="nav-item" id="navCreateGroupBtn" data-open-modal="createGroupModal">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -208,7 +221,7 @@
             <!-- Bottom Profile & Utilities -->
             <div class="sidebar-footer">
                 <!-- User Profile Card -->
-                <div class="sidebar-user" id="sidebarUserCard" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="User profile menu">
+                <div class="sidebar-user" id="sidebarUserCard" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="Open user menu">
                     <div class="avatar avatar-md" id="sidebarUserAvatar">
                         <span id="sidebarUserInitials">CU</span>
                         <span class="avatar-status online" id="sidebarUserPresence"></span>
@@ -237,35 +250,87 @@
                     </svg>
 
                     <!-- Profile Dropdown -->
-                    <div class="dropdown-menu sidebar-user-menu" id="sidebarUserMenu">
-                        <div class="dropdown-user-header" style="padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                            <div style="min-width: 0;">
-                                <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px;">FRANK ID</div>
-                                <div style="font-family: monospace; font-size: 13px; font-weight: 800; color: var(--accent-cyan); letter-spacing: 0.8px;" id="menuUserFrankId">------</div>
+                    <div class="dropdown-menu sidebar-user-menu" id="sidebarUserMenu" role="menu" aria-label="User Menu">
+                        <div class="dropdown-user-header" style="padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+                            <div class="avatar avatar-sm menu-user-avatar" id="sidebarMenuAvatar" style="width: 36px; height: 36px; font-size: 13px; font-weight: 700; flex-shrink: 0;">
+                                <span id="sidebarMenuInitials">CU</span>
                             </div>
-                            <button type="button" class="btn btn-secondary btn-sm btn-copy-frank-id" id="copyMenuFrankIdBtn" aria-label="Copy FRANK ID" title="Copy FRANK ID" style="padding: 4px 9px; font-size: 11px; display: inline-flex; align-items: center; gap: 5px;">
-                                <svg class="copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                                <svg class="check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none; color: var(--success, #10B981);">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                <span class="copy-btn-text">Copy</span>
-                            </button>
+                            <div style="flex: 1; min-width: 0;">
+                                <div class="menu-user-name" id="sidebarMenuUserName" style="font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Loading...</div>
+                                <div class="menu-user-status" style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                    <span class="menu-user-status-dot" id="sidebarMenuStatusDot" style="width: 6px; height: 6px; border-radius: 50%; background: var(--success, #10B981); display: inline-block;"></span>
+                                    <span class="menu-user-status-label" id="sidebarMenuStatusLabel">Online</span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 3px;">
+                                    <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); font-family: monospace;">
+                                        FRANK ID: <span id="menuUserFrankId" style="font-weight: 800; color: var(--accent-cyan); letter-spacing: 0.5px;">------</span>
+                                    </div>
+                                    <button type="button" class="btn-copy-frank-id menu-copy-btn" id="copyMenuFrankIdBtn" aria-label="Copy FRANK ID" title="Copy FRANK ID" style="padding: 2px; min-width: 20px; min-height: 20px; background: transparent; border: none; cursor: pointer; color: var(--text-muted);">
+                                        <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                        </svg>
+                                        <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none; color: var(--success, #10B981);">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <a href="profile.html" class="dropdown-item">
+
+                        <!-- Tools Section -->
+                        <button type="button" class="dropdown-item" id="sidebarDropdownNewChatBtn" data-open-modal="newChatModal" role="menuitem">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <span data-i18n="chat.newChat">New Chat</span>
+                        </button>
+                        <button type="button" class="dropdown-item" id="sidebarDropdownNewGroupBtn" data-open-modal="createGroupModal" role="menuitem">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            <span data-i18n="chat.newGroup">New Group</span>
+                        </button>
+                        <button type="button" class="dropdown-item" id="sidebarDropdownInviteBtn" data-open-modal="invitePeopleModal" role="menuitem">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                            <span data-i18n="chat.inviteViaLink">Invite Via Link</span>
+                        </button>
+                        <div class="dropdown-divider"></div>
+
+                        <!-- Navigation & Settings -->
+                        <a href="profile.html" class="dropdown-item" id="sidebarDropdownProfileLink" role="menuitem">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                            View Profile
+                            <span data-i18n="settings.profile">Profile</span>
                         </a>
-                        <a href="settings.html" class="dropdown-item">
+                        <a href="settings.html" class="dropdown-item" id="sidebarDropdownSettingsLink" role="menuitem">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                            Settings
+                            <span data-i18n="settings.title">Settings</span>
+                        </a>
+                        <a href="settings.html?tab=privacy" class="dropdown-item" id="sidebarDropdownPrivacyLink" role="menuitem">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            <span data-i18n="settings.privacy">Privacy &amp; Security</span>
+                        </a>
+                        <a href="settings.html?tab=help" class="dropdown-item" id="sidebarDropdownHelpLink" role="menuitem">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            <span data-i18n="footer.contact">Contact Support</span>
+                        </a>
+                        <a href="settings.html?tab=notifications" class="dropdown-item" id="sidebarDropdownNotificationsLink" role="menuitem">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                            <span>Notifications</span>
+                        </a>
+                        <a href="settings.html?tab=appearance" class="dropdown-item" id="sidebarDropdownAppearanceLink" role="menuitem">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 0 0 20v-20z"></path></svg>
+                            <span>Appearance</span>
                         </a>
                         <div class="dropdown-divider"></div>
-                        <button type="button" class="dropdown-item danger" id="sidebarLogoutBtn">
+
+                        <!-- Theme Toggle -->
+                        <button type="button" class="dropdown-item" id="sidebarThemeToggleBtn" role="menuitem">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor"></path></svg>
+                            <span>Theme Toggle</span>
+                        </button>
+                        <div class="dropdown-divider"></div>
+
+                        <!-- Sign Out -->
+                        <button type="button" class="dropdown-item danger" id="sidebarLogoutBtn" role="menuitem">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                            Sign Out
+                            <span data-i18n="settings.logout">Log Out</span>
                         </button>
                     </div>
                 </div>
@@ -308,16 +373,8 @@
                     </div>
                 </div>
 
-                <!-- Desktop Brand + Title (shown instead of sidebar brand) -->
-                <div class="desktop-header-brand" id="desktopHeaderBrand" style="display: flex; align-items: center; gap: 10px;">
-                    <a href="index.html" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
-                        <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="30" height="30" style="border-radius: 9px; flex-shrink: 0;">
-                        <div style="display: flex; flex-direction: column; line-height: 1.1;">
-                            <span style="font-size: 16px; font-weight: 900; color: var(--text); letter-spacing: 0.5px;">FRANK</span>
-                            <span style="font-size: 10px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.3px;">Think</span>
-                        </div>
-                    </a>
-                </div>
+                <!-- Desktop Chat List Header Title -->
+                <h1 class="conversation-header-title desktop-header-title" id="desktopHeaderTitle" data-i18n="chat.chats">Chats</h1>
 
                 <div class="conversation-header-actions">
                     <!-- Language Selector Dropdown (PRIMARY - top header only) -->
@@ -340,29 +397,41 @@
                         </div>
                     </div>
 
-                    <!-- Desktop New Conversation Button -->
-                    <button type="button" class="btn btn-primary btn-sm desktop-new-chat-btn" id="newChatModalBtn" data-open-modal="newChatModal" aria-label="New Conversation" title="New Conversation" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; white-space: nowrap; padding: 6px 12px; font-size: 13px;">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        <span data-i18n="chat.newChat">+ New</span>
-                    </button>
-
                     <!-- Desktop Profile Button with dropdown -->
                     <div class="desktop-profile-btn-wrap" id="desktopProfileBtnWrap" style="position: relative;">
-                        <button type="button" class="btn btn-ghost btn-icon desktop-profile-trigger" id="desktopProfileBtn" aria-label="Profile & Settings" title="Profile & Settings" aria-haspopup="true" aria-expanded="false">
+                        <button type="button" class="btn btn-ghost btn-icon desktop-profile-trigger" id="desktopProfileBtn" aria-label="Open user menu" title="Open user menu" aria-haspopup="true" aria-expanded="false">
                             <div class="avatar avatar-sm" id="desktopHeaderAvatar" style="width: 30px; height: 30px; font-size: 12px; font-weight: 700; cursor: pointer;">
                                 <span id="desktopHeaderInitials">?</span>
                             </div>
                         </button>
                         <!-- Desktop Profile Dropdown Menu -->
-                        <div class="dropdown-menu desktop-profile-dropdown" id="desktopProfileDropdown" style="right: 0; top: calc(100% + 8px); min-width: 220px; position: absolute; z-index: 300;">
+                        <div class="dropdown-menu desktop-profile-dropdown" id="desktopProfileDropdown" role="menu" aria-label="User Menu">
                             <!-- User Info Header -->
-                            <div style="padding: 10px 14px; border-bottom: 1px solid var(--border);">
-                                <div style="font-size: 13px; font-weight: 700; color: var(--text);" id="desktopDropdownName">Loading...</div>
-                                <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px;">FRANK ID</div>
-                                <div style="font-family: monospace; font-size: 13px; font-weight: 800; color: var(--accent-cyan); letter-spacing: 0.8px;" id="desktopDropdownFrankId">------</div>
+                            <div class="dropdown-user-header" style="padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+                                <div class="avatar avatar-sm menu-user-avatar" id="desktopDropdownAvatar" style="width: 36px; height: 36px; font-size: 13px; font-weight: 700; flex-shrink: 0;">
+                                    <span id="desktopDropdownInitials">?</span>
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="menu-user-name" id="desktopDropdownName" style="font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Loading...</div>
+                                    <div class="menu-user-status" style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                        <span class="menu-user-status-dot" id="desktopDropdownStatusDot" style="width: 6px; height: 6px; border-radius: 50%; background: var(--success, #10B981); display: inline-block;"></span>
+                                        <span class="menu-user-status-label" id="desktopDropdownStatusLabel">Online</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 3px;">
+                                        <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); font-family: monospace;">
+                                            FRANK ID: <span id="desktopDropdownFrankId" style="font-weight: 800; color: var(--accent-cyan); letter-spacing: 0.5px;">------</span>
+                                        </div>
+                                        <button type="button" class="btn-copy-frank-id menu-copy-btn" id="copyDesktopMenuFrankIdBtn" aria-label="Copy FRANK ID" title="Copy FRANK ID" style="padding: 2px; min-width: 20px; min-height: 20px; background: transparent; border: none; cursor: pointer; color: var(--text-muted);">
+                                            <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                            </svg>
+                                            <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none; color: var(--success, #10B981);">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             <!-- Tools Section -->
                             <button type="button" class="dropdown-item" id="desktopDropdownNewChatBtn" data-open-modal="newChatModal">
@@ -409,7 +478,7 @@
                             <!-- Theme Toggle -->
                             <button type="button" class="dropdown-item" id="desktopThemeToggleBtn">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor"></path></svg>
-                                <span>Theme (Sandstone)</span>
+                                <span>Theme Toggle</span>
                             </button>
                             <div class="dropdown-divider"></div>
 
@@ -567,7 +636,15 @@
                             </svg>
                         </button>
 
-                        <!-- 2. Members / Group Info Drawer Toggle -->
+                        <!-- 2. FRANK Smart Conversation Action -->
+                        <button type="button" class="btn btn-ghost btn-icon smart-trigger-btn" id="chatSmartBtn" title="FRANK Smart Conversation" aria-label="Open Smart Conversation" data-i18n-title="smart.title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2a8 8 0 0 0-8 8c0 3.31 2.01 6.16 4.9 7.37.4.17.65.56.65.99v1.64c0 .55.45 1 1 1h2.9c.55 0 1-.45 1-1v-1.64c0-.43.25-.82.65-.99A8.003 8.003 0 0 0 20 10a8 8 0 0 0-8-8z"></path>
+                                <line x1="10" y1="22" x2="14" y2="22"></line>
+                            </svg>
+                        </button>
+
+                        <!-- 3. Members / Group Info Drawer Toggle -->
                         <button type="button" class="btn btn-ghost btn-icon" id="toggleDrawerBtn" title="Group Info / Conversation Details" aria-label="Conversation Details">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -577,7 +654,7 @@
                             </svg>
                         </button>
 
-                        <!-- 3. More Menu Dropdown Toggle -->
+                        <!-- 4. More Menu Dropdown Toggle -->
                         <button type="button" class="btn btn-ghost btn-icon" id="chatMoreBtn" title="More Options" aria-label="More Options">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="1"></circle>
@@ -589,6 +666,13 @@
                         <!-- More Menu Popover / Mobile Bottom Sheet (Section 10) -->
                         <div class="chat-more-menu" id="chatMoreMenu">
                             <div class="chat-more-header" id="chatMoreHeader">Chat Options</div>
+                            <button type="button" class="chat-more-item" id="moreSmartBtn" aria-label="Open Smart Conversation">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 2a8 8 0 0 0-8 8c0 3.31 2.01 6.16 4.9 7.37.4.17.65.56.65.99v1.64c0 .55.45 1 1 1h2.9c.55 0 1-.45 1-1v-1.64c0-.43.25-.82.65-.99A8.003 8.003 0 0 0 20 10a8 8 0 0 0-8-8z"></path>
+                                    <line x1="10" y1="22" x2="14" y2="22"></line>
+                                </svg>
+                                <span data-i18n="smart.title">Smart Conversation</span>
+                            </button>
                             <button type="button" class="chat-more-item" id="moreGroupInfoBtn">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                                 <span id="moreGroupInfoText">Chat Info</span>
@@ -962,6 +1046,129 @@
                 </div>
             </div>
         </aside>
+
+        <!-- ================= 5. SMART CONVERSATIONS PANEL (320px–420px) ================= -->
+        <aside class="smart-panel" id="smartConversationModal" role="region" aria-label="Smart Conversations">
+            <div class="smart-modal-card">
+                <!-- Panel Header -->
+                <div class="smart-modal-header">
+                    <div class="smart-header-brand">
+                        <button type="button" class="btn btn-ghost btn-icon smart-mobile-back-btn" id="smartMobileBackBtn" aria-label="Back to chat">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="19" y1="12" x2="5" y2="12"></line>
+                                <polyline points="12 19 5 12 12 5"></polyline>
+                            </svg>
+                        </button>
+                        <span class="smart-sparkle-icon" aria-hidden="true">✦</span>
+                        <div class="smart-title-group">
+                            <div class="smart-title-row">
+                                <h2 class="smart-title" id="smartModalTitle" data-i18n="smart.title">Smart Conversations</h2>
+                                <span class="smart-beta-badge">BETA</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="smart-header-actions">
+                        <button type="button" class="btn btn-ghost btn-icon" id="smartHeaderRefreshBtn" title="Refresh analysis" aria-label="Refresh Smart Conversation">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-icon modal-close" id="closeSmartModalBtn" title="Close Smart Conversations" aria-label="Close Smart panel">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Real-time New Messages Alert Banner -->
+                <div class="smart-realtime-banner" id="smartRealtimeBanner" role="status">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span data-i18n="smart.newMessages">New messages available</span>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm" id="smartRefreshBannerBtn" data-i18n="smart.refreshSummary" style="font-size: 11px; padding: 4px 10px;">
+                        Refresh Analysis
+                    </button>
+                </div>
+
+                <!-- Tabs Navigation Bar (8 Tabs) -->
+                <div class="smart-tabs-bar" id="smartTabsBar" role="tablist">
+                    <button type="button" class="smart-tab-btn active" data-smart-tab="summary" role="tab" aria-selected="true" data-i18n="smart.summary">
+                        Summary
+                    </button>
+                    <button type="button" class="smart-tab-btn" data-smart-tab="missed" role="tab" aria-selected="false" data-i18n="smart.whatDidIMiss">
+                        What Did I Miss?
+                    </button>
+                    <button type="button" class="smart-tab-btn" data-smart-tab="important" role="tab" aria-selected="false" data-i18n="smart.importantMessages">
+                        Important Messages
+                    </button>
+                    <button type="button" class="smart-tab-btn" data-smart-tab="actions" role="tab" aria-selected="false" data-i18n="smart.actionItems">
+                        Action Items
+                    </button>
+                    <button type="button" class="smart-tab-btn" data-smart-tab="decisions" role="tab" aria-selected="false" data-i18n="smart.decisions">
+                        Decisions
+                    </button>
+                    <button type="button" class="smart-tab-btn" data-smart-tab="dates" role="tab" aria-selected="false" data-i18n="smart.dates">
+                        Dates
+                    </button>
+                    <button type="button" class="smart-tab-btn" data-smart-tab="files" role="tab" aria-selected="false" data-i18n="smart.files">
+                        Files
+                    </button>
+                    <button type="button" class="smart-tab-btn" data-smart-tab="insights" role="tab" aria-selected="false" data-i18n="smart.insights">
+                        Insights
+                    </button>
+                </div>
+
+                <!-- Panel Content Body -->
+                <div class="smart-modal-body" id="smartModalBody">
+                    <!-- Loading State -->
+                    <div class="smart-state-view" id="smartLoadingState" style="display:none;" aria-live="polite">
+                        <div class="smart-spinner-ring" aria-hidden="true"></div>
+                        <div class="smart-state-title" data-i18n="smart.title">Smart Conversations</div>
+                        <div class="smart-state-desc" id="smartLoadingText" data-i18n="smart.analyzing">Analyzing conversation...</div>
+                    </div>
+
+                    <!-- Error State -->
+                    <div class="smart-state-view" id="smartErrorState" style="display:none;" role="alert">
+                        <div class="smart-error-icon" aria-hidden="true">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--danger, #EF4444)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                        </div>
+                        <div class="smart-state-title" style="color: var(--danger, #EF4444);">Smart Conversation analysis unavailable.</div>
+                        <div class="smart-state-desc" id="smartErrorDesc">Unable to complete intelligence analysis. Please try again.</div>
+                        <button type="button" class="btn btn-secondary btn-sm" id="smartTryAgainBtn" data-i18n="smart.tryAgain">Try Again</button>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div class="smart-state-view" id="smartEmptyState" style="display:none;">
+                        <div class="smart-empty-icon" aria-hidden="true">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </div>
+                        <div class="smart-state-title" id="smartEmptyTitle" data-i18n="smart.insufficientContent">Not enough conversation content</div>
+                        <div class="smart-state-desc" id="smartEmptyDesc" data-i18n="smart.insufficientSub">Continue the conversation and try Smart again.</div>
+                    </div>
+
+                    <!-- Tab Panels (8 tabs) -->
+                    <div class="smart-tab-panel" id="smartSummaryPanel"></div>
+                    <div class="smart-tab-panel" id="smartMissedPanel" style="display:none;"></div>
+                    <div class="smart-tab-panel" id="smartImportantPanel" style="display:none;"></div>
+                    <div class="smart-tab-panel" id="smartActionsPanel" style="display:none;"></div>
+                    <div class="smart-tab-panel" id="smartDecisionsPanel" style="display:none;"></div>
+                    <div class="smart-tab-panel" id="smartDatesPanel" style="display:none;"></div>
+                    <div class="smart-tab-panel" id="smartFilesPanel" style="display:none;"></div>
+                    <div class="smart-tab-panel" id="smartInsightsPanel" style="display:none;"></div>
+                </div>
+            </div>
+        </aside>
     </div>
 
     <!-- ================= MODALS ================= -->
@@ -1215,6 +1422,92 @@
         </div>
     </div>
 
+    <!-- Same-Page In-Chat Office Document Workspace Container -->
+    <div id="frankDocumentWorkspace" class="frank-document-workspace" style="display: none;" role="region" aria-label="Document Workspace"></div>
+
+    <!-- Part 3: Open & Edit Documents Browser Workspace -->
+    <div id="docBrowserWorkspace" class="doc-browser-workspace" style="display:none;" role="region" aria-label="Open and Edit Documents">
+        <div class="doc-browser-header">
+            <div class="doc-browser-title-wrap">
+                <button type="button" class="workspace-btn" id="docBrowserCloseBtn" aria-label="Back to chat" title="Back to Chat">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Back</span>
+                </button>
+                <div>
+                    <h1 class="doc-browser-title">Open &amp; Edit Documents</h1>
+                    <p class="doc-browser-subtitle">Browse, create, edit and collaborate on your documents</p>
+                </div>
+            </div>
+            <div class="doc-browser-actions">
+                <input type="file" id="docBrowserUploadInput" style="display:none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.md">
+                <button type="button" class="btn btn-primary" id="docBrowserUploadBtn" style="display:inline-flex;align-items:center;gap:8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span>Upload Document</span>
+                </button>
+            </div>
+        </div>
+        <div class="doc-browser-toolbar">
+            <div class="doc-browser-search-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="docBrowserSearchInput" placeholder="Search documents..." autocomplete="off">
+            </div>
+            <div class="doc-browser-filter-pills" id="docBrowserFilterPills">
+                <button type="button" class="doc-filter-pill active" data-filter="all">All</button>
+                <button type="button" class="doc-filter-pill" data-filter="recent">Recent</button>
+                <button type="button" class="doc-filter-pill" data-filter="pdf">PDF</button>
+                <button type="button" class="doc-filter-pill" data-filter="word">Word</button>
+                <button type="button" class="doc-filter-pill" data-filter="excel">Excel</button>
+                <button type="button" class="doc-filter-pill" data-filter="pptx">PowerPoint</button>
+                <button type="button" class="doc-filter-pill" data-filter="text">Text</button>
+                <button type="button" class="doc-filter-pill" data-filter="csv">CSV</button>
+            </div>
+        </div>
+        <div class="doc-browser-grid" id="docBrowserGrid">
+            <!-- Populated dynamically via DocumentBrowserController -->
+        </div>
+    </div>
+
+    <!-- Send to Chat Modal for Part 3 -->
+    <div id="docSendToChatModal" class="doc-send-modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="docSendModalTitle">
+        <div class="doc-send-modal-card">
+            <div class="doc-send-modal-header">
+                <h2 class="doc-send-modal-title" id="docSendModalTitle">Send Document to Chat</h2>
+                <button type="button" class="btn-icon" id="closeDocSendModalBtn" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="doc-send-modal-body">
+                <div>
+                    <input type="text" class="input input-sm" id="docSendRecipientSearch" placeholder="Search contacts, groups, chats..." style="width:100%;margin-bottom:10px;">
+                    <div class="doc-send-recipient-list" id="docSendRecipientList">
+                        <!-- Recipient rows populated dynamically -->
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Add a message (optional)</label>
+                    <input type="text" class="input input-sm" id="docSendCommentInput" placeholder="Here is the latest document" style="width:100%;">
+                </div>
+            </div>
+            <div class="doc-send-modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancelDocSendBtn">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" id="confirmDocSendBtn" disabled>Send Document</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Core Scripts -->
     <script src="js/config.js"></script>
     <script src="js/i18n.js"></script>
@@ -1224,6 +1517,7 @@
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/websocket.js"></script>
+    <script src="js/office_workspace.js"></script>
     <script src="js/documents.js"></script>
     <script src="js/voice.js"></script>
     <script src="js/messages.js"></script>
@@ -1232,6 +1526,7 @@
     <script src="js/contacts.js"></script>
     <script src="js/users.js"></script>
     <script src="js/notifications.js"></script>
+    <script src="js/smart.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
 

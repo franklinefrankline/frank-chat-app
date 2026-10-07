@@ -276,7 +276,8 @@ def get_group_messages(
 
     messages = db.query(models.Message).filter(
         models.Message.group_id == group_id
-    ).order_by(models.Message.created_at.asc()).limit(100).all()
+    ).order_by(models.Message.created_at.desc()).limit(200).all()
+    messages.reverse()
 
     return messages
 

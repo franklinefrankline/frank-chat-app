@@ -36,13 +36,7 @@ class AppController {
         document.getElementById('desktopDropdownLogoutBtn')?.addEventListener('click', () => {
             auth.logout();
         });
-        document.getElementById('desktopThemeToggleBtn')?.addEventListener('click', () => {
-            if (typeof window.theme !== 'undefined' && window.theme.toggle) {
-                window.theme.toggle();
-            } else if (typeof window.dashboardThemeBtn !== 'undefined') {
-                document.getElementById('dashboardThemeBtn')?.click();
-            }
-        });
+
 
         // Desktop profile dropdown toggle
         this.setupDesktopProfileDropdown();
@@ -114,41 +108,57 @@ class AppController {
         const closeDropdown = () => {
             dropdown.classList.remove('open', 'show');
             dropdown.style.display = 'none';
+            dropdown.style.visibility = '';
             profileBtn?.setAttribute('aria-expanded', 'false');
+            if (window.ui && window.ui.activeAnchoredDropdown === dropdown) {
+                window.ui.activeAnchoredDropdown = null;
+                window.ui.activeAnchoredTrigger = null;
+            }
         };
 
-        const openDropdown = () => {
+        const openDropdown = (trigger = profileBtn) => {
+            if (window.ui && typeof window.ui.closeAllDropdowns === 'function') {
+                window.ui.closeAllDropdowns();
+            }
             dropdown.classList.add('open', 'show');
-            dropdown.style.display = 'block';
             profileBtn?.setAttribute('aria-expanded', 'true');
+            if (window.ui && typeof window.ui.positionAnchoredMenu === 'function') {
+                window.ui.positionAnchoredMenu(dropdown, trigger || profileBtn);
+                window.ui.activeAnchoredDropdown = dropdown;
+                window.ui.activeAnchoredTrigger = trigger || profileBtn;
+            } else {
+                dropdown.style.display = 'block';
+            }
         };
 
-        const toggleDropdown = (e) => {
-            e.stopPropagation();
+        const toggleDropdown = (e, trigger = profileBtn) => {
+            if (e) e.stopPropagation();
             if (dropdown.classList.contains('open') || dropdown.classList.contains('show') || dropdown.style.display === 'block') {
                 closeDropdown();
             } else {
-                openDropdown();
+                openDropdown(trigger);
             }
         };
 
-        profileBtn?.addEventListener('click', toggleDropdown);
+        profileBtn?.addEventListener('click', (e) => toggleDropdown(e, profileBtn));
         openBtn?.addEventListener('click', (e) => {
             if (window.innerWidth > 768) {
-                toggleDropdown(e);
+                toggleDropdown(e, openBtn);
             }
         });
 
-        // Auto-close on any item click
-        dropdown.querySelectorAll('a, button').forEach(el => {
+
+
+        // Auto-close on link/modal click (do not close prematurely on copy or theme toggle)
+        dropdown.querySelectorAll('a, [data-open-modal], .danger').forEach(el => {
             el.addEventListener('click', () => {
-                closeDropdown();
+                setTimeout(closeDropdown, 80);
             });
         });
 
         // Close when clicking outside
         document.addEventListener('click', (e) => {
-            if (e.target.closest('#desktopProfileBtn') || e.target.closest('#desktopProfileDropdown') || e.target.closest('#openSidebarBtn')) {
+            if (e.target.closest('#desktopProfileBtn') || e.target.closest('#desktopProfileDropdown') || (window.innerWidth > 768 && e.target.closest('#openSidebarBtn'))) {
                 return;
             }
             closeDropdown();
@@ -156,7 +166,10 @@ class AppController {
 
         // Close on Escape
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeDropdown();
+            if (e.key === 'Escape' && (dropdown.classList.contains('show') || dropdown.classList.contains('open') || dropdown.style.display === 'block')) {
+                closeDropdown();
+                profileBtn?.focus();
+            }
         });
     }
 
@@ -208,13 +221,23 @@ class AppController {
             if (copyMenuBtn) copyMenuBtn.dataset.frankId = user.frank_id;
         }
 
+        // Update sidebar menu elements
+        const sidebarMenuInitials = document.getElementById('sidebarMenuInitials');
+        const sidebarMenuUserName = document.getElementById('sidebarMenuUserName');
+        if (sidebarMenuInitials) sidebarMenuInitials.textContent = initials;
+        if (sidebarMenuUserName) sidebarMenuUserName.textContent = name;
+
         // Update desktop header profile elements
         const desktopInitialsEl = document.getElementById('desktopHeaderInitials');
+        const desktopDropdownInitials = document.getElementById('desktopDropdownInitials');
         const desktopNameEl = document.getElementById('desktopDropdownName');
         const desktopFrankIdEl = document.getElementById('desktopDropdownFrankId');
+        const copyDesktopBtn = document.getElementById('copyDesktopMenuFrankIdBtn');
         if (desktopInitialsEl) desktopInitialsEl.textContent = initials;
+        if (desktopDropdownInitials) desktopDropdownInitials.textContent = initials;
         if (desktopNameEl) desktopNameEl.textContent = name;
         if (desktopFrankIdEl && user.frank_id) desktopFrankIdEl.textContent = user.frank_id;
+        if (copyDesktopBtn && user.frank_id) copyDesktopBtn.dataset.frankId = user.frank_id;
 
         if (typeof updateSidebarPresence === 'function') {
             const isWsConnected = window.wsClient && window.wsClient.isConnected;
@@ -684,6 +707,10 @@ class AppController {
                     this.currentView = 'conversations';
                     this.currentFilter = 'archived';
                     this.renderConversationList();
+                } else if (section === 'documents') {
+                    if (window.documentBrowserController) {
+                        window.documentBrowserController.openBrowser();
+                    }
                 }
 
                 // Close mobile drawer if open

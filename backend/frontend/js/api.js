@@ -1055,6 +1055,48 @@ const api = {
         return `${baseUrl}/api/files/${fileId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
     },
 
+    getDocumentVersionViewUrl(fileId, versionId) {
+        if (!fileId || !versionId) return '';
+        const baseUrl = this.baseUrl || API_BASE;
+        const token = this.getToken();
+        return `${baseUrl}/api/files/${fileId}/versions/${versionId}/view${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    },
+
+    getDocumentVersionDownloadUrl(fileId, versionId) {
+        if (!fileId || !versionId) return '';
+        const baseUrl = this.baseUrl || API_BASE;
+        const token = this.getToken();
+        return `${baseUrl}/api/files/${fileId}/versions/${versionId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    },
+
+    async getDocumentVersions(fileId) {
+        return this.request(`/api/files/${fileId}/versions`);
+    },
+
+    async getDocumentWorkspace(fileId) {
+        return this.request(`/api/files/${fileId}/workspace`);
+    },
+
+    async saveDocumentContent(fileId, payload) {
+        return this.request(`/api/files/${fileId}/save`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+    },
+
+    async restoreDocumentVersion(fileId, versionId) {
+        return this.request(`/api/files/${fileId}/versions/${versionId}/restore`, {
+            method: 'POST'
+        });
+    },
+
+    async sendDocumentToConversation(fileId, payload = {}) {
+        return this.request(`/api/files/${fileId}/send-to-conversation`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+    },
+
     async getConversationPreferences() {
         return this.request('/api/users/conversations/preferences');
     },
@@ -1160,6 +1202,86 @@ const api = {
 
     async getAdminActivity() {
         return this.request('/api/admin/activity');
+    },
+
+    // ---------------- SMART CONVERSATION API ----------------
+    async getSmartOverview(convId, convType = 'direct') {
+        return this.request(`/api/conversations/${convId}/smart?conversation_type=${convType}`);
+    },
+
+    async generateSmartSummary(convId, convType = 'direct', forceRefresh = false, simulateFailure = false) {
+        const headers = simulateFailure ? { 'X-Simulate-AI-Failure': '1' } : {};
+        return this.request(`/api/conversations/${convId}/smart/summary`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ conversation_type: convType, force_refresh: forceRefresh })
+        });
+    },
+
+    async generateSmartMissed(convId, convType = 'direct', period = 'last_read', startDate = null, endDate = null, simulateFailure = false) {
+        const headers = simulateFailure ? { 'X-Simulate-AI-Failure': '1' } : {};
+        return this.request(`/api/conversations/${convId}/smart/missed`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ conversation_type: convType, period, start_date: startDate, end_date: endDate })
+        });
+    },
+
+    async getSmartImportant(convId, convType = 'direct', simulateFailure = false) {
+        const headers = simulateFailure ? { 'X-Simulate-AI-Failure': '1' } : {};
+        return this.request(`/api/conversations/${convId}/smart/important?conversation_type=${convType}`, {
+            headers
+        });
+    },
+
+    async getSmartActions(convId, convType = 'direct') {
+        return this.request(`/api/conversations/${convId}/smart/actions?conversation_type=${convType}`);
+    },
+
+    async createSmartAction(convId, convType = 'direct', actionText = '', sourceMessageId = null) {
+        return this.request(`/api/conversations/${convId}/smart/actions`, {
+            method: 'POST',
+            body: JSON.stringify({ conversation_type: convType, action_text: actionText, source_message_id: sourceMessageId })
+        });
+    },
+
+    async updateSmartAction(convId, actionId, updateData = {}) {
+        return this.request(`/api/conversations/${convId}/smart/actions/${actionId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(updateData)
+        });
+    },
+
+    async deleteSmartAction(convId, actionId) {
+        return this.request(`/api/conversations/${convId}/smart/actions/${actionId}`, {
+            method: 'DELETE'
+        });
+    },
+
+    async getSmartDecisions(convId, convType = 'direct', simulateFailure = false) {
+        const headers = simulateFailure ? { 'X-Simulate-AI-Failure': '1' } : {};
+        return this.request(`/api/conversations/${convId}/smart/decisions?conversation_type=${convType}`, {
+            headers
+        });
+    },
+
+    async getSmartDates(convId, convType = 'direct', simulateFailure = false) {
+        const headers = simulateFailure ? { 'X-Simulate-AI-Failure': '1' } : {};
+        return this.request(`/api/conversations/${convId}/smart/dates?conversation_type=${convType}`, {
+            headers
+        });
+    },
+
+    async getSmartFiles(convId, convType = 'direct') {
+        return this.request(`/api/conversations/${convId}/smart/files?conversation_type=${convType}`);
+    },
+
+    async getSmartInsights(convId, convType = 'direct') {
+        return this.request(`/api/conversations/${convId}/smart/insights?conversation_type=${convType}`);
+    },
+
+    async getFullSmart(convId, convType = 'direct', forceRefresh = false) {
+        return this.request(`/api/conversations/${convId}/smart?conversation_type=${convType}&force_refresh=${forceRefresh ? 'true' : 'false'}`);
     },
 
     // Logout

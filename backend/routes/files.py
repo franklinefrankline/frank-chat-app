@@ -3,6 +3,7 @@ import uuid
 import shutil
 import base64
 import urllib.parse
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
@@ -317,11 +318,29 @@ def _process_and_save_file(
         mime_type=mime_type,
         file_type=file_type,
         duration=duration,
-        file_data=b64_data
+        file_data=b64_data,
+        current_version_number=1
     )
     db.add(doc)
     db.commit()
     db.refresh(doc)
+
+    # Create initial DocumentVersion (v1)
+    try:
+        v1 = models.DocumentVersion(
+            document_id=doc.id,
+            version_number=1,
+            stored_filename=unique_name,
+            file_size=file_size,
+            file_data=b64_data,
+            created_by_id=current_user.id,
+            change_summary="Initial upload"
+        )
+        db.add(v1)
+        db.commit()
+    except Exception as e:
+        print(f"Initial DocumentVersion note: {e}")
+        db.rollback()
 
     # Broadcast file count update to admin connections
     try:
@@ -496,6 +515,57 @@ async def upload_chunk(
     return jsonable_encoder(doc)
 
 
+@router.get("", response_model=List[schemas.DocumentResponse])
+@router.get("/documents", response_model=List[schemas.DocumentResponse])
+def get_user_documents(
+    filter_type: Optional[str] = Query("all", description="all, recent, pdf, word, excel, presentation, text, csv"),
+    q: Optional[str] = Query(None, description="Search query"),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns real user documents for the Document Browser.
+    Retrieves documents owned by current user, sent in direct conversations, or in groups.
+    """
+    group_ids = [m.group_id for m in db.query(models.GroupMember.group_id).filter(models.GroupMember.user_id == current_user.id).all()]
+    
+    conv_ids = [c.id for c in db.query(models.Conversation.id).filter(
+        or_(models.Conversation.user_a_id == current_user.id, models.Conversation.user_b_id == current_user.id)
+    ).all()]
+
+    filter_conditions = [
+        models.Document.uploader_id == current_user.id,
+        models.Document.conversation_id == current_user.id
+    ]
+    if conv_ids:
+        filter_conditions.append(models.Document.conversation_id.in_(conv_ids))
+    if group_ids:
+        filter_conditions.append(models.Document.group_id.in_(group_ids))
+
+    query = db.query(models.Document).filter(or_(*filter_conditions))
+
+    # Apply type filter
+    ft = (filter_type or "all").lower().strip()
+    if ft == "pdf":
+        query = query.filter(models.Document.file_type == "pdf")
+    elif ft in ("word", "doc", "docx"):
+        query = query.filter(models.Document.file_type == "word")
+    elif ft in ("excel", "xls", "xlsx"):
+        query = query.filter(models.Document.file_type == "excel")
+    elif ft in ("presentation", "ppt", "pptx", "powerpoint"):
+        query = query.filter(models.Document.file_type.in_(["presentation", "pptx"]))
+    elif ft in ("text", "txt", "md"):
+        query = query.filter(models.Document.file_type == "text")
+    elif ft == "csv":
+        query = query.filter(models.Document.file_type == "csv")
+
+    # Apply search query
+    if q and q.strip():
+        search_str = f"%{q.strip()}%"
+        query = query.filter(models.Document.original_filename.ilike(search_str))
+
+    docs = query.order_by(models.Document.created_at.desc()).limit(100).all()
+    return docs
 
 
 @router.get("/{file_id}", response_model=schemas.DocumentResponse)
@@ -658,3 +728,534 @@ def get_group_documents(
         models.Document.group_id == group_id
     ).order_by(models.Document.created_at.desc()).all()
     return docs
+
+
+# ---------------- OFFICE DOCUMENT WORKSPACE & VERSIONING ----------------
+
+@router.get("/{file_id}/versions", response_model=List[schemas.DocumentVersionResponse])
+def get_document_versions(
+    file_id: int,
+    current_user: models.User = Depends(get_user_from_request_or_token),
+    db: Session = Depends(get_db)
+):
+    doc = db.query(models.Document).filter(models.Document.id == file_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    if not verify_document_access(doc, current_user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this document.")
+
+    versions = db.query(models.DocumentVersion).filter(
+        models.DocumentVersion.document_id == file_id
+    ).order_by(models.DocumentVersion.version_number.desc()).all()
+
+    # If no versions exist yet, auto-seed version 1 from current document state
+    if not versions:
+        v1 = models.DocumentVersion(
+            document_id=doc.id,
+            version_number=1,
+            stored_filename=doc.stored_filename,
+            file_size=doc.file_size,
+            file_data=doc.file_data,
+            created_by_id=doc.uploader_id,
+            change_summary="Original uploaded file",
+            created_at=doc.created_at
+        )
+        db.add(v1)
+        db.commit()
+        db.refresh(v1)
+        versions = [v1]
+
+    # Populate author names
+    user_ids = {v.created_by_id for v in versions}
+    users_map = {u.id: (u.full_name or u.username) for u in db.query(models.User).filter(models.User.id.in_(user_ids)).all()}
+    
+    result = []
+    for v in versions:
+        vr = schemas.DocumentVersionResponse(
+            id=v.id,
+            document_id=v.document_id,
+            version_number=v.version_number,
+            file_size=v.file_size,
+            created_by_id=v.created_by_id,
+            created_by_name=users_map.get(v.created_by_id, "User"),
+            change_summary=v.change_summary or f"Version {v.version_number}",
+            created_at=v.created_at
+        )
+        result.append(vr)
+    return result
+
+
+@router.get("/{file_id}/versions/{version_id}/view")
+def view_document_version(
+    file_id: int,
+    version_id: int,
+    current_user: models.User = Depends(get_user_from_request_or_token),
+    db: Session = Depends(get_db)
+):
+    doc = db.query(models.Document).filter(models.Document.id == file_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    if not verify_document_access(doc, current_user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this document.")
+
+    version = db.query(models.DocumentVersion).filter(
+        models.DocumentVersion.id == version_id,
+        models.DocumentVersion.document_id == file_id
+    ).first()
+    if not version:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document version not found.")
+
+    file_path = UPLOAD_DIR / version.stored_filename
+    if not file_path.exists() and getattr(version, "file_data", None):
+        try:
+            import base64
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, "wb") as f:
+                f.write(base64.b64decode(version.file_data))
+        except Exception:
+            pass
+
+    if not file_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version file not found on disk.")
+
+    raw_mime = doc.mime_type or "application/octet-stream"
+    clean_mime = raw_mime.split(";")[0].strip()
+    encoded_filename = urllib.parse.quote(doc.original_filename)
+    headers = {
+        "Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}",
+        "X-Content-Type-Options": "nosniff",
+        "Accept-Ranges": "bytes"
+    }
+    return FileResponse(path=str(file_path), media_type=clean_mime, headers=headers)
+
+
+@router.get("/{file_id}/versions/{version_id}/download")
+def download_document_version(
+    file_id: int,
+    version_id: int,
+    current_user: models.User = Depends(get_user_from_request_or_token),
+    db: Session = Depends(get_db)
+):
+    doc = db.query(models.Document).filter(models.Document.id == file_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    if not verify_document_access(doc, current_user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this document.")
+
+    version = db.query(models.DocumentVersion).filter(
+        models.DocumentVersion.id == version_id,
+        models.DocumentVersion.document_id == file_id
+    ).first()
+    if not version:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document version not found.")
+
+    file_path = UPLOAD_DIR / version.stored_filename
+    if not file_path.exists() and getattr(version, "file_data", None):
+        try:
+            import base64
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, "wb") as f:
+                f.write(base64.b64decode(version.file_data))
+        except Exception:
+            pass
+
+    if not file_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version file not found on disk.")
+
+    encoded_filename = urllib.parse.quote(doc.original_filename)
+    headers = {
+        "Content-Disposition": f"attachment; filename=\"{doc.original_filename}\"; filename*=UTF-8''{encoded_filename}",
+        "X-Content-Type-Options": "nosniff"
+    }
+    return FileResponse(path=str(file_path), media_type="application/octet-stream", headers=headers, filename=doc.original_filename)
+
+
+@router.post("/{file_id}/versions/{version_id}/restore", response_model=schemas.DocumentVersionResponse)
+def restore_document_version(
+    file_id: int,
+    version_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    doc = db.query(models.Document).filter(models.Document.id == file_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    if not verify_document_access(doc, current_user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this document.")
+
+    target_v = db.query(models.DocumentVersion).filter(
+        models.DocumentVersion.id == version_id,
+        models.DocumentVersion.document_id == file_id
+    ).first()
+    if not target_v:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version to restore not found.")
+
+    latest_v = db.query(models.DocumentVersion).filter(
+        models.DocumentVersion.document_id == file_id
+    ).order_by(models.DocumentVersion.version_number.desc()).first()
+    next_num = (latest_v.version_number + 1) if latest_v else 2
+
+    # Duplicate stored file so version history remains immutable
+    ext = Path(doc.original_filename).suffix.lower()
+    new_unique = f"{uuid.uuid4().hex}{ext}"
+    src_path = UPLOAD_DIR / target_v.stored_filename
+    dst_path = UPLOAD_DIR / new_unique
+
+    if src_path.exists():
+        shutil.copy2(src_path, dst_path)
+    elif target_v.file_data:
+        import base64
+        dst_path.write_bytes(base64.b64decode(target_v.file_data))
+
+    new_v = models.DocumentVersion(
+        document_id=doc.id,
+        version_number=next_num,
+        stored_filename=new_unique,
+        file_size=target_v.file_size,
+        file_data=target_v.file_data,
+        created_by_id=current_user.id,
+        change_summary=f"Restored from version {target_v.version_number}",
+        created_at=datetime.now(timezone.utc)
+    )
+    db.add(new_v)
+
+    # Update document current pointer
+    doc.stored_filename = new_unique
+    doc.file_size = target_v.file_size
+    doc.file_data = target_v.file_data
+    doc.current_version_number = next_num
+
+    db.commit()
+    db.refresh(new_v)
+
+    return schemas.DocumentVersionResponse(
+        id=new_v.id,
+        document_id=new_v.document_id,
+        version_number=new_v.version_number,
+        file_size=new_v.file_size,
+        created_by_id=new_v.created_by_id,
+        created_by_name=current_user.full_name or current_user.username,
+        change_summary=new_v.change_summary,
+        created_at=new_v.created_at
+    )
+
+
+@router.get("/{file_id}/workspace")
+def get_document_workspace_data(
+    file_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from services.office_service import office_service
+
+    doc = db.query(models.Document).filter(models.Document.id == file_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    if not verify_document_access(doc, current_user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this document.")
+
+    file_path = UPLOAD_DIR / doc.stored_filename
+    file_bytes = b""
+    if file_path.exists():
+        file_bytes = file_path.read_bytes()
+    elif getattr(doc, "file_data", None):
+        import base64
+        try:
+            file_bytes = base64.b64decode(doc.file_data)
+        except Exception:
+            pass
+
+    category = office_service.get_category_from_filename(doc.original_filename)
+    parsed_payload = {}
+
+    if category == "word":
+        parsed_payload = office_service.parse_docx(file_bytes)
+    elif category == "excel":
+        parsed_payload = office_service.parse_xlsx(file_bytes)
+    elif category == "pptx":
+        parsed_payload = office_service.parse_pptx(file_bytes)
+    elif category == "csv":
+        parsed_payload = office_service.parse_csv(file_bytes)
+    elif category == "text":
+        parsed_payload = {"text": file_bytes.decode("utf-8", errors="replace")}
+    elif category == "zip":
+        parsed_payload = office_service.inspect_zip(file_bytes)
+
+    latest_v = db.query(models.DocumentVersion).filter(
+        models.DocumentVersion.document_id == file_id
+    ).order_by(models.DocumentVersion.version_number.desc()).first()
+
+    return {
+        "document": {
+            "id": doc.id,
+            "original_filename": doc.original_filename,
+            "file_size": doc.file_size,
+            "mime_type": doc.mime_type,
+            "file_type": doc.file_type,
+            "category": category,
+            "current_version_number": latest_v.version_number if latest_v else (doc.current_version_number or 1),
+            "uploader_id": doc.uploader_id,
+            "conversation_id": doc.conversation_id,
+            "group_id": doc.group_id,
+            "created_at": schemas.format_iso_utc(doc.created_at)
+        },
+        "parsed": parsed_payload
+    }
+
+
+@router.post("/{file_id}/save")
+def save_document_content(
+    file_id: int,
+    req: schemas.DocumentSaveRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from services.office_service import office_service
+
+    doc = db.query(models.Document).filter(models.Document.id == file_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    if not verify_document_access(doc, current_user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this document.")
+
+    # Ensure baseline v1 exists
+    latest_v = db.query(models.DocumentVersion).filter(
+        models.DocumentVersion.document_id == file_id
+    ).order_by(models.DocumentVersion.version_number.desc()).first()
+
+    if not latest_v:
+        latest_v = models.DocumentVersion(
+            document_id=doc.id,
+            version_number=1,
+            stored_filename=doc.stored_filename,
+            file_size=doc.file_size,
+            file_data=doc.file_data,
+            created_by_id=doc.uploader_id,
+            change_summary="Original uploaded file",
+            created_at=doc.created_at
+        )
+        db.add(latest_v)
+        db.commit()
+        db.refresh(latest_v)
+
+    # Conflict check: if client specified base_version_number and server has a newer version
+    if req.base_version_number is not None and latest_v.version_number > req.base_version_number:
+        author = db.query(models.User).filter(models.User.id == latest_v.created_by_id).first()
+        author_name = (author.full_name or author.username) if author else "Another user"
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": f"This document has been updated by {author_name} (version {latest_v.version_number}).",
+                "current_version": latest_v.version_number,
+                "base_version": req.base_version_number
+            }
+        )
+
+    category = office_service.get_category_from_filename(doc.original_filename)
+    new_bytes = None
+
+    if req.structured_data:
+        if category == "word" or "html" in req.structured_data:
+            new_bytes = office_service.build_docx(req.structured_data.get("html", req.content or ""))
+        elif category == "excel" or "sheets" in req.structured_data:
+            new_bytes = office_service.build_xlsx(req.structured_data.get("sheets", []))
+        elif category == "pptx" or "slides" in req.structured_data:
+            new_bytes = office_service.build_pptx(req.structured_data.get("slides", []))
+        elif category == "csv" or "rows" in req.structured_data:
+            new_bytes = office_service.build_csv(req.structured_data.get("rows", []))
+    elif req.content is not None:
+        if req.content.startswith("data:") and ";base64," in req.content:
+            b64_data = req.content.split(";base64,")[1]
+            new_bytes = base64.b64decode(b64_data)
+        elif category == "word":
+            new_bytes = office_service.build_docx(req.content)
+        elif category == "csv":
+            new_bytes = office_service.build_csv(req.content)
+        elif category in ["text", "json", "md"]:
+            new_bytes = req.content.encode("utf-8")
+        else:
+            try:
+                new_bytes = base64.b64decode(req.content)
+            except Exception:
+                new_bytes = req.content.encode("utf-8")
+
+    if new_bytes is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No valid content or structured data provided.")
+
+    ext = Path(doc.original_filename).suffix.lower()
+    new_unique = f"{uuid.uuid4().hex}{ext}"
+    new_path = UPLOAD_DIR / new_unique
+
+    try:
+        new_path.parent.mkdir(parents=True, exist_ok=True)
+        new_path.write_bytes(new_bytes)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to write file: {e}")
+
+    # Cloud S3/R2 optional mirror
+    if s3_client and STORAGE_BUCKET:
+        try:
+            s3_client.put_object(
+                Bucket=STORAGE_BUCKET,
+                Key=new_unique,
+                Body=new_bytes,
+                ContentType=doc.mime_type
+            )
+        except Exception:
+            pass
+
+    new_size = len(new_bytes)
+    new_b64 = None
+    if new_size <= 100 * 1024 * 1024:
+        try:
+            new_b64 = base64.b64encode(new_bytes).decode("ascii")
+        except Exception:
+            pass
+
+    next_num = latest_v.version_number + 1
+    new_version = models.DocumentVersion(
+        document_id=doc.id,
+        version_number=next_num,
+        stored_filename=new_unique,
+        file_size=new_size,
+        file_data=new_b64,
+        created_by_id=current_user.id,
+        change_summary=req.change_summary or f"Edited by {current_user.full_name or current_user.username}",
+        created_at=datetime.now(timezone.utc)
+    )
+    db.add(new_version)
+
+    # Update document record
+    doc.stored_filename = new_unique
+    doc.file_size = new_size
+    doc.file_data = new_b64
+    doc.current_version_number = next_num
+    db.commit()
+    db.refresh(new_version)
+
+    return {
+        "status": "saved",
+        "version": {
+            "id": new_version.id,
+            "document_id": doc.id,
+            "version_number": next_num,
+            "file_size": new_size,
+            "created_by_id": current_user.id,
+            "created_by_name": current_user.full_name or current_user.username,
+            "change_summary": new_version.change_summary,
+            "created_at": schemas.format_iso_utc(new_version.created_at)
+        },
+        "document": {
+            "id": doc.id,
+            "original_filename": doc.original_filename,
+            "current_version_number": next_num,
+            "file_size": new_size
+        }
+    }
+
+
+@router.post("/{file_id}/send-to-conversation")
+async def send_updated_file_to_conversation(
+    file_id: int,
+    req: schemas.SendUpdatedFileRequest = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from websocket.chat import manager
+
+    doc = db.query(models.Document).filter(models.Document.id == file_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    if not verify_document_access(doc, current_user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this document.")
+
+    target_recipient_id = req.recipient_id if req and req.recipient_id else None
+    target_group_id = req.group_id if req and req.group_id else None
+
+    if req and req.conversation_id and not target_recipient_id and not target_group_id:
+        grp = db.query(models.Group).filter(models.Group.id == req.conversation_id).first()
+        if grp:
+            target_group_id = grp.id
+        else:
+            conv = db.query(models.Conversation).filter(models.Conversation.id == req.conversation_id).first()
+            if conv:
+                target_recipient_id = conv.user_b_id if conv.user_a_id == current_user.id else conv.user_a_id
+            else:
+                target_recipient_id = req.conversation_id
+
+    if not target_recipient_id and not target_group_id:
+        target_recipient_id = doc.conversation_id or current_user.id
+
+    comment = req.comment if req and req.comment else f"Updated: {doc.original_filename} (v{doc.current_version_number or 1})"
+
+    msg = models.Message(
+        sender_id=current_user.id,
+        recipient_id=target_recipient_id,
+        group_id=target_group_id,
+        content=comment,
+        message_type="document" if doc.file_type in ["word", "excel", "pptx", "pdf", "text", "csv", "archive"] else doc.file_type,
+        file_id=doc.id,
+        status="sent",
+        created_at=datetime.now(timezone.utc)
+    )
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+
+    doc_data = {
+        "id": doc.id,
+        "original_filename": doc.original_filename,
+        "file_size": doc.file_size,
+        "mime_type": doc.mime_type,
+        "file_type": doc.file_type,
+        "current_version_number": doc.current_version_number,
+        "created_at": schemas.format_iso_utc(doc.created_at)
+    }
+
+    # Broadcast via WebSocket so recipient receives it immediately without page refresh
+    msg_payload = {
+        "type": "message",
+        "message": {
+            "id": msg.id,
+            "message_id": msg.id,
+            "sender_id": msg.sender_id,
+            "recipient_id": msg.recipient_id,
+            "group_id": msg.group_id,
+            "content": msg.content,
+            "message_type": msg.message_type,
+            "file_id": msg.file_id,
+            "document": doc_data,
+            "status": msg.status,
+            "created_at": schemas.format_iso_utc(msg.created_at),
+            "sender": {
+                "id": current_user.id,
+                "username": current_user.username,
+                "full_name": current_user.full_name,
+                "avatar_url": current_user.avatar_url
+            },
+            "reactions": []
+        }
+    }
+
+    try:
+        if msg.group_id:
+            await manager.broadcast_to_group(msg.group_id, msg_payload, sender_id=current_user.id)
+        elif msg.recipient_id:
+            await manager.send_to_user(msg.recipient_id, msg_payload)
+            if msg.recipient_id != current_user.id:
+                await manager.send_to_user(current_user.id, msg_payload)
+    except Exception as e:
+        print(f"WebSocket broadcast error: {e}")
+
+    return {
+        "status": "sent",
+        "message_id": msg.id,
+        "document": doc_data
+    }

@@ -22,14 +22,15 @@ def get_direct_messages(
     if not partner:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    # Fetch messages between current_user and partner
+    # Fetch messages between current_user and partner (most recent 200 in chronological order)
     messages = db.query(models.Message).filter(
         models.Message.group_id.is_(None),
         or_(
             and_(models.Message.sender_id == current_user.id, models.Message.recipient_id == partner_id),
             and_(models.Message.sender_id == partner_id, models.Message.recipient_id == current_user.id)
         )
-    ).order_by(models.Message.created_at.asc()).limit(100).all()
+    ).order_by(models.Message.created_at.desc()).limit(200).all()
+    messages.reverse()
 
     # Automatically mark incoming messages as read
     for msg in messages:
@@ -46,6 +47,13 @@ async def send_message(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    clean_content = (msg_in.content or "").strip()
+    if not clean_content and not msg_in.file_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid message."
+        )
+
     if not msg_in.recipient_id and not msg_in.group_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -55,7 +63,7 @@ async def send_message(
     if msg_in.recipient_id:
         partner = db.query(models.User).filter(models.User.id == msg_in.recipient_id).first()
         if not partner:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipient not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
         
         # Enforce canonical single conversation guarantee
         ua = min(current_user.id, msg_in.recipient_id)
@@ -70,27 +78,37 @@ async def send_message(
             db.commit()
 
     if msg_in.group_id:
+        group = db.query(models.Group).filter(models.Group.id == msg_in.group_id).first()
+        if not group:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
         membership = db.query(models.GroupMember).filter(
             models.GroupMember.group_id == msg_in.group_id,
             models.GroupMember.user_id == current_user.id
         ).first()
         if not membership:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to send messages in this conversation.")
 
     msg = models.Message(
         sender_id=current_user.id,
         recipient_id=msg_in.recipient_id,
         group_id=msg_in.group_id,
-        content=msg_in.content.strip(),
+        content=clean_content or (f"Shared a file: {msg_in.file_id}" if msg_in.file_id else ""),
         message_type=msg_in.message_type or "text",
         file_id=msg_in.file_id,
         reply_to_id=msg_in.reply_to_id,
         status="sent",
         created_at=datetime.now(timezone.utc)
     )
-    db.add(msg)
-    db.commit()
-    db.refresh(msg)
+    try:
+        db.add(msg)
+        db.commit()
+        db.refresh(msg)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to send the message. Please try again."
+        )
 
     doc_data = None
     if msg_in.file_id:
@@ -232,6 +250,11 @@ async def delete_message(
     recip_id = msg.recipient_id
     grp_id = msg.group_id
     del_msg_id = msg.id
+
+    # Safely clear or nullify smart references to this deleted message (Section 35)
+    db.query(models.SmartActionItem).filter(models.SmartActionItem.source_message_id == del_msg_id).update({"source_message_id": None})
+    db.query(models.SmartDecision).filter(models.SmartDecision.source_message_id == del_msg_id).update({"source_message_id": None})
+    db.query(models.SmartDate).filter(models.SmartDate.source_message_id == del_msg_id).update({"source_message_id": None})
 
     db.delete(msg)
     db.commit()

@@ -34,14 +34,16 @@ async function testFrankIdCopyButton() {
         // Step 1: Register test user
         console.log(`\n[STEP 1] Registering user: ${regUser}...`);
         await page.goto('http://127.0.0.1:8000/register.html');
-        await page.waitForSelector('#regUsername', { timeout: 10000 });
+        await page.waitForSelector('#regFullName', { timeout: 10000 });
         await page.fill('#regFullName', 'Copy Test User');
-        await page.fill('#regUsername', regUser);
+        if (await page.$('#regUsername')) {
+            await page.fill('#regUsername', regUser);
+        }
         await page.fill('#regEmail', regEmail);
         await page.fill('#regPassword', regPass);
         await page.fill('#regConfirmPassword', regPass);
         await page.check('#regTerms');
-        await page.click('#registerSubmitBtn');
+        await page.click('button[type="submit"]');
 
         await page.waitForURL('**/dashboard.html', { timeout: 10000 });
         console.log('  -> Registered and on dashboard');

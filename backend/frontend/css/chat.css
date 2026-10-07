@@ -107,10 +107,126 @@
     gap: 4px;
 }
 
-.sidebar-user-menu {
-    top: calc(100% + 6px);
-    left: 0;
-    right: 0;
+/* User & Profile Dropdown Styling & Anchoring */
+.sidebar-user-menu,
+.desktop-profile-dropdown {
+    position: fixed;
+    z-index: 350;
+    width: 268px;
+    max-width: calc(100vw - 16px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg, 12px);
+    box-shadow: var(--shadow-lg, 0 10px 25px rgba(0, 0, 0, 0.25));
+    padding: 6px;
+    display: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    animation: fadeIn 0.15s ease;
+    box-sizing: border-box;
+}
+
+.sidebar-user-menu.show,
+.desktop-profile-dropdown.show,
+.sidebar-user-menu.open,
+.desktop-profile-dropdown.open {
+    display: block;
+}
+
+.sidebar-user-menu .dropdown-user-header,
+.desktop-profile-dropdown .dropdown-user-header {
+    background: var(--surface-elevated, var(--surface));
+    border-bottom: 1px solid var(--border);
+    border-radius: 8px 8px 0 0;
+    margin: -6px -6px 6px -6px;
+    padding: 12px 14px;
+}
+
+.sidebar-user-menu .dropdown-item,
+.desktop-profile-dropdown .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm, 6px);
+    transition: background 0.12s ease, color 0.12s ease;
+    text-align: left;
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    background: transparent;
+    box-sizing: border-box;
+    white-space: nowrap;
+}
+
+.sidebar-user-menu .dropdown-item svg,
+.desktop-profile-dropdown .dropdown-item svg {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    transition: color 0.12s ease;
+}
+
+.sidebar-user-menu .dropdown-item:hover,
+.desktop-profile-dropdown .dropdown-item:hover {
+    background: var(--surface-elevated);
+    color: var(--text);
+}
+
+.sidebar-user-menu .dropdown-item:hover svg,
+.desktop-profile-dropdown .dropdown-item:hover svg {
+    color: var(--text);
+}
+
+.sidebar-user-menu .dropdown-item:focus-visible,
+.desktop-profile-dropdown .dropdown-item:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+    background: var(--surface-elevated);
+    color: var(--text);
+}
+
+.sidebar-user-menu .dropdown-item.danger,
+.desktop-profile-dropdown .dropdown-item.danger {
+    color: var(--danger, #EF4444);
+}
+
+.sidebar-user-menu .dropdown-item.danger svg,
+.desktop-profile-dropdown .dropdown-item.danger svg {
+    color: var(--danger, #EF4444);
+}
+
+.sidebar-user-menu .dropdown-item.danger:hover,
+.desktop-profile-dropdown .dropdown-item.danger:hover {
+    background: var(--danger-soft, rgba(239, 68, 68, 0.1));
+    color: var(--danger, #EF4444);
+}
+
+.sidebar-user-menu .dropdown-divider,
+.desktop-profile-dropdown .dropdown-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+}
+
+@media (max-width: 480px) {
+    .sidebar-user-menu,
+    .desktop-profile-dropdown {
+        width: calc(100vw - 16px);
+        max-width: 360px;
+        padding: 8px;
+    }
+
+    .sidebar-user-menu .dropdown-item,
+    .desktop-profile-dropdown .dropdown-item {
+        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
 }
 
 /* Sidebar Navigation Tabs */
@@ -196,11 +312,9 @@
     gap: 8px;
 }
 
-/* Desktop: show brand, hide h1 title */
+/* Desktop: hide duplicate brand */
 .desktop-header-brand {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
+    display: none !important;
 }
 
 .conversation-header-actions {
