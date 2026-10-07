@@ -36,6 +36,7 @@ class User(Base):
     sent_messages = relationship("Message", back_populates="sender", foreign_keys="Message.sender_id")
     received_messages = relationship("Message", back_populates="recipient", foreign_keys="Message.recipient_id")
     group_memberships = relationship("GroupMember", back_populates="user")
+    conversation_memberships = relationship("ConversationMember", back_populates="user", cascade="all, delete-orphan")
     reactions = relationship("Reaction", back_populates="user")
     uploaded_documents = relationship("Document", back_populates="uploader")
     audit_logs = relationship("AuditLog", back_populates="admin", foreign_keys="AuditLog.admin_id")
@@ -159,6 +160,23 @@ class Conversation(Base):
 
     user_a = relationship("User", foreign_keys=[user_a_id])
     user_b = relationship("User", foreign_keys=[user_b_id])
+    members = relationship("ConversationMember", back_populates="conversation", cascade="all, delete-orphan")
+
+
+class ConversationMember(Base):
+    __tablename__ = "conversation_members"
+    __table_args__ = (
+        UniqueConstraint("conversation_id", "user_id", name="uq_conv_member"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String(20), default="member")
+    joined_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+    conversation = relationship("Conversation", back_populates="members")
+    user = relationship("User", back_populates="conversation_memberships")
 
 
 class AuditLog(Base):

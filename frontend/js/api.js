@@ -585,25 +585,46 @@ const api = {
             try {
                 res = await fetch(url, config);
             } catch (networkErr) {
-                // If local server is not running, seamlessly fallback to live Vercel cloud backend
-                if (url.includes('localhost:8000') || url.includes('127.0.0.1:8000')) {
+                // If local server or render server is not reachable, seamlessly retry with live cloud endpoint
+                const isRender = url.includes('onrender.com');
+                const isLocalServer = url.includes('localhost:8000') || url.includes('127.0.0.1:8000');
+                if (isLocalServer || isRender) {
                     const cloudBase = (window.FRANK_CONFIG && window.FRANK_CONFIG.CLOUD_API) || 'https://frank-chat-app.vercel.app';
-                    const cloudUrl = `${cloudBase}${endpoint}`;
-                    console.info(`[FRANK API] Local server unreachable. Retrying with live cloud backend: ${cloudUrl}`);
-                    try {
-                        res = await fetch(cloudUrl, config);
-                    } catch (cloudErr) {
-                        if (window.location.protocol === 'file:') {
-                            console.warn(`[FRANK API] Live cloud also unreachable. Falling back to offline DB for ${endpoint}`);
-                            return handleMockRequest(endpoint, options);
+                    if (!url.startsWith(cloudBase)) {
+                        const cloudUrl = `${cloudBase}${endpoint}`;
+                        console.info(`[FRANK API] Primary server unreachable. Retrying with live cloud backend: ${cloudUrl}`);
+                        try {
+                            res = await fetch(cloudUrl, config);
+                        } catch (cloudErr) {
+                            if (window.location.protocol === 'file:') {
+                                return handleMockRequest(endpoint, options);
+                            }
+                            const err = new Error('Unable to connect to the server.');
+                            err.isNetwork = true;
+                            throw err;
                         }
-                        throw new Error(`Unable to connect to FRANK server at ${url}. Please verify the backend is running.`);
+                    } else {
+                        const err = new Error('Unable to connect to the server.');
+                        err.isNetwork = true;
+                        throw err;
+                    }
+                } else if (url.includes('vercel.app')) {
+                    const renderBase = 'https://frank-chat-app.onrender.com';
+                    const renderUrl = `${renderBase}${endpoint}`;
+                    try {
+                        res = await fetch(renderUrl, config);
+                    } catch (renderErr) {
+                        const err = new Error('Unable to connect to the server.');
+                        err.isNetwork = true;
+                        throw err;
                     }
                 } else if (window.location.protocol === 'file:') {
                     console.warn(`[FRANK API] Network fetch error for ${url}. Falling back to offline DB for ${endpoint}`);
                     return handleMockRequest(endpoint, options);
                 } else {
-                    throw networkErr;
+                    const err = networkErr;
+                    err.isNetwork = true;
+                    throw err;
                 }
             }
 
@@ -729,7 +750,29 @@ const api = {
     },
 
     async getConversations() {
-        return this.request('/api/users/conversations');
+        try {
+            return await this.request('/api/conversations');
+        } catch (err) {
+            if (err.status === 404) {
+                return await this.request('/api/users/conversations');
+            }
+            throw err;
+        }
+    },
+
+    async getConversation(conversationId) {
+        return this.request(`/api/conversations/${conversationId}`);
+    },
+
+    async getConversationMessages(conversationId) {
+        try {
+            return await this.request(`/api/conversations/${conversationId}/messages`);
+        } catch (err) {
+            if (err.status === 404) {
+                return await this.request(`/api/messages/direct/${conversationId}`);
+            }
+            throw err;
+        }
     },
 
     async updateProfile(profileData) {
@@ -741,7 +784,14 @@ const api = {
 
     // Messages endpoints
     async getDirectMessages(partnerId) {
-        return this.request(`/api/messages/direct/${partnerId}`);
+        try {
+            return await this.request(`/api/messages/direct/${partnerId}`);
+        } catch (err) {
+            if (err.status === 404) {
+                return await this.request(`/api/conversations/${partnerId}/messages`);
+            }
+            throw err;
+        }
     },
 
     async sendMessage(payload) {

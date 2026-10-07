@@ -255,6 +255,28 @@ class ChatController {
         }
     }
 
+    getControlledErrorMessage(err) {
+        if (!err) return 'Unable to load messages. Please try again.';
+        const status = err.status || (err.response && err.response.status);
+        if (status === 401) {
+            return 'Session expired. Please sign in again.';
+        }
+        if (status === 403) {
+            return 'You do not have access to this conversation.';
+        }
+        if (status === 404) {
+            return 'Conversation not found.';
+        }
+        if (status === 500) {
+            return 'Unable to load messages. Please try again.';
+        }
+        const msg = (err.message || '').toLowerCase();
+        if (msg.includes('network') || msg.includes('fetch') || msg.includes('connect') || msg.includes('offline') || err.isNetwork) {
+            return 'Unable to connect to the server.';
+        }
+        return err.message || 'Unable to load messages. Please try again.';
+    }
+
     // ---------------- LOAD MESSAGES ----------------
     async loadDirectMessages(partnerId) {
         if (!this.dom.messagesContainer) return;
@@ -269,9 +291,11 @@ class ChatController {
             });
             this.renderMessagesList(this.activeMessages);
         } catch (err) {
+            console.error('Failed to load direct messages:', err);
+            const errorMsg = this.getControlledErrorMessage(err);
             this.dom.messagesContainer.innerHTML = `
                 <div class="empty-state" style="margin: auto;">
-                    <div style="color: var(--danger); font-size: 14px; font-weight: 600;">Failed to load messages</div>
+                    <div style="color: var(--danger); font-size: 14px; font-weight: 600;">${errorMsg}</div>
                     <button class="btn btn-secondary btn-sm" style="margin-top: 8px;" onclick="window.chatController.loadDirectMessages(${partnerId})">Retry</button>
                 </div>
             `;
@@ -291,9 +315,11 @@ class ChatController {
             });
             this.renderMessagesList(this.activeMessages);
         } catch (err) {
+            console.error('Failed to load group messages:', err);
+            const errorMsg = this.getControlledErrorMessage(err);
             this.dom.messagesContainer.innerHTML = `
                 <div class="empty-state" style="margin: auto;">
-                    <div style="color: var(--danger); font-size: 14px; font-weight: 600;">Failed to load group messages</div>
+                    <div style="color: var(--danger); font-size: 14px; font-weight: 600;">${errorMsg}</div>
                     <button class="btn btn-secondary btn-sm" style="margin-top: 8px;" onclick="window.chatController.loadGroupMessages(${groupId})">Retry</button>
                 </div>
             `;

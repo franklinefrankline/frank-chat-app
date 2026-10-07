@@ -16,14 +16,15 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from database import engine, Base, SessionLocal
 import models
 from security import hash_password
-from routes import auth, users, messages, groups, files, admin, smart
+from routes import auth, users, messages, groups, files, admin, smart, conversations
 from websocket.chat import handle_websocket_connection
 
 # Create database tables automatically
-try:
-    Base.metadata.create_all(bind=engine)
-except Exception as e:
-    print(f"Table creation note: {e}")
+if not os.environ.get("VERCEL"):
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Table creation note: {e}")
 
 def check_and_migrate_db():
     try:
@@ -151,7 +152,8 @@ def seed_demo_users():
     finally:
         db.close()
 
-seed_demo_users()
+if not os.environ.get("VERCEL"):
+    seed_demo_users()
 
 
 # Security Headers Middleware
@@ -203,8 +205,8 @@ allowed_origins = list(set(default_origins + env_origins))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if "*" not in env_origins else ["*"],
-    allow_origin_regex=r".*",
+    allow_origins=allowed_origins if "*" not in env_origins else ["https://frank-chat-app.vercel.app"],
+    allow_origin_regex=r"^https:\/\/([a-zA-Z0-9_-]+\.)?vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -227,7 +229,7 @@ async def ensure_api_prefix(request: Request, call_next):
     return response
 
 # Include Routers with both /api prefix and root prefix
-for r in [auth.router, users.router, messages.router, groups.router, files.router, admin.router, smart.router]:
+for r in [auth.router, users.router, messages.router, groups.router, files.router, admin.router, smart.router, conversations.router]:
     app.include_router(r, prefix="/api")
     app.include_router(r)
 

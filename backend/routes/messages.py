@@ -76,6 +76,16 @@ async def send_message(
             conv = models.Conversation(user_a_id=ua, user_b_id=ub)
             db.add(conv)
             db.commit()
+            db.refresh(conv)
+
+        for uid in set([ua, ub]):
+            m_rec = db.query(models.ConversationMember).filter(
+                models.ConversationMember.conversation_id == conv.id,
+                models.ConversationMember.user_id == uid
+            ).first()
+            if not m_rec:
+                db.add(models.ConversationMember(conversation_id=conv.id, user_id=uid))
+        db.commit()
 
     if msg_in.group_id:
         group = db.query(models.Group).filter(models.Group.id == msg_in.group_id).first()

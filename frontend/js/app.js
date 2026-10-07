@@ -290,9 +290,21 @@ class AppController {
             this.updateTotalUnread();
         } catch (err) {
             console.error('Failed to load conversations:', err);
+            let errorMsg = 'Unable to load messages. Please try again.';
+            if (err.status === 401) {
+                errorMsg = 'Session expired. Please sign in again.';
+            } else if (err.status === 403) {
+                errorMsg = 'You do not have access to this conversation.';
+            } else if (err.status === 404) {
+                errorMsg = 'Conversation not found.';
+            } else if (err.status === 500) {
+                errorMsg = 'Unable to load messages. Please try again.';
+            } else if (err.isNetwork || (err.message && (err.message.includes('connect') || err.message.includes('fetch') || err.message.includes('Network')))) {
+                errorMsg = 'Unable to connect to the server.';
+            }
             listContainer.innerHTML = `
                 <div class="empty-state">
-                    <div style="color:var(--danger); font-size:13px; font-weight:600;">Failed to sync messages</div>
+                    <div style="color:var(--danger); font-size:13px; font-weight:600;">${errorMsg}</div>
                     <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="window.appController.loadConversations(true)">Retry</button>
                 </div>
             `;

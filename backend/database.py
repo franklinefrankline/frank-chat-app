@@ -19,7 +19,7 @@ for env_candidate in [Path(__file__).resolve().parent / ".env", Path(__file__).r
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
-        DATABASE_URL = "sqlite:////tmp/chatapp.db"
+        DATABASE_URL = "postgresql://neondb_owner:npg_8kgYbEIv9cAj@ep-gentle-butterfly-b4le0fyp.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require"
     else:
         db_file = (Path(__file__).resolve().parent / "chatapp.db").as_posix()
         DATABASE_URL = f"sqlite:///{db_file}"
@@ -180,6 +180,52 @@ def check_and_migrate_db():
                     conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_conversation_users ON conversations(user_a_id, user_b_id)"))
                 except Exception:
                     pass
+
+                # Ensure conversation_members table exists
+                try:
+                    if "conversation_members" not in tables:
+                        if DATABASE_URL.startswith("sqlite"):
+                            conn.execute(text("""
+                                CREATE TABLE IF NOT EXISTS conversation_members (
+                                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                    conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+                                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                                    role VARCHAR(20) DEFAULT 'member',
+                                    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                    UNIQUE (conversation_id, user_id)
+                                )
+                            """))
+                        else:
+                            conn.execute(text("""
+                                CREATE TABLE IF NOT EXISTS conversation_members (
+                                    id SERIAL PRIMARY KEY,
+                                    conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+                                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                                    role VARCHAR(20) DEFAULT 'member',
+                                    joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                                    CONSTRAINT uq_conv_member UNIQUE (conversation_id, user_id)
+                                )
+                            """))
+                except Exception as ex:
+                    print(f"Table creation note: {ex}")
+
+                # Safely populate conversation_members from existing conversations
+                try:
+                    conv_rows = conn.execute(text("SELECT id, user_a_id, user_b_id FROM conversations")).fetchall()
+                    for crow in conv_rows:
+                        cid, ua, ub = crow[0], crow[1], crow[2]
+                        for uid in set([ua, ub]):
+                            existing_m = conn.execute(
+                                text("SELECT 1 FROM conversation_members WHERE conversation_id = :cid AND user_id = :uid"),
+                                {"cid": cid, "uid": uid}
+                            ).fetchone()
+                            if not existing_m:
+                                conn.execute(
+                                    text("INSERT INTO conversation_members (conversation_id, user_id, role) VALUES (:cid, :uid, 'member')"),
+                                    {"cid": cid, "uid": uid}
+                                )
+                except Exception as ex:
+                    print(f"Backfill note: {ex}")
     except Exception as e:
         print(f"Migration note: {e}")
 
