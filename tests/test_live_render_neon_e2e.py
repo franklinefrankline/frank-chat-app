@@ -33,8 +33,10 @@ with urllib.request.urlopen(msg_req, context=ctx) as resp:
     msg_data = json.loads(resp.read().decode('utf-8'))
     print(f'[PASS] Message created! ID: {msg_data.get("id")}, content: "{msg_data.get("content")}"')
 
-print('\n3. Verifying record directly inside Neon PostgreSQL database...')
-os.environ['DATABASE_URL'] = 'postgresql://neondb_owner:npg_8kgYbEIv9cAj@ep-gentle-butterfly-b4le0fyp.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require'
+    db_url = os.environ.get('DATABASE_URL')
+    if not db_url:
+        print('[SKIP DB direct check: DATABASE_URL not set in local environment]')
+        sys.exit(0)
 sys.path.insert(0, 'backend')
 import database, models
 db = database.SessionLocal()
