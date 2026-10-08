@@ -695,8 +695,8 @@ class SmartConversationService:
         provider = self.get_provider()
         now_utc = datetime.now(timezone.utc)
 
-        # Check Cache if not forcing refresh and not single message
-        if not force_refresh and not message_id:
+        # Check Cache if not forcing refresh and not single message or document
+        if not force_refresh and not message_id and not attachment_id:
             cached = db.query(models.ConversationSummary).filter(
                 models.ConversationSummary.conversation_id == conversation_id,
                 models.ConversationSummary.conversation_type == conversation_type,
@@ -744,7 +744,7 @@ class SmartConversationService:
             engine_provider = "frank-smart-nlp"
 
         # Persist summary record if full conversation
-        if not message_id:
+        if not message_id and not attachment_id:
             existing = db.query(models.ConversationSummary).filter(
                 models.ConversationSummary.conversation_id == conversation_id,
                 models.ConversationSummary.conversation_type == conversation_type,
@@ -1666,16 +1666,17 @@ class SmartConversationService:
         if not doc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found.")
 
-        # Authorization check
+        # Strict authorization check
+        conv_id, partner_id, is_self = self.resolve_conversation(conversation_id, "group" if doc.group_id else "direct", current_user, db)
         if doc.group_id:
-            membership = db.query(models.GroupMember).filter(
-                models.GroupMember.group_id == doc.group_id,
-                models.GroupMember.user_id == current_user.id
-            ).first()
-            if not membership and current_user.role != "admin":
+            if doc.group_id != conv_id and current_user.role != "admin":
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-        elif doc.uploader_id != current_user.id and doc.conversation_id != current_user.id and current_user.role != "admin":
-            pass
+        else:
+            if doc.uploader_id not in (current_user.id, partner_id) and current_user.role != "admin":
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+
+        if message_id and doc.message_id and doc.message_id != message_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment does not belong to specified message.")
 
         filename = doc.original_filename or "Document"
         file_type = doc.file_type or "document"
