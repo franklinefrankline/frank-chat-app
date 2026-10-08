@@ -181,7 +181,6 @@ def check_and_migrate_db():
 
             if "conversations" in tables:
                 try:
-                    conn.execute(text("DELETE FROM conversations WHERE id NOT IN (SELECT MIN(id) FROM conversations GROUP BY user_a_id, user_b_id)"))
                     conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_conversation_users ON conversations(user_a_id, user_b_id)"))
                 except Exception:
                     pass
