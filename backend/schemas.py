@@ -395,6 +395,8 @@ class SmartSummaryResponse(BaseModel):
     source_message_end: Optional[int] = None
     generated_at: Optional[str] = None
     provider: Optional[str] = None
+    sources: List[int] = []
+    selected_message: Optional[Dict[str, Any]] = None
 
 
 class SmartMissedRequest(BaseModel):

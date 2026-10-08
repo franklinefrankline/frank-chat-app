@@ -18,6 +18,8 @@ class SmartConversationController {
         this.isGenerating = false;
         this.lastLoadedMessageId = null;
         this.missedPeriod = 'last_read';
+        this.selectedMessageData = null;
+        this.selectedMessagePreview = null;
         this.cachedData = {
             summary: null,
             missed: null,
@@ -70,8 +72,16 @@ class SmartConversationController {
             emptyTitle: document.getElementById('smartEmptyTitle'),
             emptyDesc: document.getElementById('smartEmptyDesc'),
             contextBar: document.getElementById('smartContextBar'),
+            contextBadge: document.getElementById('smartContextBadge'),
             contextText: document.getElementById('smartContextText'),
             clearContextBtn: document.getElementById('smartClearContextBtn'),
+            selectedMessageCard: document.getElementById('smartSelectedMessageCard'),
+            selectedMsgTitle: document.getElementById('smartSelectedMsgTitle'),
+            selectedMsgTime: document.getElementById('smartSelectedMsgTime'),
+            selectedMsgContent: document.getElementById('smartSelectedMsgContent'),
+            selectedDocCard: document.getElementById('smartSelectedDocCard'),
+            selectedDocName: document.getElementById('smartSelectedDocName'),
+            fullConvBar: document.getElementById('smartFullConvBar'),
             tabPanels: {
                 summary: document.getElementById('smartSummaryPanel'),
                 missed: document.getElementById('smartMissedPanel'),
@@ -207,16 +217,57 @@ class SmartConversationController {
 
         if (this.selectedAttachmentId) {
             dom.contextBar.style.display = 'flex';
+            if (dom.fullConvBar) dom.fullConvBar.style.display = 'none';
+            if (dom.contextBadge) dom.contextBadge.textContent = 'TARGETED ANALYSIS';
+            if (dom.clearContextBtn) dom.clearContextBtn.style.display = 'inline-flex';
             if (dom.contextText) {
                 dom.contextText.textContent = `Analyzing Document: ${this.selectedAttachmentName || '#' + this.selectedAttachmentId}`;
             }
+            if (dom.selectedDocCard) dom.selectedDocCard.style.display = 'flex';
+            if (dom.selectedDocName) dom.selectedDocName.textContent = this.selectedAttachmentName || `Document #${this.selectedAttachmentId}`;
+            if (dom.selectedMessageCard) dom.selectedMessageCard.style.display = 'none';
         } else if (this.selectedMessageId) {
             dom.contextBar.style.display = 'flex';
+            if (dom.fullConvBar) dom.fullConvBar.style.display = 'none';
+            if (dom.contextBadge) dom.contextBadge.textContent = 'TARGETED ANALYSIS';
+            if (dom.clearContextBtn) dom.clearContextBtn.style.display = 'inline-flex';
+
+            // Find message in active conversation messages
+            let msg = null;
+            let msgIndex = -1;
+            if (window.chatController && Array.isArray(window.chatController.activeMessages)) {
+                msgIndex = window.chatController.activeMessages.findIndex(m => Number(m.id) === Number(this.selectedMessageId));
+                if (msgIndex !== -1) {
+                    msg = window.chatController.activeMessages[msgIndex];
+                }
+            }
+            if (!msg && this.selectedMessageData) {
+                msg = this.selectedMessageData;
+            }
+
+            const msgNum = msgIndex !== -1 ? (msgIndex + 1) : this.selectedMessageId;
             if (dom.contextText) {
-                dom.contextText.textContent = `Analyzing Message #${this.selectedMessageId}`;
+                dom.contextText.textContent = `Analyzing Message #${msgNum}`;
+            }
+
+            if (dom.selectedMessageCard) dom.selectedMessageCard.style.display = 'flex';
+            if (dom.selectedDocCard) dom.selectedDocCard.style.display = 'none';
+            if (dom.selectedMsgTitle) {
+                dom.selectedMsgTitle.textContent = `Selected Message: Message #${msgNum}`;
+            }
+            if (dom.selectedMsgTime) {
+                const ts = msg?.created_at || msg?.timestamp;
+                dom.selectedMsgTime.textContent = ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            }
+            if (dom.selectedMsgContent) {
+                const previewText = msg?.content || this.selectedMessagePreview || '';
+                dom.selectedMsgContent.textContent = previewText ? `"${previewText}"` : `Selected Message #${msgNum}`;
             }
         } else {
             dom.contextBar.style.display = 'none';
+            if (dom.fullConvBar) dom.fullConvBar.style.display = 'flex';
+            if (dom.selectedMessageCard) dom.selectedMessageCard.style.display = 'none';
+            if (dom.selectedDocCard) dom.selectedDocCard.style.display = 'none';
         }
     }
 
@@ -242,6 +293,18 @@ class SmartConversationController {
             this.selectedMessageId = messageId ? parseInt(messageId, 10) : null;
             this.selectedAttachmentId = attachmentId ? parseInt(attachmentId, 10) : null;
             this.selectedAttachmentName = filename || null;
+
+            if (this.selectedMessageId && window.chatController && Array.isArray(window.chatController.activeMessages)) {
+                const found = window.chatController.activeMessages.find(m => Number(m.id) === Number(this.selectedMessageId));
+                if (found) {
+                    this.selectedMessageData = found;
+                    this.selectedMessagePreview = found.content;
+                }
+            } else {
+                this.selectedMessageData = null;
+                this.selectedMessagePreview = null;
+            }
+
             this.resetCache();
         }
 
@@ -280,6 +343,18 @@ class SmartConversationController {
         this.selectedMessageId = messageId ? parseInt(messageId, 10) : null;
         this.selectedAttachmentId = null;
         this.selectedAttachmentName = null;
+
+        if (this.selectedMessageId && window.chatController && Array.isArray(window.chatController.activeMessages)) {
+            const found = window.chatController.activeMessages.find(m => Number(m.id) === Number(this.selectedMessageId));
+            if (found) {
+                this.selectedMessageData = found;
+                this.selectedMessagePreview = found.content;
+            }
+        } else {
+            this.selectedMessageData = null;
+            this.selectedMessagePreview = null;
+        }
+
         this.resetCache();
 
         this.isOpen = true;
@@ -305,6 +380,8 @@ class SmartConversationController {
         this.selectedMessageId = messageId ? parseInt(messageId, 10) : null;
         this.selectedAttachmentId = attachmentId ? parseInt(attachmentId, 10) : null;
         this.selectedAttachmentName = filename || null;
+        this.selectedMessageData = null;
+        this.selectedMessagePreview = null;
         this.resetCache();
 
         this.isOpen = true;
@@ -326,6 +403,8 @@ class SmartConversationController {
         this.selectedMessageId = null;
         this.selectedAttachmentId = null;
         this.selectedAttachmentName = null;
+        this.selectedMessageData = null;
+        this.selectedMessagePreview = null;
         this.resetCache();
         this.renderContextBar();
         await this.refreshCurrentTab(true);
@@ -492,6 +571,47 @@ class SmartConversationController {
         }
     }
 
+    // ---------------- SOURCE REFERENCES HELPER ----------------
+    renderSourceReferences(sources) {
+        if (!sources || !sources.length) return '';
+
+        const normalized = [];
+        const seen = new Set();
+        for (const s of sources) {
+            if (!s) continue;
+            const sId = typeof s === 'object' ? (s.id || s.source_message_id) : s;
+            if (!sId || seen.has(sId)) continue;
+            seen.add(sId);
+
+            let displayNum = sId;
+            if (window.chatController && Array.isArray(window.chatController.activeMessages)) {
+                const idx = window.chatController.activeMessages.findIndex(m => Number(m.id) === Number(sId));
+                if (idx !== -1) {
+                    displayNum = idx + 1;
+                }
+            }
+            normalized.push({ id: sId, displayNum });
+        }
+
+        if (!normalized.length) return '';
+
+        return `
+            <div class="smart-source-references-box">
+                <div class="smart-source-references-header">
+                    SOURCE REFERENCES (${normalized.length})
+                </div>
+                <div class="smart-source-chips-row">
+                    ${normalized.map(src => `
+                        <button type="button" class="smart-source-chip-btn" data-source-id="${src.id}" title="Jump to Message #${src.displayNum}" aria-label="Jump to Message #${src.displayNum}">
+                            <span>Message #${src.displayNum}</span>
+                            <span class="smart-source-arrow">↗</span>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
     // ---------------- 1. SUMMARY TAB ----------------
     async loadSummary(force = false) {
         const dom = this.getDom();
@@ -523,49 +643,85 @@ class SmartConversationController {
         const panel = dom.tabPanels.summary;
         if (!panel) return;
 
-        const bullets = res.summary_bullets || res.key_points || [];
-        const bulletsHtml = bullets.map(b => `
-            <li class="smart-summary-bullet">
-                <span class="smart-bullet-dot"></span>
-                <span>${this.escapeHtml(b)}</span>
-            </li>
-        `).join('');
+        if (res.selected_message && !this.selectedMessageData) {
+            this.selectedMessageData = res.selected_message;
+            this.renderContextBar();
+        }
 
-        const contextTitle = this.selectedAttachmentId ? 'Document Summary' :
-                             (this.selectedMessageId ? 'Message Summary' : 'Conversation Summary');
+        const summaryText = res.summary_text || '';
+        let keyPoints = res.key_points || res.summary_bullets || [];
+        if (!Array.isArray(keyPoints)) {
+            keyPoints = typeof keyPoints === 'string' ? [keyPoints] : [];
+        }
+        if (keyPoints.length === 0 && res.summary_bullets && Array.isArray(res.summary_bullets)) {
+            keyPoints = res.summary_bullets;
+        }
+        let importantBullets = res.important_bullets || (res.important_info ? [res.important_info] : []);
+        if (!Array.isArray(importantBullets)) {
+            importantBullets = typeof importantBullets === 'string' ? [importantBullets] : [];
+        }
+
+        let sources = res.sources || [];
+        if (!sources.length) {
+            if (this.selectedMessageId) {
+                sources = [this.selectedMessageId];
+            } else if (res.source_message_start || res.source_message_end) {
+                sources = [res.source_message_start, res.source_message_end].filter(Boolean);
+            }
+        }
 
         panel.innerHTML = `
-            <div class="smart-summary-box">
-                <div class="smart-summary-header">
-                    <div class="smart-summary-title">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                        <span>${this.escapeHtml(contextTitle)}</span>
+            <div class="smart-tab-content-flow">
+                <!-- Card 1: Summary -->
+                <div class="smart-card">
+                    <div class="smart-card-header smart-summary-accent">
+                        <span class="smart-card-icon">✨</span>
+                        <h3 class="smart-card-title">Summary</h3>
                     </div>
-                    <div class="smart-summary-meta">
-                        ${res.generated_at ? new Date(res.generated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Generated just now'}
+                    <div class="smart-card-body">
+                        <p class="smart-card-paragraph">${this.escapeHtml(summaryText)}</p>
                     </div>
                 </div>
-                ${res.summary_text ? `
-                    <div class="smart-summary-narrative" style="font-size: 13.5px; line-height: 1.6; color: var(--text); margin-bottom: 14px; padding: 10px 12px; background: var(--surface); border-radius: var(--radius-md); border-left: 3px solid var(--primary);">
-                        ${this.escapeHtml(res.summary_text)}
+
+                <!-- Card 2: Key Points -->
+                ${keyPoints.length > 0 ? `
+                    <div class="smart-card">
+                        <div class="smart-card-header smart-keypoints-accent">
+                            <span class="smart-card-icon">◎</span>
+                            <h3 class="smart-card-title">Key Points</h3>
+                        </div>
+                        <div class="smart-card-body">
+                            <ul class="smart-card-bullet-list smart-summary-bullets">
+                                ${keyPoints.map(p => `<li class="smart-summary-bullet">${this.escapeHtml(p)}</li>`).join('')}
+                            </ul>
+                        </div>
                     </div>
                 ` : ''}
-                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Key Points</div>
-                <ul class="smart-summary-bullets">
-                    ${bulletsHtml}
-                </ul>
-                ${res.important_info ? `
-                    <div class="smart-summary-conclusion" style="margin-top: 14px; padding: 10px 12px; background: rgba(37,99,235,0.06); border-radius: var(--radius-md); border: 1px solid rgba(37,99,235,0.18);">
-                        <div style="font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 4px;">Important Conclusion</div>
-                        <div style="font-size: 12.5px; color: var(--text);">${this.escapeHtml(res.important_info)}</div>
+
+                <!-- Card 3: Important Information -->
+                ${importantBullets.length > 0 ? `
+                    <div class="smart-card">
+                        <div class="smart-card-header smart-important-accent">
+                            <span class="smart-card-icon">⚠</span>
+                            <h3 class="smart-card-title">Important Information</h3>
+                        </div>
+                        <div class="smart-card-body">
+                            <ul class="smart-card-bullet-list">
+                                ${importantBullets.map(b => `<li>${this.escapeHtml(b)}</li>`).join('')}
+                            </ul>
+                        </div>
                     </div>
                 ` : ''}
-            </div>
-            <div style="margin-top: 14px; display: flex; justify-content: flex-end;">
-                <button type="button" class="btn btn-secondary btn-sm" id="smartRegenSummaryBtn" style="display: flex; align-items: center; gap: 6px;">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                    <span>Regenerate Summary</span>
-                </button>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="smartRegenSummaryBtn" style="display: flex; align-items: center; gap: 6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                        <span>Regenerate Summary</span>
+                    </button>
+                </div>
+
+                <!-- Source References -->
+                ${this.renderSourceReferences(sources)}
             </div>
         `;
 
@@ -573,6 +729,7 @@ class SmartConversationController {
             this.refreshCurrentTab(true);
         });
 
+        this.bindSourceNavigation(panel);
         this.showState('content');
     }
 
@@ -617,67 +774,71 @@ class SmartConversationController {
         `).join('');
 
         const items = res.items || [];
-        const itemsHtml = items.map(item => `
-            <div class="smart-item-card">
-                <div class="smart-item-content">
-                    <div class="smart-item-title-row">
-                        <span class="smart-item-sender">${this.escapeHtml(item.sender_name)}</span>
-                        <span class="smart-item-time">${item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
-                        <span class="smart-category-pill ${item.category}">${item.category}</span>
-                    </div>
-                    <div class="smart-item-preview">"${this.escapeHtml(item.preview)}"</div>
-                    ${item.missed_reason ? `<div class="smart-item-reason" style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">• ${this.escapeHtml(item.missed_reason)}</div>` : ''}
-                </div>
-                <div class="smart-item-actions">
-                    <button type="button" class="smart-view-msg-btn" data-source-id="${item.source_message_id}" aria-label="View Message">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        <span>View Message</span>
-                    </button>
-                </div>
-            </div>
-        `).join('');
+        const missedSources = items.map(it => it.source_message_id).filter(Boolean);
+        if (this.selectedMessageId && !missedSources.includes(this.selectedMessageId)) {
+            missedSources.unshift(this.selectedMessageId);
+        }
 
         panel.innerHTML = `
-            <div class="smart-period-selector" id="smartMissedPeriodSelector">
-                ${pillsHtml}
-            </div>
-
-            <div class="smart-custom-date-inputs" id="smartCustomDateInputs" style="display: ${period === 'custom' ? 'flex' : 'none'};">
-                <input type="date" class="form-input" id="smartCustomStartDate" style="max-width: 150px; font-size: 12px;">
-                <span style="font-size: 12px; color: var(--text-muted);">to</span>
-                <input type="date" class="form-input" id="smartCustomEndDate" style="max-width: 150px; font-size: 12px;">
-                <button type="button" class="btn btn-sm btn-primary" id="smartCustomApplyBtn">Apply</button>
-            </div>
-
-            <div class="smart-stats-grid">
-                <div class="smart-stat-card">
-                    <div class="smart-stat-num">${res.message_count || 0}</div>
-                    <div class="smart-stat-label">Messages</div>
+            <div class="smart-tab-content-flow">
+                <div class="smart-period-selector" id="smartMissedPeriodSelector">
+                    ${pillsHtml}
                 </div>
-                <div class="smart-stat-card">
-                    <div class="smart-stat-num">${res.important_updates_count || 0}</div>
-                    <div class="smart-stat-label">Updates</div>
-                </div>
-                <div class="smart-stat-card">
-                    <div class="smart-stat-num">${res.files_count || 0}</div>
-                    <div class="smart-stat-label">Files</div>
-                </div>
-                <div class="smart-stat-card">
-                    <div class="smart-stat-num">${res.decisions_count || 0}</div>
-                    <div class="smart-stat-label">Decisions</div>
-                </div>
-            </div>
 
-            <div class="smart-missed-explanation">
-                ${this.escapeHtml(res.explanation || 'No missed messages.')}
-            </div>
+                <div class="smart-custom-date-inputs" id="smartCustomDateInputs" style="display: ${period === 'custom' ? 'flex' : 'none'};">
+                    <input type="date" class="form-input" id="smartCustomStartDate" style="max-width: 150px; font-size: 12px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">to</span>
+                    <input type="date" class="form-input" id="smartCustomEndDate" style="max-width: 150px; font-size: 12px;">
+                    <button type="button" class="btn btn-sm btn-primary" id="smartCustomApplyBtn">Apply</button>
+                </div>
 
-            <div class="smart-item-list">
-                ${itemsHtml || '<div class="smart-empty-state-notice" style="font-size: 13px; color: var(--text-muted); text-align: center; padding: 24px;">No missed information found.</div>'}
+                <div class="smart-stats-grid">
+                    <div class="smart-stat-card">
+                        <div class="smart-stat-num">${res.message_count || 0}</div>
+                        <div class="smart-stat-label">Messages</div>
+                    </div>
+                    <div class="smart-stat-card">
+                        <div class="smart-stat-num">${res.important_updates_count || 0}</div>
+                        <div class="smart-stat-label">Updates</div>
+                    </div>
+                    <div class="smart-stat-card">
+                        <div class="smart-stat-num">${res.files_count || 0}</div>
+                        <div class="smart-stat-label">Files</div>
+                    </div>
+                    <div class="smart-stat-card">
+                        <div class="smart-stat-num">${res.decisions_count || 0}</div>
+                        <div class="smart-stat-label">Decisions</div>
+                    </div>
+                </div>
+
+                <!-- Exact "What Did I Miss?" Card -->
+                <div class="smart-card">
+                    <div class="smart-card-header">
+                        <span class="smart-card-icon">👁</span>
+                        <h3 class="smart-card-title">What Did I Miss?</h3>
+                    </div>
+                    <div class="smart-card-body">
+                        ${items.length === 0 ? `
+                            <p class="smart-empty-notice">No relevant missed information found.</p>
+                        ` : `
+                            <ul class="smart-card-bullet-list">
+                                ${items.map(it => `
+                                    <li>
+                                        <strong>${this.escapeHtml(it.sender_name || 'Participant')}:</strong>
+                                        <span>"${this.escapeHtml(it.preview)}"</span>
+                                        ${it.missed_reason ? `<div class="smart-item-subreason">• ${this.escapeHtml(it.missed_reason)}</div>` : ''}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        `}
+                    </div>
+                </div>
+
+                <!-- Source References -->
+                ${this.renderSourceReferences(missedSources)}
             </div>
         `;
 
-        // Bind period switchers
         panel.querySelectorAll('.smart-period-pill').forEach(pill => {
             pill.addEventListener('click', () => {
                 const p = pill.dataset.period;
@@ -719,45 +880,38 @@ class SmartConversationController {
         if (!panel) return;
 
         const messages = (res && res.messages) || [];
-        if (!messages.length) {
-            panel.innerHTML = `
-                <div class="smart-state-view" style="padding: 24px;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">📌</div>
-                    <div class="smart-state-title">No important information found.</div>
-                    <div class="smart-state-desc">Key deadlines, decisions, and high-priority messages will appear here.</div>
-                </div>
-            `;
-            this.showState('content');
-            return;
+        const importantSources = messages.map(m => m.source_message_id).filter(Boolean);
+        if (this.selectedMessageId && !importantSources.includes(this.selectedMessageId)) {
+            importantSources.unshift(this.selectedMessageId);
         }
 
-        const cardsHtml = messages.map(m => {
-            const prio = (m.priority || 'Medium').toLowerCase();
-            return `
-                <div class="smart-item-card">
-                    <div class="smart-item-content">
-                        <div class="smart-item-title-row">
-                            <span class="smart-item-sender">${this.escapeHtml(m.sender_name)}</span>
-                            <span class="smart-item-time">${m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
-                            <span class="smart-category-pill ${m.category}">${m.category}</span>
-                            <span class="smart-priority-pill ${prio}" style="font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 2px 7px; border-radius: 999px;">${this.escapeHtml(m.priority || 'Medium')}</span>
-                        </div>
-                        <div class="smart-item-preview">"${this.escapeHtml(m.message_preview)}"</div>
-                        <div class="smart-item-reason">${this.escapeHtml(m.reason || '')}</div>
+        panel.innerHTML = `
+            <div class="smart-tab-content-flow">
+                <!-- Important Information Card -->
+                <div class="smart-card">
+                    <div class="smart-card-header smart-important-accent">
+                        <span class="smart-card-icon">📌</span>
+                        <h3 class="smart-card-title">Important Information</h3>
                     </div>
-                    <div class="smart-item-actions">
-                        <button type="button" class="smart-view-msg-btn" data-source-id="${m.source_message_id}" aria-label="View Message">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>View Message</span>
-                        </button>
+                    <div class="smart-card-body">
+                        ${messages.length === 0 ? `
+                            <p class="smart-empty-notice">No important information found.</p>
+                        ` : `
+                            <ul class="smart-card-bullet-list">
+                                ${messages.map(m => `
+                                    <li class="smart-item-card">
+                                        <strong>${this.escapeHtml(m.sender_name || 'Participant')}:</strong>
+                                        <span>"${this.escapeHtml(m.message_preview || m.preview || '')}"</span>
+                                        ${m.reason ? `<div class="smart-item-subreason">• ${this.escapeHtml(m.reason)}</div>` : ''}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        `}
                     </div>
                 </div>
-            `;
-        }).join('');
 
-        panel.innerHTML = `
-            <div class="smart-item-list">
-                ${cardsHtml}
+                <!-- Source References -->
+                ${this.renderSourceReferences(importantSources)}
             </div>
         `;
 
@@ -765,7 +919,7 @@ class SmartConversationController {
         this.showState('content');
     }
 
-    // ---------------- 4. ACTION ITEMS TAB (CRUD) ----------------
+    // ---------------- 4. ACTION ITEMS TAB ----------------
     async loadActions(force = false) {
         const dom = this.getDom();
         const actions = await api.getSmartActions(this.currentConvId, this.currentConvType, this.selectedMessageId);
@@ -773,47 +927,63 @@ class SmartConversationController {
         const panel = dom.tabPanels.actions;
         if (!panel) return;
 
-        const listHtml = (actions || []).map(a => `
-            <div class="smart-action-item ${a.completed ? 'completed' : ''}" id="smartActionRow-${a.id}">
-                <div class="smart-action-left">
-                    <button type="button" class="smart-checkbox ${a.completed ? 'checked' : ''}" data-action-id="${a.id}" data-completed="${a.completed}" aria-label="Complete action item">
-                        ${a.completed ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>` : ''}
-                    </button>
-                    <div style="display: flex; flex-direction: column; gap: 3px;">
-                        <span class="smart-action-text">${this.escapeHtml(a.action_text)}</span>
-                        <div class="smart-action-meta" style="font-size: 11px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap;">
-                            ${a.assigned_to ? `<span style="background: var(--surface); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border);">👤 ${this.escapeHtml(a.assigned_to)}</span>` : ''}
-                            ${a.due_date ? `<span style="background: rgba(245,158,11,0.08); color: #F59E0B; padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(245,158,11,0.2);">📅 ${this.escapeHtml(a.due_date)}</span>` : ''}
-                            <span style="font-weight: 600; color: ${a.completed ? '#10B981' : 'var(--text-secondary)'};">${a.completed ? 'Completed' : 'Pending'}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="smart-item-actions">
-                    ${a.source_message_id ? `
-                        <button type="button" class="smart-view-msg-btn" data-source-id="${a.source_message_id}" aria-label="View Source">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                            <span>View Source</span>
-                        </button>
-                    ` : ''}
-                    <button type="button" class="smart-delete-action-btn" data-delete-id="${a.id}" title="Delete Action Item" aria-label="Delete action item">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    </button>
-                </div>
-            </div>
-        `).join('');
+        const items = actions || [];
+        const actionSources = items.map(a => a.source_message_id).filter(Boolean);
+        if (this.selectedMessageId && !actionSources.includes(this.selectedMessageId)) {
+            actionSources.unshift(this.selectedMessageId);
+        }
 
         panel.innerHTML = `
-            <div class="smart-item-list" id="smartActionsList">
-                ${listHtml || `<div class="smart-state-view" style="padding: 24px;"><div class="smart-state-title">No action items found.</div><div class="smart-state-desc">Tasks and assignments extracted from the chat will appear here.</div></div>`}
-            </div>
+            <div class="smart-tab-content-flow">
+                <!-- Action Items Card -->
+                <div class="smart-card">
+                    <div class="smart-card-header">
+                        <span class="smart-card-icon">✓</span>
+                        <h3 class="smart-card-title">Action Items</h3>
+                    </div>
+                    <div class="smart-card-body">
+                        ${items.length === 0 ? `
+                            <p class="smart-empty-notice">No action items found.</p>
+                            <div class="smart-actions-list-container" id="smartActionsList" style="display: none;"></div>
+                        ` : `
+                            <div class="smart-actions-list-container" id="smartActionsList">
+                                ${items.map(a => `
+                                    <div class="smart-action-item ${a.completed ? 'completed' : ''}" id="smartActionRow-${a.id}">
+                                        <div class="smart-action-left">
+                                            <button type="button" class="smart-checkbox ${a.completed ? 'checked' : ''}" data-action-id="${a.id}" data-completed="${a.completed}" aria-label="Toggle action item status">
+                                                ${a.completed ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>` : ''}
+                                            </button>
+                                            <div class="smart-action-details">
+                                                <span class="smart-action-text">• ${this.escapeHtml(a.action_text || a.title)}</span>
+                                                <span class="smart-action-status-badge ${a.completed ? 'status-completed' : 'status-pending'}">Status: ${a.completed ? 'Completed' : 'Pending'}</span>
+                                                ${a.assigned_to && a.assigned_to !== 'Unassigned' ? `<span class="smart-action-assignee">👤 ${this.escapeHtml(a.assigned_to)}</span>` : ''}
+                                                ${a.due_date ? `<span class="smart-action-duedate">📅 ${this.escapeHtml(a.due_date)}</span>` : ''}
+                                            </div>
+                                        </div>
+                                        <div class="smart-item-actions">
+                                            <button type="button" class="smart-delete-action-btn" data-delete-id="${a.id}" title="Delete Action Item" aria-label="Delete action item">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
+                    </div>
+                </div>
 
-            <div class="smart-add-action-box">
-                <input type="text" class="form-input" id="smartNewActionInput" placeholder="Add custom action item..." style="flex: 1; font-size: 13px;">
-                <button type="button" class="btn btn-primary btn-sm" id="smartCreateActionBtn">+ Add</button>
+                <!-- Add Action Item Input -->
+                <div class="smart-add-action-box">
+                    <input type="text" class="form-input" id="smartNewActionInput" placeholder="Add custom action item..." style="flex: 1; font-size: 13px;">
+                    <button type="button" class="btn btn-primary btn-sm" id="smartCreateActionBtn">+ Add</button>
+                </div>
+
+                <!-- Source References -->
+                ${this.renderSourceReferences(actionSources)}
             </div>
         `;
 
-        // Bind Checkboxes (Mark complete / incomplete)
+        // Bind Checkboxes
         panel.querySelectorAll('.smart-checkbox').forEach(cb => {
             cb.addEventListener('click', async () => {
                 const aid = cb.dataset.actionId;
@@ -890,38 +1060,40 @@ class SmartConversationController {
         if (!panel) return;
 
         const decisions = (res && res.decisions) || [];
-        if (!decisions.length) {
-            panel.innerHTML = `
-                <div class="smart-state-view" style="padding: 24px;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">🤝</div>
-                    <div class="smart-state-title">No decisions found.</div>
-                    <div class="smart-state-desc">Explicit agreements and decisions made in conversation will appear here.</div>
-                </div>
-            `;
-            this.showState('content');
-            return;
+        const decisionSources = decisions.map(d => d.source_message_id).filter(Boolean);
+        if (this.selectedMessageId && !decisionSources.includes(this.selectedMessageId)) {
+            decisionSources.unshift(this.selectedMessageId);
         }
 
-        const cardsHtml = decisions.map(d => `
-            <div class="smart-item-card">
-                <div class="smart-item-content">
-                    <div class="smart-item-title-row">
-                        <span class="smart-category-pill decision">✓ Decision</span>
+        panel.innerHTML = `
+            <div class="smart-tab-content-flow">
+                <!-- Decisions Card -->
+                <div class="smart-card">
+                    <div class="smart-card-header">
+                        <span class="smart-card-icon">🤝</span>
+                        <h3 class="smart-card-title">Decisions</h3>
                     </div>
-                    <div class="smart-item-preview" style="font-weight: 600;">${this.escapeHtml(d.decision_text)}</div>
+                    <div class="smart-card-body">
+                        ${decisions.length === 0 ? `
+                            <p class="smart-empty-notice">No decisions found.</p>
+                        ` : `
+                            <ul class="smart-card-bullet-list">
+                                ${decisions.map(d => `
+                                    <li class="smart-item-card">
+                                        <strong>• Decision:</strong>
+                                        <span>${this.escapeHtml(d.decision_text)}</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        `}
+                    </div>
                 </div>
-                ${d.source_message_id ? `
-                    <div class="smart-item-actions">
-                        <button type="button" class="smart-view-msg-btn" data-source-id="${d.source_message_id}" aria-label="View Message">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>View Message</span>
-                        </button>
-                    </div>
-                ` : ''}
-            </div>
-        `).join('');
 
-        panel.innerHTML = `<div class="smart-item-list">${cardsHtml}</div>`;
+                <!-- Source References -->
+                ${this.renderSourceReferences(decisionSources)}
+            </div>
+        `;
+
         this.bindSourceNavigation(panel);
         this.showState('content');
     }
@@ -945,39 +1117,48 @@ class SmartConversationController {
         if (!panel) return;
 
         const dates = (res && res.dates) || [];
-        if (!dates.length) {
-            panel.innerHTML = `
-                <div class="smart-state-view" style="padding: 24px;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">📅</div>
-                    <div class="smart-state-title">No important dates found.</div>
-                    <div class="smart-state-desc">Upcoming milestones, releases, and deadlines mentioned will be organized here.</div>
-                </div>
-            `;
-            this.showState('content');
-            return;
+        const dateSources = dates.map(dt => dt.source_message_id).filter(Boolean);
+        if (this.selectedMessageId && !dateSources.includes(this.selectedMessageId)) {
+            dateSources.unshift(this.selectedMessageId);
         }
 
-        const cardsHtml = dates.map(dt => `
-            <div class="smart-item-card">
-                <div class="smart-item-content">
-                    <div class="smart-item-title-row">
-                        <span class="smart-category-pill deadline">📅 ${this.escapeHtml(dt.date_value)}</span>
+        panel.innerHTML = `
+            <div class="smart-tab-content-flow">
+                <!-- Important Dates Card -->
+                <div class="smart-card">
+                    <div class="smart-card-header">
+                        <span class="smart-card-icon">📅</span>
+                        <h3 class="smart-card-title">Important Dates</h3>
                     </div>
-                    <div class="smart-item-preview" style="font-weight: 600;">${this.escapeHtml(dt.title)}</div>
-                    ${dt.context ? `<div class="smart-item-reason" style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Context: "${this.escapeHtml(dt.context)}"</div>` : ''}
+                    <div class="smart-card-body">
+                        ${dates.length === 0 ? `
+                            <p class="smart-empty-notice">No important dates found.</p>
+                        ` : `
+                            <div class="smart-dates-list">
+                                ${dates.map(dt => `
+                                    <div class="smart-date-card-item smart-item-card" id="smartDateRow-${dt.id}">
+                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                                            <div class="smart-date-pill">📅 ${this.escapeHtml(dt.date_value || dt.event_date || 'Date')}</div>
+                                            ${dt.source_message_id ? `
+                                                <button type="button" class="btn btn-ghost btn-xs smart-view-msg-btn" data-source-id="${dt.source_message_id}" title="Jump to message" style="font-size: 11px; padding: 2px 6px;">
+                                                    <span>View</span> ↗
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                        <div class="smart-date-event-title">${this.escapeHtml(dt.title || dt.event_name || 'Event')}</div>
+                                        ${dt.context || dt.description ? `<div class="smart-date-event-desc">${this.escapeHtml(dt.context || dt.description)}</div>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
+                    </div>
                 </div>
-                ${dt.source_message_id ? `
-                    <div class="smart-item-actions">
-                        <button type="button" class="smart-view-msg-btn" data-source-id="${dt.source_message_id}" aria-label="View Message">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>View Message</span>
-                        </button>
-                    </div>
-                ` : ''}
-            </div>
-        `).join('');
 
-        panel.innerHTML = `<div class="smart-item-list">${cardsHtml}</div>`;
+                <!-- Source References -->
+                ${this.renderSourceReferences(dateSources)}
+            </div>
+        `;
+
         this.bindSourceNavigation(panel);
         this.showState('content');
     }
@@ -1001,55 +1182,53 @@ class SmartConversationController {
         if (!panel) return;
 
         const files = (res && res.files) || [];
-        if (!files.length) {
-            panel.innerHTML = `
-                <div class="smart-state-view" style="padding: 24px;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">📁</div>
-                    <div class="smart-state-title">No files found.</div>
-                    <div class="smart-state-desc">Documents, images, and attachments sent in this chat will appear here.</div>
-                </div>
-            `;
-            this.showState('content');
-            return;
-        }
-
         const formatSize = (bytes) => {
             if (!bytes || bytes < 1024) return `${bytes || 0} B`;
             if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
             return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
         };
 
-        const listHtml = files.map(f => `
-            <div class="smart-file-item" id="smartFileRow-${f.id}">
-                <div class="smart-file-info">
-                    <div class="smart-file-icon">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                    </div>
-                    <div class="smart-file-meta-col">
-                        <div class="smart-file-name" title="${this.escapeHtml(f.original_filename)}">${this.escapeHtml(f.original_filename)}</div>
-                        <div class="smart-file-sub">${formatSize(f.file_size)} • ${this.escapeHtml((f.file_type || '').toUpperCase())} • by ${this.escapeHtml(f.uploader_name || 'User')}</div>
-                    </div>
-                </div>
-                <div class="smart-file-actions" style="display: flex; gap: 6px; align-items: center;">
-                    <button type="button" class="btn btn-ghost btn-sm smart-open-file-btn" data-file-id="${f.id}" data-file-type="${f.file_type}" data-filename="${this.escapeHtml(f.original_filename)}" data-url="${f.download_url || `/api/files/${f.id}/download`}" style="padding: 4px 8px; font-size: 11px;">
-                        Open
-                    </button>
-                    <a href="${f.download_url || `/api/files/${f.id}/download`}" class="btn btn-secondary btn-sm" download="${this.escapeHtml(f.original_filename)}" style="padding: 4px 8px; font-size: 11px; text-decoration: none;">
-                        Download
-                    </a>
-                    <button type="button" class="btn btn-primary btn-sm smart-analyze-file-btn" data-file-id="${f.id}" data-message-id="${f.message_id || ''}" data-filename="${this.escapeHtml(f.original_filename)}" style="padding: 4px 8px; font-size: 11px;">
-                        ✨ Analyze
-                    </button>
-                </div>
-            </div>
-        `).join('');
+        const fileSources = files.map(f => f.message_id).filter(Boolean);
+        if (this.selectedMessageId && !fileSources.includes(this.selectedMessageId)) {
+            fileSources.unshift(this.selectedMessageId);
+        }
 
         panel.innerHTML = `
-            <div class="smart-item-list" id="smartFilesList">
-                ${listHtml}
+            <div class="smart-tab-content-flow">
+                <!-- Files Card -->
+                <div class="smart-card">
+                    <div class="smart-card-header">
+                        <span class="smart-card-icon">📄</span>
+                        <h3 class="smart-card-title">Files</h3>
+                    </div>
+                    <div class="smart-card-body">
+                        ${files.length === 0 ? `
+                            <p class="smart-empty-notice">No files found.</p>
+                        ` : `
+                            <div class="smart-files-grid">
+                                ${files.map(f => `
+                                    <div class="smart-file-card-box smart-file-item" id="smartFileRow-${f.id}">
+                                        <div class="smart-file-card-top">
+                                            <span class="smart-file-emoji">📄</span>
+                                            <div class="smart-file-details">
+                                                <div class="smart-file-title" title="${this.escapeHtml(f.original_filename)}">${this.escapeHtml(f.original_filename)}</div>
+                                                <div class="smart-file-size">${formatSize(f.file_size)}</div>
+                                            </div>
+                                        </div>
+                                        <div class="smart-file-actions-row">
+                                            <button type="button" class="btn btn-ghost btn-sm smart-open-file-btn" data-file-id="${f.id}" data-file-type="${f.file_type}" data-filename="${this.escapeHtml(f.original_filename)}" data-url="${f.download_url || `/api/files/${f.id}/download`}">Open</button>
+                                            <a href="${f.download_url || `/api/files/${f.id}/download`}" class="btn btn-secondary btn-sm" download="${this.escapeHtml(f.original_filename)}">Download</a>
+                                            <button type="button" class="btn btn-primary btn-sm smart-analyze-file-btn" data-file-id="${f.id}" data-message-id="${f.message_id || ''}" data-filename="${this.escapeHtml(f.original_filename)}">AI</button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
+                    </div>
+                </div>
+
+                <!-- Source References -->
+                ${this.renderSourceReferences(fileSources)}
             </div>
         `;
 
@@ -1078,6 +1257,7 @@ class SmartConversationController {
             });
         });
 
+        this.bindSourceNavigation(panel);
         this.showState('content');
     }
 
@@ -1111,92 +1291,74 @@ class SmartConversationController {
             return;
         }
 
-        const participantsHtml = (res.participants || []).map(p => `
-            <span class="smart-participant-tag">${this.escapeHtml(p)}</span>
-        `).join('');
+        const insightSources = this.selectedMessageId ? [this.selectedMessageId] : [];
 
         panel.innerHTML = `
-            <div class="smart-insights-grid" id="smartInsightsGrid">
-                <div class="smart-insight-card">
-                    <div class="smart-insight-val smart-insight-num">${res.total_messages || 0}</div>
-                    <div class="smart-insight-lbl">Total Messages</div>
-                </div>
-                <div class="smart-insight-card">
-                    <div class="smart-insight-val smart-insight-num">${res.files_count || 0}</div>
-                    <div class="smart-insight-lbl">Files Shared</div>
-                </div>
-                <div class="smart-insight-card">
-                    <div class="smart-insight-val smart-insight-num">${res.action_items_count || 0}</div>
-                    <div class="smart-insight-lbl">Action Items</div>
-                </div>
-                <div class="smart-insight-card">
-                    <div class="smart-insight-val smart-insight-num">${res.decisions_count || 0}</div>
-                    <div class="smart-insight-lbl">Decisions Made</div>
-                </div>
-                <div class="smart-insight-card">
-                    <div class="smart-insight-val smart-insight-num">${res.dates_count || 0}</div>
-                    <div class="smart-insight-lbl">Important Dates</div>
-                </div>
-                <div class="smart-insight-card">
-                    <div class="smart-insight-val smart-insight-num">${res.unread_messages || 0}</div>
-                    <div class="smart-insight-lbl">Unread Messages</div>
-                </div>
-            </div>
-
-            ${res.main_topic ? `
-                <div class="smart-insights-section" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Primary Focus</span>
-                        ${res.sentiment ? `<span style="font-size: 11px; font-weight: 700; color: #10B981; background: rgba(16,185,129,0.1); padding: 2px 7px; border-radius: 999px;">${this.escapeHtml(res.sentiment)}</span>` : ''}
+            <div class="smart-tab-content-flow">
+                <!-- Insights Card -->
+                <div class="smart-card">
+                    <div class="smart-card-header">
+                        <span class="smart-card-icon">💡</span>
+                        <h3 class="smart-card-title">Insights</h3>
                     </div>
-                    <div style="font-size: 14px; font-weight: 700; color: var(--text);">${this.escapeHtml(res.main_topic)}</div>
-                    ${res.conclusion ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${this.escapeHtml(res.conclusion)}</div>` : ''}
-                </div>
-            ` : ''}
+                    <div class="smart-card-body">
+                        <div class="smart-stats-grid">
+                            <div class="smart-stat-card smart-insight-card">
+                                <div class="smart-stat-num smart-insight-val smart-insight-num">${res.total_messages || 0}</div>
+                                <div class="smart-stat-label">Messages</div>
+                            </div>
+                            <div class="smart-stat-card smart-insight-card">
+                                <div class="smart-stat-num smart-insight-val smart-insight-num">${res.files_count || 0}</div>
+                                <div class="smart-stat-label">Files</div>
+                            </div>
+                            <div class="smart-stat-card smart-insight-card">
+                                <div class="smart-stat-num smart-insight-val smart-insight-num">${res.action_items_count || 0}</div>
+                                <div class="smart-stat-label">Action Items</div>
+                            </div>
+                            <div class="smart-stat-card smart-insight-card">
+                                <div class="smart-stat-num smart-insight-val smart-insight-num">${res.decisions_count || 0}</div>
+                                <div class="smart-stat-label">Decisions</div>
+                            </div>
+                            <div class="smart-stat-card smart-insight-card">
+                                <div class="smart-stat-num smart-insight-val smart-insight-num">${res.dates_count || 0}</div>
+                                <div class="smart-stat-label">Dates</div>
+                            </div>
+                            <div class="smart-stat-card smart-insight-card">
+                                <div class="smart-stat-num smart-insight-val smart-insight-num">${res.active_participants_count || (res.participants?.length || 1)}</div>
+                                <div class="smart-stat-label">Participants</div>
+                            </div>
+                        </div>
 
-            ${res.key_patterns ? `
-                <div class="smart-insights-section" style="margin-bottom: 12px;">
-                    <div class="smart-insights-section-title">Key Patterns & Dynamics</div>
-                    <div style="font-size: 12.5px; color: var(--text); line-height: 1.5;">${this.escapeHtml(res.key_patterns)}</div>
-                </div>
-            ` : ''}
+                        ${res.main_topic ? `
+                            <div class="smart-insights-subcard">
+                                <div class="smart-insights-subtitle">Focus & Sentiment</div>
+                                <div class="smart-insights-body-text"><strong>${this.escapeHtml(res.main_topic)}</strong> ${res.sentiment ? `<span class="smart-sentiment-pill">${this.escapeHtml(res.sentiment)}</span>` : ''}</div>
+                                ${res.conclusion ? `<div class="smart-insights-conclusion">${this.escapeHtml(res.conclusion)}</div>` : ''}
+                            </div>
+                        ` : ''}
 
-            ${res.risks ? `
-                <div class="smart-insights-section" style="margin-bottom: 12px;">
-                    <div class="smart-insights-section-title">Risk Assessment</div>
-                    <div style="font-size: 12.5px; color: var(--text); line-height: 1.5;">${this.escapeHtml(res.risks)}</div>
+                        ${res.key_patterns ? `
+                            <div class="smart-insights-subcard">
+                                <div class="smart-insights-subtitle">Key Patterns & Dynamics</div>
+                                <div class="smart-insights-body-text">${this.escapeHtml(res.key_patterns)}</div>
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
-            ` : ''}
 
-            <div class="smart-insights-section">
-                <div class="smart-insights-section-title">Message Breakdown</div>
-                <div style="font-size: 13px; color: var(--text); line-height: 1.6;">
-                    • <strong>${res.user_messages || 0}</strong> messages sent by you<br>
-                    • <strong>${res.other_messages || 0}</strong> messages received from other participants
-                </div>
-            </div>
-
-            <div class="smart-insights-section">
-                <div class="smart-insights-section-title">Active Participants (${res.active_participants_count || 1})</div>
-                <div class="smart-participants-list">
-                    ${participantsHtml || '<span class="smart-participant-tag">Current chat members</span>'}
-                </div>
-            </div>
-
-            <div class="smart-insights-section">
-                <div class="smart-insights-section-title">Last Activity</div>
-                <div style="font-size: 12px; color: var(--text-muted);">
-                    ${res.last_activity ? new Date(res.last_activity).toLocaleString() : 'No recent activity recorded.'}
-                </div>
+                <!-- Source References -->
+                ${this.renderSourceReferences(insightSources)}
             </div>
         `;
 
+        this.bindSourceNavigation(panel);
         this.showState('content');
     }
 
     // ---------------- SOURCE MESSAGE NAVIGATION ----------------
     bindSourceNavigation(container) {
-        container.querySelectorAll('.smart-view-msg-btn').forEach(btn => {
+        if (!container) return;
+        container.querySelectorAll('.smart-source-chip-btn, .smart-view-msg-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const srcId = btn.dataset.sourceId;

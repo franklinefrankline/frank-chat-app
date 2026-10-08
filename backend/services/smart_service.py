@@ -771,6 +771,19 @@ class SmartConversationService:
                 db.add(new_summary)
             db.commit()
 
+        # Compute source message references
+        if message_id and messages:
+            summary_sources = [message_id]
+            sel_msg = {
+                "id": messages[0]["id"],
+                "content": messages[0]["content"],
+                "timestamp": messages[0]["timestamp"],
+                "sender_name": messages[0]["sender_name"]
+            }
+        else:
+            summary_sources = [m["id"] for m in messages[-4:]] if messages else []
+            sel_msg = None
+
         return schemas.SmartSummaryResponse(
             success=True,
             conversation_id=conversation_id,
@@ -785,7 +798,9 @@ class SmartConversationService:
             source_message_start=start_id,
             source_message_end=end_id,
             generated_at=schemas.format_iso_utc(now_utc),
-            provider=engine_provider
+            provider=engine_provider,
+            sources=summary_sources,
+            selected_message=sel_msg
         )
 
     # ---------------- 2. MISSED ----------------
