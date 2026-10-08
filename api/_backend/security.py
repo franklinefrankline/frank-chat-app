@@ -179,10 +179,10 @@ def get_current_user(
     if user is None:
         raise credentials_exception
 
-    if getattr(user, "account_status", "active") == "disabled":
+    if getattr(user, "is_active", True) is False or getattr(user, "account_status", "active") in ["disabled", "deactivated"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled. Please contact an administrator."
+            detail="Your account has been deactivated. Please contact the administrator."
         )
 
     return user

@@ -225,8 +225,8 @@
 
 .smart-tab-btn.active {
     color: var(--primary);
-    background: var(--primary-soft, rgba(37, 99, 235, 0.1));
-    border-color: rgba(37, 99, 235, 0.2);
+    background: var(--primary-soft);
+    border-color: var(--border-strong, var(--border));
     font-weight: 700;
 }
 
@@ -377,7 +377,7 @@
 .smart-period-pill.active {
     background: var(--primary);
     border-color: var(--primary);
-    color: #ffffff;
+    color: var(--text-inverse);
 }
 
 .smart-stats-grid {
@@ -549,7 +549,7 @@
 .smart-checkbox.checked {
     background: var(--primary);
     border-color: var(--primary);
-    color: #ffffff;
+    color: var(--text-inverse);
 }
 
 .smart-action-text {
@@ -593,7 +593,7 @@
 .smart-view-msg-btn:hover {
     background: var(--primary);
     border-color: var(--primary);
-    color: #ffffff;
+    color: var(--text-inverse);
 }
 
 .smart-delete-action-btn {

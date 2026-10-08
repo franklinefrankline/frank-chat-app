@@ -57,6 +57,7 @@ class UserResponse(UserBase):
     role: str = "user"
     status: str = "active"
     account_status: str = "active"
+    is_active: bool = True
     is_online: bool = False
     last_seen: Optional[datetime] = None
     created_at: datetime
@@ -100,6 +101,7 @@ class AdminUserResponse(BaseModel):
     frank_id: str
     role: str = "user"
     account_status: str = "active"
+    is_active: bool = True
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     is_online: bool = False

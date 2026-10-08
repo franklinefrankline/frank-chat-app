@@ -1003,16 +1003,136 @@ class SmartConversationController {
         }
     }
 
-    escapeHtml(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+    async analyzeMessage(convId, messageId) {
+        if (!convId || !messageId) return;
+        if (window.showToast) window.showToast('✨ Analyzing message...', 'info', 2000);
+
+        try {
+            const res = await api.analyzeSmartMessage(convId, messageId);
+            if (!res || !res.success) {
+                if (window.showToast) window.showToast('Unable to analyze message. Please try again.', 'error');
+                return;
+            }
+            this.showAnalysisModal({
+                title: '✨ Smart Message Analysis',
+                subtitle: `Message from ${res.sender_name || 'User'}`,
+                category: res.analysis?.category || 'General',
+                tone: res.analysis?.tone || 'Neutral',
+                keyTakeaway: res.analysis?.key_takeaway || res.analysis?.summary,
+                suggestedReply: res.analysis?.suggested_reply,
+                provider: res.analysis?.provider,
+                hasAction: res.analysis?.has_action_item
+            });
+        } catch (err) {
+            console.error('Smart message analysis error:', err);
+            if (window.showToast) window.showToast('Smart AI analysis temporarily unavailable.', 'error');
+        }
     }
-}
+
+    async analyzeDocument(convId, messageId, attachmentId) {
+        if (!convId || !attachmentId) return;
+        if (window.showToast) window.showToast('✨ Analyzing document...', 'info', 2000);
+
+        try {
+            const res = await api.analyzeSmartDocument(convId, messageId, attachmentId);
+            if (!res || !res.success) {
+                if (window.showToast) window.showToast('Unable to analyze document. Please try again.', 'error');
+                return;
+            }
+            this.showAnalysisModal({
+                title: '✨ Smart Document Analysis',
+                subtitle: `${res.filename || 'Document'} (${res.file_type || 'file'})`,
+                category: res.analysis?.classification || 'Document Asset',
+                tone: res.analysis?.security_status || 'Verified Safe',
+                keyTakeaway: res.analysis?.summary || `Format: ${res.analysis?.format || 'PDF'}, Size: ${res.analysis?.size_formatted || ''}`,
+                provider: res.analysis?.provider
+            });
+        } catch (err) {
+            console.error('Smart document analysis error:', err);
+            if (window.showToast) window.showToast('Smart AI analysis temporarily unavailable.', 'error');
+        }
+    }
+
+    showAnalysisModal(data) {
+        // Remove existing modal if any
+        const existing = document.getElementById('frankSpecificAnalysisModal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'frankSpecificAnalysisModal';
+        modal.className = 'modal-backdrop open active';
+        modal.style.zIndex = '9999';
+
+        modal.innerHTML = `
+            <div class="modal-card" style="max-width: 480px; width: 90vw; border-radius: var(--radius-xl); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-xl); overflow: hidden;">
+                <div style="padding: 16px 20px; background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(168,85,247,0.12)); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 800; font-size: 16px; color: var(--text);">${this.escapeHtml(data.title)}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${this.escapeHtml(data.subtitle)}</div>
+                    </div>
+                    <button type="button" class="btn-icon btn-ghost close-smart-analysis-btn" style="width: 32px; height: 32px; border-radius: 50%;">✕</button>
+                </div>
+                <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <span style="background: rgba(37,99,235,0.12); color: var(--primary); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: var(--radius-full); border: 1px solid rgba(37,99,235,0.25);">
+                            ${this.escapeHtml(data.category)}
+                        </span>
+                        <span style="background: rgba(16,185,129,0.12); color: #10B981; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: var(--radius-full); border: 1px solid rgba(16,185,129,0.25);">
+                            ${this.escapeHtml(data.tone)}
+                        </span>
+                        ${data.hasAction ? `
+                            <span style="background: rgba(245,158,11,0.12); color: #F59E0B; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: var(--radius-full); border: 1px solid rgba(245,158,11,0.25);">
+                                Action Required
+                            </span>
+                        ` : ''}
+                    </div>
+
+                    <div style="background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Key Takeaway</div>
+                        <div style="font-size: 14px; color: var(--text); line-height: 1.5;">${this.escapeHtml(data.keyTakeaway)}</div>
+                    </div>
+
+                    ${data.suggestedReply ? `
+                        <div style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.2); border-radius: var(--radius-md); padding: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <div style="font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase;">Suggested Quick Reply</div>
+                                <button type="button" class="btn btn-sm btn-ghost copy-suggested-reply-btn" style="font-size: 11px; padding: 2px 8px; height: auto;">Use Reply</button>
+                            </div>
+                            <div style="font-size: 13px; color: var(--text);">${this.escapeHtml(data.suggestedReply)}</div>
+                        </div>
+                    ` : ''}
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted);">
+                        <span>AI Engine: ${this.escapeHtml(data.provider || 'FRANK Smart AI')}</span>
+                        <button type="button" class="btn btn-secondary btn-sm close-smart-analysis-btn">Done</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.querySelectorAll('.close-smart-analysis-btn').forEach(b => {
+            b.addEventListener('click', () => modal.remove());
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+
+        const replyBtn = modal.querySelector('.copy-suggested-reply-btn');
+        if (replyBtn && data.suggestedReply) {
+            replyBtn.addEventListener('click', () => {
+                const textarea = document.getElementById('chatComposerInput') || document.querySelector('.composer-textarea');
+                if (textarea) {
+                    textarea.value = data.suggestedReply;
+                    textarea.focus();
+                }
+                modal.remove();
+                if (window.showToast) window.showToast('✓ Reply inserted into composer', 'success', 1500);
+            });
+        }
+    }
 
 // Instantiate globally
 window.smartController = new SmartConversationController();

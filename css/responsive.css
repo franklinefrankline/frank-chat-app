@@ -710,6 +710,41 @@ html, body {
         max-width: 88%;
     }
 
+    /* Mobile Message Actions Toolbar */
+    .message-actions-toolbar {
+        max-width: calc(100vw - 32px);
+        flex-wrap: wrap;
+        border-radius: var(--radius-lg);
+        gap: 3px;
+        padding: 3px 6px;
+        top: -28px;
+    }
+
+    .message-row.sent .message-actions-toolbar {
+        right: 4px;
+        left: auto;
+    }
+
+    .message-row.received .message-actions-toolbar {
+        left: 4px;
+        right: auto;
+    }
+
+    .action-tool-btn {
+        width: 30px;
+        height: 30px;
+        min-width: 30px;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .bubble-more-trigger {
+        display: flex !important;
+        opacity: 0.8;
+    }
+
     .message-bubble {
         padding: 9px 13px;
         font-size: 14px;

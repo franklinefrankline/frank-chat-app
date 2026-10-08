@@ -26,6 +26,7 @@ class User(Base):
     status = Column(String(20), default="active")
     role = Column(String(20), default="user", nullable=False)
     account_status = Column(String(20), default="active", nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
     is_online = Column(Boolean, default=False)
     last_seen = Column(DateTime(timezone=True), default=get_utc_now)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)

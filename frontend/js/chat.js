@@ -1024,6 +1024,9 @@ class ChatController {
             <button type="button" class="message-context-item ctx-star">
                 ${starSvg} <span>${msg?.is_starred ? 'Remove Star' : 'Star Message'}</span>
             </button>
+            <button type="button" class="message-context-item ctx-smart">
+                <span style="font-size:14px; margin-right:4px;">✨</span> <span>Smart AI Analysis</span>
+            </button>
             <button type="button" class="message-context-item ctx-info">
                 ${infoSvg} <span>Message Info</span>
             </button>
@@ -1108,6 +1111,19 @@ class ChatController {
         menu.querySelector('.ctx-info')?.addEventListener('click', () => {
             this.closeMessageContextMenu();
             this.showMessageInfo(numId);
+        });
+
+        menu.querySelector('.ctx-smart')?.addEventListener('click', () => {
+            this.closeMessageContextMenu();
+            const card = row.querySelector('.message-document-card, .message-photo-card, .message-video-card');
+            const docFileId = card ? parseInt(card.dataset.fileId, 10) : null;
+            if (window.smartController) {
+                if (docFileId) {
+                    window.smartController.analyzeDocument(this.currentConversationId, numId, docFileId);
+                } else {
+                    window.smartController.analyzeMessage(this.currentConversationId, numId);
+                }
+            }
         });
 
         menu.querySelector('.ctx-open')?.addEventListener('click', () => {

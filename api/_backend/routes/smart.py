@@ -280,3 +280,41 @@ def get_insights(
         current_user=current_user,
         db=db
     )
+
+
+# ---------------- MESSAGE-LEVEL & DOCUMENT-LEVEL SMART ANALYSIS ----------------
+@router.post("/{conversation_id}/messages/{message_id}/smart/analyze")
+@router.get("/{conversation_id}/messages/{message_id}/smart/analyze")
+async def analyze_message_smart(
+    conversation_id: int,
+    message_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Analyze a specific message by conversation_id + message_id with AI."""
+    return await smart_service.analyze_specific_message(
+        conversation_id=conversation_id,
+        message_id=message_id,
+        current_user=current_user,
+        db=db
+    )
+
+
+@router.post("/{conversation_id}/messages/{message_id}/attachments/{attachment_id}/smart/analyze")
+@router.get("/{conversation_id}/messages/{message_id}/attachments/{attachment_id}/smart/analyze")
+async def analyze_attachment_smart(
+    conversation_id: int,
+    message_id: int,
+    attachment_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Analyze a specific document attachment by conversation_id + message_id + attachment_id."""
+    return await smart_service.analyze_specific_attachment(
+        conversation_id=conversation_id,
+        message_id=message_id,
+        attachment_id=attachment_id,
+        current_user=current_user,
+        db=db
+    )
+

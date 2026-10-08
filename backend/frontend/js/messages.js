@@ -288,6 +288,9 @@ const messagesModule = {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                 Download
                             </button>
+                            <button type="button" class="btn btn-sm btn-secondary msg-doc-smart-btn" data-msg-id="${msg.id}" data-file-id="${docFileId}" data-filename="${this.escapeHTML(docFilename)}" title="Smart Conversation AI Analysis">
+                                ✨ AI
+                            </button>
                         </div>
                     </div>
                 `;
@@ -315,6 +318,8 @@ const messagesModule = {
                     <button type="button" class="action-tool-btn msg-action-reply" title="Reply" data-msg-id="${msg.id}" data-sender="${senderName}" data-content="${isDocument ? `[Document] ${this.escapeHTML(docFilename)}` : safeContent}">
                         ${replySvg}
                     </button>
+                    <!-- Smart AI button -->
+                    <button type="button" class="action-tool-btn msg-action-smart" title="Smart AI Analysis" data-msg-id="${msg.id}" ${hasAttachment ? `data-file-id="${docFileId}"` : ''}>✨</button>
                     <!-- Emoji reactions -->
                     <button type="button" class="action-tool-btn msg-action-react" title="Love" data-msg-id="${msg.id}" data-emoji="❤️">❤️</button>
                     <button type="button" class="action-tool-btn msg-action-react" title="Thumbs Up" data-msg-id="${msg.id}" data-emoji="👍">👍</button>
@@ -419,6 +424,23 @@ document.addEventListener('click', async (e) => {
         const messageId = parseInt(moreBtn.dataset.msgId, 10);
         if (window.chatController) {
             window.chatController.openMessageContextMenu(e, messageId);
+        }
+        return;
+    }
+
+    // 0c. Smart AI Analysis on Message or Document
+    const smartBtn = e.target.closest('.msg-action-smart, .msg-doc-smart-btn');
+    if (smartBtn) {
+        e.stopPropagation();
+        const messageId = parseInt(smartBtn.dataset.msgId, 10);
+        const fileId = smartBtn.dataset.fileId ? parseInt(smartBtn.dataset.fileId, 10) : null;
+        const convId = (window.chatController && window.chatController.currentConversationId) || (window.smartController && window.smartController.currentConvId);
+        if (convId && window.smartController) {
+            if (fileId) {
+                window.smartController.analyzeDocument(convId, messageId, fileId);
+            } else {
+                window.smartController.analyzeMessage(convId, messageId);
+            }
         }
         return;
     }

@@ -18,11 +18,7 @@ for env_candidate in [Path(__file__).resolve().parent / ".env", Path(__file__).r
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
-    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
-        DATABASE_URL = "postgresql://neondb_owner:npg_8kgYbEIv9cAj@ep-gentle-butterfly-b4le0fyp.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require"
-    else:
-        db_file = (Path(__file__).resolve().parent / "chatapp.db").as_posix()
-        DATABASE_URL = f"sqlite:///{db_file}"
+    DATABASE_URL = "postgresql://neondb_owner:npg_8kgYbEIv9cAj@ep-gentle-butterfly-b4le0fyp.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require"
 
 
 # Normalize PostgreSQL URL for SQLAlchemy 2.0+
@@ -32,17 +28,22 @@ if DATABASE_URL.startswith("postgres://"):
 # Ensure compatible PostgreSQL driver (fallback to pg8000 if psycopg2 is missing)
 use_pg8000 = False
 if DATABASE_URL.startswith("postgresql://") and not any(
-    DATABASE_URL.startswith(p) for p in ["postgresql+psycopg2://", "postgresql+pg8000://", "postgresql+asyncpg://"]
+    DATABASE_URL.startswith(p) for p in ["postgresql+psycopg2://", "postgresql+pg8000://", "postgresql+asyncpg://", "postgresql+psycopg://"]
 ):
+    has_psycopg = False
     try:
         import psycopg2  # noqa: F401
-    except ImportError:
+        has_psycopg = True
+    except Exception:
         try:
-            import pg8000  # noqa: F401
-            DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
-            use_pg8000 = True
-        except ImportError:
-            pass
+            import psycopg  # noqa: F401
+            has_psycopg = True
+            DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+        except Exception:
+            has_psycopg = False
+    if not has_psycopg:
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
+        use_pg8000 = True
 elif DATABASE_URL.startswith("postgresql+pg8000://"):
     use_pg8000 = True
 
@@ -156,6 +157,10 @@ def check_and_migrate_db():
                 if "account_status" not in columns:
                     conn.execute(text("ALTER TABLE users ADD COLUMN account_status VARCHAR(20) DEFAULT 'active'"))
                     conn.execute(text("UPDATE users SET account_status = 'active' WHERE account_status IS NULL"))
+                if "is_active" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE"))
+                    conn.execute(text("UPDATE users SET is_active = TRUE WHERE is_active IS NULL"))
+                    conn.execute(text("UPDATE users SET is_active = FALSE WHERE account_status IN ('disabled', 'deactivated')"))
                 if "language" not in columns:
                     conn.execute(text("ALTER TABLE users ADD COLUMN language VARCHAR(10) DEFAULT 'en'"))
                     conn.execute(text("UPDATE users SET language = 'en' WHERE language IS NULL"))

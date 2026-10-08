@@ -548,7 +548,7 @@
 
                 return `
                     <tr data-user-id="${u.id}">
-                        <td>
+                        <td data-label="User">
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <div class="avatar avatar-sm" style="flex-shrink:0;">
                                     <span>${this.getInitials(u.full_name || u.username)}</span>
@@ -559,16 +559,16 @@
                                 </div>
                             </div>
                         </td>
-                        <td style="color: var(--text-secondary);">${this.escapeHtml(u.email || '—')}</td>
-                        <td>
+                        <td data-label="Email" style="color: var(--text-secondary);">${this.escapeHtml(u.email || '—')}</td>
+                        <td data-label="FRANK ID">
                             <span style="font-family: monospace; font-weight: 700; background: var(--surface-elevated); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); color: var(--accent-cyan); font-size: 12px;">
                                 ${this.escapeHtml(u.frank_id || '—')}
                             </span>
                         </td>
-                        <td>${roleBadge}</td>
-                        <td>${statusBadge}</td>
-                        <td style="color: var(--text-muted); font-size: 12px;">${this.formatDate(u.created_at)}</td>
-                        <td style="text-align: right;">
+                        <td data-label="Role">${roleBadge}</td>
+                        <td data-label="Status">${statusBadge}</td>
+                        <td data-label="Created" style="color: var(--text-muted); font-size: 12px;">${this.formatDate(u.created_at)}</td>
+                        <td data-label="Actions" style="text-align: right;">
                             <div class="action-buttons-wrap">
                                 <button type="button" class="btn-action btn-action-view" data-action="view" data-id="${u.id}">View</button>
                                 ${statusActionBtn}
@@ -822,9 +822,9 @@
             const fidText = userFrankId ? ` (FRANK ID: ${userFrankId})` : '';
             const emailText = userEmail ? ` [${userEmail}]` : '';
             this.showConfirmDialog({
-                title: 'Delete Account?',
-                message: `Are you sure you want to permanently delete the account for ${userName}${emailText}${fidText}? This permanently removes this user account and prevents the user from signing in again. This action cannot be automatically undone.`,
-                warning: 'This permanently removes this user account from Railway PostgreSQL. This action cannot be undone.',
+                title: 'Delete Account',
+                message: `Are you sure you want to delete this account? (${userName}${emailText}${fidText})`,
+                warning: 'This action will deactivate the user account while safely preserving conversation and message history.',
                 confirmText: 'Delete Account',
                 confirmClass: 'btn-danger',
                 onConfirm: async () => {

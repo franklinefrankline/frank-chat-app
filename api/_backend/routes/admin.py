@@ -131,13 +131,16 @@ async def _set_user_status(user_id: int, new_status: str, current_admin: models.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     clean_status = (new_status or "").strip().lower()
-    if clean_status not in ["active", "disabled"]:
-        clean_status = "disabled" if "disab" in clean_status else "active"
+    if clean_status in ["disabled", "deactivated", "inactive"]:
+        clean_status = "disabled"
+        user.is_active = False
+        user.is_online = False
+    else:
+        clean_status = "active"
+        user.is_active = True
 
     user.account_status = clean_status
     user.status = clean_status
-    if clean_status == "disabled":
-        user.is_online = False
 
     action_name = "ADMIN_DISABLED_USER" if clean_status == "disabled" else "ADMIN_ENABLED_USER"
     audit = models.AuditLog(
@@ -169,6 +172,7 @@ async def _set_user_status(user_id: int, new_status: str, current_admin: models.
         "frank_id": user.frank_id,
         "role": user.role,
         "account_status": user.account_status,
+        "is_active": user.is_active,
         "is_online": user.is_online,
         "created_at": schemas.format_iso_utc(user.created_at)
     }
@@ -227,6 +231,26 @@ async def enable_user(
     db: Session = Depends(get_db)
 ):
     """Enable user account and record ADMIN_ENABLED_USER."""
+    return await _set_user_status(user_id, "active", current_admin, db)
+
+
+@router.post("/users/{user_id}/deactivate", response_model=schemas.AdminUserResponse)
+async def deactivate_user(
+    user_id: int,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Deactivate user account and disconnect active sockets."""
+    return await _set_user_status(user_id, "disabled", current_admin, db)
+
+
+@router.post("/users/{user_id}/reactivate", response_model=schemas.AdminUserResponse)
+async def reactivate_user(
+    user_id: int,
+    current_admin: models.User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Reactivate user account."""
     return await _set_user_status(user_id, "active", current_admin, db)
 
 
@@ -297,12 +321,13 @@ async def delete_user_data(
 @router.delete("/users/{user_id}")
 async def delete_user_account(
     user_id: int,
+    soft: bool = Query(True, description="Safe soft-deletion preserves message and conversation history"),
     current_admin: models.User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
     """
-    DELETE ACCOUNT: Permanently deletes the user account, cascading relationships,
-    cleaning up uploaded files, invalidating active sessions, and disconnecting WebSockets.
+    DELETE ACCOUNT: Safely deactivates and removes user login while preserving historical
+    conversation and message integrity unless hard-delete (soft=False) is explicitly requested.
     """
     if user_id == current_admin.id:
         raise HTTPException(
@@ -325,63 +350,58 @@ async def delete_user_account(
     except Exception:
         pass
 
-    # 2. Clean up user's physical files and document records
-    upload_dir = Path(__file__).resolve().parent.parent / "uploads"
-    docs = db.query(models.Document).filter(models.Document.uploader_id == user.id).all()
-    for doc in docs:
-        if doc.stored_filename:
-            file_path = upload_dir / doc.stored_filename
-            if file_path.exists():
-                try:
-                    os.remove(file_path)
-                except Exception:
-                    pass
-        db.delete(doc)
+    if soft:
+        # Safe soft-deletion: Deactivate account and mark deleted, preserve message and conversation history
+        user.is_active = False
+        user.account_status = "deactivated"
+        user.status = "deleted"
+        user.is_online = False
+        audit = models.AuditLog(
+            admin_id=current_admin.id,
+            action="account_deleted",
+            target_type="user",
+            target_id=user_id,
+            target_name=target_name,
+            details=f"Soft-deleted user account @{target_username} ({target_name}, {target_email}, FRANK ID: {target_frank_id}) from PostgreSQL (conversations and messages preserved safely)"
+        )
+        db.add(audit)
+        db.commit()
+        db.refresh(audit)
+    else:
+        # Hard deletion: clean up physical files
+        upload_dir = Path(__file__).resolve().parent.parent / "uploads"
+        docs = db.query(models.Document).filter(models.Document.uploader_id == user.id).all()
+        for doc in docs:
+            if doc.stored_filename:
+                file_path = upload_dir / doc.stored_filename
+                if file_path.exists():
+                    try:
+                        os.remove(file_path)
+                    except Exception:
+                        pass
+            db.delete(doc)
 
-    # 3. Delete user's reactions
-    db.query(models.Reaction).filter(models.Reaction.user_id == user.id).delete(synchronize_session=False)
-
-    # 4. Delete messages sent or received by user
-    db.query(models.Message).filter(
-        or_(models.Message.sender_id == user.id, models.Message.recipient_id == user.id)
-    ).delete(synchronize_session=False)
-
-    # 5. Delete group memberships
-    db.query(models.GroupMember).filter(models.GroupMember.user_id == user.id).delete(synchronize_session=False)
-
-    # 6. Reassign any groups created by this user to current_admin so foreign keys are preserved
-    db.query(models.Group).filter(models.Group.created_by == user.id).update(
-        {"created_by": current_admin.id}, synchronize_session=False
-    )
-
-    # 7. Delete conversation preferences involving user
-    db.query(models.ConversationPreference).filter(models.ConversationPreference.user_id == user.id).delete(synchronize_session=False)
-
-    # 8. Delete private conversations involving user
-    db.query(models.Conversation).filter(
-        or_(models.Conversation.user_a_id == user.id, models.Conversation.user_b_id == user.id)
-    ).delete(synchronize_session=False)
-
-    # 9. Reassign any audit logs where user was admin to current admin
-    db.query(models.AuditLog).filter(models.AuditLog.admin_id == user.id).update(
-        {"admin_id": current_admin.id}, synchronize_session=False
-    )
-
-    # 10. Permanently delete user account record
-    db.delete(user)
-
-    # 11. Record immutable audit log
-    audit = models.AuditLog(
-        admin_id=current_admin.id,
-        action="account_deleted",
-        target_type="user",
-        target_id=user_id,
-        target_name=target_name,
-        details=f"Permanently deleted user account @{target_username} ({target_name}, {target_email}, FRANK ID: {target_frank_id}) from Railway PostgreSQL"
-    )
-    db.add(audit)
-    db.commit()
-    db.refresh(audit)
+        db.query(models.Reaction).filter(models.Reaction.user_id == user.id).delete(synchronize_session=False)
+        db.query(models.GroupMember).filter(models.GroupMember.user_id == user.id).delete(synchronize_session=False)
+        db.query(models.ConversationPreference).filter(models.ConversationPreference.user_id == user.id).delete(synchronize_session=False)
+        db.query(models.Group).filter(models.Group.created_by == user.id).update(
+            {"created_by": current_admin.id}, synchronize_session=False
+        )
+        db.query(models.AuditLog).filter(models.AuditLog.admin_id == user.id).update(
+            {"admin_id": current_admin.id}, synchronize_session=False
+        )
+        db.delete(user)
+        audit = models.AuditLog(
+            admin_id=current_admin.id,
+            action="account_deleted",
+            target_type="user",
+            target_id=user_id,
+            target_name=target_name,
+            details=f"Permanently hard-deleted user account @{target_username} ({target_name}, {target_email}, FRANK ID: {target_frank_id}) from PostgreSQL"
+        )
+        db.add(audit)
+        db.commit()
+        db.refresh(audit)
 
     # 12. Broadcast live updates to admin sockets
     try:

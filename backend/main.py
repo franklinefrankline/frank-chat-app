@@ -73,14 +73,6 @@ def seed_demo_users():
             )
             db.add(admin_user)
             db.commit()
-        else:
-            admin_user.username = "frankline30999112@gmail.com"
-            admin_user.email = "frankline30999112@gmail.com"
-            admin_user.full_name = "Frankline"
-            admin_user.hashed_password = hash_password("#Frankline2006")
-            admin_user.role = "admin"
-            admin_user.account_status = "active"
-            db.commit()
 
         demo_users = [
             {

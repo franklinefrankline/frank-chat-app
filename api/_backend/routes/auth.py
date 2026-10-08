@@ -90,6 +90,7 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
         role="user",
         account_status="active",
         status="active",
+        is_active=True,
         created_at=now_dt,
         updated_at=now_dt
     )
@@ -234,15 +235,6 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    # Check if candidate account is disabled first
-    for cand in candidates:
-        cand_status = str(getattr(cand, "account_status", "") or getattr(cand, "status", "") or "active").lower()
-        if cand_status == "disabled":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Your account has been disabled. Account is disabled. Please contact an administrator."
-            )
-
     # Match candidate whose password verifies
     user = None
     for cand in candidates:
@@ -251,7 +243,27 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
             user = cand
             break
 
-    if not user:
+    # If candidate matched, verify whether the account is deactivated / disabled
+    if user:
+        cand_status = str(getattr(user, "account_status", "") or getattr(user, "status", "") or "active").lower()
+        is_active = getattr(user, "is_active", True)
+        if is_active is False or cand_status in ["disabled", "deactivated", "inactive"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your account has been deactivated. Please contact the administrator."
+            )
+    else:
+        # Check if all matching candidate(s) are deactivated
+        all_deactivated = all(
+            (getattr(cand, "is_active", True) is False) or
+            (str(getattr(cand, "account_status", "") or getattr(cand, "status", "") or "active").lower() in ["disabled", "deactivated", "inactive"])
+            for cand in candidates
+        )
+        if all_deactivated:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your account has been deactivated. Please contact the administrator."
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password.",

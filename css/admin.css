@@ -737,6 +737,99 @@
     .search-input-wrap {
         width: 100%;
     }
+
+    /* Mobile Responsive User Management Cards */
+    #usersTableWrap {
+        border: none;
+        overflow-x: visible !important;
+    }
+
+    #usersTable,
+    #usersTable thead,
+    #usersTable tbody,
+    #usersTable th,
+    #usersTable td,
+    #usersTable tr {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    #usersTable thead {
+        display: none !important;
+    }
+
+    #usersTable tbody tr {
+        margin-bottom: 16px;
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 16px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    #usersTable tbody td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        border: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 13px;
+        text-align: left;
+    }
+
+    #usersTable tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        flex-shrink: 0;
+        margin-right: 12px;
+    }
+
+    #usersTable tbody td:first-child {
+        padding-top: 0;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 6px;
+    }
+
+    #usersTable tbody td:first-child::before {
+        display: none;
+    }
+
+    #usersTable tbody td:last-child {
+        border-bottom: none;
+        padding-top: 14px;
+        padding-bottom: 0;
+        display: block;
+    }
+
+    #usersTable tbody td:last-child::before {
+        display: none;
+    }
+
+    .action-buttons-wrap {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        justify-content: stretch;
+    }
+
+    .btn-action {
+        width: 100%;
+        min-height: 38px;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        justify-content: center;
+        text-align: center;
+        box-sizing: border-box;
+    }
 }
 
 /* =========================================================================

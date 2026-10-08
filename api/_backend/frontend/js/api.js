@@ -964,6 +964,38 @@ const api = {
             };
 
             xhr.onerror = () => {
+                // Failover retry if primary backend was cold or unreachable
+                if (baseUrl !== window.location.origin && window.location.origin.startsWith('http')) {
+                    const fallbackXhr = new XMLHttpRequest();
+                    fallbackXhr.open('POST', `${window.location.origin}/api/files/upload`);
+                    if (token) fallbackXhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                    if (fallbackXhr.upload && onProgress) {
+                        fallbackXhr.upload.addEventListener('progress', (e) => {
+                            if (e.lengthComputable) {
+                                onProgress(Math.round((e.loaded / e.total) * 100), e.loaded, e.total);
+                            }
+                        });
+                    }
+                    fallbackXhr.onload = () => {
+                        try {
+                            const resData = JSON.parse(fallbackXhr.responseText);
+                            if (fallbackXhr.status >= 200 && fallbackXhr.status < 300) {
+                                resolve(resData);
+                                return;
+                            }
+                        } catch {}
+                        const err = new Error('Unable to connect to the server. Please check your connection and try again.');
+                        err.status = fallbackXhr.status;
+                        reject(err);
+                    };
+                    fallbackXhr.onerror = () => {
+                        const err = new Error('Unable to connect to the server. Please check your connection and try again.');
+                        err.status = 0;
+                        reject(err);
+                    };
+                    fallbackXhr.send(formData);
+                    return;
+                }
                 const err = new Error('Unable to connect to the server. Please check your connection and try again.');
                 err.status = 0;
                 reject(err);
@@ -1332,6 +1364,18 @@ const api = {
 
     async getFullSmart(convId, convType = 'direct', forceRefresh = false) {
         return this.request(`/api/conversations/${convId}/smart?conversation_type=${convType}&force_refresh=${forceRefresh ? 'true' : 'false'}`);
+    },
+
+    async analyzeSmartMessage(convId, messageId) {
+        return this.request(`/api/conversations/${convId}/messages/${messageId}/smart/analyze`, {
+            method: 'POST'
+        });
+    },
+
+    async analyzeSmartDocument(convId, messageId, attachmentId) {
+        return this.request(`/api/conversations/${convId}/messages/${messageId}/attachments/${attachmentId}/smart/analyze`, {
+            method: 'POST'
+        });
     },
 
     // Logout

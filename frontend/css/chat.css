@@ -828,14 +828,14 @@
 }
 
 .action-tool-btn:hover {
-    background: var(--surface-elevated);
-    color: var(--primary);
+    background: var(--surface-muted);
+    color: var(--text);
     transform: scale(1.08);
 }
 
 .action-tool-btn.msg-action-delete:hover {
     color: var(--danger);
-    background: rgba(239, 68, 68, 0.12);
+    background: rgba(239, 68, 68, 0.15);
 }
 
 .action-tool-btn.msg-action-copy:hover,
@@ -845,7 +845,7 @@
 .action-tool-btn.msg-action-open-doc:hover,
 .action-tool-btn.msg-action-download-doc:hover {
     color: var(--primary);
-    background: rgba(37, 99, 235, 0.12);
+    background: var(--primary-soft);
 }
 
 /* Chat Links */
@@ -1421,6 +1421,13 @@ body.dark .connection-banner.connected {
     border: 1px solid var(--border);
 }
 
+.message-bubble.document-bubble .message-document-card {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
 .message-document-card {
     display: flex;
     flex-direction: column;
@@ -1445,6 +1452,16 @@ body.dark .connection-banner.connected {
     justify-content: center;
     position: relative;
     flex-shrink: 0;
+}
+
+.message-row.sent .doc-badge-icon {
+    background: rgba(255, 255, 255, 0.18);
+    color: var(--message-sent-text);
+}
+
+.message-row.received .doc-badge-icon {
+    background: var(--surface-muted);
+    color: var(--file-icon-color, var(--primary));
 }
 
 .doc-badge-label {
@@ -1489,6 +1506,14 @@ body.dark .connection-banner.connected {
     opacity: 0.85;
 }
 
+.message-row.sent .message-doc-sub {
+    color: var(--message-sent-text);
+}
+
+.message-row.received .message-doc-sub {
+    color: var(--text-muted);
+}
+
 .message-doc-actions {
     display: flex;
     align-items: center;
@@ -1497,27 +1522,54 @@ body.dark .connection-banner.connected {
     border-top: 1px solid var(--border);
 }
 
+.message-row.sent .message-doc-actions {
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 .message-row.received .message-doc-actions {
     border-top: 1px solid var(--border);
 }
 
 .message-row.sent .message-doc-actions .btn-primary {
-    background: var(--primary);
-    color: var(--text-inverse);
+    background: #FFFFFF;
+    color: #000000 !important;
     font-weight: 700;
+    border: none;
 }
 
 .message-row.sent .message-doc-actions .btn-primary:hover {
-    background: var(--primary-hover);
+    background: #F0F0F0;
+    color: #000000 !important;
 }
 
 .message-row.sent .message-doc-actions .btn-secondary {
-    background: var(--surface-elevated);
-    color: var(--text);
-    border-color: var(--border);
+    background: rgba(255, 255, 255, 0.15);
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 .message-row.sent .message-doc-actions .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: #FFFFFF !important;
+}
+
+.message-row.received .message-doc-actions .btn-primary {
+    background: var(--primary);
+    color: var(--text-inverse) !important;
+    font-weight: 700;
+}
+
+.message-row.received .message-doc-actions .btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.message-row.received .message-doc-actions .btn-secondary {
+    background: var(--surface);
+    color: var(--text) !important;
+    border: 1px solid var(--border);
+}
+
+.message-row.received .message-doc-actions .btn-secondary:hover {
     background: var(--surface-muted);
 }
 

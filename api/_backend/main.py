@@ -20,11 +20,10 @@ from routes import auth, users, messages, groups, files, admin, smart, conversat
 from websocket.chat import handle_websocket_connection
 
 # Create database tables automatically
-if not os.environ.get("VERCEL"):
-    try:
-        Base.metadata.create_all(bind=engine)
-    except Exception as e:
-        print(f"Table creation note: {e}")
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Table creation note: {e}")
 
 def check_and_migrate_db():
     try:
@@ -73,14 +72,6 @@ def seed_demo_users():
                 is_online=False
             )
             db.add(admin_user)
-            db.commit()
-        else:
-            admin_user.username = "frankline30999112@gmail.com"
-            admin_user.email = "frankline30999112@gmail.com"
-            admin_user.full_name = "Frankline"
-            admin_user.hashed_password = hash_password("#Frankline2006")
-            admin_user.role = "admin"
-            admin_user.account_status = "active"
             db.commit()
 
         demo_users = [
@@ -152,8 +143,7 @@ def seed_demo_users():
     finally:
         db.close()
 
-if not os.environ.get("VERCEL"):
-    seed_demo_users()
+seed_demo_users()
 
 
 # Security Headers Middleware

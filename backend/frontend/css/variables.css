@@ -52,6 +52,9 @@
 [data-theme="monochrome"],
 html[data-theme="monochrome"],
 body[data-theme="monochrome"],
+[data-theme="dark"],
+html[data-theme="dark"],
+body[data-theme="dark"],
 body.dark {
     color-scheme: dark;
 
@@ -62,13 +65,13 @@ body.dark {
     --theme-border: #303030;
     --theme-text: #FFFFFF;
     --theme-text-secondary: #D4D4D4;
-    --theme-text-muted: #8A8A8A;
+    --theme-text-muted: #A1A1AA;
     --theme-accent: #FFFFFF;
     --theme-accent-hover: #E5E5E5;
     --theme-input: #171717;
     --theme-input-border: #303030;
     --theme-input-text: #FFFFFF;
-    --theme-input-placeholder: #777777;
+    --theme-input-placeholder: #9CA3AF;
     --theme-input-focus-border: #FFFFFF;
     --theme-input-focus-ring: rgba(255, 255, 255, 0.15);
     --theme-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
@@ -83,7 +86,7 @@ body.dark {
     --showcase-icon-bg: #202020;
     --showcase-icon-color: #FFFFFF;
     --showcase-icon-border: #303030;
-    --showcase-footer: #8A8A8A;
+    --showcase-footer: #A1A1AA;
     --showcase-logo-bg: rgba(255, 255, 255, 0.05);
     --showcase-logo-border: rgba(255, 255, 255, 0.12);
     --showcase-logo-glow: rgba(255, 255, 255, 0.08);
@@ -98,6 +101,7 @@ body.dark {
     --bg-elevated: #202020;
     --bg-card: #181818;
     --surface-muted: #262626;
+    --surface-hover: #222222;
 
     /* Mapped legacy tokens */
     --background: #0A0A0A;
@@ -107,13 +111,13 @@ body.dark {
     /* Borders */
     --border: #303030;
     --border-strong: #444444;
-    --border-hover: #444444;
+    --border-hover: #555555;
 
     /* Typography */
     --text-primary: #FFFFFF;
     --text-secondary: #D4D4D4;
-    --text-muted: #8A8A8A;
-    --text-subtle: #666666;
+    --text-muted: #A1A1AA;
+    --text-subtle: #888888;
     --text: #FFFFFF;
     --text-inverse: #000000;
 
@@ -158,8 +162,8 @@ body.dark {
     --chat-header-bg: #111111;
 
     /* Message Bubbles */
-    --message-sent: #E5E5E5;
-    --message-sent-text: #111111;
+    --message-sent: #262626;
+    --message-sent-text: #FFFFFF;
     --message-received: #1E1E1E;
     --message-received-text: #FFFFFF;
 
@@ -169,25 +173,25 @@ body.dark {
     --composer-input-bg: #171717;
     --composer-border: #303030;
     --composer-text: #FFFFFF;
-    --composer-placeholder: #777777;
-    --composer-icon: #8A8A8A;
+    --composer-placeholder: #9CA3AF;
+    --composer-icon: #D1D5DB;
     --composer-icon-hover: #FFFFFF;
     --composer-send-bg: #FFFFFF;
     --composer-send-text: #000000;
     --composer-send-hover: #E5E5E5;
 
     /* File Cards */
-    --file-card-bg: #181818;
-    --file-card-border: #303030;
+    --file-card-bg: #1A1A1A;
+    --file-card-border: #383838;
     --file-icon-color: #E5E5E5;
     --file-text: #FFFFFF;
-    --file-meta: #8A8A8A;
+    --file-meta: #A1A1AA;
 
     /* Profile & Cards */
     --card-bg: #181818;
     --frank-id-card-bg: #181818;
-    --frank-id-card-border: #303030;
-    --frank-id-card-label: #8A8A8A;
+    --frank-id-card-border: #383838;
+    --frank-id-card-label: #A1A1AA;
     --frank-id-card-value: #FFFFFF;
 
     /* Status Colors */
@@ -260,6 +264,7 @@ body[data-theme="sandstone"] {
     --bg-elevated: #FFFDF8;
     --bg-card: #F8EFE2;
     --surface-muted: #EADCC8;
+    --surface-hover: #EFE1CE;
 
     /* Mapped legacy tokens */
     --background: #F4EBDD;
