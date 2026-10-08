@@ -434,12 +434,13 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
         const messageId = parseInt(smartBtn.dataset.msgId, 10);
         const fileId = smartBtn.dataset.fileId ? parseInt(smartBtn.dataset.fileId, 10) : null;
+        const filename = smartBtn.dataset.filename || null;
         const convId = (window.chatController && window.chatController.currentConversationId) || (window.smartController && window.smartController.currentConvId);
         if (convId && window.smartController) {
             if (fileId) {
-                window.smartController.analyzeDocument(convId, messageId, fileId);
+                window.smartController.openForDocument(convId, messageId, fileId, filename);
             } else {
-                window.smartController.analyzeMessage(convId, messageId);
+                window.smartController.openForMessage(convId, messageId);
             }
         }
         return;

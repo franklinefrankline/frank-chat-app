@@ -1082,6 +1082,17 @@
                     </div>
                 </div>
 
+                <!-- Selected Context Indicator Bar (Message or Document Scoping) -->
+                <div class="smart-context-bar" id="smartContextBar" style="display: none;">
+                    <div class="smart-context-info">
+                        <span class="smart-context-icon">🎯</span>
+                        <span class="smart-context-text" id="smartContextText">Analyzing Message</span>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-xs smart-clear-context-btn" id="smartClearContextBtn" title="Clear filter and view full conversation">
+                        Show All Conversation
+                    </button>
+                </div>
+
                 <!-- Real-time New Messages Alert Banner -->
                 <div class="smart-realtime-banner" id="smartRealtimeBanner" role="status">
                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -1101,13 +1112,13 @@
                         Summary
                     </button>
                     <button type="button" class="smart-tab-btn" data-smart-tab="missed" role="tab" aria-selected="false" data-i18n="smart.whatDidIMiss">
-                        What Did I Miss?
+                        Missed
                     </button>
                     <button type="button" class="smart-tab-btn" data-smart-tab="important" role="tab" aria-selected="false" data-i18n="smart.importantMessages">
-                        Important Messages
+                        Important
                     </button>
                     <button type="button" class="smart-tab-btn" data-smart-tab="actions" role="tab" aria-selected="false" data-i18n="smart.actionItems">
-                        Action Items
+                        Actions
                     </button>
                     <button type="button" class="smart-tab-btn" data-smart-tab="decisions" role="tab" aria-selected="false" data-i18n="smart.decisions">
                         Decisions

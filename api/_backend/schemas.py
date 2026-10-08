@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional, List, Any, Union, Dict
 from pydantic import BaseModel, Field, field_serializer
 
 def format_iso_utc(dt: Optional[datetime]) -> Optional[str]:
@@ -374,6 +374,8 @@ class ResetPasswordRequest(BaseModel):
 
 class SmartSummaryRequest(BaseModel):
     conversation_type: Optional[str] = "direct"  # direct or group
+    message_id: Optional[int] = None
+    attachment_id: Optional[int] = None
     force_refresh: Optional[bool] = False
 
 
@@ -381,28 +383,35 @@ class SmartSummaryResponse(BaseModel):
     success: bool = True
     conversation_id: int
     conversation_type: str = "direct"
+    message_id: Optional[int] = None
+    attachment_id: Optional[int] = None
     summary_bullets: List[str] = []
     summary_text: str = ""
+    key_points: List[str] = []
+    important_info: str = ""
     status: str = "ready"  # ready, insufficient_content, not_configured, unavailable
     message: Optional[str] = None
     source_message_start: Optional[int] = None
     source_message_end: Optional[int] = None
     generated_at: Optional[str] = None
+    provider: Optional[str] = None
 
 
 class SmartMissedRequest(BaseModel):
     conversation_type: Optional[str] = "direct"
+    message_id: Optional[int] = None
     period: str = "last_read"  # last_read, today, yesterday, last_7_days, custom
     start_date: Optional[str] = None
     end_date: Optional[str] = None
 
 
 class SmartMissedItem(BaseModel):
-    source_message_id: int
+    source_message_id: Optional[int] = None
     sender_name: str
     preview: str
     timestamp: str
-    category: str = "update"  # update, decision, file, task
+    category: str = "update"  # question, pending, unaddressed, update, task
+    missed_reason: Optional[str] = None
 
 
 class SmartMissedResponse(BaseModel):
@@ -421,11 +430,12 @@ class SmartMissedResponse(BaseModel):
 
 
 class SmartImportantMessageItem(BaseModel):
-    source_message_id: int
+    source_message_id: Optional[int] = None
     sender_name: str
     message_preview: str
     timestamp: str
-    category: str  # deadline, decision, task, announcement, question, shared_info
+    category: str  # deadline, decision, task, warning, critical, announcement, question, shared_info
+    priority: str = "Medium"  # High, Medium, Low
     reason: str
 
 
@@ -442,11 +452,15 @@ class SmartActionItemCreate(BaseModel):
     conversation_type: Optional[str] = "direct"
     source_message_id: Optional[int] = None
     action_text: str = Field(..., min_length=1, max_length=500)
+    assigned_to: Optional[str] = None
+    due_date: Optional[str] = None
 
 
 class SmartActionItemUpdate(BaseModel):
     completed: Optional[bool] = None
     action_text: Optional[str] = None
+    assigned_to: Optional[str] = None
+    due_date: Optional[str] = None
 
 
 class SmartActionItemResponse(BaseModel):
@@ -456,7 +470,10 @@ class SmartActionItemResponse(BaseModel):
     user_id: int
     source_message_id: Optional[int] = None
     action_text: str
+    assigned_to: Optional[str] = None
+    due_date: Optional[str] = None
     completed: bool
+    status: str = "Pending"
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -493,6 +510,7 @@ class SmartDateItem(BaseModel):
     source_message_id: Optional[int] = None
     title: str
     date_value: str
+    context: Optional[str] = None
     created_at: Optional[str] = None
 
 
@@ -524,6 +542,7 @@ class SmartFileItem(BaseModel):
     file_type: str = "document"
     mime_type: str = ""
     uploader_name: str = "Participant"
+    message_id: Optional[int] = None
     created_at: Optional[str] = None
     download_url: Optional[str] = None
 
@@ -542,6 +561,11 @@ class SmartInsightsResponse(BaseModel):
     success: bool = True
     conversation_id: int
     conversation_type: str = "direct"
+    main_topic: Optional[str] = None
+    sentiment: Optional[str] = None
+    key_patterns: Optional[str] = None
+    risks: Optional[str] = None
+    conclusion: Optional[str] = None
     total_messages: int = 0
     user_messages: int = 0
     other_messages: int = 0
@@ -555,6 +579,7 @@ class SmartInsightsResponse(BaseModel):
     last_activity: Optional[str] = None
     unread_messages: int = 0
     status: str = "ready"
+    message: Optional[str] = None
 
 
 class SmartFullResponse(BaseModel):
@@ -575,4 +600,28 @@ class SmartFullResponse(BaseModel):
     decisions_count: int = 0
     dates_count: int = 0
     latest_message_id: Optional[int] = None
+
+
+class SmartAnalysisRequest(BaseModel):
+    conversation_id: Optional[Any] = None
+    conversation_type: Optional[str] = "direct"
+    force_refresh: bool = False
+    message_id: Optional[Any] = None
+    attachment_id: Optional[Any] = None
+    include_message: Optional[bool] = None
+    include_document: Optional[bool] = None
+    analysis_type: Optional[str] = "summary"
+
+
+class ActionItemStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(OPEN|COMPLETED|CANCELLED|open|completed|cancelled)$")
+
+
+class ActionItemFullUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    assigned_to: Optional[Any] = None
+    due_date: Optional[str] = None
+    status: Optional[str] = None
+
 

@@ -1287,43 +1287,68 @@ const api = {
     },
 
     // ---------------- SMART CONVERSATION API ----------------
-    async getSmartOverview(convId, convType = 'direct') {
-        return this.request(`/api/conversations/${convId}/smart?conversation_type=${convType}`);
+    async getSmartOverview(convId, convType = 'direct', messageId = null) {
+        let url = `/api/conversations/${convId}/smart?conversation_type=${convType}`;
+        if (messageId) url += `&message_id=${messageId}`;
+        return this.request(url);
     },
 
-    async generateSmartSummary(convId, convType = 'direct', forceRefresh = false, simulateFailure = false) {
+    async generateSmartSummary(convId, convType = 'direct', forceRefresh = false, messageId = null, attachmentId = null, simulateFailure = false) {
         const headers = simulateFailure ? { 'X-Simulate-AI-Failure': '1' } : {};
+        const payload = {
+            conversation_type: convType,
+            force_refresh: forceRefresh
+        };
+        if (messageId) payload.message_id = messageId;
+        if (attachmentId) payload.attachment_id = attachmentId;
+
         return this.request(`/api/conversations/${convId}/smart/summary`, {
             method: 'POST',
             headers,
-            body: JSON.stringify({ conversation_type: convType, force_refresh: forceRefresh })
+            body: JSON.stringify(payload)
         });
     },
 
-    async generateSmartMissed(convId, convType = 'direct', period = 'last_read', startDate = null, endDate = null, simulateFailure = false) {
+    async generateSmartMissed(convId, convType = 'direct', period = 'last_read', startDate = null, endDate = null, messageId = null, simulateFailure = false) {
         const headers = simulateFailure ? { 'X-Simulate-AI-Failure': '1' } : {};
+        const payload = {
+            conversation_type: convType,
+            period,
+            start_date: startDate,
+            end_date: endDate
+        };
+        if (messageId) payload.message_id = messageId;
+
         return this.request(`/api/conversations/${convId}/smart/missed`, {
             method: 'POST',
             headers,
-            body: JSON.stringify({ conversation_type: convType, period, start_date: startDate, end_date: endDate })
+            body: JSON.stringify(payload)
         });
     },
 
-    async getSmartImportant(convId, convType = 'direct', simulateFailure = false) {
+    async getSmartImportant(convId, convType = 'direct', messageId = null, simulateFailure = false) {
         const headers = simulateFailure ? { 'X-Simulate-AI-Failure': '1' } : {};
-        return this.request(`/api/conversations/${convId}/smart/important?conversation_type=${convType}`, {
-            headers
-        });
+        let url = `/api/conversations/${convId}/smart/important?conversation_type=${convType}`;
+        if (messageId) url += `&message_id=${messageId}`;
+        return this.request(url, { headers });
     },
 
-    async getSmartActions(convId, convType = 'direct') {
-        return this.request(`/api/conversations/${convId}/smart/actions?conversation_type=${convType}`);
+    async getSmartActions(convId, convType = 'direct', messageId = null) {
+        let url = `/api/conversations/${convId}/smart/actions?conversation_type=${convType}`;
+        if (messageId) url += `&message_id=${messageId}`;
+        return this.request(url);
     },
 
-    async createSmartAction(convId, convType = 'direct', actionText = '', sourceMessageId = null) {
+    async createSmartAction(convId, convType = 'direct', actionText = '', sourceMessageId = null, assignedTo = null, dueDate = null) {
         return this.request(`/api/conversations/${convId}/smart/actions`, {
             method: 'POST',
-            body: JSON.stringify({ conversation_type: convType, action_text: actionText, source_message_id: sourceMessageId })
+            body: JSON.stringify({
+                conversation_type: convType,
+                action_text: actionText,
+                source_message_id: sourceMessageId,
+                assigned_to: assignedTo,
+                due_date: dueDate
+            })
         });
     },
 
@@ -1340,30 +1365,37 @@ const api = {
         });
     },
 
-    async getSmartDecisions(convId, convType = 'direct', simulateFailure = false) {
+    async getSmartDecisions(convId, convType = 'direct', messageId = null, simulateFailure = false) {
         const headers = simulateFailure ? { 'X-Simulate-AI-Failure': '1' } : {};
-        return this.request(`/api/conversations/${convId}/smart/decisions?conversation_type=${convType}`, {
-            headers
-        });
+        let url = `/api/conversations/${convId}/smart/decisions?conversation_type=${convType}`;
+        if (messageId) url += `&message_id=${messageId}`;
+        return this.request(url, { headers });
     },
 
-    async getSmartDates(convId, convType = 'direct', simulateFailure = false) {
+    async getSmartDates(convId, convType = 'direct', messageId = null, simulateFailure = false) {
         const headers = simulateFailure ? { 'X-Simulate-AI-Failure': '1' } : {};
-        return this.request(`/api/conversations/${convId}/smart/dates?conversation_type=${convType}`, {
-            headers
-        });
+        let url = `/api/conversations/${convId}/smart/dates?conversation_type=${convType}`;
+        if (messageId) url += `&message_id=${messageId}`;
+        return this.request(url, { headers });
     },
 
-    async getSmartFiles(convId, convType = 'direct') {
-        return this.request(`/api/conversations/${convId}/smart/files?conversation_type=${convType}`);
+    async getSmartFiles(convId, convType = 'direct', messageId = null) {
+        let url = `/api/conversations/${convId}/smart/files?conversation_type=${convType}`;
+        if (messageId) url += `&message_id=${messageId}`;
+        return this.request(url);
     },
 
-    async getSmartInsights(convId, convType = 'direct') {
-        return this.request(`/api/conversations/${convId}/smart/insights?conversation_type=${convType}`);
+    async getSmartInsights(convId, convType = 'direct', messageId = null) {
+        let url = `/api/conversations/${convId}/smart/insights?conversation_type=${convType}`;
+        if (messageId) url += `&message_id=${messageId}`;
+        return this.request(url);
     },
 
-    async getFullSmart(convId, convType = 'direct', forceRefresh = false) {
-        return this.request(`/api/conversations/${convId}/smart?conversation_type=${convType}&force_refresh=${forceRefresh ? 'true' : 'false'}`);
+    async getFullSmart(convId, convType = 'direct', forceRefresh = false, messageId = null, attachmentId = null) {
+        let url = `/api/conversations/${convId}/smart?conversation_type=${convType}&force_refresh=${forceRefresh ? 'true' : 'false'}`;
+        if (messageId) url += `&message_id=${messageId}`;
+        if (attachmentId) url += `&attachment_id=${attachmentId}`;
+        return this.request(url);
     },
 
     async analyzeSmartMessage(convId, messageId) {
@@ -1377,6 +1409,62 @@ const api = {
             method: 'POST'
         });
     },
+
+    // Standalone Smart Analysis Integration
+    async getSmartAnalysis(convId, params = {}) {
+        let qs = [];
+        if (params.conversation_type) qs.push(`conversation_type=${encodeURIComponent(params.conversation_type)}`);
+        if (params.message_id) qs.push(`message_id=${encodeURIComponent(params.message_id)}`);
+        if (params.attachment_id) qs.push(`attachment_id=${encodeURIComponent(params.attachment_id)}`);
+        if (params.include_message !== undefined) qs.push(`include_message=${encodeURIComponent(params.include_message)}`);
+        if (params.include_document !== undefined) qs.push(`include_document=${encodeURIComponent(params.include_document)}`);
+        if (params.force_refresh) qs.push(`force_refresh=true`);
+        const queryStr = qs.length ? `?${qs.join('&')}` : '';
+        return this.request(`/api/conversations/${convId}/smart-analysis${queryStr}`);
+    },
+
+    async runSmartAnalysis(convId, payload = {}) {
+        return this.request(`/api/conversations/${convId}/smart-analysis`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+    },
+
+    async getActionItems(convId, convType = 'direct') {
+        return this.request(`/api/conversations/${convId}/action-items?conversation_type=${convType}`);
+    },
+
+    async createActionItem(convId, data) {
+        return this.request(`/api/conversations/${convId}/action-items`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async updateActionItem(convId, itemId, data) {
+        return this.request(`/api/conversations/${convId}/action-items/${itemId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async updateActionItemStatus(convId, itemId, status = 'COMPLETED') {
+        return this.request(`/api/conversations/${convId}/action-items/${itemId}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status })
+        });
+    },
+
+    async deleteActionItem(convId, itemId) {
+        return this.request(`/api/conversations/${convId}/action-items/${itemId}`, {
+            method: 'DELETE'
+        });
+    },
+
+    async getAIStatus() {
+        return this.request(`/api/ai/status`);
+    },
+
 
     // Logout
     logout() {

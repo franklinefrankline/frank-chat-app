@@ -180,6 +180,88 @@
     display: flex;
 }
 
+/* ---------------- 3b. CONTEXT BAR (SCOPED ANALYSIS) ---------------- */
+.smart-context-bar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(37, 99, 235, 0.08);
+    border-bottom: 1px solid rgba(37, 99, 235, 0.22);
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+    flex-shrink: 0;
+    gap: 8px;
+}
+
+.smart-context-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.smart-context-icon {
+    font-size: 14px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.smart-context-text {
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.smart-clear-context-btn {
+    font-size: 11px !important;
+    padding: 3px 8px !important;
+    white-space: nowrap;
+    border-radius: var(--radius-sm, 4px) !important;
+    border: 1px solid rgba(37, 99, 235, 0.3) !important;
+    color: var(--primary) !important;
+    background: transparent !important;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.smart-clear-context-btn:hover {
+    background: rgba(37, 99, 235, 0.15) !important;
+}
+
+/* Priority Pills */
+.smart-priority-pill {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 999px;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+}
+
+.smart-priority-pill.high {
+    background: rgba(239, 68, 68, 0.14);
+    color: #EF4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.smart-priority-pill.medium {
+    background: rgba(245, 158, 11, 0.14);
+    color: #F59E0B;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.smart-priority-pill.low {
+    background: rgba(59, 130, 246, 0.14);
+    color: #3B82F6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
 /* ---------------- 4. TABS NAVIGATION BAR ---------------- */
 .smart-tabs-bar {
     display: flex;
@@ -808,3 +890,63 @@
         padding: 14px;
     }
 }
+
+/* ---------------- TARGETED ANALYSIS BANNER (STANDALONE INTEGRATION) ---------------- */
+.smart-target-context-banner,
+#smartContextBar {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 16px;
+    background: rgba(37, 99, 235, 0.08);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.smart-target-context-banner.visible,
+#smartContextBar.visible {
+    display: flex !important;
+}
+
+.smart-target-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.smart-target-badge {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--primary);
+    background: rgba(37, 99, 235, 0.12);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+}
+
+.smart-clear-target-btn {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
+    transition: color 0.15s ease;
+}
+
+.smart-clear-target-btn:hover {
+    color: var(--primary);
+}
+
+.smart-target-preview-text {
+    font-size: 12px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+

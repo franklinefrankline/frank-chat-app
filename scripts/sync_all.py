@@ -43,7 +43,7 @@ def sync_assets():
             src_b = root_dir / "backend" / b_item
             if src_b.exists():
                 shutil.copy2(src_b, api_backend / b_item)
-        for r_dir in ["routes", "websocket"]:
+        for r_dir in ["routes", "websocket", "services"]:
             src_r = root_dir / "backend" / r_dir
             dst_r = api_backend / r_dir
             if src_r.exists():

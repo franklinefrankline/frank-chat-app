@@ -1117,11 +1117,12 @@ class ChatController {
             this.closeMessageContextMenu();
             const card = row.querySelector('.message-document-card, .message-photo-card, .message-video-card');
             const docFileId = card ? parseInt(card.dataset.fileId, 10) : null;
+            const filename = card?.querySelector('.file-name')?.textContent?.trim() || null;
             if (window.smartController) {
                 if (docFileId) {
-                    window.smartController.analyzeDocument(this.currentConversationId, numId, docFileId);
+                    window.smartController.openForDocument(this.currentConversationId, numId, docFileId, filename);
                 } else {
-                    window.smartController.analyzeMessage(this.currentConversationId, numId);
+                    window.smartController.openForMessage(this.currentConversationId, numId);
                 }
             }
         });

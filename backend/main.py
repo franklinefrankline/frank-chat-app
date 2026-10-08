@@ -18,6 +18,7 @@ import models
 from security import hash_password
 from routes import auth, users, messages, groups, files, admin, smart, conversations
 from websocket.chat import handle_websocket_connection
+from services.smart_service import smart_service
 
 # Create database tables automatically
 try:
@@ -259,6 +260,14 @@ def health_check():
             "database": "connected" if db_connected else "disconnected"
         }
     )
+
+
+@app.get("/ai/status")
+@app.get("/api/ai/status")
+async def ai_status_endpoint():
+    """AI connectivity status for Smart Conversations."""
+    return await smart_service.test_ai_connectivity()
+
 
 
 @app.get("/api")

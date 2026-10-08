@@ -231,6 +231,25 @@ def check_and_migrate_db():
                                 )
                 except Exception as ex:
                     print(f"Backfill note: {ex}")
+
+            if "conversation_summaries" in tables:
+                columns = [col["name"] for col in inspector.get_columns("conversation_summaries")]
+                if "message_id" not in columns:
+                    conn.execute(text("ALTER TABLE conversation_summaries ADD COLUMN message_id INTEGER NULL"))
+                if "attachment_id" not in columns:
+                    conn.execute(text("ALTER TABLE conversation_summaries ADD COLUMN attachment_id INTEGER NULL"))
+
+            if "smart_action_items" in tables:
+                columns = [col["name"] for col in inspector.get_columns("smart_action_items")]
+                if "assigned_to" not in columns:
+                    conn.execute(text("ALTER TABLE smart_action_items ADD COLUMN assigned_to VARCHAR(100) NULL"))
+                if "due_date" not in columns:
+                    conn.execute(text("ALTER TABLE smart_action_items ADD COLUMN due_date VARCHAR(100) NULL"))
+
+            if "smart_dates" in tables:
+                columns = [col["name"] for col in inspector.get_columns("smart_dates")]
+                if "context" not in columns:
+                    conn.execute(text("ALTER TABLE smart_dates ADD COLUMN context VARCHAR(500) NULL"))
     except Exception as e:
         print(f"Migration note: {e}")
 
