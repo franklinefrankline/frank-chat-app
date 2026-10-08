@@ -165,24 +165,55 @@
                 });
             });
 
-            // Mobile Nav Toggle
+            // Mobile Nav Toggle & Drawer
             const mobileBtn = document.getElementById('adminMobileNavBtn');
+            const closeBtn = document.getElementById('adminMobileCloseBtn');
             const sidebar = document.getElementById('adminSidebar');
             const overlay = document.getElementById('adminMobileOverlay');
 
-            if (mobileBtn && sidebar && overlay) {
-                mobileBtn.addEventListener('click', () => {
-                    const isOpen = sidebar.classList.toggle('open');
-                    overlay.classList.toggle('active', isOpen);
-                    overlay.classList.toggle('show', isOpen);
-                });
-
-                overlay.addEventListener('click', () => {
-                    sidebar.classList.remove('open');
+            const closeAdminSidebar = () => {
+                if (sidebar) sidebar.classList.remove('open');
+                if (overlay) {
                     overlay.classList.remove('active');
                     overlay.classList.remove('show');
+                }
+            };
+
+            const openAdminSidebar = () => {
+                if (sidebar) sidebar.classList.add('open');
+                if (overlay) {
+                    overlay.classList.add('active');
+                    overlay.classList.add('show');
+                }
+            };
+
+            if (mobileBtn && sidebar) {
+                mobileBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (sidebar.classList.contains('open')) {
+                        closeAdminSidebar();
+                    } else {
+                        openAdminSidebar();
+                    }
                 });
             }
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeAdminSidebar();
+                });
+            }
+
+            if (overlay) {
+                overlay.addEventListener('click', closeAdminSidebar);
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && sidebar && sidebar.classList.contains('open')) {
+                    closeAdminSidebar();
+                }
+            });
 
             // Global Refresh Button
             const refreshBtn = document.getElementById('adminRefreshBtn');
@@ -260,7 +291,10 @@
             const sidebar = document.getElementById('adminSidebar');
             const overlay = document.getElementById('adminMobileOverlay');
             if (sidebar) sidebar.classList.remove('open');
-            if (overlay) overlay.classList.remove('active');
+            if (overlay) {
+                overlay.classList.remove('active');
+                overlay.classList.remove('show');
+            }
         }
 
         /* -----------------------------------------------------------------

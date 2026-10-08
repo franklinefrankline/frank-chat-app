@@ -38,6 +38,12 @@
                     </div>
                 </a>
                 <span class="brand-badge admin-badge">ADMIN</span>
+                <button type="button" class="admin-mobile-close-btn" id="adminMobileCloseBtn" aria-label="Close navigation">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
             </div>
 
             <!-- Navigation Sections -->
@@ -122,15 +128,18 @@
 
             <!-- Mobile Top Header -->
             <header class="admin-topbar">
-                <button type="button" class="btn btn-ghost btn-icon mobile-nav-toggle" id="adminMobileNavBtn" aria-label="Open navigation">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="3" y1="12" x2="21" y2="12"></line>
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <line x1="3" y1="18" x2="21" y2="18"></line>
-                    </svg>
-                </button>
-                <div class="admin-topbar-title" id="adminTopbarTitle" data-i18n="admin.metrics">Overview &amp; Metrics</div>
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="admin-topbar-left">
+                    <button type="button" class="btn btn-ghost btn-icon mobile-nav-toggle" id="adminMobileNavBtn" aria-label="Open navigation">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <div class="admin-topbar-brand-mobile">FRANK — THINK • ADMIN</div>
+                    <div class="admin-topbar-title" id="adminTopbarTitle" data-i18n="admin.metrics">Overview &amp; Metrics</div>
+                </div>
+                <div class="admin-topbar-actions">
                     <!-- Language Selector -->
                     <div class="lang-selector-container" id="adminLangSelector">
                         <button type="button" class="btn btn-ghost lang-btn" id="adminLangDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language" style="padding: 5px 10px; font-size: 13px; min-height: 32px;">
@@ -157,7 +166,7 @@
                             <polyline points="1 20 1 14 7 14"></polyline>
                             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
                         </svg>
-                        <span>Refresh</span>
+                        <span class="admin-refresh-text">Refresh</span>
                     </button>
                     <span class="live-status-pill" id="adminLiveBadge">
                         <span class="live-dot"></span> LIVE
