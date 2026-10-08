@@ -873,6 +873,12 @@ const api = {
         });
     },
 
+    async getOrCreatePrivateConversation(opts = {}) {
+        const targetId = opts.target_user_id || opts.targetUserId || opts.id;
+        const frankId = opts.frank_id || opts.frankId;
+        return this.createPrivateConversation(targetId, frankId);
+    },
+
     async updateMemberRole(groupId, userId, role) {
         return this.request(`/api/groups/${groupId}/members/${userId}/role`, {
             method: 'PATCH',

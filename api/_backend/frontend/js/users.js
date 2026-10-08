@@ -282,12 +282,15 @@ const usersModule = {
         closeModal('newChatModal');
         const currentUser = auth.getUser();
         if (!currentUser) return;
+        let selfConvId = null;
         try {
-            await api.createPrivateConversation(currentUser.id, currentUser.frank_id);
+            const res = await api.createPrivateConversation(currentUser.id, currentUser.frank_id);
+            if (res && res.id) selfConvId = res.id;
         } catch (_) {}
 
         const selfPartner = {
             id: currentUser.id,
+            conversation_id: selfConvId,
             username: currentUser.username,
             full_name: `${currentUser.full_name || currentUser.username} (You)`,
             bio: 'Message yourself • Notes & bookmarks',
@@ -308,7 +311,10 @@ const usersModule = {
 
         try {
             // Guarantee zero duplicate 1-to-1 conversations at backend/client level
-            await api.createPrivateConversation(user.id, user.frank_id);
+            const res = await api.createPrivateConversation(user.id, user.frank_id);
+            if (res && res.id) {
+                user.conversation_id = res.id;
+            }
         } catch (_) {}
 
         if (window.chatController) {

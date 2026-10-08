@@ -435,7 +435,7 @@ document.addEventListener('click', async (e) => {
         const messageId = parseInt(smartBtn.dataset.msgId, 10);
         const fileId = smartBtn.dataset.fileId ? parseInt(smartBtn.dataset.fileId, 10) : null;
         const filename = smartBtn.dataset.filename || null;
-        const convId = (window.chatController && window.chatController.currentConversationId) || (window.smartController && window.smartController.currentConvId);
+        const convId = (window.chatController && (window.chatController.activeConversationId || window.chatController.activeId)) || (window.smartController && window.smartController.currentConvId);
         if (convId && window.smartController) {
             if (fileId) {
                 window.smartController.openForDocument(convId, messageId, fileId, filename);

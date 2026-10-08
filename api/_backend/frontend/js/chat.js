@@ -99,6 +99,10 @@ class ChatController {
         if (window.voiceRecorder) window.voiceRecorder.cancelRecording();
         this.updateComposerActionButton();
 
+        if (!this.activeConversationId) {
+            await this.ensureConversationId();
+        }
+
         const currentUser = auth.getUser();
         const isSelf = currentUser && Number(partner.id) === Number(currentUser.id);
 
@@ -233,6 +237,7 @@ class ChatController {
                 const res = await api.getOrCreatePrivateConversation({ target_user_id: this.activeId });
                 if (res && res.id) {
                     this.activeConversationId = res.id;
+                    if (this.activePartner) this.activePartner.conversation_id = res.id;
                     return res.id;
                 }
             } catch (e) {
@@ -1118,11 +1123,12 @@ class ChatController {
             const card = row.querySelector('.message-document-card, .message-photo-card, .message-video-card');
             const docFileId = card ? parseInt(card.dataset.fileId, 10) : null;
             const filename = card?.querySelector('.file-name')?.textContent?.trim() || null;
+            const convId = this.activeConversationId || this.activeId;
             if (window.smartController) {
                 if (docFileId) {
-                    window.smartController.openForDocument(this.currentConversationId, numId, docFileId, filename);
+                    window.smartController.openForDocument(convId, numId, docFileId, filename);
                 } else {
-                    window.smartController.openForMessage(this.currentConversationId, numId);
+                    window.smartController.openForMessage(convId, numId);
                 }
             }
         });

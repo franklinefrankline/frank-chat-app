@@ -2,8 +2,11 @@ import os
 import re
 import time
 import json
+import logging
 import urllib.request
 from pathlib import Path
+
+logger = logging.getLogger("smart_service")
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
@@ -13,6 +16,7 @@ from fastapi import HTTPException, status
 import models
 import schemas
 from services.document_extractor import extract_text_from_file
+from services.gemini_provider import gemini_provider
 
 
 # ---------------- RATE LIMITING CACHE ----------------
@@ -483,36 +487,84 @@ class SmartConversationService:
                 )
             return group.id, None, False
 
-        # Direct conversation
+        # Direct conversation:
+        # Case 1: Check if conversation_id is a canonical Conversation ID
         conv = db.query(models.Conversation).filter(models.Conversation.id == conversation_id).first()
         if conv:
-            if current_user.id in (conv.user_a_id, conv.user_b_id) or current_user.role == "admin":
+            is_member = (
+                current_user.id in (conv.user_a_id, conv.user_b_id) or
+                db.query(models.ConversationMember).filter(
+                    models.ConversationMember.conversation_id == conv.id,
+                    models.ConversationMember.user_id == current_user.id
+                ).first() is not None or
+                current_user.role == "admin"
+            )
+            if is_member:
                 is_self = (conv.user_a_id == conv.user_b_id)
                 partner_id = current_user.id if is_self else (conv.user_b_id if conv.user_a_id == current_user.id else conv.user_a_id)
                 return conv.id, partner_id, is_self
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You don't have permission to analyze this conversation."
-                )
 
-        # Fallback target user ID for direct partner lookup
-        target_user = db.query(models.User).filter(models.User.id == conversation_id).first()
-        if target_user:
-            partner_id = target_user.id
-            is_self = (partner_id == current_user.id)
-            ua = min(current_user.id, partner_id)
-            ub = max(current_user.id, partner_id)
+        # Case 2: conversation_id is the user's own ID (Self chat / Notes & bookmarks passed as user ID)
+        if conversation_id == current_user.id:
+            self_conv = db.query(models.Conversation).filter(
+                models.Conversation.user_a_id == current_user.id,
+                models.Conversation.user_b_id == current_user.id
+            ).first()
+            if not self_conv:
+                self_conv = models.Conversation(user_a_id=current_user.id, user_b_id=current_user.id)
+                db.add(self_conv)
+                db.commit()
+                db.refresh(self_conv)
+            m = db.query(models.ConversationMember).filter(
+                models.ConversationMember.conversation_id == self_conv.id,
+                models.ConversationMember.user_id == current_user.id
+            ).first()
+            if not m:
+                db.add(models.ConversationMember(conversation_id=self_conv.id, user_id=current_user.id))
+                db.commit()
+            return self_conv.id, current_user.id, True
+
+        # Case 3: conversation_id is a partner user ID with whom current_user has an established direct conversation or messages
+        partner_user = db.query(models.User).filter(models.User.id == conversation_id).first()
+        if partner_user:
+            ua = min(current_user.id, partner_user.id)
+            ub = max(current_user.id, partner_user.id)
             user_conv = db.query(models.Conversation).filter(
                 models.Conversation.user_a_id == ua,
                 models.Conversation.user_b_id == ub
             ).first()
-            if not user_conv:
+            if user_conv:
+                is_self = (partner_user.id == current_user.id)
+                return user_conv.id, partner_user.id, is_self
+            # Also check if direct messages exist between current_user and partner_user
+            has_messages = db.query(models.Message).filter(
+                models.Message.group_id.is_(None),
+                or_(
+                    and_(models.Message.sender_id == current_user.id, models.Message.recipient_id == partner_user.id),
+                    and_(models.Message.sender_id == partner_user.id, models.Message.recipient_id == current_user.id)
+                )
+            ).first() is not None
+            if has_messages:
                 user_conv = models.Conversation(user_a_id=ua, user_b_id=ub)
                 db.add(user_conv)
                 db.commit()
                 db.refresh(user_conv)
-            return user_conv.id, partner_id, is_self
+                for uid in set([ua, ub]):
+                    m = db.query(models.ConversationMember).filter(
+                        models.ConversationMember.conversation_id == user_conv.id,
+                        models.ConversationMember.user_id == uid
+                    ).first()
+                    if not m:
+                        db.add(models.ConversationMember(conversation_id=user_conv.id, user_id=uid))
+                db.commit()
+                return user_conv.id, partner_user.id, False
+
+        # Case 4: If conv was found above, but current_user was NOT a member -> strictly 403 Forbidden!
+        if conv:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to analyze this conversation."
+            )
 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
 
@@ -953,8 +1005,11 @@ class SmartConversationService:
             conversation_id, conversation_type, current_user, db, limit=120, message_id=message_id
         )
 
+        conv_id, partner_id, is_self = self.resolve_conversation(conversation_id, conversation_type, current_user, db)
+        candidate_conv_ids = list(set(c for c in [conversation_id, conv_id, partner_id] if c is not None))
+
         existing_q = db.query(models.SmartActionItem).filter(
-            models.SmartActionItem.conversation_id == conversation_id,
+            models.SmartActionItem.conversation_id.in_(candidate_conv_ids),
             models.SmartActionItem.conversation_type == conversation_type,
             models.SmartActionItem.user_id == current_user.id
         )
@@ -1111,7 +1166,6 @@ class SmartConversationService:
     ) -> Dict[str, Any]:
         item = db.query(models.SmartActionItem).filter(
             models.SmartActionItem.id == action_id,
-            models.SmartActionItem.conversation_id == conversation_id,
             models.SmartActionItem.user_id == current_user.id
         ).first()
 
@@ -1135,8 +1189,10 @@ class SmartConversationService:
             conversation_id, conversation_type, current_user, db, limit=120, message_id=message_id
         )
 
+        conv_id, partner_id, is_self = self.resolve_conversation(conversation_id, conversation_type, current_user, db)
+        candidate_conv_ids = list(set(c for c in [conversation_id, conv_id, partner_id] if c is not None))
         existing_q = db.query(models.SmartDecision).filter(
-            models.SmartDecision.conversation_id == conversation_id,
+            models.SmartDecision.conversation_id.in_(candidate_conv_ids),
             models.SmartDecision.conversation_type == conversation_type,
             models.SmartDecision.user_id == current_user.id
         )
@@ -1210,8 +1266,10 @@ class SmartConversationService:
             conversation_id, conversation_type, current_user, db, limit=120, message_id=message_id
         )
 
+        conv_id, partner_id, is_self = self.resolve_conversation(conversation_id, conversation_type, current_user, db)
+        candidate_conv_ids = list(set(c for c in [conversation_id, conv_id, partner_id] if c is not None))
         existing_q = db.query(models.SmartDate).filter(
-            models.SmartDate.conversation_id == conversation_id,
+            models.SmartDate.conversation_id.in_(candidate_conv_ids),
             models.SmartDate.conversation_type == conversation_type,
             models.SmartDate.user_id == current_user.id
         )
@@ -1753,8 +1811,13 @@ class SmartConversationService:
         """
         Unified Smart Analysis endpoint conforming to the standalone Smart Conversations API contract.
         Supports full conversation analysis, single message analysis, single document analysis,
-        and message+document targeted analysis.
+        and message+document targeted analysis using live Gemini AI with NLP fallback.
         """
+        # Strict authorization check and conversation canonical resolution
+        conv_id, partner_id, is_self = self.resolve_conversation(
+            conversation_id, conversation_type, current_user, db
+        )
+
         # Targeted mode if message_id or attachment_id is specified
         if message_id or attachment_id:
             target_msg = None
@@ -1763,63 +1826,242 @@ class SmartConversationService:
 
             if message_id:
                 msg = db.query(models.Message).filter(models.Message.id == message_id).first()
-                if msg:
-                    target_msg = msg
-                    sender = db.query(models.User).filter(models.User.id == msg.sender_id).first()
-                    if sender:
-                        target_msg_sender = sender.full_name or sender.username
+                if not msg:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found.")
+                if conversation_type == "group":
+                    if msg.group_id != conv_id and current_user.role != "admin":
+                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Message does not belong to this conversation.")
+                else:
+                    if msg.group_id is not None and current_user.role != "admin":
+                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Message does not belong to this conversation.")
+                    if is_self:
+                        if (msg.sender_id != current_user.id or (msg.recipient_id is not None and msg.recipient_id != current_user.id)) and current_user.role != "admin":
+                            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Message does not belong to this conversation.")
+                    else:
+                        if not ((msg.sender_id == current_user.id and msg.recipient_id == partner_id) or (msg.sender_id == partner_id and msg.recipient_id == current_user.id)) and current_user.role != "admin":
+                            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Message does not belong to this conversation.")
+                target_msg = msg
+                sender = db.query(models.User).filter(models.User.id == msg.sender_id).first()
+                if sender:
+                    target_msg_sender = sender.full_name or sender.username
 
             if attachment_id:
-                target_att = db.query(models.Document).filter(models.Document.id == attachment_id).first()
+                doc = db.query(models.Document).filter(models.Document.id == attachment_id).first()
+                if not doc:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+                if conversation_type == "group":
+                    if doc.group_id != conv_id and current_user.role != "admin":
+                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Document does not belong to this conversation.")
+                else:
+                    if is_self:
+                        if doc.uploader_id != current_user.id and current_user.role != "admin":
+                            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Document does not belong to this conversation.")
+                    else:
+                        if doc.uploader_id not in (current_user.id, partner_id) and current_user.role != "admin":
+                            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Document does not belong to this conversation.")
+                if message_id and doc.message_id and doc.message_id != message_id:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Attachment does not belong to specified message.")
+                target_att = doc
 
             is_doc_only = (attachment_id is not None and (message_id is None or include_message is False))
             is_msg_only = (message_id is not None and (attachment_id is None or include_document is False))
             mode = "DOCUMENT" if is_doc_only else ("MESSAGE" if is_msg_only else "MESSAGE_DOCUMENT")
 
-            summary_text = ""
-            key_points = []
-            action_items = []
-            decisions = []
-            dates = []
-
-            if target_msg and not is_doc_only:
-                msg_analysis = await self.analyze_specific_message(conversation_id, message_id, current_user, db)
-                analysis_info = msg_analysis.get("analysis", {})
-                summary_text = analysis_info.get("summary") or analysis_info.get("key_takeaway") or target_msg.content[:120]
-                key_points.append(f"Sender: {target_msg_sender}")
-                key_points.append(f"Category: {analysis_info.get('category', 'General')}")
-                key_points.append(f"Tone: {analysis_info.get('tone', 'Neutral')}")
-                if analysis_info.get("has_action_item"):
-                    action_items.append({
-                        "id": f"ai_msg_{target_msg.id}",
-                        "conversation_id": str(conversation_id),
-                        "source_message_id": str(target_msg.id),
-                        "title": analysis_info.get("key_takeaway", "Action required from message"),
-                        "description": target_msg.content,
-                        "assigned_to": str(current_user.id),
-                        "assigned_to_name": current_user.full_name,
-                        "due_date": None,
-                        "status": "OPEN",
-                        "created_at": schemas.format_iso_utc(target_msg.created_at) or "",
-                        "updated_at": schemas.format_iso_utc(target_msg.created_at) or ""
-                    })
-
+            # Extract Document text if target_att
+            doc_payload = None
+            doc_info = None
             if target_att and not is_msg_only:
-                att_analysis = await self.analyze_specific_attachment(conversation_id, message_id or 0, attachment_id, current_user, db)
-                att_info = att_analysis.get("analysis", {})
-                att_summary = att_info.get("summary") or f"Asset: {target_att.original_filename}"
-                if summary_text:
-                    summary_text += f"\n\nDocument Attached: {att_summary}"
+                possible_paths = [
+                    Path("backend/uploads") / target_att.stored_filename,
+                    Path("uploads") / target_att.stored_filename,
+                    Path(f"backend/uploads/{conversation_id}/{target_att.stored_filename}"),
+                    Path(f"uploads/{conversation_id}/{target_att.stored_filename}"),
+                    Path("backend/uploads") / target_att.original_filename,
+                    Path("uploads") / target_att.original_filename,
+                ]
+                file_path = None
+                for p in possible_paths:
+                    if p.exists():
+                        file_path = p
+                        break
+                
+                if file_path:
+                    try:
+                        doc_info = extract_text_from_file(file_path, target_att.original_filename, target_att.mime_type)
+                    except Exception as e:
+                        logger.warning(f"Error extracting document text: {e}")
+                
+                if not doc_info and getattr(target_att, "file_data", None):
+                    try:
+                        import base64
+                        decoded_bytes = base64.b64decode(target_att.file_data)
+                        tmp_path = Path("backend/uploads") / f"tmp_{target_att.id}_{target_att.original_filename}"
+                        tmp_path.parent.mkdir(parents=True, exist_ok=True)
+                        tmp_path.write_bytes(decoded_bytes)
+                        doc_info = extract_text_from_file(tmp_path, target_att.original_filename, target_att.mime_type)
+                        try:
+                            tmp_path.unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                    except Exception as b64_err:
+                        logger.warning(f"Error decoding base64 file_data: {b64_err}")
+
+                doc_text = (doc_info.get("text") if doc_info else "") or f"Document: {target_att.original_filename}"
+                doc_payload = {
+                    "attachment_id": str(target_att.id),
+                    "filename": target_att.original_filename,
+                    "text": doc_text,
+                    "page_count": doc_info.get("page_count", 1) if doc_info else 1,
+                    "pages": doc_info.get("pages", []) if doc_info else [],
+                }
+
+            msg_payload = None
+            if target_msg and not is_doc_only:
+                msg_payload = {
+                    "message_id": str(target_msg.id),
+                    "sender_name": target_msg_sender,
+                    "content": target_msg.content,
+                    "timestamp": schemas.format_iso_utc(target_msg.created_at) or "",
+                }
+
+            # Call live Gemini AI provider
+            ai_output = None
+            try:
+                ai_output = await gemini_provider.analyze_message_or_document(
+                    message=msg_payload,
+                    document=doc_payload
+                )
+            except Exception as e:
+                logger.error(f"Error calling gemini_provider in targeted analysis: {e}")
+
+            # If Gemini succeeded, populate from AI
+            if ai_output and isinstance(ai_output, dict):
+                summary_data = ai_output.get("summary", {})
+                if isinstance(summary_data, str):
+                    summary_text = summary_data
+                    raw_sources = []
                 else:
-                    summary_text = att_summary
-                key_points.append(f"Document: {target_att.original_filename} ({round(target_att.file_size/1024, 1)} KB)")
-                key_points.append(f"Format: {att_info.get('format', 'FILE')}")
-                key_points.append(f"Status: {att_info.get('security_status', 'Scanned & Clean')}")
+                    summary_text = summary_data.get("text", "")
+                    raw_sources = summary_data.get("sources", [])
+
+                key_points = ai_output.get("key_points", [])
+                important_info = ai_output.get("important_information", [])
+                what_missed = ai_output.get("what_did_i_miss", [])
+                important_msgs = ai_output.get("important_messages", [])
+                raw_actions = ai_output.get("action_items", [])
+                raw_decisions = ai_output.get("decisions", [])
+                raw_dates = ai_output.get("dates", [])
+            else:
+                # Built-in intelligent fallback
+                summary_text = ""
+                key_points = []
+                important_info = []
+                what_missed = []
+                important_msgs = []
+                raw_actions = []
+                raw_decisions = []
+                raw_dates = []
+
+                if target_msg and not is_doc_only:
+                    msg_analysis = await self.analyze_specific_message(conversation_id, message_id, current_user, db)
+                    analysis_info = msg_analysis.get("analysis", {})
+                    summary_text = analysis_info.get("summary") or analysis_info.get("key_takeaway") or target_msg.content
+                    key_points.append(f"Sender: {target_msg_sender}")
+                    key_points.append(f"Category: {analysis_info.get('category', 'General')}")
+                    key_points.append(f"Tone: {analysis_info.get('tone', 'Neutral')}")
+                    important_info.append(f"Direct message from {target_msg_sender} received at {schemas.format_iso_utc(target_msg.created_at)}.")
+                    if analysis_info.get("has_action_item"):
+                        raw_actions.append({
+                            "title": analysis_info.get("key_takeaway", "Action required from message"),
+                            "description": target_msg.content,
+                            "source_message_id": str(target_msg.id)
+                        })
+
+                if target_att and not is_msg_only:
+                    att_analysis = await self.analyze_specific_attachment(conversation_id, message_id or 0, attachment_id, current_user, db)
+                    att_info = att_analysis.get("analysis", {})
+                    att_summary = att_info.get("summary") or f"Asset: {target_att.original_filename}"
+                    if summary_text:
+                        summary_text += f"\n\nDocument Analysis: {att_summary}"
+                    else:
+                        summary_text = att_summary
+                    key_points.append(f"Document: {target_att.original_filename} ({round(target_att.file_size/1024, 1)} KB)")
+                    key_points.append(f"Format: {att_info.get('format', 'FILE')}")
+                    key_points.append(f"Status: {att_info.get('security_status', 'Scanned & Clean')}")
+                    important_info.append(f"File verified: {target_att.original_filename} with MIME type {target_att.mime_type}.")
+
+                raw_sources = []
+
+            # Normalize sources
+            valid_sources = []
+            if raw_sources:
+                valid_sources.extend([str(s) for s in raw_sources])
+            if target_att and doc_info and doc_info.get("page_count", 0) > 1:
+                has_page = any(str(s).lower().startswith("page") for s in valid_sources)
+                if not has_page:
+                    valid_sources.extend([f"Page {i+1}" for i in range(min(doc_info["page_count"], 3))])
+            if target_msg and str(target_msg.id) not in valid_sources:
+                valid_sources.append(str(target_msg.id))
+
+            # Normalize action items
+            action_items_list = []
+            for idx, a in enumerate(raw_actions, 1):
+                action_items_list.append({
+                    "id": str(a.get("id") or f"act_{idx}"),
+                    "conversation_id": str(conversation_id),
+                    "source_message_id": str(a.get("source_message_id") or (target_msg.id if target_msg else "")),
+                    "title": a.get("title") or a.get("description") or "Action item",
+                    "description": a.get("description") or "",
+                    "assigned_to": str(current_user.id),
+                    "assigned_to_name": a.get("assigned_to_name") or current_user.full_name,
+                    "due_date": a.get("due_date"),
+                    "status": a.get("status") or "OPEN",
+                    "created_at": schemas.format_iso_utc(target_msg.created_at if target_msg else datetime.now(timezone.utc)) or "",
+                    "updated_at": schemas.format_iso_utc(datetime.now(timezone.utc)) or ""
+                })
+
+            # Normalize decisions
+            decisions_list = []
+            for idx, d in enumerate(raw_decisions, 1):
+                decisions_list.append({
+                    "id": str(d.get("id") or idx),
+                    "conversation_id": str(conversation_id),
+                    "source_message_id": str(d.get("source_message_id") or (target_msg.id if target_msg else "")),
+                    "decision_text": d.get("decision_text") or str(d),
+                    "created_at": schemas.format_iso_utc(target_msg.created_at if target_msg else datetime.now(timezone.utc)) or "",
+                    "updated_at": schemas.format_iso_utc(datetime.now(timezone.utc)) or ""
+                })
+
+            # Normalize dates
+            dates_list = []
+            for idx, dt in enumerate(raw_dates, 1):
+                dates_list.append({
+                    "id": str(dt.get("id") or idx),
+                    "conversation_id": str(conversation_id),
+                    "source_message_id": str(dt.get("source_message_id") or (target_msg.id if target_msg else "")),
+                    "event_name": dt.get("event_name") or dt.get("title") or "Event",
+                    "event_date": dt.get("event_date") or dt.get("date_value") or "",
+                    "description": dt.get("description") or "",
+                    "created_at": schemas.format_iso_utc(target_msg.created_at if target_msg else datetime.now(timezone.utc)) or ""
+                })
+
+            # Normalize files
+            important_files_list = []
+            if target_att:
+                important_files_list.append({
+                    "id": str(target_att.id),
+                    "message_id": str(message_id or target_att.message_id or 0),
+                    "filename": target_att.original_filename,
+                    "mime_type": target_att.mime_type or "",
+                    "size": target_att.file_size,
+                    "sender_name": target_msg_sender,
+                    "created_at": schemas.format_iso_utc(target_att.created_at) or ""
+                })
 
             return {
                 "success": True,
                 "status": "ready",
-                "conversation_id": str(conversation_id),
+                "conversation_id": str(conv_id),
                 "message_version": message_id or (target_att.id if target_att else 1),
                 "is_stale": False,
                 "mode": mode,
@@ -1828,57 +2070,50 @@ class SmartConversationService:
                     "sender_name": target_msg_sender,
                     "content": target_msg.content,
                     "created_at": schemas.format_iso_utc(target_msg.created_at) or "",
-                    "preview": target_msg.content[:120] if target_msg.content else ""
+                    "preview": target_msg.content[:140] if target_msg.content else ""
                 } if target_msg else None,
                 "selected_document": {
                     "id": str(target_att.id),
                     "filename": target_att.original_filename,
                     "mime_type": target_att.mime_type or "application/octet-stream",
-                    "size": target_att.file_size
+                    "size": target_att.file_size,
+                    "page_count": doc_info.get("page_count", 1) if doc_info else 1
                 } if target_att else None,
                 "key_points": key_points,
-                "important_information": [summary_text] if summary_text else [],
+                "important_information": important_info if important_info else ([summary_text] if summary_text else []),
                 "summary": {
                     "text": summary_text,
-                    "sources": [str(message_id)] if message_id else ([f"Doc {target_att.original_filename}"] if target_att else [])
+                    "sources": list(dict.fromkeys(valid_sources))
                 },
-                "what_did_i_miss": [],
-                "important_messages": [],
-                "action_items": action_items,
-                "decisions": decisions,
-                "dates": dates,
-                "important_files": [{
-                    "id": str(target_att.id),
-                    "message_id": str(message_id or 0),
-                    "filename": target_att.original_filename,
-                    "mime_type": target_att.mime_type or "",
-                    "size": target_att.file_size,
-                    "sender_name": target_msg_sender,
-                    "created_at": schemas.format_iso_utc(target_att.created_at) or ""
-                }] if target_att else [],
+                "what_did_i_miss": what_missed,
+                "important_messages": important_msgs,
+                "action_items": action_items_list,
+                "decisions": decisions_list,
+                "dates": dates_list,
+                "important_files": important_files_list,
                 "insights": {
                     "message_count": 1 if target_msg else 0,
                     "participant_count": 1,
                     "attachment_count": 1 if target_att else 0,
-                    "recent_activity": schemas.format_iso_utc(datetime.now(timezone.utc)),
+                    "recent_activity": schemas.format_iso_utc(target_msg.created_at if target_msg else datetime.now(timezone.utc)),
                     "most_active_participant": target_msg_sender,
-                    "action_item_count": len(action_items),
-                    "important_message_count": 1 if target_msg else 0,
-                    "decision_count": 0,
-                    "date_count": 0
+                    "action_item_count": len(action_items_list),
+                    "important_message_count": len(important_msgs) or (1 if target_msg else 0),
+                    "decision_count": len(decisions_list),
+                    "date_count": len(dates_list)
                 }
             }
 
         # Full conversation mode
         messages = self.verify_authorization_and_fetch_messages(
-            conversation_id, conversation_type, current_user, db, limit=120
+            conv_id, conversation_type, current_user, db, limit=120
         )
         if not messages:
             return {
                 "success": True,
                 "status": "empty",
                 "message": "There are no messages to analyze yet.",
-                "conversation_id": str(conversation_id),
+                "conversation_id": str(conv_id),
                 "message_version": 0,
                 "is_stale": False,
                 "mode": "CONVERSATION",
@@ -1904,78 +2139,8 @@ class SmartConversationService:
                 }
             }
 
-        full_res = await self.get_full_smart(
-            conversation_id, conversation_type, current_user, db, force_refresh=force_refresh
-        )
-
-        summary_text = full_res.summary.summary_text if full_res.summary else ""
-        key_points = full_res.summary.summary_bullets if full_res.summary else []
-        sources = [str(m["id"]) for m in messages]
-
-        what_missed = [
-            {
-                "message_id": str(i.source_message_id),
-                "sender": i.sender_name,
-                "preview": i.preview,
-                "timestamp": i.timestamp,
-                "reason": i.category
-            }
-            for i in (full_res.missed.items if full_res.missed else [])
-        ]
-
-        important_msgs = [
-            {
-                "message_id": str(i.source_message_id),
-                "sender": i.sender_name,
-                "preview": i.message_preview,
-                "timestamp": i.timestamp,
-                "reason": i.reason
-            }
-            for i in full_res.important
-        ]
-
-        action_items_list = [
-            {
-                "id": str(a.id),
-                "conversation_id": str(conversation_id),
-                "source_message_id": str(a.source_message_id) if a.source_message_id else None,
-                "title": a.action_text,
-                "description": "",
-                "assigned_to": str(a.user_id),
-                "assigned_to_name": current_user.full_name,
-                "due_date": None,
-                "status": "COMPLETED" if a.completed else "OPEN",
-                "created_at": schemas.format_iso_utc(a.created_at) or "",
-                "updated_at": schemas.format_iso_utc(a.updated_at) or ""
-            }
-            for a in full_res.action_items
-        ]
-
-        decisions_list = [
-            {
-                "id": str(d.id or idx),
-                "conversation_id": str(conversation_id),
-                "source_message_id": str(d.source_message_id) if d.source_message_id else None,
-                "decision_text": d.decision_text,
-                "created_at": d.created_at or "",
-                "updated_at": d.created_at or ""
-            }
-            for idx, d in enumerate(full_res.decisions, 1)
-        ]
-
-        dates_list = [
-            {
-                "id": str(dt.id or idx),
-                "conversation_id": str(conversation_id),
-                "source_message_id": str(dt.source_message_id) if dt.source_message_id else None,
-                "event_name": dt.title,
-                "event_date": dt.date_value,
-                "description": dt.title,
-                "created_at": dt.created_at or ""
-            }
-            for idx, dt in enumerate(full_res.dates, 1)
-        ]
-
+        # Always fetch files in conversation for important_files
+        docs_res = self.get_files(conv_id, conversation_type, current_user, db)
         files_list = [
             {
                 "id": str(f.id),
@@ -1986,32 +2151,230 @@ class SmartConversationService:
                 "sender_name": f.uploader_name,
                 "created_at": f.created_at or ""
             }
-            for f in full_res.files
+            for f in docs_res.files
         ]
 
-        insights_dict = {
-            "message_count": full_res.insights.total_messages if full_res.insights else len(messages),
-            "participant_count": full_res.insights.active_participants_count if full_res.insights else 1,
-            "attachment_count": full_res.insights.files_count if full_res.insights else len(files_list),
-            "recent_activity": full_res.insights.last_activity if full_res.insights else "Active today",
-            "most_active_participant": full_res.insights.participants[0] if (full_res.insights and full_res.insights.participants) else "You",
-            "action_item_count": len(action_items_list),
-            "important_message_count": len(important_msgs),
-            "decision_count": len(decisions_list),
-            "date_count": len(dates_list)
-        }
+        # Try live Gemini conversation analysis
+        ai_output = None
+        try:
+            ai_output = await gemini_provider.analyze_conversation(
+                messages=[
+                    {
+                        "id": str(m["id"]),
+                        "sender_name": m["sender_name"],
+                        "content": m["content"],
+                        "timestamp": m.get("timestamp", "")
+                    }
+                    for m in messages
+                ]
+            )
+        except Exception as e:
+            logger.error(f"Error calling gemini_provider in full conversation analysis: {e}")
+
+        if ai_output and isinstance(ai_output, dict):
+            summary_data = ai_output.get("summary", {})
+            summary_text = summary_data.get("text", "") if isinstance(summary_data, dict) else str(summary_data)
+            raw_sources = summary_data.get("sources", []) if isinstance(summary_data, dict) else []
+            key_points = ai_output.get("key_points", [])
+            important_info = ai_output.get("important_information", [])
+            what_missed = ai_output.get("what_did_i_miss", [])
+            important_msgs = ai_output.get("important_messages", [])
+            raw_actions = ai_output.get("action_items", [])
+            raw_decisions = ai_output.get("decisions", [])
+            raw_dates = ai_output.get("dates", [])
+
+            sources = [str(s) for s in raw_sources] if raw_sources else [str(m["id"]) for m in messages[:5]]
+            action_items_list = [
+                {
+                    "id": str(a.get("id") or f"act_{idx}"),
+                    "conversation_id": str(conversation_id),
+                    "source_message_id": str(a.get("source_message_id") or ""),
+                    "title": a.get("title") or a.get("description") or "Action item",
+                    "description": a.get("description") or "",
+                    "assigned_to": str(current_user.id),
+                    "assigned_to_name": a.get("assigned_to_name") or current_user.full_name,
+                    "due_date": a.get("due_date"),
+                    "status": a.get("status") or "OPEN",
+                    "created_at": schemas.format_iso_utc(datetime.now(timezone.utc)) or "",
+                    "updated_at": schemas.format_iso_utc(datetime.now(timezone.utc)) or ""
+                }
+                for idx, a in enumerate(raw_actions, 1)
+            ]
+            decisions_list = [
+                {
+                    "id": str(d.get("id") or idx),
+                    "conversation_id": str(conversation_id),
+                    "source_message_id": str(d.get("source_message_id") or ""),
+                    "decision_text": d.get("decision_text") or str(d),
+                    "created_at": schemas.format_iso_utc(datetime.now(timezone.utc)) or "",
+                    "updated_at": schemas.format_iso_utc(datetime.now(timezone.utc)) or ""
+                }
+                for idx, d in enumerate(raw_decisions, 1)
+            ]
+            nlp_provider = self.get_provider()
+            nlp_dates = await nlp_provider.extract_dates(messages)
+            all_dates_raw = list(raw_dates)
+            seen_date_txts = set(d.get("event_name", "").lower() + " " + d.get("event_date", "").lower() for d in all_dates_raw)
+            for nd in nlp_dates:
+                t_lower = nd["title"].lower()
+                v_lower = nd["date_value"].lower()
+                if not any(v_lower in s for s in seen_date_txts):
+                    all_dates_raw.append({
+                        "event_name": nd["title"],
+                        "event_date": nd["date_value"],
+                        "description": nd.get("context") or f"{nd['title']} ({nd['date_value']})",
+                        "source_message_id": str(nd.get("source_message_id") or "")
+                    })
+
+            dates_list = [
+                {
+                    "id": str(dt.get("id") or idx),
+                    "conversation_id": str(conversation_id),
+                    "source_message_id": str(dt.get("source_message_id") or ""),
+                    "event_name": dt.get("event_name") or dt.get("title") or "Event",
+                    "event_date": dt.get("event_date") or dt.get("date_value") or "",
+                    "description": dt.get("description") or f"{dt.get('event_name', '')} ({dt.get('event_date', '')})".strip(),
+                    "created_at": schemas.format_iso_utc(datetime.now(timezone.utc)) or ""
+                }
+                for idx, dt in enumerate(all_dates_raw, 1)
+            ]
+
+            senders = list(set(m["sender_name"] for m in messages if m.get("sender_name")))
+            insights_dict = {
+                "message_count": len(messages),
+                "participant_count": len(senders) or 1,
+                "attachment_count": len(files_list),
+                "recent_activity": messages[-1].get("timestamp", "Active today") if messages else "Active today",
+                "most_active_participant": senders[0] if senders else "You",
+                "action_item_count": len(action_items_list),
+                "important_message_count": len(important_msgs),
+                "decision_count": len(decisions_list),
+                "date_count": len(dates_list)
+            }
+        else:
+            full_res = await self.get_full_smart(
+                conversation_id, conversation_type, current_user, db, force_refresh=force_refresh
+            )
+            summary_text = full_res.summary.summary_text if full_res.summary else ""
+            key_points = full_res.summary.summary_bullets if full_res.summary else []
+            important_info = [full_res.summary.important_info] if (full_res.summary and full_res.summary.important_info) else []
+            sources = [str(m["id"]) for m in messages]
+            what_missed = [
+                {
+                    "message_id": str(i.source_message_id),
+                    "sender": i.sender_name,
+                    "preview": i.preview,
+                    "timestamp": i.timestamp,
+                    "reason": i.category
+                }
+                for i in (full_res.missed.items if full_res.missed else [])
+            ]
+            important_msgs = [
+                {
+                    "message_id": str(i.source_message_id),
+                    "sender": i.sender_name,
+                    "preview": i.message_preview,
+                    "timestamp": i.timestamp,
+                    "reason": i.reason
+                }
+                for i in full_res.important
+            ]
+            action_items_list = [
+                {
+                    "id": str(a.id),
+                    "conversation_id": str(conversation_id),
+                    "source_message_id": str(a.source_message_id) if a.source_message_id else None,
+                    "title": a.action_text,
+                    "description": "",
+                    "assigned_to": str(a.user_id),
+                    "assigned_to_name": current_user.full_name,
+                    "due_date": None,
+                    "status": "COMPLETED" if a.completed else "OPEN",
+                    "created_at": schemas.format_iso_utc(a.created_at) or "",
+                    "updated_at": schemas.format_iso_utc(a.updated_at) or ""
+                }
+                for a in full_res.action_items
+            ]
+            decisions_list = [
+                {
+                    "id": str(d.id or idx),
+                    "conversation_id": str(conversation_id),
+                    "source_message_id": str(d.source_message_id) if d.source_message_id else None,
+                    "decision_text": d.decision_text,
+                    "created_at": d.created_at or "",
+                    "updated_at": d.created_at or ""
+                }
+                for idx, d in enumerate(full_res.decisions, 1)
+            ]
+            dates_list = [
+                {
+                    "id": str(dt.id or idx),
+                    "conversation_id": str(conversation_id),
+                    "source_message_id": str(dt.source_message_id) if dt.source_message_id else None,
+                    "event_name": dt.title,
+                    "event_date": dt.date_value,
+                    "description": f"{dt.title} ({dt.date_value})" if dt.date_value and dt.date_value.lower() not in dt.title.lower() else dt.title,
+                    "created_at": dt.created_at or ""
+                }
+                for idx, dt in enumerate(full_res.dates, 1)
+            ]
+            insights_dict = {
+                "message_count": full_res.insights.total_messages if full_res.insights else len(messages),
+                "participant_count": full_res.insights.active_participants_count if full_res.insights else 1,
+                "attachment_count": full_res.insights.files_count if full_res.insights else len(files_list),
+                "recent_activity": full_res.insights.last_activity if full_res.insights else "Active today",
+                "most_active_participant": full_res.insights.participants[0] if (full_res.insights and full_res.insights.participants) else "You",
+                "action_item_count": len(action_items_list),
+                "important_message_count": len(important_msgs),
+                "decision_count": len(decisions_list),
+                "date_count": len(dates_list)
+            }
+        # Always merge database action items (user created / updated status) so state persists cleanly
+        conv_id, partner_id, is_self = self.resolve_conversation(conversation_id, conversation_type, current_user, db)
+        candidate_conv_ids = list(set(c for c in [conversation_id, conv_id, partner_id] if c is not None))
+        db_actions = db.query(models.SmartActionItem).filter(
+            models.SmartActionItem.conversation_id.in_(candidate_conv_ids),
+            models.SmartActionItem.conversation_type == conversation_type,
+            models.SmartActionItem.user_id == current_user.id
+        ).order_by(models.SmartActionItem.id.asc()).all()
+
+        if db_actions:
+            db_items_formatted = [
+                {
+                    "id": str(a.id),
+                    "conversation_id": str(conversation_id),
+                    "source_message_id": str(a.source_message_id) if a.source_message_id else None,
+                    "title": a.action_text,
+                    "description": "",
+                    "assigned_to": str(a.user_id),
+                    "assigned_to_name": current_user.full_name,
+                    "due_date": a.due_date,
+                    "status": "COMPLETED" if a.completed else "OPEN",
+                    "completed": a.completed,
+                    "created_at": schemas.format_iso_utc(a.created_at) or "",
+                    "updated_at": schemas.format_iso_utc(a.updated_at) or ""
+                }
+                for a in db_actions
+            ]
+            seen_titles = set(it["title"].lower().strip() for it in db_items_formatted)
+            action_items_list = db_items_formatted + [
+                it for it in action_items_list
+                if it.get("title", "").lower().strip() not in seen_titles
+            ]
+            if "action_item_count" in insights_dict:
+                insights_dict["action_item_count"] = len(action_items_list)
 
         return {
             "success": True,
             "status": "ready",
-            "conversation_id": str(conversation_id),
-            "message_version": full_res.latest_message_id or len(messages),
+            "conversation_id": str(conv_id),
+            "message_version": len(messages),
             "is_stale": False,
             "mode": "CONVERSATION",
             "selected_message": None,
             "selected_document": None,
             "key_points": key_points,
-            "important_information": [summary_text] if summary_text else [],
+            "important_information": important_info if important_info else ([summary_text] if summary_text else []),
             "summary": {
                 "text": summary_text,
                 "sources": sources
@@ -2034,8 +2397,7 @@ class SmartConversationService:
         db: Session
     ) -> schemas.SmartActionItemResponse:
         action = db.query(models.SmartActionItem).filter(
-            models.SmartActionItem.id == action_id,
-            models.SmartActionItem.conversation_id == conversation_id
+            models.SmartActionItem.id == action_id
         ).first()
         if not action:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Action item not found.")
@@ -2053,8 +2415,7 @@ class SmartConversationService:
         db: Session
     ) -> schemas.SmartActionItemResponse:
         action = db.query(models.SmartActionItem).filter(
-            models.SmartActionItem.id == action_id,
-            models.SmartActionItem.conversation_id == conversation_id
+            models.SmartActionItem.id == action_id
         ).first()
         if not action:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Action item not found.")

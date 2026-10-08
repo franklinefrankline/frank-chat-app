@@ -1059,7 +1059,6 @@
                                 <polyline points="12 19 5 12 12 5"></polyline>
                             </svg>
                         </button>
-                        <span class="smart-sparkle-icon" aria-hidden="true">✦</span>
                         <div class="smart-title-group">
                             <div class="smart-title-row">
                                 <h2 class="smart-title" id="smartModalTitle" data-i18n="smart.title">Smart Conversations</h2>
@@ -1068,10 +1067,11 @@
                         </div>
                     </div>
                     <div class="smart-header-actions">
-                        <button type="button" class="btn btn-ghost btn-icon" id="smartHeaderRefreshBtn" title="Refresh analysis" aria-label="Refresh Smart Conversation">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <button type="button" class="smart-header-refresh-btn" id="smartHeaderRefreshBtn" title="Refresh analysis" aria-label="Refresh Smart Conversation">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
                             </svg>
+                            <span class="smart-refresh-text">Refresh</span>
                         </button>
                         <button type="button" class="btn btn-ghost btn-icon modal-close" id="closeSmartModalBtn" title="Close Smart Conversations" aria-label="Close Smart panel">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1122,6 +1122,10 @@
                 <!-- FULL CONVERSATION ANALYSIS HEADER -->
                 <div class="smart-full-conv-bar" id="smartFullConvBar" style="display: none;">
                     <span class="smart-full-conv-badge">FULL CONVERSATION ANALYSIS</span>
+                    <button type="button" class="smart-return-target-btn" id="smartReturnTargetBtn" style="display: none;">
+                        <span>Return to Targeted Analysis</span>
+                        <span class="smart-return-icon">🎯</span>
+                    </button>
                 </div>
 
                 <!-- Real-time New Messages Alert Banner -->
@@ -1137,31 +1141,53 @@
                     </button>
                 </div>
 
-                <!-- Tabs Navigation Bar (8 Tabs) -->
-                <div class="smart-tabs-bar" id="smartTabsBar" role="tablist">
-                    <button type="button" class="smart-tab-btn active" data-smart-tab="summary" role="tab" aria-selected="true" data-i18n="smart.summary">
-                        Summary
+                <!-- Tabs Navigation Bar (8 Tabs) with Horizontal Scroll Controls -->
+                <div class="smart-tabs-wrapper" id="smartTabsWrapper">
+                    <button type="button" class="smart-tab-scroll-btn smart-tab-scroll-left" id="smartTabScrollLeft" aria-label="Scroll tabs left" style="display: none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                     </button>
-                    <button type="button" class="smart-tab-btn" data-smart-tab="missed" role="tab" aria-selected="false" data-i18n="smart.whatDidIMiss">
-                        Missed
-                    </button>
-                    <button type="button" class="smart-tab-btn" data-smart-tab="important" role="tab" aria-selected="false" data-i18n="smart.importantMessages">
-                        Important
-                    </button>
-                    <button type="button" class="smart-tab-btn" data-smart-tab="actions" role="tab" aria-selected="false" data-i18n="smart.actionItems">
-                        Actions
-                    </button>
-                    <button type="button" class="smart-tab-btn" data-smart-tab="decisions" role="tab" aria-selected="false" data-i18n="smart.decisions">
-                        Decisions
-                    </button>
-                    <button type="button" class="smart-tab-btn" data-smart-tab="dates" role="tab" aria-selected="false" data-i18n="smart.dates">
-                        Dates
-                    </button>
-                    <button type="button" class="smart-tab-btn" data-smart-tab="files" role="tab" aria-selected="false" data-i18n="smart.files">
-                        Files
-                    </button>
-                    <button type="button" class="smart-tab-btn" data-smart-tab="insights" role="tab" aria-selected="false" data-i18n="smart.insights">
-                        Insights
+                    <div class="smart-tabs-bar" id="smartTabsBar" role="tablist">
+                        <button type="button" class="smart-tab-btn active" data-smart-tab="summary" role="tab" aria-selected="true" data-i18n="smart.summary">
+                            <span class="smart-tab-icon">✨</span>
+                            <span>Summary</span>
+                        </button>
+                        <button type="button" class="smart-tab-btn" data-smart-tab="missed" role="tab" aria-selected="false" data-i18n="smart.whatDidIMiss">
+                            <span class="smart-tab-icon">❓</span>
+                            <span>Missed</span>
+                            <span class="smart-tab-count" id="count-missed" style="display: none;">0</span>
+                        </button>
+                        <button type="button" class="smart-tab-btn" data-smart-tab="important" role="tab" aria-selected="false" data-i18n="smart.importantMessages">
+                            <span class="smart-tab-icon">⭐</span>
+                            <span>Important</span>
+                            <span class="smart-tab-count" id="count-important" style="display: none;">0</span>
+                        </button>
+                        <button type="button" class="smart-tab-btn" data-smart-tab="actions" role="tab" aria-selected="false" data-i18n="smart.actionItems">
+                            <span class="smart-tab-icon">☑</span>
+                            <span>Actions</span>
+                            <span class="smart-tab-count" id="count-actions" style="display: none;">0</span>
+                        </button>
+                        <button type="button" class="smart-tab-btn" data-smart-tab="decisions" role="tab" aria-selected="false" data-i18n="smart.decisions">
+                            <span class="smart-tab-icon">🎖</span>
+                            <span>Decisions</span>
+                            <span class="smart-tab-count" id="count-decisions" style="display: none;">0</span>
+                        </button>
+                        <button type="button" class="smart-tab-btn" data-smart-tab="dates" role="tab" aria-selected="false" data-i18n="smart.dates">
+                            <span class="smart-tab-icon">📅</span>
+                            <span>Dates</span>
+                            <span class="smart-tab-count" id="count-dates" style="display: none;">0</span>
+                        </button>
+                        <button type="button" class="smart-tab-btn" data-smart-tab="files" role="tab" aria-selected="false" data-i18n="smart.files">
+                            <span class="smart-tab-icon">📁</span>
+                            <span>Files</span>
+                            <span class="smart-tab-count" id="count-files" style="display: none;">0</span>
+                        </button>
+                        <button type="button" class="smart-tab-btn" data-smart-tab="insights" role="tab" aria-selected="false" data-i18n="smart.insights">
+                            <span class="smart-tab-icon">📊</span>
+                            <span>Insights</span>
+                        </button>
+                    </div>
+                    <button type="button" class="smart-tab-scroll-btn smart-tab-scroll-right" id="smartTabScrollRight" aria-label="Scroll tabs right" style="display: none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </button>
                 </div>
 
