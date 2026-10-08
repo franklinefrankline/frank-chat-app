@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional, List, Any, Union, Dict
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, field_serializer, model_validator
 
 def format_iso_utc(dt: Optional[datetime]) -> Optional[str]:
     if dt is None:
@@ -451,14 +451,27 @@ class SmartImportantResponse(BaseModel):
 class SmartActionItemCreate(BaseModel):
     conversation_type: Optional[str] = "direct"
     source_message_id: Optional[int] = None
-    action_text: str = Field(..., min_length=1, max_length=500)
+    action_text: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
     assigned_to: Optional[str] = None
     due_date: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_action_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            val = data.get("action_text") or data.get("title") or data.get("description") or "New Action Item"
+            data["action_text"] = val
+            if not data.get("title"):
+                data["title"] = val
+        return data
 
 
 class SmartActionItemUpdate(BaseModel):
     completed: Optional[bool] = None
     action_text: Optional[str] = None
+    title: Optional[str] = None
     assigned_to: Optional[str] = None
     due_date: Optional[str] = None
 
@@ -470,6 +483,8 @@ class SmartActionItemResponse(BaseModel):
     user_id: int
     source_message_id: Optional[int] = None
     action_text: str
+    title: Optional[str] = None
+    description: Optional[str] = ""
     assigned_to: Optional[str] = None
     due_date: Optional[str] = None
     completed: bool
