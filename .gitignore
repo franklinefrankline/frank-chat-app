@@ -65,3 +65,6 @@ tests/test_doc_*.docx
 playwright-report/
 coverage/
 
+
+.vercel
+.env*
