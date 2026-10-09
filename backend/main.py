@@ -35,9 +35,9 @@ def check_and_migrate_db():
             if "users" in table_names:
                 u_cols = [col["name"] for col in inspector.get_columns("users")]
                 if "auto_translate" not in u_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN auto_translate BOOLEAN DEFAULT 1"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN auto_translate BOOLEAN DEFAULT TRUE"))
                 if "default_view_translation" not in u_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN default_view_translation BOOLEAN DEFAULT 1"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN default_view_translation BOOLEAN DEFAULT TRUE"))
             if "messages" in table_names:
                 columns = [col["name"] for col in inspector.get_columns("messages")]
                 if "message_type" not in columns:
