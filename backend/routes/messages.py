@@ -7,12 +7,13 @@ from database import get_db
 import models
 import schemas
 from security import get_current_user
+from services.translation_service import translation_service
 
 router = APIRouter(prefix="/messages", tags=["Messages"])
 
 
 @router.get("/direct/{partner_id}", response_model=List[schemas.MessageResponse])
-def get_direct_messages(
+async def get_direct_messages(
     partner_id: int,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -37,6 +38,9 @@ def get_direct_messages(
         if msg.recipient_id == current_user.id and msg.status != "read":
             msg.status = "read"
     db.commit()
+
+    # Attach recipient-specific translations
+    await translation_service.attach_translations_to_messages(messages, current_user, db)
 
     return messages
 
@@ -170,9 +174,23 @@ async def send_message(
             }
         }
         if msg.group_id:
-            await manager.broadcast_to_group(msg.group_id, msg_payload, sender_id=current_user.id)
+            await manager.broadcast_to_group(msg.group_id, msg_payload, sender_id=current_user.id, db=db, msg_obj=msg)
         elif msg.recipient_id:
-            await manager.send_to_user(msg.recipient_id, msg_payload)
+            # Check if partner needs translation
+            partner = db.query(models.User).filter(models.User.id == msg.recipient_id).first()
+            import copy
+            recipient_payload = copy.deepcopy(msg_payload)
+            if partner and getattr(partner, "auto_translate", True) and msg.content:
+                partner_lang = getattr(partner, "language", "en") or "en"
+                src_lang = translation_service.detect_language(msg.content)
+                if partner_lang != src_lang:
+                    trans_rec = await translation_service.get_or_create_message_translation(db, msg, partner_lang, src_lang)
+                    if trans_rec:
+                        recipient_payload["message"]["translated_content"] = trans_rec.translated_content
+                        recipient_payload["message"]["source_language"] = trans_rec.source_language
+                        recipient_payload["message"]["target_language"] = trans_rec.target_language
+
+            await manager.send_to_user(msg.recipient_id, recipient_payload)
             if msg.recipient_id != current_user.id:
                 await manager.send_to_user(current_user.id, msg_payload)
 
@@ -183,10 +201,53 @@ async def send_message(
             "total_messages": total_msgs
         })
         await manager.broadcast_admin_metrics(db)
-    except Exception:
+    except Exception as e:
         pass
 
     return msg
+
+
+@router.post("/{message_id}/translate")
+async def translate_message_endpoint(
+    message_id: int,
+    req: schemas.MessageTranslateRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found.")
+
+    # Authorization verification
+    if msg.group_id:
+        membership = db.query(models.GroupMember).filter(
+            models.GroupMember.group_id == msg.group_id,
+            models.GroupMember.user_id == current_user.id
+        ).first()
+        if not membership:
+            raise HTTPException(status_code=403, detail="Not authorized to translate messages in this group.")
+    elif msg.recipient_id:
+        if current_user.id not in (msg.sender_id, msg.recipient_id):
+            raise HTTPException(status_code=403, detail="Not authorized to view or translate this message.")
+
+    trans = await translation_service.get_or_create_message_translation(db, msg, req.target_language)
+    if trans:
+        return {
+            "message_id": msg.id,
+            "translated_content": trans.translated_content,
+            "source_language": trans.source_language,
+            "target_language": trans.target_language,
+            "is_translated": True
+        }
+    else:
+        src_lang = translation_service.detect_language(msg.content)
+        return {
+            "message_id": msg.id,
+            "translated_content": msg.content,
+            "source_language": src_lang,
+            "target_language": req.target_language,
+            "is_translated": False
+        }
 
 
 @router.post("/{message_id}/reactions", response_model=schemas.ReactionResponse)

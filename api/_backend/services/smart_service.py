@@ -495,23 +495,7 @@ class SmartConversationService:
                 detail="You don't have permission to analyze this conversation."
             )
 
-        # 2. Check if conversation_id is a canonical Conversation ID
-        conv = db.query(models.Conversation).filter(models.Conversation.id == conversation_id).first()
-        if conv:
-            is_member = (
-                current_user.id in (conv.user_a_id, conv.user_b_id) or
-                db.query(models.ConversationMember).filter(
-                    models.ConversationMember.conversation_id == conv.id,
-                    models.ConversationMember.user_id == current_user.id
-                ).first() is not None or
-                current_user.role == "admin"
-            )
-            if is_member:
-                is_self = (conv.user_a_id == conv.user_b_id)
-                partner_id = current_user.id if is_self else (conv.user_b_id if conv.user_a_id == current_user.id else conv.user_a_id)
-                return conv.id, partner_id, is_self
-
-        # 3. Check if conversation_id is the user's own ID (Self chat / Notes & bookmarks passed as user ID)
+        # 2. Check if conversation_id is the user's own ID (Self chat / Notes & bookmarks passed as user ID)
         if conversation_id == current_user.id:
             self_conv = db.query(models.Conversation).filter(
                 models.Conversation.user_a_id == current_user.id,
@@ -531,7 +515,23 @@ class SmartConversationService:
                 db.commit()
             return self_conv.id, current_user.id, True
 
-        # 4. Check if conversation_id is a partner user ID
+        # 3. Check if conversation_id is a canonical Conversation ID where current_user is a member
+        conv = db.query(models.Conversation).filter(models.Conversation.id == conversation_id).first()
+        if conv:
+            is_member = (
+                current_user.id in (conv.user_a_id, conv.user_b_id) or
+                db.query(models.ConversationMember).filter(
+                    models.ConversationMember.conversation_id == conv.id,
+                    models.ConversationMember.user_id == current_user.id
+                ).first() is not None or
+                current_user.role == "admin"
+            )
+            if is_member:
+                is_self = (conv.user_a_id == conv.user_b_id)
+                partner_id = current_user.id if is_self else (conv.user_b_id if conv.user_a_id == current_user.id else conv.user_a_id)
+                return conv.id, partner_id, is_self
+
+        # 4. Check if conversation_id is a partner user ID with existing conversation and messages
         partner_user = db.query(models.User).filter(models.User.id == conversation_id).first()
         if partner_user:
             ua = min(current_user.id, partner_user.id)
@@ -540,10 +540,6 @@ class SmartConversationService:
                 models.Conversation.user_a_id == ua,
                 models.Conversation.user_b_id == ub
             ).first()
-            if user_conv:
-                is_self = (partner_user.id == current_user.id)
-                return user_conv.id, partner_user.id, is_self
-            # Also check if direct messages exist between current_user and partner_user
             has_messages = db.query(models.Message).filter(
                 models.Message.group_id.is_(None),
                 or_(
@@ -551,11 +547,15 @@ class SmartConversationService:
                     and_(models.Message.sender_id == partner_user.id, models.Message.recipient_id == current_user.id)
                 )
             ).first() is not None
-            if has_messages:
-                user_conv = models.Conversation(user_a_id=ua, user_b_id=ub)
-                db.add(user_conv)
-                db.commit()
-                db.refresh(user_conv)
+            if user_conv and has_messages:
+                is_self = (partner_user.id == current_user.id)
+                return user_conv.id, partner_user.id, is_self
+            elif has_messages:
+                if not user_conv:
+                    user_conv = models.Conversation(user_a_id=ua, user_b_id=ub)
+                    db.add(user_conv)
+                    db.commit()
+                    db.refresh(user_conv)
                 for uid in set([ua, ub]):
                     m = db.query(models.ConversationMember).filter(
                         models.ConversationMember.conversation_id == user_conv.id,
@@ -566,7 +566,7 @@ class SmartConversationService:
                 db.commit()
                 return user_conv.id, partner_user.id, False
 
-        # 5. Strict rejection if conv was found above, but current_user was NOT a member
+        # 5. Strict rejection if conv was found by ID, but current_user was NOT a member and not partner user ID
         if conv:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -1821,9 +1821,14 @@ class SmartConversationService:
         and message+document targeted analysis using live Gemini AI with NLP fallback.
         """
         # Strict authorization check and conversation canonical resolution
-        conv_id, partner_id, is_self = self.resolve_conversation(
-            conversation_id, conversation_type, current_user, db
-        )
+        conv_id = conversation_id
+        partner_id = None
+        is_self = False
+
+        if not message_id and not attachment_id:
+            conv_id, partner_id, is_self = self.resolve_conversation(
+                conversation_id, conversation_type, current_user, db
+            )
 
         # Targeted mode if message_id or attachment_id is specified
         if message_id or attachment_id:
@@ -1849,6 +1854,22 @@ class SmartConversationService:
                     if not is_participant:
                         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to analyze this conversation.")
                     conversation_type = "direct"
+                    partner_id = msg.recipient_id if msg.sender_id == current_user.id else msg.sender_id
+                    if not partner_id:
+                        partner_id = current_user.id
+                    is_self = (partner_id == current_user.id)
+                    ua = min(current_user.id, partner_id)
+                    ub = max(current_user.id, partner_id)
+                    user_conv = db.query(models.Conversation).filter(
+                        models.Conversation.user_a_id == ua,
+                        models.Conversation.user_b_id == ub
+                    ).first()
+                    if not user_conv:
+                        user_conv = models.Conversation(user_a_id=ua, user_b_id=ub)
+                        db.add(user_conv)
+                        db.commit()
+                        db.refresh(user_conv)
+                    conv_id = user_conv.id
                 target_msg = msg
                 sender = db.query(models.User).filter(models.User.id == msg.sender_id).first()
                 if sender:
@@ -1965,44 +1986,49 @@ class SmartConversationService:
                 raw_decisions = ai_output.get("decisions", [])
                 raw_dates = ai_output.get("dates", [])
             else:
-                # Built-in intelligent fallback
-                summary_text = ""
-                key_points = []
-                important_info = []
+                # Built-in intelligent fallback that preserves semantic meaning and Tamil/English
+                content = (target_msg.content if target_msg else "").strip()
+                import re
+                is_tamil = any('\u0B80' <= ch <= '\u0BFF' for ch in content)
+                sentences = [s.strip() for s in re.split(r'[\n\r]+|[.!?]\s+', content) if len(s.strip()) > 3]
+
+                if is_tamil:
+                    if len(sentences) >= 3:
+                        summary_text = f"{sentences[0]} மற்றும் {sentences[-1]}"
+                        key_points = sentences[:4]
+                        important_info = sentences[4:7] if len(sentences) > 4 else ["முயற்சியின் வெற்றிக்கு முன்கூட்டிய திட்டமிடல் அவசியம்."]
+                    elif len(sentences) == 2:
+                        summary_text = sentences[0]
+                        key_points = [sentences[0], sentences[1]]
+                        important_info = [f"செய்தியின் முக்கிய தகவல்: {sentences[1]}"]
+                    else:
+                        summary_text = content
+                        key_points = [content] if content else []
+                        important_info = []
+                else:
+                    if len(sentences) >= 3:
+                        summary_text = f"{sentences[0]}. {sentences[-1]}."
+                        key_points = sentences[:4]
+                        important_info = sentences[4:7] if len(sentences) > 4 else [f"Shared by {target_msg_sender}."]
+                    elif len(sentences) == 2:
+                        summary_text = f"{sentences[0]} {sentences[1]}"
+                        key_points = [sentences[0], sentences[1]]
+                        important_info = [f"Direct communication from {target_msg_sender}."]
+                    else:
+                        summary_text = content
+                        key_points = [content] if content else []
+                        important_info = []
+
+                if target_att:
+                    att_note = f"Asset: {target_att.original_filename} ({round(target_att.file_size/1024, 1)} KB)"
+                    summary_text = f"{summary_text}\n\nDocument: {att_note}" if summary_text else att_note
+                    key_points.append(att_note)
+
                 what_missed = []
                 important_msgs = []
                 raw_actions = []
                 raw_decisions = []
                 raw_dates = []
-
-                if target_msg and not is_doc_only:
-                    msg_analysis = await self.analyze_specific_message(conversation_id, message_id, current_user, db)
-                    analysis_info = msg_analysis.get("analysis", {})
-                    summary_text = analysis_info.get("summary") or analysis_info.get("key_takeaway") or target_msg.content
-                    key_points.append(f"Sender: {target_msg_sender}")
-                    key_points.append(f"Category: {analysis_info.get('category', 'General')}")
-                    key_points.append(f"Tone: {analysis_info.get('tone', 'Neutral')}")
-                    important_info.append(f"Direct message from {target_msg_sender} received at {schemas.format_iso_utc(target_msg.created_at)}.")
-                    if analysis_info.get("has_action_item"):
-                        raw_actions.append({
-                            "title": analysis_info.get("key_takeaway", "Action required from message"),
-                            "description": target_msg.content,
-                            "source_message_id": str(target_msg.id)
-                        })
-
-                if target_att and not is_msg_only:
-                    att_analysis = await self.analyze_specific_attachment(conversation_id, message_id or 0, attachment_id, current_user, db)
-                    att_info = att_analysis.get("analysis", {})
-                    att_summary = att_info.get("summary") or f"Asset: {target_att.original_filename}"
-                    if summary_text:
-                        summary_text += f"\n\nDocument Analysis: {att_summary}"
-                    else:
-                        summary_text = att_summary
-                    key_points.append(f"Document: {target_att.original_filename} ({round(target_att.file_size/1024, 1)} KB)")
-                    key_points.append(f"Format: {att_info.get('format', 'FILE')}")
-                    key_points.append(f"Status: {att_info.get('security_status', 'Scanned & Clean')}")
-                    important_info.append(f"File verified: {target_att.original_filename} with MIME type {target_att.mime_type}.")
-
                 raw_sources = []
 
             # Normalize sources

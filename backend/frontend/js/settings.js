@@ -210,10 +210,16 @@ const settingsModule = {
             const preservedTheme = localStorage.getItem('chatapp_theme');
             const preservedToken = localStorage.getItem('frank_token');
             const preservedUser = localStorage.getItem('chatapp_user');
+            const preservedLang = localStorage.getItem('frank_lang');
+            const preservedAutoTrans = localStorage.getItem('pref_settingAutoTranslate');
+            const preservedDefView = localStorage.getItem('pref_settingDefaultViewTranslation');
             localStorage.clear();
             if (preservedTheme) localStorage.setItem('chatapp_theme', preservedTheme);
             if (preservedToken) localStorage.setItem('frank_token', preservedToken);
             if (preservedUser) localStorage.setItem('chatapp_user', preservedUser);
+            if (preservedLang) localStorage.setItem('frank_lang', preservedLang);
+            if (preservedAutoTrans) localStorage.setItem('pref_settingAutoTranslate', preservedAutoTrans);
+            if (preservedDefView) localStorage.setItem('pref_settingDefaultViewTranslation', preservedDefView);
             if (typeof window.showToast === 'function') {
                 window.showToast('Local cache cleared successfully', 'success', 2000);
             }
@@ -230,7 +236,9 @@ const settingsModule = {
             'settingReadReceipts',
             'settingTyping',
             'settingOnlinePresence',
-            'settingEnterToSend'
+            'settingEnterToSend',
+            'settingAutoTranslate',
+            'settingDefaultViewTranslation'
         ];
 
         toggleIds.forEach(id => {
@@ -240,10 +248,33 @@ const settingsModule = {
             const saved = localStorage.getItem(`pref_${id}`);
             if (saved !== null) {
                 el.checked = saved === 'true';
+            } else if (id === 'settingAutoTranslate' || id === 'settingDefaultViewTranslation') {
+                el.checked = true; // default true
             }
 
-            el.addEventListener('change', () => {
+            el.addEventListener('change', async () => {
                 localStorage.setItem(`pref_${id}`, el.checked);
+                // Also sync with backend if token exists and relevant
+                if (id === 'settingAutoTranslate' || id === 'settingDefaultViewTranslation') {
+                    const token = localStorage.getItem('frank_token');
+                    if (token) {
+                        try {
+                            const payload = {};
+                            if (id === 'settingAutoTranslate') payload.auto_translate = el.checked;
+                            if (id === 'settingDefaultViewTranslation') payload.default_view_translation = el.checked;
+                            await fetch('/api/users/profile', {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify(payload)
+                            });
+                        } catch (e) {
+                            console.warn('Failed to sync translation pref to backend', e);
+                        }
+                    }
+                }
                 if (typeof window.showToast === 'function') {
                     window.showToast('Preference updated', 'info', 1500);
                 }

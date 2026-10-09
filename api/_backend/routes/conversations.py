@@ -9,6 +9,7 @@ import models
 import schemas
 from security import get_current_user
 from routes.users import get_conversations as get_users_conversations
+from services.translation_service import translation_service
 
 router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
@@ -178,7 +179,7 @@ def get_conversation_details(
 
 
 @router.get("/{conversation_id}/messages", response_model=List[schemas.MessageResponse])
-def get_conversation_messages(
+async def get_conversation_messages(
     conversation_id: int,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -207,6 +208,7 @@ def get_conversation_messages(
             models.Message.recipient_id == current_user.id
         ).order_by(models.Message.created_at.desc()).limit(200).all()
         messages.reverse()
+        await translation_service.attach_translations_to_messages(messages, current_user, db)
         return messages
 
     # 1. Try finding as direct conversation by conversation.id
@@ -244,6 +246,7 @@ def get_conversation_messages(
                     msg.status = "read"
             db.commit()
 
+            await translation_service.attach_translations_to_messages(messages, current_user, db)
             return messages
         else:
             # Check if conversation_id was actually passed as partner_id
@@ -268,6 +271,7 @@ def get_conversation_messages(
                         if msg.recipient_id == current_user.id and msg.status != "read":
                             msg.status = "read"
                     db.commit()
+                    await translation_service.attach_translations_to_messages(messages, current_user, db)
                     return messages
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -290,6 +294,7 @@ def get_conversation_messages(
             models.Message.group_id == conversation_id
         ).order_by(models.Message.created_at.desc()).limit(200).all()
         messages.reverse()
+        await translation_service.attach_translations_to_messages(messages, current_user, db)
         return messages
 
     # 3. Check if conversation_id was passed as partner_id in a direct chat
@@ -330,6 +335,7 @@ def get_conversation_messages(
                 msg.status = "read"
         db.commit()
 
+        await translation_service.attach_translations_to_messages(messages, current_user, db)
         return messages
 
     raise HTTPException(

@@ -44,6 +44,8 @@ class UserUpdate(BaseModel):
     avatar_url: Optional[str] = None
     theme: Optional[str] = None
     language: Optional[str] = None
+    auto_translate: Optional[bool] = None
+    default_view_translation: Optional[bool] = None
 
 
 class UserResponse(UserBase):
@@ -54,6 +56,8 @@ class UserResponse(UserBase):
     avatar_url: Optional[str] = None
     theme: Optional[str] = "monochrome"
     language: Optional[str] = "en"
+    auto_translate: Optional[bool] = True
+    default_view_translation: Optional[bool] = True
     role: str = "user"
     status: str = "active"
     account_status: str = "active"
@@ -297,6 +301,9 @@ class MessageResponse(BaseModel):
     sender: Optional[UserResponse] = None
     document: Optional[DocumentResponse] = None
     reactions: List[ReactionResponse] = []
+    translated_content: Optional[str] = None
+    source_language: Optional[str] = None
+    target_language: Optional[str] = None
 
     @field_serializer("created_at", "updated_at", check_fields=False)
     def serialize_utc_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
@@ -304,6 +311,10 @@ class MessageResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class MessageTranslateRequest(BaseModel):
+    target_language: str = Field("ta", min_length=2, max_length=10)
 
 
 # ---------------- GROUP SCHEMAS ----------------

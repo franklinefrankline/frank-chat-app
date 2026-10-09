@@ -139,7 +139,7 @@ const messagesModule = {
     },
 
     renderMessageRow(msg, currentUserId) {
-        const isSent = msg.sender_id === currentUserId;
+        const isSent = Number(msg.sender_id) === Number(currentUserId);
         const msgDateObj = this.parseDate(msg.created_at) || new Date();
         const timeFormatted = this.formatMessageTimestamp(msg.created_at || msgDateObj);
         const isEdited = !!msg.updated_at && msg.updated_at !== msg.created_at;
@@ -158,7 +158,7 @@ const messagesModule = {
         let userReactedEmoji = null;
         (msg.reactions || []).forEach(r => {
             reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1;
-            if (r.user_id === currentUserId) {
+            if (Number(r.user_id) === Number(currentUserId)) {
                 userReactedEmoji = r.emoji;
             }
         });
@@ -205,7 +205,41 @@ const messagesModule = {
         const isDocAttachment = isDocument;
         const hasAttachment = isAudio || isVideo || isImage || isDocument;
 
-        let bodyHtml = `<div class="message-text-content">${linkedContent}</div>`;
+        // Recipient translation handling (Feature B)
+        const hasTranslation = !hasAttachment && !!msg.translated_content && (msg.translated_content.trim() !== (msg.content || '').trim());
+        const showTranslatedByDefault = localStorage.getItem('pref_settingDefaultViewTranslation') !== 'false';
+
+        let bodyHtml = '';
+        if (hasTranslation) {
+            const safeTrans = this.escapeHTML(msg.translated_content);
+            const linkedTrans = this.linkify(safeTrans);
+            const showTransNow = showTranslatedByDefault;
+
+            const origLabel = (typeof i18n !== 'undefined') ? i18n.t('chat.showOriginal') : 'Show original';
+            const transLabel = (typeof i18n !== 'undefined') ? i18n.t('chat.showTranslation') : 'Show translation';
+            const currentToggleText = showTransNow ? origLabel : transLabel;
+            const targetLangBadge = (msg.target_language || (typeof i18n !== 'undefined' ? i18n.currentLang : 'ta')).toUpperCase();
+
+            bodyHtml = `
+                <div class="message-text-content" id="msgTextContent-${msg.id}">
+                    <div class="msg-text-variant msg-text-trans" id="msgTransText-${msg.id}" style="${showTransNow ? '' : 'display:none;'}">
+                        ${linkedTrans}
+                    </div>
+                    <div class="msg-text-variant msg-text-orig" id="msgOrigText-${msg.id}" style="${showTransNow ? 'display:none;' : ''}">
+                        ${linkedContent}
+                    </div>
+                    <div class="message-translation-controls" style="margin-top: 4px; display: flex; align-items: center; gap: 6px; font-size: 11px;">
+                        <button type="button" class="btn-toggle-msg-translation" data-msg-id="${msg.id}" style="background: none; border: none; padding: 0; color: var(--primary); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+                            <span class="toggle-trans-label">${currentToggleText}</span>
+                        </button>
+                        <span class="translation-badge" style="background: rgba(37,99,235,0.12); color: var(--primary); padding: 1px 5px; border-radius: 4px; font-size: 9px; font-weight: 700; text-transform: uppercase;">${targetLangBadge}</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            bodyHtml = `<div class="message-text-content" id="msgTextContent-${msg.id}">${linkedContent}</div>`;
+        }
         let docFilename = '';
         let docFileId = '';
         let docFileType = 'document';
@@ -387,6 +421,93 @@ const messagesModule = {
                 ${reactionsHtml}
             </div>
         `;
+    },
+
+    toggleMessageTranslation(msgId) {
+        const transEl = document.getElementById(`msgTransText-${msgId}`);
+        const origEl = document.getElementById(`msgOrigText-${msgId}`);
+        const btn = document.querySelector(`.btn-toggle-msg-translation[data-msg-id="${msgId}"]`);
+        if (!transEl || !origEl || !btn) return;
+
+        const labelSpan = btn.querySelector('.toggle-trans-label');
+        const isTransVisible = transEl.style.display !== 'none';
+
+        const origLabel = (typeof i18n !== 'undefined') ? i18n.t('chat.showOriginal') : 'Show original';
+        const transLabel = (typeof i18n !== 'undefined') ? i18n.t('chat.showTranslation') : 'Show translation';
+
+        if (isTransVisible) {
+            transEl.style.display = 'none';
+            origEl.style.display = 'block';
+            if (labelSpan) labelSpan.textContent = transLabel;
+            btn.setAttribute('title', transLabel);
+        } else {
+            transEl.style.display = 'block';
+            origEl.style.display = 'none';
+            if (labelSpan) labelSpan.textContent = origLabel;
+            btn.setAttribute('title', origLabel);
+        }
+    },
+
+    async toggleOrFetchTranslation(msgId) {
+        const transEl = document.getElementById(`msgTransText-${msgId}`);
+        if (transEl) {
+            this.toggleMessageTranslation(msgId);
+            return;
+        }
+
+        const currentLang = (typeof i18n !== 'undefined') ? i18n.currentLang : 'ta';
+        const token = localStorage.getItem('frank_token');
+        try {
+            if (typeof window.showToast === 'function') {
+                window.showToast(typeof i18n !== 'undefined' ? i18n.t('chat.translating') : 'Translating message...', 'info', 1500);
+            }
+            const res = await fetch(`/api/messages/${msgId}/translate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ target_language: currentLang })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.translated_content) {
+                    if (window.chatController && window.chatController.activeMessages) {
+                        const m = window.chatController.activeMessages.find(x => Number(x.id || x.message_id) === Number(msgId));
+                        if (m) {
+                            m.translated_content = data.translated_content;
+                            m.target_language = data.target_language;
+                            m.source_language = data.source_language;
+                        }
+                    }
+                    const textWrap = document.getElementById(`msgTextContent-${msgId}`);
+                    if (textWrap) {
+                        const origHtml = textWrap.innerHTML;
+                        const safeTrans = this.escapeHTML(data.translated_content);
+                        const linkedTrans = this.linkify(safeTrans);
+                        const origLabel = (typeof i18n !== 'undefined') ? i18n.t('chat.showOriginal') : 'Show original';
+                        const targetLangBadge = (data.target_language || currentLang).toUpperCase();
+                        textWrap.innerHTML = `
+                            <div class="msg-text-variant msg-text-trans" id="msgTransText-${msgId}">
+                                ${linkedTrans}
+                            </div>
+                            <div class="msg-text-variant msg-text-orig" id="msgOrigText-${msgId}" style="display:none;">
+                                ${origHtml}
+                            </div>
+                            <div class="message-translation-controls" style="margin-top: 4px; display: flex; align-items: center; gap: 6px; font-size: 11px;">
+                                <button type="button" class="btn-toggle-msg-translation" data-msg-id="${msgId}" style="background: none; border: none; padding: 0; color: var(--primary); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+                                    <span class="toggle-trans-label">${origLabel}</span>
+                                </button>
+                                <span class="translation-badge" style="background: rgba(37,99,235,0.12); color: var(--primary); padding: 1px 5px; border-radius: 4px; font-size: 9px; font-weight: 700; text-transform: uppercase;">${targetLangBadge}</span>
+                            </div>
+                        `;
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn('Failed to translate message:', err);
+        }
     }
 };
 
@@ -406,6 +527,15 @@ function showAudioErrorToast(message) {
 
 // Message Event Delegation (Links, Context Menu, Reply, React, Copy, Edit, Delete, Open, Download)
 document.addEventListener('click', async (e) => {
+    // 00. Toggle Message Translation
+    const toggleTransBtn = e.target.closest('.btn-toggle-msg-translation');
+    if (toggleTransBtn) {
+        e.stopPropagation();
+        const msgId = parseInt(toggleTransBtn.dataset.msgId, 10);
+        messagesModule.toggleMessageTranslation(msgId);
+        return;
+    }
+
     // 0a. Open chat link in new tab safely
     const chatLink = e.target.closest('a.chat-link');
     if (chatLink) {

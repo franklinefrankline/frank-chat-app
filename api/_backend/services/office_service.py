@@ -591,6 +591,7 @@ class OfficeService:
                         "file_size": info.file_size,
                         "is_dir": info.is_dir(),
                         "date_time": f"{info.date_time[0]}-{info.date_time[1]:02d}-{info.date_time[2]:02d} {info.date_time[3]:02d}:{info.date_time[4]:02d}"
+                    })
             total_uncompressed = sum(f.get("file_size", 0) for f in files)
             return {"files": files, "total": len(files), "total_uncompressed_size": total_uncompressed}
         except Exception as e:

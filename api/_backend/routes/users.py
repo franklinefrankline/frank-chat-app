@@ -63,6 +63,10 @@ def update_profile(
         clean_lang = user_update.language.strip().lower()
         if clean_lang in ["en", "ta", "hi"]:
             current_user.language = clean_lang
+    if user_update.auto_translate is not None:
+        current_user.auto_translate = user_update.auto_translate
+    if user_update.default_view_translation is not None:
+        current_user.default_view_translation = user_update.default_view_translation
 
     db.commit()
     db.refresh(current_user)

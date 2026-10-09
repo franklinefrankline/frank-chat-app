@@ -70,6 +70,32 @@ class ChatController {
         this.setupContextMenuDismissal();
         this.setupWebSocketListeners();
         this.setupPollingFallback();
+        this.setupLanguageListener();
+    }
+
+    setupLanguageListener() {
+        window.addEventListener('frank:languageChanged', () => {
+            // Update composer placeholder
+            if (this.dom.messageInput && typeof i18n !== 'undefined') {
+                this.dom.messageInput.placeholder = i18n.t('chat.typeMessage') || 'Type a message...';
+            }
+            // Update search input placeholder
+            const searchInput = document.getElementById('searchConversationsInput');
+            if (searchInput && typeof i18n !== 'undefined') {
+                searchInput.placeholder = i18n.t('chat.searchPlaceholder') || 'Search conversations, users, or FRANK ID...';
+            }
+            // Update partner status text
+            if (this.dom.partnerStatus && this.activePartner) {
+                const isOnline = !!this.activePartner.is_online;
+                if (typeof i18n !== 'undefined') {
+                    this.dom.partnerStatus.textContent = isOnline ? i18n.t('chat.online') : i18n.t('chat.offline');
+                }
+            }
+            // Re-render messages to refresh translation badges and toggle labels
+            if (this.activeMessages && this.activeMessages.length > 0) {
+                this.renderMessagesList(this.activeMessages);
+            }
+        });
     }
 
     setupContextMenuDismissal() {
@@ -1029,6 +1055,12 @@ class ChatController {
             <button type="button" class="message-context-item ctx-star">
                 ${starSvg} <span>${msg?.is_starred ? 'Remove Star' : 'Star Message'}</span>
             </button>
+            ${hasRealText ? `
+                <button type="button" class="message-context-item ctx-translate">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+                    <span>${typeof i18n !== 'undefined' ? i18n.t('chat.translate') : 'Translate Message'}</span>
+                </button>
+            ` : ''}
             <button type="button" class="message-context-item ctx-smart">
                 <span style="font-size:14px; margin-right:4px;">✨</span> <span>Smart AI Analysis</span>
             </button>
@@ -1116,6 +1148,13 @@ class ChatController {
         menu.querySelector('.ctx-info')?.addEventListener('click', () => {
             this.closeMessageContextMenu();
             this.showMessageInfo(numId);
+        });
+
+        menu.querySelector('.ctx-translate')?.addEventListener('click', () => {
+            this.closeMessageContextMenu();
+            if (typeof messagesModule !== 'undefined' && messagesModule.toggleOrFetchTranslation) {
+                messagesModule.toggleOrFetchTranslation(numId);
+            }
         });
 
         menu.querySelector('.ctx-smart')?.addEventListener('click', () => {

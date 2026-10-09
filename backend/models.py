@@ -23,6 +23,8 @@ class User(Base):
     avatar_url = Column(String(255), default="")
     theme = Column(String(20), default="light")
     language = Column(String(10), default="en", nullable=False)
+    auto_translate = Column(Boolean, default=True, nullable=False)
+    default_view_translation = Column(Boolean, default=True, nullable=False)
     status = Column(String(20), default="active")
     role = Column(String(20), default="user", nullable=False)
     account_status = Column(String(20), default="active", nullable=False)
@@ -64,6 +66,23 @@ class Message(Base):
     group = relationship("Group", back_populates="messages")
     document = relationship("Document", foreign_keys=[file_id], post_update=True)
     reactions = relationship("Reaction", back_populates="message", cascade="all, delete-orphan")
+    translations = relationship("MessageTranslation", back_populates="message", cascade="all, delete-orphan")
+
+
+class MessageTranslation(Base):
+    __tablename__ = "message_translations"
+    __table_args__ = (
+        UniqueConstraint("message_id", "target_language", name="uq_msg_target_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    message_id = Column(Integer, ForeignKey("messages.id", ondelete="CASCADE"), nullable=False, index=True)
+    source_language = Column(String(10), nullable=False, default="en")
+    target_language = Column(String(10), nullable=False, index=True)
+    translated_content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+    message = relationship("Message", back_populates="translations")
 
 
 class Document(Base):

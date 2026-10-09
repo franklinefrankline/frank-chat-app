@@ -264,9 +264,20 @@ template = """/* ---------------------------------------------------------------
         applyTranslations(root = document) {
             if (!root) return;
 
+            // Title tag translation
+            const titleEl = root.querySelector('title[data-i18n]');
+            if (titleEl) {
+                const titleKey = titleEl.getAttribute('data-i18n');
+                if (titleKey) {
+                    const transTitle = this.t(titleKey);
+                    if (transTitle) document.title = transTitle;
+                }
+            }
+
             // 1. Text elements
             const textElements = root.querySelectorAll('[data-i18n]');
             textElements.forEach(el => {
+                if (el.tagName.toLowerCase() === 'title') return;
                 const key = el.getAttribute('data-i18n');
                 if (!key) return;
                 const translated = this.t(key);
@@ -329,6 +340,17 @@ template = """/* ---------------------------------------------------------------
                     el.setAttribute('aria-label', translated);
                 }
             });
+
+            // 5. Value attributes (e.g. submit buttons)
+            const valueElements = root.querySelectorAll('[data-i18n-value]');
+            valueElements.forEach(el => {
+                const key = el.getAttribute('data-i18n-value');
+                if (!key) return;
+                const translated = this.t(key);
+                if (translated) {
+                    el.setAttribute('value', translated);
+                }
+            });
         }
 
         updateSelectors() {
@@ -350,14 +372,34 @@ template = """/* ---------------------------------------------------------------
                     option.setAttribute('aria-selected', 'false');
                 }
             });
+
+            // Update settings cards [data-lang-choice]
+            document.querySelectorAll('[data-lang-choice]').forEach(card => {
+                const choice = card.getAttribute('data-lang-choice');
+                if (choice === this.currentLang) {
+                    card.classList.add('active');
+                    card.setAttribute('aria-checked', 'true');
+                } else {
+                    card.classList.remove('active');
+                    card.setAttribute('aria-checked', 'false');
+                }
+            });
         }
 
         bindDropdownEvents() {
             if (this._listenersBound) return;
             this._listenersBound = true;
 
-            // Handle toggle button clicks & accessibility
+            // Handle [data-lang-choice] clicks in settings
             document.addEventListener('click', (e) => {
+                const choiceCard = e.target.closest('[data-lang-choice]');
+                if (choiceCard) {
+                    const choice = choiceCard.getAttribute('data-lang-choice');
+                    if (choice) {
+                        this.setLanguage(choice, { saveToDb: true });
+                    }
+                    return;
+                }
                 const btn = e.target.closest('.lang-btn');
                 if (btn) {
                     e.preventDefault();

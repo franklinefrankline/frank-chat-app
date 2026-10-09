@@ -175,30 +175,66 @@ class ConnectionManager:
                 except Exception:
                     pass
 
-    async def broadcast_to_group(self, group_id: int, data: dict, sender_id: int = None):
+    async def broadcast_to_group(self, group_id: int, data: dict, sender_id: int = None, db: Session = None, msg_obj: models.Message = None):
         try:
             gid = int(group_id)
         except (ValueError, TypeError):
             return
-        db = SessionLocal()
+        should_close = False
+        if db is None:
+            db = SessionLocal()
+            should_close = True
+        user_map = {}
         try:
             members = db.query(models.GroupMember).filter(models.GroupMember.group_id == gid).all()
-            member_ids = [m.user_id for m in members]
+            for m in members:
+                u = db.query(models.User).filter(models.User.id == m.user_id).first()
+                if u:
+                    user_map[m.user_id] = u
         finally:
-            db.close()
+            if should_close:
+                db.close()
 
-        message_text = json.dumps(data)
-        for member_id in member_ids:
-            try:
-                mid = int(member_id)
-            except (ValueError, TypeError):
+        # Check if this data is a message that can be translated
+        from services.translation_service import translation_service
+        msg_dict = data.get("message") if isinstance(data, dict) and data.get("type") == "message" else None
+        raw_content = msg_dict.get("content") if msg_dict else None
+        src_lang = translation_service.detect_language(raw_content) if raw_content else "en"
+
+        lang_translations = {}
+        for mid, user in user_map.items():
+            if mid == sender_id:
                 continue
-            if mid in self.active_connections:
-                for ws in list(self.active_connections[mid]):
-                    try:
-                        await ws.send_text(message_text)
-                    except Exception:
-                        pass
+            u_lang = getattr(user, "language", "en") or "en"
+            u_auto = getattr(user, "auto_translate", True)
+            if u_auto and raw_content and u_lang != src_lang and u_lang not in lang_translations:
+                if msg_obj and not should_close:
+                    t_rec = await translation_service.get_or_create_message_translation(db, msg_obj, u_lang, src_lang)
+                    if t_rec:
+                        lang_translations[u_lang] = t_rec.translated_content
+                else:
+                    res = await translation_service.translate_text(raw_content, u_lang, src_lang)
+                    if res.get("is_translated"):
+                        lang_translations[u_lang] = res.get("translated_text")
+
+        import copy
+        for mid, user in user_map.items():
+            if mid not in self.active_connections:
+                continue
+            u_lang = getattr(user, "language", "en") or "en"
+            member_payload = data
+            if mid != sender_id and u_lang in lang_translations:
+                member_payload = copy.deepcopy(data)
+                member_payload["message"]["translated_content"] = lang_translations[u_lang]
+                member_payload["message"]["source_language"] = src_lang
+                member_payload["message"]["target_language"] = u_lang
+
+            message_text = json.dumps(member_payload)
+            for ws in list(self.active_connections[mid]):
+                try:
+                    await ws.send_text(message_text)
+                except Exception:
+                    pass
 
 
 manager = ConnectionManager()
@@ -350,7 +386,7 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                         await manager.send_to_user(user_id, msg_payload)
 
                         if group_id:
-                            await manager.broadcast_to_group(group_id, msg_payload, sender_id=user_id)
+                            await manager.broadcast_to_group(group_id, msg_payload, sender_id=user_id, db=db_session, msg_obj=msg)
                         elif recipient_id:
                             # Update status to delivered if recipient is online
                             if recipient_id in manager.active_connections:
@@ -359,7 +395,21 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                                 msg_payload["message"]["status"] = "delivered"
 
                             if recipient_id != user_id:
-                                await manager.send_to_user(recipient_id, msg_payload)
+                                from services.translation_service import translation_service
+                                import copy
+                                recipient_payload = copy.deepcopy(msg_payload)
+                                partner = db_session.query(models.User).filter(models.User.id == recipient_id).first()
+                                if partner and getattr(partner, "auto_translate", True) and msg.content:
+                                    partner_lang = getattr(partner, "language", "en") or "en"
+                                    src_lang = translation_service.detect_language(msg.content)
+                                    if partner_lang != src_lang:
+                                        trans_rec = await translation_service.get_or_create_message_translation(db_session, msg, partner_lang, src_lang)
+                                        if trans_rec:
+                                            recipient_payload["message"]["translated_content"] = trans_rec.translated_content
+                                            recipient_payload["message"]["source_language"] = trans_rec.source_language
+                                            recipient_payload["message"]["target_language"] = trans_rec.target_language
+
+                                await manager.send_to_user(recipient_id, recipient_payload)
 
                         # Broadcast updated message count to admin (metadata count only — zero message content)
                         total_cnt = db_session.query(models.Message).count()

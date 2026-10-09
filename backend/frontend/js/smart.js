@@ -198,6 +198,16 @@ class SmartConversationController {
                 this.close();
             }
         });
+
+        // Multilingual UI listener
+        window.addEventListener('frank:languageChanged', () => {
+            if (typeof i18n !== 'undefined' && dom.modal) {
+                i18n.applyTranslations(dom.modal);
+            }
+            if (this.currentData && dom.modal && dom.modal.classList.contains('active')) {
+                this.renderAll(this.currentData);
+            }
+        });
     }
 
     setupWebSocketListener() {
@@ -255,7 +265,14 @@ class SmartConversationController {
     formatTime(iso) {
         if (!iso) return '';
         try {
-            return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const d = new Date(iso);
+            let hours = d.getHours();
+            const minutes = d.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'pm' : 'am';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            const hourStr = hours.toString().padStart(2, '0');
+            return `${hourStr}:${minutes} ${ampm}`;
         } catch {
             return '';
         }
@@ -689,8 +706,11 @@ class SmartConversationController {
 
         const summaryObj = this.analysis.summary || {};
         const summaryText = summaryObj.text || '';
-        const keyPoints = this.analysis.key_points || [];
-        const importantInfo = this.analysis.important_information || [];
+        const rawPoints = this.analysis.key_points || [];
+        const keyPoints = Array.isArray(rawPoints) ? rawPoints : (rawPoints ? [rawPoints] : []);
+        
+        const rawImportant = this.analysis.important_information || [];
+        const importantInfo = Array.isArray(rawImportant) ? rawImportant : (rawImportant ? [rawImportant] : []);
         const sources = summaryObj.sources || [];
         const selectedDoc = this.analysis.selected_document;
 
@@ -698,12 +718,14 @@ class SmartConversationController {
             <div class="smart-tab-content-flow">
                 <!-- Selected Document Card (if document targeted) -->
                 ${selectedDoc ? `
-                    <div class="smart-card smart-doc-highlight-card" style="border: 1px solid var(--color-accent, #B86B3D); background: var(--color-card, #F8EFE2);">
-                        <div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px;">
-                            <span style="font-size: 18px; color: var(--color-accent, #B86B3D);">📄</span>
+                    <div class="smart-card smart-doc-highlight-card" style="border: 1px solid var(--smart-accent, #B86B3D); background: var(--smart-card-selected, #FAF5ED);">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="smart-card-icon" style="color: var(--smart-accent, #B86B3D);">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            </span>
                             <div style="min-width: 0; flex: 1;">
-                                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--color-text-muted, #8E7C6C);">Selected Document</div>
-                                <div style="font-size: 14px; font-weight: 600; color: var(--color-text-primary, #2D241D); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--smart-text-muted, #8E7C6C);">Selected Document</div>
+                                <div style="font-size: 13px; font-weight: 600; color: var(--smart-text-primary, #2D241D); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                     ${this.escapeHtml(selectedDoc.filename)}
                                 </div>
                             </div>
@@ -711,14 +733,16 @@ class SmartConversationController {
                     </div>
                 ` : ''}
 
-                <!-- Card 1: Executive Summary -->
+                <!-- Card 1: Summary -->
                 <div class="smart-card">
                     <div class="smart-card-header smart-summary-accent">
-                        <span class="smart-card-icon">✨</span>
+                        <span class="smart-card-icon">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                        </span>
                         <h3 class="smart-card-title">Summary</h3>
                     </div>
                     <div class="smart-card-body">
-                        <p class="smart-card-paragraph" style="line-height: 1.65; white-space: pre-line;">${this.escapeHtml(summaryText || 'No summary available.')}</p>
+                        <p class="smart-card-paragraph">${this.escapeHtml(summaryText || 'No summary available.')}</p>
                     </div>
                 </div>
 
@@ -726,12 +750,14 @@ class SmartConversationController {
                 ${keyPoints.length > 0 ? `
                     <div class="smart-card">
                         <div class="smart-card-header smart-keypoints-accent">
-                            <span class="smart-card-icon">◎</span>
+                            <span class="smart-card-icon">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                            </span>
                             <h3 class="smart-card-title">Key Points</h3>
                         </div>
                         <div class="smart-card-body">
-                            <ul class="smart-card-bullet-list smart-summary-bullets">
-                                ${keyPoints.map(p => `<li class="smart-summary-bullet">${this.escapeHtml(p)}</li>`).join('')}
+                            <ul class="smart-card-bullet-list">
+                                ${keyPoints.map(p => `<li>${this.escapeHtml(p)}</li>`).join('')}
                             </ul>
                         </div>
                     </div>
@@ -741,7 +767,9 @@ class SmartConversationController {
                 ${importantInfo.length > 0 ? `
                     <div class="smart-card">
                         <div class="smart-card-header smart-important-accent">
-                            <span class="smart-card-icon">⚠</span>
+                            <span class="smart-card-icon">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            </span>
                             <h3 class="smart-card-title">Important Information</h3>
                         </div>
                         <div class="smart-card-body">
@@ -799,7 +827,8 @@ class SmartConversationController {
                         if (src.type === 'page') {
                             return `
                                 <button type="button" class="smart-source-chip-btn smart-doc-page-btn" data-page="${this.escapeHtml(src.label)}" title="Citation: ${this.escapeHtml(src.label)}">
-                                    <span>📄 ${this.escapeHtml(src.label)}</span>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                    <span>${this.escapeHtml(src.label)}</span>
                                     <span class="smart-source-arrow">↗</span>
                                 </button>
                             `;

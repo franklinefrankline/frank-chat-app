@@ -30,15 +30,24 @@ def check_and_migrate_db():
     try:
         from sqlalchemy import inspect, text
         inspector = inspect(engine)
-        if "messages" in inspector.get_table_names():
-            columns = [col["name"] for col in inspector.get_columns("messages")]
-            with engine.begin() as conn:
+        table_names = inspector.get_table_names()
+        with engine.begin() as conn:
+            if "users" in table_names:
+                u_cols = [col["name"] for col in inspector.get_columns("users")]
+                if "auto_translate" not in u_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN auto_translate BOOLEAN DEFAULT 1"))
+                if "default_view_translation" not in u_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN default_view_translation BOOLEAN DEFAULT 1"))
+            if "messages" in table_names:
+                columns = [col["name"] for col in inspector.get_columns("messages")]
                 if "message_type" not in columns:
                     conn.execute(text("ALTER TABLE messages ADD COLUMN message_type VARCHAR(20) DEFAULT 'text'"))
                 if "file_id" not in columns:
                     conn.execute(text("ALTER TABLE messages ADD COLUMN file_id INTEGER NULL"))
                 if "updated_at" not in columns:
                     conn.execute(text("ALTER TABLE messages ADD COLUMN updated_at TIMESTAMP NULL"))
+        # Re-ensure all tables exist
+        models.Base.metadata.create_all(bind=engine)
     except Exception as e:
         print(f"Migration note: {e}")
 

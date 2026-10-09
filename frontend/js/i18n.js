@@ -151,7 +151,10 @@
         "registering": "Creating account...",
         "invalidCredentials": "Invalid email/username or password",
         "passwordsDoNotMatch": "Passwords do not match",
-        "accountDisabled": "This account is disabled. Contact your administrator."
+        "accountDisabled": "This account is disabled. Contact your administrator.",
+        "rememberMe": "Remember me",
+        "demoAccounts": "Demo accounts",
+        "emailOrUsername": "Email Address or Username"
     },
     "chat": {
         "chats": "Chats",
@@ -195,7 +198,40 @@
         "connected": "Connected",
         "download": "Download",
         "view": "View",
-        "unreadCount": "{count} unread messages"
+        "unreadCount": "{count} unread messages",
+        "filterAll": "All",
+        "filterUnread": "Unread",
+        "filterDirect": "Direct",
+        "filterGroups": "Groups",
+        "emptyChatTitle": "Select a conversation",
+        "emptyChatDesc": "Choose from your existing conversations or start a new one to begin messaging.",
+        "emptyConversationsTitle": "No conversations yet",
+        "emptyConversationsDesc": "Start a new chat to begin messaging",
+        "messageYourselfSub": "Notes & bookmarks",
+        "inviteViaLink": "Invite Via Link",
+        "starred": "Starred",
+        "star": "Star Message",
+        "unstar": "Unstar Message",
+        "translate": "Translate Message",
+        "showOriginal": "Show original",
+        "showTranslation": "Show translation",
+        "translated": "Translated",
+        "translating": "Translating...",
+        "translationFailed": "Translation unavailable",
+        "autoTranslate": "Auto-Translate Messages",
+        "detailsDrawer": "Conversation Details",
+        "participants": "Participants",
+        "sharedMedia": "Shared Media & Files",
+        "securityEncryption": "Security & Encryption",
+        "muteNotifications": "Mute Notifications",
+        "clearChatHistory": "Clear Chat History",
+        "deleteChatConfirm": "Are you sure you want to delete this chat?",
+        "voiceMessage": "Voice message",
+        "recording": "Recording...",
+        "cancelReply": "Cancel reply",
+        "cancelEdit": "Cancel edit",
+        "saveEdit": "Save edit",
+        "lastSeen": "Last seen {time}"
     },
     "messages": {
         "unread": "{count} unread messages"
@@ -216,7 +252,18 @@
         "savedSuccessfully": "Settings saved successfully",
         "frankId": "Your permanent FRANK ID",
         "copyFrankId": "Copy FRANK ID",
-        "logout": "Log Out"
+        "logout": "Log Out",
+        "languageAndTranslation": "Language & Translation",
+        "interfaceLanguage": "Interface Language",
+        "interfaceLanguageDesc": "Select the primary display language for the FRANK application interface.",
+        "autoTranslateTitle": "Automatic Message Translation",
+        "autoTranslateDesc": "Automatically translate incoming messages in chats into your preferred language.",
+        "defaultViewTitle": "Default Message View",
+        "defaultViewDesc": "Choose whether to display the translated text or original message first.",
+        "viewTranslated": "Show Translated Text",
+        "viewOriginal": "Show Original Message",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
     },
     "admin": {
         "title": "Admin Portal",
@@ -239,7 +286,16 @@
         "confirmDelete": "Confirm Account Deletion",
         "auditLogs": "Audit Logs",
         "announcements": "System Announcements",
-        "broadcast": "Broadcast Announcement"
+        "broadcast": "Broadcast Announcement",
+        "groupsChats": "Groups & Chats",
+        "adminProfile": "Admin Profile",
+        "live": "LIVE",
+        "refresh": "Refresh",
+        "signOut": "Sign Out",
+        "user": "User",
+        "email": "Email",
+        "role": "Role",
+        "joined": "Joined"
     },
     "common": {
         "cancel": "Cancel",
@@ -264,7 +320,7 @@
         "importantMessages": "Important Messages",
         "actionItems": "Action Items",
         "decisions": "Decisions",
-        "dates": "Dates & Deadlines",
+        "dates": "Dates",
         "tryAgain": "Try Again",
         "unavailable": "Smart Conversation is temporarily unavailable. Please try again.",
         "notConfigured": "Smart Conversation is not configured.",
@@ -292,9 +348,58 @@
         "updatesCount": "Important updates",
         "filesCount": "Files",
         "decisionsCount": "Decisions",
-        "files": "Important Files",
-        "insights": "Conversation Insights",
-        "noFiles": "No files shared in this conversation."
+        "files": "Files",
+        "insights": "Insights",
+        "noFiles": "No files shared in this conversation.",
+        "beta": "BETA",
+        "targetedBadge": "TARGETED ANALYSIS",
+        "fullConversation": "Full Conversation",
+        "fullConvBadge": "FULL CONVERSATION ANALYSIS",
+        "returnTargeted": "Return to Targeted Analysis",
+        "selectedMessage": "Selected Message",
+        "selectedDocument": "Selected Document",
+        "executiveSummary": "Executive Summary",
+        "keyPoints": "Key Points",
+        "importantInfo": "Important Information",
+        "sourceReferences": "Source References",
+        "refresh": "Refresh",
+        "analyzingWithGemini": "Analyzing conversation with Gemini...",
+        "analyzingMessage": "Analyzing selected message...",
+        "analyzingDoc": "Analyzing document...",
+        "analyzingBoth": "Analyzing message and document...",
+        "assignedTo": "Assigned to",
+        "due": "Due",
+        "markComplete": "Mark complete",
+        "deleteAction": "Delete action",
+        "copySummary": "Copy Summary",
+        "missed": "Missed",
+        "important": "Important",
+        "actions": "Actions"
+    },
+    "office": {
+        "back": "Back",
+        "save": "Save",
+        "saving": "Saving...",
+        "saved": "Saved",
+        "unsavedChanges": "Unsaved changes",
+        "discardChanges": "Discard Changes",
+        "stay": "Stay",
+        "saveAndExit": "Save & Exit",
+        "download": "Download",
+        "edit": "Edit",
+        "insert": "Insert",
+        "format": "Format",
+        "view": "View",
+        "review": "Review",
+        "print": "Print",
+        "versionHistory": "Version History",
+        "restore": "Restore",
+        "sendUpdatedFile": "Send Updated File",
+        "tryAgain": "Try Again",
+        "permissionDenied": "Permission Denied",
+        "unsupportedFile": "Preview is not available for this file type.",
+        "unableToOpen": "Unable to open this document.",
+        "unableToSave": "Unable to save changes. Your original document is still safe."
     }
 },
         ta: {
@@ -402,7 +507,10 @@
         "registering": "கணக்கு உருவாக்கப்படுகிறது...",
         "invalidCredentials": "தவறான மின்னஞ்சல் அல்லது கடவுச்சொல்",
         "passwordsDoNotMatch": "கடவுச்சொற்கள் பொருந்தவில்லை",
-        "accountDisabled": "இந்த கணக்கு முடக்கப்பட்டுள்ளது. நிர்வாகியை தொடர்பு கொள்ளவும்."
+        "accountDisabled": "இந்த கணக்கு முடக்கப்பட்டுள்ளது. நிர்வாகியை தொடர்பு கொள்ளவும்.",
+        "rememberMe": "என்னை நினைவில் கொள்",
+        "demoAccounts": "மாதிரி கணக்குகள்",
+        "emailOrUsername": "மின்னஞ்சல் அல்லது பயனர்பெயர்"
     },
     "chat": {
         "chats": "அரட்டைகள்",
@@ -446,7 +554,40 @@
         "connected": "இணைக்கப்பட்டது",
         "download": "பதிவிறக்கு",
         "view": "பார்வையிடு",
-        "unreadCount": "{count} படிக்காத செய்திகள்"
+        "unreadCount": "{count} படிக்காத செய்திகள்",
+        "filterAll": "அனைத்தும்",
+        "filterUnread": "படிக்காதவை",
+        "filterDirect": "நேரடி",
+        "filterGroups": "குழுக்கள்",
+        "emptyChatTitle": "ஒரு உரையாடலைத் தேர்வுசெய்க",
+        "emptyChatDesc": "ஏற்கனவே உள்ள உரையாடல்களில் இருந்து தேர்வுசெய்யவும் அல்லது புதிய அரட்டையைத் தொடங்கவும்.",
+        "emptyConversationsTitle": "உரையாடல்கள் இன்னும் இல்லை",
+        "emptyConversationsDesc": "செய்தி அனுப்ப புதிய அரட்டையைத் தொடங்குங்கள்",
+        "messageYourselfSub": "குறிப்புகள் மற்றும் புக்மார்க்குகள்",
+        "inviteViaLink": "இணைப்பு மூலம் அழைக்கவும்",
+        "starred": "நட்சத்திரமிட்டவை",
+        "star": "நட்சத்திரமிடு",
+        "unstar": "நட்சத்திரத்தை நீக்கு",
+        "translate": "செய்தியை மொழிபெயர்",
+        "showOriginal": "மூல செய்தியைக் காட்டு",
+        "showTranslation": "மொழிபெயர்ப்பைக் காட்டு",
+        "translated": "மொழிபெயர்க்கப்பட்டது",
+        "translating": "மொழிபெயர்க்கிறது...",
+        "translationFailed": "மொழிபெயர்ப்பு கிடைக்கவில்லை",
+        "autoTranslate": "செய்திகளை தானாக மொழிபெயர்",
+        "detailsDrawer": "உரையாடல் விவரங்கள்",
+        "participants": "பங்கேற்பாளர்கள்",
+        "sharedMedia": "பகிரப்பட்ட ஊடகம் & கோப்புகள்",
+        "securityEncryption": "பாதுகாப்பு & குறியாக்கம்",
+        "muteNotifications": "அறிவிப்புகளை முடக்கு",
+        "clearChatHistory": "அரட்டை வரலாற்றை அழி",
+        "deleteChatConfirm": "இந்த அரட்டையை நிச்சயமாக நீக்க விரும்புகிறீர்களா?",
+        "voiceMessage": "குரல் செய்தி",
+        "recording": "பதிவாகிறது...",
+        "cancelReply": "பதிலை ரத்துசெய்",
+        "cancelEdit": "திருத்தத்தை ரத்துசெய்",
+        "saveEdit": "மாற்றத்தை சேமி",
+        "lastSeen": "கடைசியாகப் பார்த்தது {time}"
     },
     "messages": {
         "unread": "{count} படிக்காத செய்திகள்"
@@ -467,7 +608,18 @@
         "savedSuccessfully": "அமைப்புகள் வெற்றிகரமாகச் சேமிக்கப்பட்டன",
         "frankId": "உங்கள் நிரந்தர FRANK ID",
         "copyFrankId": "FRANK ID நகலெடு",
-        "logout": "வெளியேறு"
+        "logout": "வெளியேறு",
+        "languageAndTranslation": "மொழி & மொழிபெயர்ப்பு",
+        "interfaceLanguage": "பயன்பாட்டு இடைமுக மொழி",
+        "interfaceLanguageDesc": "FRANK பயன்பாட்டு இடைமுகத்திற்கான முதன்மை காட்சி மொழியைத் தேர்வுசெய்யவும்.",
+        "autoTranslateTitle": "செய்திகளை தானாக மொழிபெயர்த்தல்",
+        "autoTranslateDesc": "அரட்டைகளில் வரும் உள்வரும் செய்திகளை உங்கள் விருப்பமான மொழிக்கு தானாகவே மொழிபெயர்க்கவும்.",
+        "defaultViewTitle": "இயல்புநிலை செய்தி காட்சி",
+        "defaultViewDesc": "மொழிபெயர்க்கப்பட்ட உரையையோ அல்லது மூல செய்தியையோ முதலில் காட்ட வேண்டுமா என்பதைத் தேர்ந்தெடுக்கவும்.",
+        "viewTranslated": "மொழிபெயர்க்கப்பட்ட உரையை காட்டு",
+        "viewOriginal": "மூல செய்தியை காட்டு",
+        "enabled": "இயக்கப்பட்டது",
+        "disabled": "முடக்கப்பட்டது"
     },
     "admin": {
         "title": "நிர்வாக தளம்",
@@ -490,7 +642,16 @@
         "confirmDelete": "கணக்கு நீக்கத்தை உறுதிசெய்",
         "auditLogs": "தணிக்கை பதிவுகள்",
         "announcements": "கட்டமைப்பு அறிவிப்புகள்",
-        "broadcast": "அறிவிப்பை ஒளிபரப்பு"
+        "broadcast": "அறிவிப்பை ஒளிபரப்பு",
+        "groupsChats": "குழுக்கள் & அரட்டைகள்",
+        "adminProfile": "நிர்வாகி சுயவிவரம்",
+        "live": "நேரலை",
+        "refresh": "புதுப்பி",
+        "signOut": "வெளியேறு",
+        "user": "பயனர்",
+        "email": "மின்னஞ்சல்",
+        "role": "பங்கு",
+        "joined": "இணைந்த தேதி"
     },
     "common": {
         "cancel": "ரத்துசெய்",
@@ -515,7 +676,7 @@
         "importantMessages": "முக்கியமான செய்திகள்",
         "actionItems": "நடவடிக்கை உருப்படிகள்",
         "decisions": "முடிவுகள்",
-        "dates": "தேதிகள் & காலக்கெடு",
+        "dates": "தேதிகள்",
         "tryAgain": "மீண்டும் முயற்சி செய்",
         "unavailable": "ஸ்மார்ட் உரையாடல் தற்காலிகமாக கிடைக்கவில்லை. மீண்டும் முயற்சிக்கவும்.",
         "notConfigured": "ஸ்மார்ட் உரையாடல் உள்ளமைக்கப்படவில்லை.",
@@ -542,7 +703,58 @@
         "messagesCount": "செய்திகள்",
         "updatesCount": "முக்கிய புதுப்பிப்புகள்",
         "filesCount": "கோப்புகள்",
-        "decisionsCount": "முடிவுகள்"
+        "decisionsCount": "முடிவுகள்",
+        "beta": "பீட்டா",
+        "targetedBadge": "குறிப்பிட்ட பகுப்பாய்வு",
+        "fullConversation": "முழு உரையாடல்",
+        "fullConvBadge": "முழு உரையாடல் பகுப்பாய்வு",
+        "returnTargeted": "குறிப்பிட்ட பகுப்பாய்வுக்கு திரும்பு",
+        "selectedMessage": "தேர்ந்தெடுக்கப்பட்ட செய்தி",
+        "selectedDocument": "தேர்ந்தெடுக்கப்பட்ட ஆவணம்",
+        "executiveSummary": "முதன்மை சுருக்கம்",
+        "keyPoints": "முக்கிய குறிப்புகள்",
+        "importantInfo": "முக்கியமான தகவல்",
+        "sourceReferences": "மூல குறிப்புகள்",
+        "refresh": "புதுப்பி",
+        "analyzingWithGemini": "ஜெமினியுடன் உரையாடலை பகுப்பாய்வு செய்கிறது...",
+        "analyzingMessage": "தேர்ந்தெடுக்கப்பட்ட செய்தியை பகுப்பாய்வு செய்கிறது...",
+        "analyzingDoc": "ஆவணத்தை பகுப்பாய்வு செய்கிறது...",
+        "analyzingBoth": "செய்தி மற்றும் ஆவணத்தை பகுப்பாய்வு செய்கிறது...",
+        "assignedTo": "ஒதுக்கப்பட்டவர்",
+        "due": "காலக்கெடு",
+        "markComplete": "முடிந்தது என குறி",
+        "deleteAction": "செயலை நீக்கு",
+        "copySummary": "சுருக்கத்தை நகலெடு",
+        "missed": "தவறவிட்டவை",
+        "important": "முக்கியமானவை",
+        "actions": "செயல்கள்",
+        "files": "கோப்புகள்",
+        "insights": "நுண்ணறிவு"
+    },
+    "office": {
+        "back": "பின்செல்",
+        "save": "சேமி",
+        "saving": "சேமிக்கிறது...",
+        "saved": "சேமிக்கப்பட்டது",
+        "unsavedChanges": "சேமிக்கப்படாத மாற்றங்கள்",
+        "discardChanges": "மாற்றங்களை நிராகரி",
+        "stay": "இங்கேயே இரு",
+        "saveAndExit": "சேமித்து வெளியேறு",
+        "download": "பதிவிறக்கு",
+        "edit": "திருத்து",
+        "insert": "செருகு",
+        "format": "வடிவமைப்பு",
+        "view": "பார்",
+        "review": "மதிப்பாய்வு",
+        "print": "அச்சிடு",
+        "versionHistory": "பதிப்பு வரலாறு",
+        "restore": "மீட்டமை",
+        "sendUpdatedFile": "புதுப்பிக்கப்பட்ட கோப்பை அனுப்பு",
+        "tryAgain": "மீண்டும் முயற்சி செய்",
+        "permissionDenied": "அனுமதி மறுக்கப்பட்டது",
+        "unsupportedFile": "இந்த கோப்பு வகைக்கு மாதிரிக்காட்சி கிடைக்கவில்லை.",
+        "unableToOpen": "இந்த ஆவணத்தைத் திறக்க முடியவில்லை.",
+        "unableToSave": "மாற்றங்களைச் சேமிக்க முடியவில்லை. உங்கள் அசல் ஆவணம் பாதுகாப்பாக உள்ளது."
     }
 },
         hi: {
@@ -650,7 +862,10 @@
         "registering": "खाता बनाया जा रहा है...",
         "invalidCredentials": "अमान्य ईमेल/उपयोगकर्ता नाम या पासवर्ड",
         "passwordsDoNotMatch": "पासवर्ड मेल नहीं खाते",
-        "accountDisabled": "यह खाता निष्क्रिय है। अपने व्यवस्थापक से संपर्क करें।"
+        "accountDisabled": "यह खाता निष्क्रिय है। अपने व्यवस्थापक से संपर्क करें।",
+        "rememberMe": "मुझे याद रखें",
+        "demoAccounts": "डेमो खाते",
+        "emailOrUsername": "ईमेल पता या उपयोगकर्ता नाम"
     },
     "chat": {
         "chats": "चैट",
@@ -694,7 +909,40 @@
         "connected": "कनेक्टेड",
         "download": "डाउनलोड",
         "view": "देखें",
-        "unreadCount": "{count} अपठित संदेश"
+        "unreadCount": "{count} अपठित संदेश",
+        "filterAll": "सभी",
+        "filterUnread": "अपठित",
+        "filterDirect": "प्रत्यक्ष",
+        "filterGroups": "समूह",
+        "emptyChatTitle": "एक बातचीत चुनें",
+        "emptyChatDesc": "अपनी मौजूदा बातचीत में से चुनें या मैसेजिंग शुरू करने के लिए नई चैट शुरू करें।",
+        "emptyConversationsTitle": "अभी कोई बातचीत नहीं है",
+        "emptyConversationsDesc": "संदेश भेजना शुरू करने के लिए नई चैट शुरू करें",
+        "messageYourselfSub": "नोट्स और बुकमार्क",
+        "inviteViaLink": "लिंक द्वारा आमंत्रित करें",
+        "starred": "तारांकित",
+        "star": "तारांकित करें",
+        "unstar": "तारांकित हटाएं",
+        "translate": "संदेश का अनुवाद करें",
+        "showOriginal": "मूल संदेश देखें",
+        "showTranslation": "अनुवाद देखें",
+        "translated": "अनुवादित",
+        "translating": "अनुवाद हो रहा है...",
+        "translationFailed": "अनुवाद अनुपलब्ध",
+        "autoTranslate": "संदेशों का स्वतः अनुवाद",
+        "detailsDrawer": "बातचीत का विवरण",
+        "participants": "प्रतिभागी",
+        "sharedMedia": "साझा मीडिया और फ़ाइलें",
+        "securityEncryption": "सुरक्षा और एन्क्रिप्शन",
+        "muteNotifications": "सूचनाएं म्यूट करें",
+        "clearChatHistory": "चैट इतिहास साफ़ करें",
+        "deleteChatConfirm": "क्या आप वाकई इस चैट को हटाना चाहते हैं?",
+        "voiceMessage": "वॉयस संदेश",
+        "recording": "रिकॉर्डिंग हो रही है...",
+        "cancelReply": "उत्तर रद्द करें",
+        "cancelEdit": "संपादन रद्द करें",
+        "saveEdit": "संपादन सहेजें",
+        "lastSeen": "अंतिम बार देखा गया {time}"
     },
     "messages": {
         "unread": "{count} अपठित संदेश"
@@ -715,7 +963,18 @@
         "savedSuccessfully": "सेटिंग्स सफलतापूर्वक सहेजी गईं",
         "frankId": "आपकी स्थायी FRANK ID",
         "copyFrankId": "FRANK ID कॉपी करें",
-        "logout": "लॉग आउट"
+        "logout": "लॉग आउट",
+        "languageAndTranslation": "भाषा और अनुवाद",
+        "interfaceLanguage": "इंटरफ़ेस भाषा",
+        "interfaceLanguageDesc": "FRANK एप्लिकेशन इंटरफ़ेस के लिए प्राथमिक प्रदर्शन भाषा चुनें।",
+        "autoTranslateTitle": "स्वचालित संदेश अनुवाद",
+        "autoTranslateDesc": "चैट में आने वाले संदेशों को अपनी पसंदीदा भाषा में स्वचालित रूप से अनुवाद करें।",
+        "defaultViewTitle": "डिफ़ॉल्ट संदेश दृश्य",
+        "defaultViewDesc": "पहले अनुवादित पाठ दिखाना है या मूल संदेश, इसे चुनें।",
+        "viewTranslated": "अनुवादित पाठ दिखाएं",
+        "viewOriginal": "मूल संदेश दिखाएं",
+        "enabled": "सक्षम",
+        "disabled": "अक्षम"
     },
     "admin": {
         "title": "एडमिन पोर्टल",
@@ -738,7 +997,16 @@
         "confirmDelete": "खाता हटाने की पुष्टि करें",
         "auditLogs": "ऑडिट लॉग",
         "announcements": "सिस्टम घोषणाएं",
-        "broadcast": "घोषणा प्रसारित करें"
+        "broadcast": "घोषणा प्रसारित करें",
+        "groupsChats": "समूह और चैट",
+        "adminProfile": "व्यवस्थापक प्रोफ़ाइल",
+        "live": "लाइव",
+        "refresh": "ताज़ा करें",
+        "signOut": "साइन आउट",
+        "user": "उपयोगकर्ता",
+        "email": "ईमेल",
+        "role": "भूमिका",
+        "joined": "शामिल हुए"
     },
     "common": {
         "cancel": "रद्द करें",
@@ -763,7 +1031,7 @@
         "importantMessages": "महत्वपूर्ण संदेश",
         "actionItems": "कार्य बिंदु",
         "decisions": "निर्णय",
-        "dates": "तिथियां और समय सीमा",
+        "dates": "तिथियां",
         "tryAgain": "पुनः प्रयास करें",
         "unavailable": "स्मार्ट वार्तालाप अस्थायी रूप से अनुपलब्ध है। कृपया पुन: प्रयास करें।",
         "notConfigured": "स्मार्ट वार्तालाप कॉन्फ़िगर नहीं है।",
@@ -790,7 +1058,58 @@
         "messagesCount": "संदेश",
         "updatesCount": "महत्वपूर्ण अपडेट",
         "filesCount": "फ़ाइलें",
-        "decisionsCount": "निर्णय"
+        "decisionsCount": "निर्णय",
+        "beta": "बीटा",
+        "targetedBadge": "लक्षित विश्लेषण",
+        "fullConversation": "पूर्ण वार्तालाप",
+        "fullConvBadge": "पूर्ण वार्तालाप विश्लेषण",
+        "returnTargeted": "लक्षित विश्लेषण पर वापस जाएं",
+        "selectedMessage": "चयनित संदेश",
+        "selectedDocument": "चयनित दस्तावेज़",
+        "executiveSummary": "कार्यकारी सारांश",
+        "keyPoints": "मुख्य बिंदु",
+        "importantInfo": "महत्वपूर्ण जानकारी",
+        "sourceReferences": "स्रोत संदर्भ",
+        "refresh": "ताज़ा करें",
+        "analyzingWithGemini": "जेमिनी के साथ बातचीत का विश्लेषण कर रहा है...",
+        "analyzingMessage": "चयनित संदेश का विश्लेषण कर रहा है...",
+        "analyzingDoc": "दस्तावेज़ का विश्लेषण कर रहा है...",
+        "analyzingBoth": "संदेश और दस्तावेज़ का विश्लेषण कर रहा है...",
+        "assignedTo": "सौंपा गया",
+        "due": "नियत तिथि",
+        "markComplete": "पूर्ण चिह्नित करें",
+        "deleteAction": "कार्य हटाएं",
+        "copySummary": "सारांश कॉपी करें",
+        "missed": "छूटे हुए",
+        "important": "महत्वपूर्ण",
+        "actions": "कार्य",
+        "files": "फ़ाइलें",
+        "insights": "अंतर्दृष्टि"
+    },
+    "office": {
+        "back": "वापस",
+        "save": "सहेजें",
+        "saving": "सहेजा जा रहा है...",
+        "saved": "सहेजा गया",
+        "unsavedChanges": "असहेजे गए परिवर्तन",
+        "discardChanges": "परिवर्तन छोड़ें",
+        "stay": "यहीं रहें",
+        "saveAndExit": "सहेजें और बाहर निकलें",
+        "download": "डाउनलोड",
+        "edit": "संपादित करें",
+        "insert": "सम्मिलित करें",
+        "format": "प्रारूप",
+        "view": "देखें",
+        "review": "समीक्षा",
+        "print": "प्रिंट करें",
+        "versionHistory": "संस्करण इतिहास",
+        "restore": "पुनर्स्थापित करें",
+        "sendUpdatedFile": "अद्यतन फ़ाइल भेजें",
+        "tryAgain": "पुनः प्रयास करें",
+        "permissionDenied": "अनुमति अस्वीकृत",
+        "unsupportedFile": "इस फ़ाइल प्रकार के लिए पूर्वावलोकन उपलब्ध नहीं है।",
+        "unableToOpen": "यह दस्तावेज़ खोलने में असमर्थ।",
+        "unableToSave": "परिवर्तन सहेजने में असमर्थ। आपका मूल दस्तावेज़ अभी भी सुरक्षित है।"
     }
 }
     };
@@ -987,9 +1306,20 @@
         applyTranslations(root = document) {
             if (!root) return;
 
+            // Title tag translation
+            const titleEl = root.querySelector('title[data-i18n]');
+            if (titleEl) {
+                const titleKey = titleEl.getAttribute('data-i18n');
+                if (titleKey) {
+                    const transTitle = this.t(titleKey);
+                    if (transTitle) document.title = transTitle;
+                }
+            }
+
             // 1. Text elements
             const textElements = root.querySelectorAll('[data-i18n]');
             textElements.forEach(el => {
+                if (el.tagName.toLowerCase() === 'title') return;
                 const key = el.getAttribute('data-i18n');
                 if (!key) return;
                 const translated = this.t(key);
@@ -1052,6 +1382,17 @@
                     el.setAttribute('aria-label', translated);
                 }
             });
+
+            // 5. Value attributes (e.g. submit buttons)
+            const valueElements = root.querySelectorAll('[data-i18n-value]');
+            valueElements.forEach(el => {
+                const key = el.getAttribute('data-i18n-value');
+                if (!key) return;
+                const translated = this.t(key);
+                if (translated) {
+                    el.setAttribute('value', translated);
+                }
+            });
         }
 
         updateSelectors() {
@@ -1073,14 +1414,34 @@
                     option.setAttribute('aria-selected', 'false');
                 }
             });
+
+            // Update settings cards [data-lang-choice]
+            document.querySelectorAll('[data-lang-choice]').forEach(card => {
+                const choice = card.getAttribute('data-lang-choice');
+                if (choice === this.currentLang) {
+                    card.classList.add('active');
+                    card.setAttribute('aria-checked', 'true');
+                } else {
+                    card.classList.remove('active');
+                    card.setAttribute('aria-checked', 'false');
+                }
+            });
         }
 
         bindDropdownEvents() {
             if (this._listenersBound) return;
             this._listenersBound = true;
 
-            // Handle toggle button clicks & accessibility
+            // Handle [data-lang-choice] clicks in settings
             document.addEventListener('click', (e) => {
+                const choiceCard = e.target.closest('[data-lang-choice]');
+                if (choiceCard) {
+                    const choice = choiceCard.getAttribute('data-lang-choice');
+                    if (choice) {
+                        this.setLanguage(choice, { saveToDb: true });
+                    }
+                    return;
+                }
                 const btn = e.target.closest('.lang-btn');
                 if (btn) {
                     e.preventDefault();
