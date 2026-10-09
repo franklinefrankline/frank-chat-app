@@ -472,23 +472,30 @@ class SmartConversationService:
         db: Session
     ) -> Tuple[int, Optional[int], bool]:
         """Resolves (canonical_conversation_id, partner_id, is_self) with strict authorization."""
-        if conversation_type == "group":
-            group = db.query(models.Group).filter(models.Group.id == conversation_id).first()
-            if not group:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
+        # 1. Check if conversation_id corresponds to a Group
+        group = db.query(models.Group).filter(models.Group.id == conversation_id).first()
+        if group:
             membership = db.query(models.GroupMember).filter(
                 models.GroupMember.group_id == conversation_id,
                 models.GroupMember.user_id == current_user.id
             ).first()
-            if not membership and current_user.role != "admin":
+            if membership or current_user.role == "admin":
+                return group.id, None, False
+            elif conversation_type == "group":
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You don't have permission to analyze this conversation."
                 )
-            return group.id, None, False
 
-        # Direct conversation:
-        # Case 1: Check if conversation_id is a canonical Conversation ID
+        if conversation_type == "group":
+            if not group:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to analyze this conversation."
+            )
+
+        # 2. Check if conversation_id is a canonical Conversation ID
         conv = db.query(models.Conversation).filter(models.Conversation.id == conversation_id).first()
         if conv:
             is_member = (
@@ -504,7 +511,7 @@ class SmartConversationService:
                 partner_id = current_user.id if is_self else (conv.user_b_id if conv.user_a_id == current_user.id else conv.user_a_id)
                 return conv.id, partner_id, is_self
 
-        # Case 2: conversation_id is the user's own ID (Self chat / Notes & bookmarks passed as user ID)
+        # 3. Check if conversation_id is the user's own ID (Self chat / Notes & bookmarks passed as user ID)
         if conversation_id == current_user.id:
             self_conv = db.query(models.Conversation).filter(
                 models.Conversation.user_a_id == current_user.id,
@@ -524,7 +531,7 @@ class SmartConversationService:
                 db.commit()
             return self_conv.id, current_user.id, True
 
-        # Case 3: conversation_id is a partner user ID with whom current_user has an established direct conversation or messages
+        # 4. Check if conversation_id is a partner user ID
         partner_user = db.query(models.User).filter(models.User.id == conversation_id).first()
         if partner_user:
             ua = min(current_user.id, partner_user.id)
@@ -559,7 +566,7 @@ class SmartConversationService:
                 db.commit()
                 return user_conv.id, partner_user.id, False
 
-        # Case 4: If conv was found above, but current_user was NOT a member -> strictly 403 Forbidden!
+        # 5. Strict rejection if conv was found above, but current_user was NOT a member
         if conv:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -1828,18 +1835,20 @@ class SmartConversationService:
                 msg = db.query(models.Message).filter(models.Message.id == message_id).first()
                 if not msg:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found.")
-                if conversation_type == "group":
-                    if msg.group_id != conv_id and current_user.role != "admin":
-                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Message does not belong to this conversation.")
+                if msg.group_id:
+                    is_member = db.query(models.GroupMember).filter(
+                        models.GroupMember.group_id == msg.group_id,
+                        models.GroupMember.user_id == current_user.id
+                    ).first() is not None or current_user.role == "admin"
+                    if not is_member:
+                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to analyze this conversation.")
+                    conv_id = msg.group_id
+                    conversation_type = "group"
                 else:
-                    if msg.group_id is not None and current_user.role != "admin":
-                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Message does not belong to this conversation.")
-                    if is_self:
-                        if (msg.sender_id != current_user.id or (msg.recipient_id is not None and msg.recipient_id != current_user.id)) and current_user.role != "admin":
-                            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Message does not belong to this conversation.")
-                    else:
-                        if not ((msg.sender_id == current_user.id and msg.recipient_id == partner_id) or (msg.sender_id == partner_id and msg.recipient_id == current_user.id)) and current_user.role != "admin":
-                            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Message does not belong to this conversation.")
+                    is_participant = (current_user.id in (msg.sender_id, msg.recipient_id)) or current_user.role == "admin"
+                    if not is_participant:
+                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to analyze this conversation.")
+                    conversation_type = "direct"
                 target_msg = msg
                 sender = db.query(models.User).filter(models.User.id == msg.sender_id).first()
                 if sender:
@@ -1849,16 +1858,20 @@ class SmartConversationService:
                 doc = db.query(models.Document).filter(models.Document.id == attachment_id).first()
                 if not doc:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
-                if conversation_type == "group":
-                    if doc.group_id != conv_id and current_user.role != "admin":
-                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Document does not belong to this conversation.")
+                if doc.group_id:
+                    is_member = db.query(models.GroupMember).filter(
+                        models.GroupMember.group_id == doc.group_id,
+                        models.GroupMember.user_id == current_user.id
+                    ).first() is not None or current_user.role == "admin"
+                    if not is_member:
+                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to document.")
+                    conv_id = doc.group_id
+                    conversation_type = "group"
                 else:
-                    if is_self:
-                        if doc.uploader_id != current_user.id and current_user.role != "admin":
-                            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Document does not belong to this conversation.")
-                    else:
-                        if doc.uploader_id not in (current_user.id, partner_id) and current_user.role != "admin":
-                            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Document does not belong to this conversation.")
+                    is_doc_user = (doc.uploader_id == current_user.id or doc.conversation_id == current_user.id) or current_user.role == "admin"
+                    if not is_doc_user:
+                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to document.")
+                    conversation_type = "direct"
                 if message_id and doc.message_id and doc.message_id != message_id:
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Attachment does not belong to specified message.")
                 target_att = doc

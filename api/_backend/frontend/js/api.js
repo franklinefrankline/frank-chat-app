@@ -549,17 +549,26 @@ function handleMockRequest(endpoint, options = {}) {
 const api = {
     baseUrl: API_BASE,
     getToken() {
-        return localStorage.getItem('chatapp_token') || localStorage.getItem('frank_token') || sessionStorage.getItem('frank_token');
+        return localStorage.getItem('chatapp_token') || 
+               localStorage.getItem('frank_token') || 
+               localStorage.getItem('frank_auth_token') || 
+               sessionStorage.getItem('frank_token') || 
+               sessionStorage.getItem('chatapp_token') || 
+               sessionStorage.getItem('frank_auth_token');
     },
 
     setToken(token) {
         if (token) {
             localStorage.setItem('chatapp_token', token);
             localStorage.setItem('frank_token', token);
+            localStorage.setItem('frank_auth_token', token);
         } else {
             localStorage.removeItem('chatapp_token');
             localStorage.removeItem('frank_token');
+            localStorage.removeItem('frank_auth_token');
             sessionStorage.removeItem('frank_token');
+            sessionStorage.removeItem('chatapp_token');
+            sessionStorage.removeItem('frank_auth_token');
         }
     },
 

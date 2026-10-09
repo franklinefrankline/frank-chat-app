@@ -3,7 +3,15 @@ import json
 import logging
 from typing import Dict, Any, List, Optional
 from pathlib import Path
-import httpx
+import asyncio
+
+try:
+    import httpx
+    HAS_HTTPX = True
+except ImportError:
+    import urllib.request
+    import urllib.error
+    HAS_HTTPX = False
 
 from services.document_extractor import extract_text_from_file
 
@@ -45,15 +53,32 @@ class GeminiProvider:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                resp = await client.post(url, json=payload)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    raw_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    return json.loads(raw_text)
-                else:
-                    logger.warning(f"Gemini API returned status {resp.status_code}: {resp.text[:200]}")
-                    return None
+            if HAS_HTTPX:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    resp = await client.post(url, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        raw_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                        return json.loads(raw_text)
+                    else:
+                        logger.warning(f"Gemini API returned status {resp.status_code}: {resp.text[:200]}")
+                        return None
+            else:
+                def _urllib_call():
+                    payload_bytes = json.dumps(payload).encode("utf-8")
+                    req = urllib.request.Request(
+                        url,
+                        data=payload_bytes,
+                        headers={"Content-Type": "application/json"},
+                        method="POST"
+                    )
+                    with urllib.request.urlopen(req, timeout=timeout) as response:
+                        if response.status == 200:
+                            data = json.loads(response.read().decode("utf-8"))
+                            raw_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                            return json.loads(raw_text)
+                        return None
+                return await asyncio.to_thread(_urllib_call)
         except Exception as e:
             logger.error(f"Error calling Gemini API: {e}")
             return None

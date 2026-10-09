@@ -425,6 +425,7 @@ class SmartConversationController {
             }
         }
         this.currentConvId = convId;
+        this.currentConvType = (window.chatController && window.chatController.activeType) ? window.chatController.activeType : 'direct';
         this.selectedMessageId = messageId ? parseInt(messageId, 10) : null;
         this.selectedAttachmentId = null;
         this.selectedAttachmentName = null;
@@ -462,6 +463,7 @@ class SmartConversationController {
             }
         }
         this.currentConvId = convId;
+        this.currentConvType = (window.chatController && window.chatController.activeType) ? window.chatController.activeType : 'direct';
         this.selectedMessageId = messageId ? parseInt(messageId, 10) : null;
         this.selectedAttachmentId = attachmentId ? parseInt(attachmentId, 10) : null;
         this.selectedAttachmentName = filename || null;
@@ -529,7 +531,7 @@ class SmartConversationController {
         this.selectedMessageData = null;
         this.previousTarget = null;
         this.currentConvId = newId;
-        this.currentConvType = newType;
+        this.currentConvType = newType || (window.chatController && window.chatController.activeType) || 'direct';
         this.analysis = null;
 
         this.renderContextBar();
