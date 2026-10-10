@@ -28,6 +28,8 @@ class UserRegister(BaseModel):
     password: str = Field(..., min_length=6, max_length=128)
     username: Optional[str] = Field(None, max_length=50)
     language: Optional[str] = Field("en", max_length=10)
+    otp_code: Optional[str] = Field(None, max_length=20)
+    verification_token: Optional[str] = Field(None, max_length=128)
 
 
 class UserLogin(BaseModel):
@@ -370,14 +372,27 @@ class GroupResponse(BaseModel):
 
 
 
-# ---------------- PASSWORD RESET SCHEMAS ----------------
+# ---------------- PASSWORD RESET & OTP SCHEMAS ----------------
+
+class SendOTPRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=120)
+    purpose: Optional[str] = Field("registration", max_length=50)
+
+
+class VerifyOTPRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=120)
+    code: str = Field(..., min_length=4, max_length=20)
+    purpose: Optional[str] = Field("registration", max_length=50)
+
 
 class ForgotPasswordRequest(BaseModel):
     email: str = Field(..., min_length=5, max_length=120)
 
 
 class ResetPasswordRequest(BaseModel):
-    token: str
+    token: Optional[str] = None
+    code: Optional[str] = None
+    email: Optional[str] = None
     new_password: str = Field(..., min_length=6, max_length=128)
 
 

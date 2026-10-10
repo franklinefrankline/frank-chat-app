@@ -7,6 +7,15 @@ backend_dir = Path(__file__).resolve().parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
+# Explicitly load backend/.env at startup
+try:
+    import dotenv
+    env_file = backend_dir / ".env"
+    if env_file.exists():
+        dotenv.load_dotenv(env_file, override=True)
+except Exception:
+    pass
+
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

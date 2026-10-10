@@ -204,8 +204,59 @@ if (registerForm) {
         }
     });
 
+    const stepFields = document.getElementById('registerStepFields');
+    const otpStep = document.getElementById('registerOtpStep');
+    const otpCodeInput = document.getElementById('regOtpCode');
+    const verifyOtpBtn = document.getElementById('verifyOtpSubmitBtn');
+    const resendOtpBtn = document.getElementById('resendOtpBtn');
+    const backBtn = document.getElementById('backToRegisterBtn');
+    const otpTargetEmail = document.getElementById('otpTargetEmail');
+
+    let resendTimer = null;
+    let resendCountdown = 60;
+    let isRegistering = false;
+    let isVerifyingOtp = false;
+    let isResendingOtp = false;
+
+    function resetSubmitBtnState() {
+        if (!submitBtn) return;
+        submitBtn.disabled = false;
+        const btnText = submitBtn.querySelector('.btn-text');
+        const defaultText = (typeof window.i18n !== 'undefined' && window.i18n.t) 
+            ? window.i18n.t('auth.createAccount') 
+            : 'Create Account';
+        if (btnText) {
+            btnText.textContent = defaultText;
+        } else {
+            submitBtn.textContent = defaultText;
+        }
+    }
+
+    function startResendCooldown() {
+        if (resendTimer) clearInterval(resendTimer);
+        resendCountdown = 60;
+        if (!resendOtpBtn) return;
+        resendOtpBtn.disabled = true;
+        const btnText = resendOtpBtn.querySelector('.btn-text');
+        if (btnText) btnText.textContent = `Resend Code (${resendCountdown}s)`;
+        resendTimer = setInterval(() => {
+            resendCountdown--;
+            if (resendCountdown <= 0) {
+                clearInterval(resendTimer);
+                resendTimer = null;
+                resendOtpBtn.disabled = false;
+                if (btnText) btnText.textContent = 'Resend Code';
+            } else {
+                if (btnText) btnText.textContent = `Resend Code (${resendCountdown}s)`;
+            }
+        }, 1000);
+    }
+
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        // Prevent duplicate submissions
+        if (isRegistering) return;
 
         const full_name = fullNameInput.value.trim();
         const email = emailInput.value.trim();
@@ -252,26 +303,138 @@ if (registerForm) {
 
         if (hasError) return;
 
+        isRegistering = true;
         submitBtn.disabled = true;
-        const registeringText = (typeof i18n !== 'undefined') ? i18n.t('auth.registering') : 'Creating account...';
-        submitBtn.querySelector('.btn-text').textContent = registeringText;
+        const submitText = submitBtn.querySelector('.btn-text');
+        if (submitText) submitText.textContent = 'Sending verification code...';
+        else submitBtn.textContent = 'Sending verification code...';
+
+        try {
+            // Attempt to send OTP code via Gmail SMTP
+            const res = await api.sendOTP(email, 'registration');
+            showToast(res.message || `Verification code sent to ${email}`, 'success');
+
+            const currentStepFields = document.getElementById('registerStepFields') || stepFields;
+            const currentOtpStep = document.getElementById('registerOtpStep') || otpStep;
+            const currentTargetEmail = document.getElementById('otpTargetEmail') || otpTargetEmail;
+            const currentOtpInput = document.getElementById('regOtpCode') || otpCodeInput;
+
+            if (currentStepFields && currentOtpStep) {
+                currentStepFields.style.display = 'none';
+                currentOtpStep.style.display = 'block';
+                if (currentTargetEmail) currentTargetEmail.textContent = email;
+                if (currentOtpInput) {
+                    currentOtpInput.value = '';
+                    setTimeout(() => currentOtpInput.focus(), 50);
+                }
+                startResendCooldown();
+            }
+            // Reset submit button state so that if the user returns to this step, it is fully enabled
+            resetSubmitBtnState();
+        } catch (err) {
+            resetSubmitBtnState();
+            const errorMsg = err.message || (err.data && (err.data.detail || err.data.message)) || 'Failed to send verification code. Please try again.';
+            showToast(errorMsg, 'error');
+        } finally {
+            isRegistering = false;
+        }
+    });
+
+    // Verification code submission
+    verifyOtpBtn?.addEventListener('click', async () => {
+        if (isVerifyingOtp) return;
+
+        const full_name = fullNameInput.value.trim();
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        const code = (otpCodeInput?.value || '').trim();
+
+        if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
+            document.getElementById('groupOtpCode')?.classList.add('has-error');
+            showToast('Please enter the 6-digit verification code.', 'error');
+            return;
+        }
+        document.getElementById('groupOtpCode')?.classList.remove('has-error');
+
+        isVerifyingOtp = true;
+        verifyOtpBtn.disabled = true;
+        const btnText = verifyOtpBtn.querySelector('.btn-text');
+        if (btnText) btnText.textContent = 'Verifying & Creating Account...';
 
         try {
             const lang = (typeof i18n !== 'undefined' && i18n.currentLang) ? i18n.currentLang : 'en';
-            const data = await api.register({ full_name, email, password, language: lang });
+            const data = await api.register({
+                full_name,
+                email,
+                password,
+                language: lang,
+                otp_code: code
+            });
             api.setToken(data.access_token);
             auth.setUser(data.user);
-
-            const successText = (typeof i18n !== 'undefined') ? i18n.t('auth.registerSuccess') : 'Account created successfully!';
-            showToast(successText, 'success');
+            showToast('Account verified and created successfully! Welcome to FRANK.', 'success');
             setTimeout(() => {
                 window.location.href = 'dashboard.html';
             }, 500);
         } catch (err) {
-            showToast(err.message || 'Registration failed.', 'error');
-            submitBtn.disabled = false;
-            const createAccText = (typeof i18n !== 'undefined') ? i18n.t('auth.createAccount') : 'Create Account';
-            submitBtn.querySelector('.btn-text').textContent = createAccText;
+            const msg = err.message || (err.data && (err.data.detail || err.data.message)) || 'Invalid verification code.';
+            showToast(msg, 'error');
+            verifyOtpBtn.disabled = false;
+            if (btnText) btnText.textContent = 'Verify & Create Account';
+        } finally {
+            isVerifyingOtp = false;
+        }
+    });
+
+    // Resend code handler
+    resendOtpBtn?.addEventListener('click', async () => {
+        if (isResendingOtp || resendOtpBtn.disabled) return;
+        const email = emailInput.value.trim();
+        if (!email) return;
+
+        isResendingOtp = true;
+        resendOtpBtn.disabled = true;
+        const btnText = resendOtpBtn.querySelector('.btn-text');
+        if (btnText) btnText.textContent = 'Resending Code...';
+
+        try {
+            const res = await api.sendOTP(email, 'registration');
+            showToast(res.message || `New verification code sent to ${email}`, 'success');
+            startResendCooldown();
+        } catch (err) {
+            const msg = err.message || (err.data && (err.data.detail || err.data.message)) || 'Failed to resend code.';
+            showToast(msg, 'error');
+            resendOtpBtn.disabled = false;
+            if (btnText) btnText.textContent = 'Resend Code';
+        } finally {
+            isResendingOtp = false;
+        }
+    });
+
+    // Back to registration edit details
+    backBtn?.addEventListener('click', () => {
+        const currentStepFields = document.getElementById('registerStepFields') || stepFields;
+        const currentOtpStep = document.getElementById('registerOtpStep') || otpStep;
+        if (currentStepFields && currentOtpStep) {
+            currentOtpStep.style.display = 'none';
+            currentStepFields.style.display = 'block';
+            resetSubmitBtnState();
+        }
+    });
+
+    // Auto-submit when 6 digits are typed
+    otpCodeInput?.addEventListener('input', () => {
+        const val = otpCodeInput.value.replace(/\D/g, '');
+        otpCodeInput.value = val;
+        if (val.length === 6) {
+            verifyOtpBtn?.click();
+        }
+    });
+
+    otpCodeInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            verifyOtpBtn?.click();
         }
     });
 }

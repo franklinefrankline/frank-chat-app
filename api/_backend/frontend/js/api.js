@@ -542,6 +542,13 @@ function handleMockRequest(endpoint, options = {}) {
         return currentUser;
     }
 
+    // Never mock authentication, registration, or OTP endpoints
+    if (endpoint.startsWith('/api/auth/')) {
+        const err = new Error('Authentication and OTP delivery require an active backend server connection.');
+        err.status = 503;
+        throw err;
+    }
+
     // Default fallback
     return { status: 'success', message: 'Handled in local demo mode' };
 }
@@ -605,10 +612,10 @@ const api = {
                         try {
                             res = await fetch(cloudUrl, config);
                         } catch (cloudErr) {
-                            if (window.location.protocol === 'file:') {
+                            if (window.location.protocol === 'file:' && !endpoint.startsWith('/api/auth/')) {
                                 return handleMockRequest(endpoint, options);
                             }
-                            const err = new Error('Unable to connect to the server.');
+                            const err = new Error('Unable to connect to the authentication server. Please ensure the backend is running.');
                             err.isNetwork = true;
                             throw err;
                         }
@@ -617,17 +624,7 @@ const api = {
                         err.isNetwork = true;
                         throw err;
                     }
-                } else if (url.includes('vercel.app')) {
-                    const renderBase = 'https://frank-chat-app.onrender.com';
-                    const renderUrl = `${renderBase}${endpoint}`;
-                    try {
-                        res = await fetch(renderUrl, config);
-                    } catch (renderErr) {
-                        const err = new Error('Unable to connect to the server.');
-                        err.isNetwork = true;
-                        throw err;
-                    }
-                } else if (window.location.protocol === 'file:') {
+                } else if (window.location.protocol === 'file:' && !endpoint.startsWith('/api/auth/')) {
                     console.warn(`[FRANK API] Network fetch error for ${url}. Falling back to offline DB for ${endpoint}`);
                     return handleMockRequest(endpoint, options);
                 } else {
@@ -676,7 +673,7 @@ const api = {
 
             return data;
         } catch (error) {
-            if (window.location.protocol === 'file:' && (error && (error.name === 'TypeError' || String(error).includes('fetch') || String(error).includes('NetworkError')))) {
+            if (window.location.protocol === 'file:' && !endpoint.startsWith('/api/auth/') && (error && (error.name === 'TypeError' || String(error).includes('fetch') || String(error).includes('NetworkError')))) {
                 console.warn(`[FRANK API] Network error caught on file protocol. Falling back to offline DB for ${endpoint}.`);
                 return handleMockRequest(endpoint, options);
             }
@@ -734,6 +731,20 @@ const api = {
         return this.request('/api/users/me');
     },
 
+    async sendOTP(email, purpose = 'registration') {
+        return this.request('/api/auth/send-otp', {
+            method: 'POST',
+            body: JSON.stringify({ email, purpose })
+        });
+    },
+
+    async verifyOTP(email, code, purpose = 'registration') {
+        return this.request('/api/auth/verify-otp', {
+            method: 'POST',
+            body: JSON.stringify({ email, code, purpose })
+        });
+    },
+
     async forgotPassword(email) {
         return this.request('/api/auth/forgot-password', {
             method: 'POST',
@@ -741,11 +752,26 @@ const api = {
         });
     },
 
-    async resetPassword(token, new_password) {
+    async resetPassword(tokenOrCode, new_password, email = null) {
+        const payload = { new_password };
+        if (email) payload.email = email;
+        if (tokenOrCode && (tokenOrCode.length <= 8) && /^\d+$/.test(tokenOrCode.trim())) {
+            payload.code = tokenOrCode.trim();
+        } else if (tokenOrCode) {
+            payload.token = tokenOrCode.trim();
+        }
         return this.request('/api/auth/reset-password', {
             method: 'POST',
-            body: JSON.stringify({ token, new_password })
+            body: JSON.stringify(payload)
         });
+    },
+
+    async getSMTPStatus() {
+        return this.request('/api/auth/smtp/status');
+    },
+
+    async verifySMTP() {
+        return this.request('/api/auth/smtp/verify', { method: 'POST' });
     },
 
     // Users & Contacts endpoints

@@ -301,3 +301,19 @@ class SmartDate(Base):
     context = Column(String(500), nullable=True)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
     updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+
+class OTPCode(Base):
+    __tablename__ = "otp_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(120), index=True, nullable=False)
+    purpose = Column(String(50), index=True, nullable=False)  # "registration" or "password_reset"
+    code_hash = Column(String(255), nullable=False)  # Secure hash of OTP code
+    token = Column(String(128), unique=True, index=True, nullable=True)  # Optional secure reset token
+    attempts = Column(Integer, default=0, nullable=False)
+    max_attempts = Column(Integer, default=5, nullable=False)
+    is_used = Column(Boolean, default=False, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+

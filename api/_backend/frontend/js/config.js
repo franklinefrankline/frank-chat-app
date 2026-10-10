@@ -23,15 +23,15 @@
     const isHttps = window.location.protocol === 'https:';
 
     // Production backend defaults (can be overridden via localStorage or window.__FRANK_CONFIG__)
-    // IMPORTANT: If your Vercel deployment injects FRANK_BACKEND_URL, it will be used here.
-    // Otherwise, the app calls the Vercel serverless API (which needs DATABASE_URL set in Vercel env vars).
     const CLOUD_API_FALLBACK = 'https://frank-chat-app.vercel.app';
 
-    // Support for persistent backend URL (Render or Railway) injected at build time or window
-    const PERSISTENT_BACKEND = window.__FRANK_BACKEND_URL__ || window.__FRANK_BACKEND__ || 'https://frank-chat-app.onrender.com';
+    // Support for persistent backend URL (Render or Railway) ONLY if explicitly injected
+    const PERSISTENT_BACKEND = window.__FRANK_BACKEND_URL__ || window.__FRANK_BACKEND__ || null;
     const RAILWAY_BACKEND = PERSISTENT_BACKEND;
 
-    const DEFAULT_PROD_WS = PERSISTENT_BACKEND ? PERSISTENT_BACKEND.replace(/^https?/, PERSISTENT_BACKEND.startsWith('https') ? 'wss' : 'ws') : 'wss://frank-chat-app.onrender.com';
+    const DEFAULT_PROD_WS = PERSISTENT_BACKEND 
+        ? PERSISTENT_BACKEND.replace(/^https?/, PERSISTENT_BACKEND.startsWith('https') ? 'wss' : 'ws') 
+        : null;
 
     let apiBase = '';
     let wsBase = '';
@@ -41,18 +41,18 @@
     } else if (storedApiUrl) {
         apiBase = storedApiUrl;
     } else if (isLocal) {
-        // If served by FastAPI directly on port 8000, use relative or origin
+        // If served by FastAPI directly on port 8000 or custom port, use origin
         apiBase = window.location.origin.includes(':8000') || window.location.origin.includes(':3000')
             ? window.location.origin
             : 'http://localhost:8000';
-    } else if (PERSISTENT_BACKEND) {
-        // Use persistent backend directly when configured (Render / Railway)
-        apiBase = PERSISTENT_BACKEND;
     } else if (host.endsWith('.vercel.app') || host.includes('vercel.app')) {
-        // On Vercel: use same-origin API (the Vercel serverless function)
+        // On Vercel: use same-origin serverless API where Vercel environment variables are configured
         apiBase = window.location.origin;
+    } else if (PERSISTENT_BACKEND) {
+        // Use persistent backend directly when explicitly configured (Render / Railway)
+        apiBase = PERSISTENT_BACKEND;
     } else {
-        apiBase = CLOUD_API_FALLBACK;
+        apiBase = window.location.origin || CLOUD_API_FALLBACK;
     }
 
     // Determine if running on a serverless host without native persistent WebSocket

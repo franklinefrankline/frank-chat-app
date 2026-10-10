@@ -1,3 +1,7 @@
+import os
+import hashlib
+import hmac
+import secrets
 from datetime import timedelta
 import sys
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,14 +16,11 @@ from security import (
     create_access_token,
     get_current_user,
     ACCESS_TOKEN_EXPIRE_MINUTES,
-    create_access_token,
     decode_token
 )
+from services.email_service import email_service
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-
-
-import secrets
 
 FRANK_ID_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -30,6 +31,33 @@ def generate_unique_frank_id(db: Session) -> str:
         if not db.query(models.User).filter(models.User.frank_id == candidate).first():
             return candidate
     raise HTTPException(status_code=500, detail="Failed to generate unique FRANK ID.")
+
+
+def generate_otp(length: int = 6) -> str:
+    """Generate cryptographically secure numeric OTP"""
+    return "".join(secrets.choice("0123456789") for _ in range(length))
+
+
+def hash_otp_code(code: str) -> str:
+    """Hash OTP with random 16-byte salt for secure storage"""
+    salt = os.urandom(16).hex()
+    hashed = hashlib.sha256(f"{salt}:{code.strip()}".encode("utf-8")).hexdigest()
+    return f"{salt}${hashed}"
+
+
+def verify_otp_code(candidate: str, stored_hash: str) -> bool:
+    """Timing-safe OTP verification against salted hash"""
+    if not stored_hash or "$" not in stored_hash:
+        return False
+    try:
+        parts = stored_hash.split("$", 1)
+        if len(parts) != 2:
+            return False
+        salt, expected_hash = parts
+        candidate_hash = hashlib.sha256(f"{salt}:{candidate.strip()}".encode("utf-8")).hexdigest()
+        return hmac.compare_digest(candidate_hash, expected_hash)
+    except Exception:
+        return False
 
 
 @router.post("/register", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
@@ -43,6 +71,60 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email already exists."
         )
+
+    # If verification_token or otp_code was provided: verify it against active registration OTP records
+    now_dt = models.get_utc_now()
+    if user_in.verification_token and user_in.verification_token.strip():
+        tok = user_in.verification_token.strip()
+        otp_cand = db.query(models.OTPCode).filter(
+            models.OTPCode.email == clean_email,
+            models.OTPCode.purpose == "registration",
+            models.OTPCode.token == tok,
+            models.OTPCode.expires_at > now_dt
+        ).first()
+        if not otp_cand:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification session has expired or is invalid. Please request a new code."
+            )
+        otp_cand.is_used = True
+    elif user_in.otp_code and user_in.otp_code.strip():
+        otp_cand = db.query(models.OTPCode).filter(
+            models.OTPCode.email == clean_email,
+            models.OTPCode.purpose == "registration",
+            models.OTPCode.is_used == False,
+            models.OTPCode.expires_at > now_dt
+        ).order_by(models.OTPCode.id.desc()).first()
+        if not otp_cand:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification code is invalid or has expired. Please request a new code."
+            )
+        if otp_cand.attempts >= otp_cand.max_attempts:
+            otp_cand.is_used = True
+            db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Maximum verification attempts exceeded. Please request a new code."
+            )
+        if not verify_otp_code(user_in.otp_code.strip(), otp_cand.code_hash):
+            otp_cand.attempts += 1
+            db.commit()
+            remaining = max(0, otp_cand.max_attempts - otp_cand.attempts)
+            msg = "Invalid verification code."
+            if remaining > 0:
+                msg += f" {remaining} attempts remaining."
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=msg
+            )
+        otp_cand.is_used = True
+    else:
+        if email_service.is_configured():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email verification code is required to complete registration. Please verify your email."
+            )
 
     # Resolve or auto-generate unique username
     if user_in.username and user_in.username.strip():
@@ -250,7 +332,7 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
         if is_active is False or cand_status in ["disabled", "deactivated", "inactive"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Your account has been deactivated. Please contact the administrator."
+                detail="Account is disabled. Please contact an administrator."
             )
     else:
         # Check if all matching candidate(s) are deactivated
@@ -262,7 +344,7 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
         if all_deactivated:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Your account has been deactivated. Please contact the administrator."
+                detail="Account is disabled. Please contact an administrator."
             )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -295,16 +377,221 @@ def get_me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
 
-@router.post("/forgot-password")
-def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
-    # Look up user quietly without revealing existence
-    user = db.query(models.User).filter(models.User.email == req.email.lower()).first()
-    reset_token = None
-    if user:
-        reset_token = create_access_token(
-            data={"sub": user.username, "purpose": "pwd_reset"},
-            expires_delta=timedelta(hours=1)
+@router.post("/send-otp")
+@router.post("/register/send-otp")
+async def send_otp(req: schemas.SendOTPRequest, db: Session = Depends(get_db)):
+    clean_email = req.email.strip().lower()
+    purpose = (req.purpose or "registration").strip().lower()
+
+    if not clean_email or "@" not in clean_email or "." not in clean_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please provide a valid email address."
         )
+
+    if purpose not in ["registration", "password_reset"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OTP purpose specified."
+        )
+
+    if not email_service.is_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Email delivery is unavailable: SMTP credentials are not configured in backend/.env."
+        )
+
+    # If registration, ensure account doesn't already exist
+    if purpose == "registration":
+        existing = db.query(models.User).filter(func.lower(models.User.email) == clean_email).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="An account with this email already exists. Please sign in instead."
+            )
+
+    # Rate limiting: max 1 send per 60 seconds
+    now_dt = models.get_utc_now()
+    recent = db.query(models.OTPCode).filter(
+        func.lower(models.OTPCode.email) == clean_email,
+        models.OTPCode.purpose == purpose,
+        models.OTPCode.is_used == False,
+        models.OTPCode.created_at > now_dt - timedelta(seconds=60)
+    ).first()
+    if recent:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Please wait 60 seconds before requesting a new verification code."
+        )
+
+    # Invalidate previous unused codes for this email and purpose
+    db.query(models.OTPCode).filter(
+        func.lower(models.OTPCode.email) == clean_email,
+        models.OTPCode.purpose == purpose,
+        models.OTPCode.is_used == False
+    ).update({"is_used": True})
+
+    otp_code = generate_otp(6)
+    token = secrets.token_urlsafe(32)
+    otp_rec = models.OTPCode(
+        email=clean_email,
+        purpose=purpose,
+        code_hash=hash_otp_code(otp_code),
+        token=token,
+        attempts=0,
+        max_attempts=5,
+        is_used=False,
+        expires_at=now_dt + timedelta(minutes=10),
+        created_at=now_dt
+    )
+    db.add(otp_rec)
+    db.commit()
+
+    # Deliver via email_service
+    if purpose == "registration":
+        delivered, msg = await email_service.send_registration_otp(clean_email, otp_code, expires_in_minutes=10)
+    else:
+        frontend_base = os.getenv("FRONTEND_URL", "http://localhost:8000").rstrip("/")
+        reset_link = f"{frontend_base}/reset-password.html?email={clean_email}&token={token}"
+        delivered, msg = await email_service.send_password_reset_otp(clean_email, otp_code, reset_link=reset_link, expires_in_minutes=15)
+
+    if not delivered:
+        # Mark OTP as unusable if delivery failed
+        otp_rec.is_used = True
+        db.commit()
+        if not email_service.is_configured():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Email delivery is unavailable: SMTP credentials are not configured in backend/.env."
+            )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Email delivery failed: {msg}"
+        )
+
+    return {
+        "success": True,
+        "message": f"Verification code accepted by SMTP server for delivery to {clean_email}. Please check your inbox and spam folder.",
+        "smtp_accepted": True
+    }
+
+
+@router.post("/verify-otp")
+@router.post("/register/verify-otp")
+def verify_otp(req: schemas.VerifyOTPRequest, db: Session = Depends(get_db)):
+    clean_email = req.email.strip().lower()
+    purpose = (req.purpose or "registration").strip().lower()
+    code = req.code.strip()
+
+    now_dt = models.get_utc_now()
+    otp_rec = db.query(models.OTPCode).filter(
+        func.lower(models.OTPCode.email) == clean_email,
+        models.OTPCode.purpose == purpose,
+        models.OTPCode.is_used == False,
+        models.OTPCode.expires_at > now_dt
+    ).order_by(models.OTPCode.id.desc()).first()
+
+    if not otp_rec:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification code is invalid or has expired. Please request a new code."
+        )
+
+    if otp_rec.attempts >= otp_rec.max_attempts:
+        otp_rec.is_used = True
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum verification attempts exceeded. Please request a new code."
+        )
+
+    if not verify_otp_code(code, otp_rec.code_hash):
+        otp_rec.attempts += 1
+        db.commit()
+        remaining = max(0, otp_rec.max_attempts - otp_rec.attempts)
+        detail = "Incorrect verification code."
+        if remaining > 0:
+            detail += f" {remaining} attempts remaining."
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+
+    # OTP is verified! Mark as used and return verification token
+    otp_rec.is_used = True
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Email verified successfully.",
+        "verification_token": otp_rec.token
+    }
+
+
+@router.post("/forgot-password")
+async def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+    clean_email = req.email.strip().lower()
+    user = db.query(models.User).filter(func.lower(models.User.email) == clean_email).first()
+
+    if not email_service.is_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Email delivery is unavailable: SMTP credentials are not configured in backend/.env."
+        )
+
+    if user:
+        now_dt = models.get_utc_now()
+        # Rate limit: max 1 per 60 seconds
+        recent = db.query(models.OTPCode).filter(
+            func.lower(models.OTPCode.email) == clean_email,
+            models.OTPCode.purpose == "password_reset",
+            models.OTPCode.is_used == False,
+            models.OTPCode.created_at > now_dt - timedelta(seconds=60)
+        ).first()
+
+        if recent:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Please wait 60 seconds before requesting another reset email."
+            )
+
+        # Invalidate older unused reset codes
+        db.query(models.OTPCode).filter(
+            func.lower(models.OTPCode.email) == clean_email,
+            models.OTPCode.purpose == "password_reset",
+            models.OTPCode.is_used == False
+        ).update({"is_used": True})
+
+        otp_code = generate_otp(6)
+        reset_token = secrets.token_urlsafe(32)
+        otp_rec = models.OTPCode(
+            email=clean_email,
+            purpose="password_reset",
+            code_hash=hash_otp_code(otp_code),
+            token=reset_token,
+            attempts=0,
+            max_attempts=5,
+            is_used=False,
+            expires_at=now_dt + timedelta(minutes=15),
+            created_at=now_dt
+        )
+        db.add(otp_rec)
+        db.commit()
+
+        frontend_base = os.getenv("FRONTEND_URL", "http://localhost:8000").rstrip("/")
+        reset_link = f"{frontend_base}/reset-password.html?email={clean_email}&token={reset_token}"
+
+        sent, send_err = await email_service.send_password_reset_otp(
+            clean_email, otp_code, reset_link=reset_link, expires_in_minutes=15
+        )
+        if not sent:
+            print(f"[Auth] Password reset delivery note: {send_err}")
+            if not email_service.is_configured():
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Email delivery is unavailable: SMTP credentials are not configured in backend/.env."
+                )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Email delivery failed: {send_err}"
+            )
 
     return {
         "success": True,
@@ -314,22 +601,110 @@ def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(ge
 
 @router.post("/reset-password")
 def reset_password(req: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
-    payload = decode_token(req.token)
-    if not payload or payload.get("purpose") != "pwd_reset":
+    clean_email = (req.email or "").strip().lower()
+    candidate_code = (req.code or "").strip()
+    candidate_token = (req.token or "").strip()
+
+    if not candidate_token and not (candidate_code and clean_email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired password reset token."
+            detail="Reset token or 6-digit verification code with email is required."
         )
 
-    username = payload.get("sub")
-    user = db.query(models.User).filter(models.User.username == username).first()
+    otp_rec = None
+    now_dt = models.get_utc_now()
+
+    if candidate_token:
+        otp_rec = db.query(models.OTPCode).filter(
+            models.OTPCode.token == candidate_token,
+            models.OTPCode.purpose == "password_reset",
+            models.OTPCode.is_used == False,
+            models.OTPCode.expires_at > now_dt
+        ).first()
+
+    if not otp_rec and candidate_code and clean_email:
+        candidates = db.query(models.OTPCode).filter(
+            func.lower(models.OTPCode.email) == clean_email,
+            models.OTPCode.purpose == "password_reset",
+            models.OTPCode.is_used == False,
+            models.OTPCode.expires_at > now_dt
+        ).order_by(models.OTPCode.id.desc()).all()
+
+        for cand in candidates:
+            if cand.attempts >= cand.max_attempts:
+                cand.is_used = True
+                db.commit()
+                continue
+            if verify_otp_code(candidate_code, cand.code_hash):
+                otp_rec = cand
+                break
+            else:
+                cand.attempts += 1
+                if cand.attempts >= cand.max_attempts:
+                    cand.is_used = True
+                db.commit()
+                remaining = max(0, cand.max_attempts - cand.attempts)
+                if remaining > 0:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid verification code. {remaining} attempts remaining."
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Maximum verification attempts exceeded. Please request a new reset code."
+                    )
+
+    if not otp_rec and candidate_token:
+        # Fallback support for legacy JWT reset tokens
+        payload = decode_token(candidate_token)
+        if payload and payload.get("purpose") == "pwd_reset":
+            username = payload.get("sub")
+            user = db.query(models.User).filter(models.User.username == username).first()
+            if user:
+                pw_hash = hash_password(req.new_password)
+                user.hashed_password = pw_hash
+                user.password_hash = pw_hash
+                db.commit()
+                return {"success": True, "message": "Your password has been updated successfully. Please login."}
+
+    if not otp_rec:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired password reset code or token."
+        )
+
+    user = db.query(models.User).filter(func.lower(models.User.email) == otp_rec.email.lower()).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
+            detail="User account associated with this reset request was not found."
         )
 
-    user.hashed_password = hash_password(req.new_password)
+    pw_hash = hash_password(req.new_password)
+    user.hashed_password = pw_hash
+    user.password_hash = pw_hash
+
+    # Single-use invalidation
+    otp_rec.is_used = True
     db.commit()
 
     return {"success": True, "message": "Your password has been updated successfully. Please login."}
+
+
+@router.get("/smtp/status")
+def get_smtp_status():
+    """Safe status of SMTP configuration without leaking secrets"""
+    return email_service.get_safe_status()
+
+
+@router.post("/smtp/verify")
+def verify_smtp_connection():
+    """Verify live connectivity and authentication with Gmail SMTP"""
+    ok, msg = email_service.verify_connection()
+    return {
+        "success": ok,
+        "message": msg,
+        "status": email_service.get_safe_status()
+    }
+

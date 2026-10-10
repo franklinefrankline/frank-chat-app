@@ -7,12 +7,9 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 for env_candidate in [Path(__file__).resolve().parent / ".env", Path(__file__).resolve().parent.parent / ".env"]:
     if env_candidate.exists():
         try:
-            with open(env_candidate, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith("#") and "=" in line:
-                        key, val = line.split("=", 1)
-                        os.environ.setdefault(key.strip(), val.strip())
+            import dotenv
+            dotenv.load_dotenv(env_candidate, override=True)
+            break
         except Exception:
             pass
 
