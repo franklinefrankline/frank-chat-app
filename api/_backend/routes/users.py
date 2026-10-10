@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, desc
+from sqlalchemy import or_, desc, func, and_
 from database import get_db
 import models
 import schemas
@@ -239,17 +239,17 @@ def get_conversations(
 ):
     """
     Returns list of recent direct and group conversations with last message,
-    unread count, and details.
+    unread count, and details. Highly optimized with batched bulk queries.
     """
     conversations = {}
 
-    # Load preferences
+    # 1. Load preferences in ONE query
     prefs = db.query(models.ConversationPreference).filter(
         models.ConversationPreference.user_id == current_user.id
     ).all()
     pref_map = {f"{p.conversation_type}_{p.conversation_id}": p for p in prefs}
 
-    # 1. Fetch established direct conversations for current user
+    # 2. Fetch established direct conversations for current user in ONE query
     stored_convs = db.query(models.Conversation).filter(
         or_(
             models.Conversation.user_a_id == current_user.id,
@@ -257,17 +257,69 @@ def get_conversations(
         )
     ).all()
 
+    # Collect partner IDs
+    partner_ids = set()
+    partner_to_conv = {}
     for sc in stored_convs:
         is_self = (sc.user_a_id == current_user.id and sc.user_b_id == current_user.id)
-        partner_id = current_user.id if is_self else (sc.user_b_id if sc.user_a_id == current_user.id else sc.user_a_id)
-        partner = db.query(models.User).filter(models.User.id == partner_id).first()
+        pid = current_user.id if is_self else (sc.user_b_id if sc.user_a_id == current_user.id else sc.user_a_id)
+        partner_ids.add(pid)
+        partner_to_conv[pid] = sc
+
+    # 3. Fetch recent direct messages involving current user (up to 300) in ONE query
+    recent_msgs = db.query(models.Message).filter(
+        or_(
+            models.Message.sender_id == current_user.id,
+            models.Message.recipient_id == current_user.id
+        ),
+        models.Message.group_id.is_(None)
+    ).order_by(desc(models.Message.created_at)).limit(300).all()
+
+    # Extract last message per partner and collect additional partner IDs
+    last_msg_map = {}
+    for msg in recent_msgs:
+        pid = msg.recipient_id if msg.sender_id == current_user.id else msg.sender_id
+        partner_ids.add(pid)
+        if pid not in last_msg_map:
+            last_msg_map[pid] = {
+                "id": msg.id,
+                "content": msg.content,
+                "message_type": msg.message_type or "text",
+                "sender_id": msg.sender_id,
+                "created_at": schemas.format_iso_utc(msg.created_at),
+                "status": msg.status
+            }
+
+    # 4. Fetch all relevant partner user rows in ONE query
+    partner_ids.add(current_user.id)
+    partners = db.query(models.User).filter(models.User.id.in_(list(partner_ids))).all()
+    user_map = {u.id: u for u in partners}
+
+    # 5. Fetch unread counts per sender in ONE GROUP BY query
+    unread_raw = db.query(
+        models.Message.sender_id,
+        func.count(models.Message.id)
+    ).filter(
+        models.Message.recipient_id == current_user.id,
+        models.Message.group_id.is_(None),
+        models.Message.status != "read"
+    ).group_by(models.Message.sender_id).all()
+    unread_map = {r[0]: r[1] for r in unread_raw}
+
+    # Build direct conversation objects
+    for pid in partner_ids:
+        partner = user_map.get(pid)
         if not partner:
             continue
-        conv_key = f"direct_{partner_id}"
+        is_self = (pid == current_user.id)
+        conv_key = f"direct_{pid}"
         p = pref_map.get(conv_key)
+        sc = partner_to_conv.get(pid)
+        conv_id = sc.id if sc else pid
+
         conversations[conv_key] = {
             "id": partner.id,
-            "conversation_id": sc.id,
+            "conversation_id": conv_id,
             "partner_id": partner.id,
             "type": "direct",
             "name": f"{partner.full_name} (You)" if is_self else partner.full_name,
@@ -277,143 +329,88 @@ def get_conversations(
             "avatar_url": partner.avatar_url,
             "is_online": partner.is_online,
             "last_seen": schemas.format_iso_utc(partner.last_seen) if partner.last_seen else None,
-            "last_message": None,
-            "unread_count": 0,
+            "last_message": last_msg_map.get(pid),
+            "unread_count": unread_map.get(pid, 0),
             "is_pinned": p.is_pinned if p else False,
             "is_favorite": p.is_favorite if p else False,
             "is_muted": p.is_muted if p else False
         }
 
-    # 2. Fetch direct messages involving current user to populate last_message & unread_count
-    messages = db.query(models.Message).filter(
-        or_(
-            models.Message.sender_id == current_user.id,
-            models.Message.recipient_id == current_user.id
-        ),
-        models.Message.group_id.is_(None)
-    ).order_by(desc(models.Message.created_at)).all()
+    # 6. Fetch all groups current user is a member of in ONE query
+    memberships = db.query(models.GroupMember).filter(models.GroupMember.user_id == current_user.id).all()
+    group_ids = [m.group_id for m in memberships]
 
-    for msg in messages:
-        partner_id = msg.recipient_id if msg.sender_id == current_user.id else msg.sender_id
-        is_self = (partner_id == current_user.id and msg.sender_id == current_user.id)
-        conv_key = f"direct_{partner_id}"
-        partner = db.query(models.User).filter(models.User.id == partner_id).first()
-        if not partner:
-            continue
+    if group_ids:
+        # Load group records in ONE query
+        groups = db.query(models.Group).filter(models.Group.id.in_(group_ids)).all()
 
-        unread = db.query(models.Message).filter(
-            models.Message.sender_id == partner_id,
-            models.Message.recipient_id == current_user.id,
-            models.Message.status != "read"
-        ).count()
+        # Load member counts in ONE query
+        counts_raw = db.query(
+            models.GroupMember.group_id,
+            func.count(models.GroupMember.id)
+        ).filter(models.GroupMember.group_id.in_(group_ids)).group_by(models.GroupMember.group_id).all()
+        counts_map = {r[0]: r[1] for r in counts_raw}
 
-        p = pref_map.get(conv_key)
-        if conv_key not in conversations:
-            ua = min(current_user.id, partner_id)
-            ub = max(current_user.id, partner_id)
-            conv_record = db.query(models.Conversation).filter(
-                models.Conversation.user_a_id == ua,
-                models.Conversation.user_b_id == ub
-            ).first()
-            if not conv_record:
-                conv_record = models.Conversation(user_a_id=ua, user_b_id=ub)
-                db.add(conv_record)
-                db.commit()
-                db.refresh(conv_record)
+        # Load recent group messages in ONE query
+        grp_msgs = db.query(models.Message).filter(
+            models.Message.group_id.in_(group_ids)
+        ).order_by(desc(models.Message.created_at)).limit(200).all()
+
+        grp_last_msg = {}
+        grp_sender_ids = set()
+        for gm in grp_msgs:
+            if gm.group_id not in grp_last_msg:
+                grp_last_msg[gm.group_id] = gm
+                grp_sender_ids.add(gm.sender_id)
+
+        # Pre-fetch group message senders in ONE query
+        grp_senders = db.query(models.User).filter(models.User.id.in_(list(grp_sender_ids))).all() if grp_sender_ids else []
+        grp_sender_map = {u.id: u for u in grp_senders}
+
+        for group in groups:
+            conv_key = f"group_{group.id}"
+            p = pref_map.get(conv_key)
+            last_msg = grp_last_msg.get(group.id)
+            last_msg_dict = None
+            if last_msg:
+                snd = grp_sender_map.get(last_msg.sender_id)
+                last_msg_dict = {
+                    "id": last_msg.id,
+                    "content": last_msg.content,
+                    "message_type": last_msg.message_type or "text",
+                    "sender_id": last_msg.sender_id,
+                    "sender_name": snd.full_name if snd else "User",
+                    "created_at": schemas.format_iso_utc(last_msg.created_at),
+                    "status": last_msg.status
+                }
 
             conversations[conv_key] = {
-                "id": partner.id,
-                "conversation_id": conv_record.id,
-                "partner_id": partner.id,
-                "type": "direct",
-                "name": f"{partner.full_name} (You)" if is_self else partner.full_name,
-                "username": partner.username,
-                "frank_id": partner.frank_id,
-                "bio": "Message yourself • Notes & bookmarks" if is_self else partner.bio,
-                "avatar_url": partner.avatar_url,
-                "is_online": partner.is_online,
-                "last_seen": schemas.format_iso_utc(partner.last_seen) if partner.last_seen else None,
-                "last_message": None,
+                "id": group.id,
+                "conversation_id": group.id,
+                "type": "group",
+                "name": group.name,
+                "description": group.description or "",
+                "avatar_url": group.avatar_url or "",
+                "members_count": counts_map.get(group.id, 1),
+                "created_by": group.created_by,
+                "is_online": True,
+                "last_seen": None,
+                "last_message": last_msg_dict,
                 "unread_count": 0,
                 "is_pinned": p.is_pinned if p else False,
                 "is_favorite": p.is_favorite if p else False,
                 "is_muted": p.is_muted if p else False
             }
 
-        if conversations[conv_key]["last_message"] is None:
-            conversations[conv_key]["last_message"] = {
-                "id": msg.id,
-                "content": msg.content,
-                "message_type": msg.message_type or "text",
-                "sender_id": msg.sender_id,
-                "created_at": schemas.format_iso_utc(msg.created_at),
-                "status": msg.status
-            }
-            conversations[conv_key]["unread_count"] = unread
-
-    # 3. Fetch all groups user is a member of
-    memberships = db.query(models.GroupMember).filter(models.GroupMember.user_id == current_user.id).all()
-    for m in memberships:
-        group = db.query(models.Group).filter(models.Group.id == m.group_id).first()
-        if not group:
-            continue
-
-        conv_key = f"group_{group.id}"
-        count = db.query(models.GroupMember).filter(models.GroupMember.group_id == group.id).count()
-
-        last_grp_msg = db.query(models.Message).filter(
-            models.Message.group_id == group.id
-        ).order_by(desc(models.Message.created_at)).first()
-
-        last_msg_dict = None
-        if last_grp_msg:
-            sender = db.query(models.User).filter(models.User.id == last_grp_msg.sender_id).first()
-            last_msg_dict = {
-                "id": last_grp_msg.id,
-                "content": last_grp_msg.content,
-                "message_type": last_grp_msg.message_type or "text",
-                "sender_id": last_grp_msg.sender_id,
-                "sender_name": sender.full_name if sender else "User",
-                "created_at": schemas.format_iso_utc(last_grp_msg.created_at),
-                "status": last_grp_msg.status
-            }
-
-        p = pref_map.get(conv_key)
-        conversations[conv_key] = {
-            "id": group.id,
-            "conversation_id": group.id,
-            "type": "group",
-            "name": group.name,
-            "description": group.description or "",
-            "avatar_url": group.avatar_url or "",
-            "members_count": count,
-            "created_by": group.created_by,
-            "is_online": True,
-            "last_seen": None,
-            "last_message": last_msg_dict,
-            "unread_count": 0,
-            "is_pinned": p.is_pinned if p else False,
-            "is_favorite": p.is_favorite if p else False,
-            "is_muted": p.is_muted if p else False
-        }
-
-    # 4. Guarantee self-conversation (Notes to Self) is always present
+    # 7. Guarantee self-conversation (Notes to Self) is always present
     self_key = f"direct_{current_user.id}"
-    self_conv = db.query(models.Conversation).filter(
-        models.Conversation.user_a_id == current_user.id,
-        models.Conversation.user_b_id == current_user.id
-    ).first()
-    if not self_conv:
-        self_conv = models.Conversation(user_a_id=current_user.id, user_b_id=current_user.id)
-        db.add(self_conv)
-        db.commit()
-        db.refresh(self_conv)
-
     if self_key not in conversations:
         p = pref_map.get(self_key)
+        sc = partner_to_conv.get(current_user.id)
+        conv_id = sc.id if sc else current_user.id
         conversations[self_key] = {
             "id": current_user.id,
-            "conversation_id": self_conv.id,
+            "conversation_id": conv_id,
             "partner_id": current_user.id,
             "type": "direct",
             "name": f"{current_user.full_name} (You)",
@@ -429,12 +426,8 @@ def get_conversations(
             "is_favorite": p.is_favorite if p else False,
             "is_muted": p.is_muted if p else False
         }
-    else:
-        conversations[self_key]["conversation_id"] = self_conv.id
-        conversations[self_key]["partner_id"] = current_user.id
 
     conv_list = list(conversations.values())
-    # Sort: pinned first, then by recent message time descending
     conv_list.sort(
         key=lambda c: (
             1 if c.get("is_pinned") else 0,

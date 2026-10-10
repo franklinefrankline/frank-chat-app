@@ -1,7 +1,7 @@
 from typing import List
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import or_, and_
 from database import get_db
 import models
@@ -23,8 +23,11 @@ async def get_direct_messages(
     if not partner:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    # Fetch messages between current_user and partner (most recent 200 in chronological order)
-    messages = db.query(models.Message).filter(
+    # Fetch messages between current_user and partner with reactions and translations eagerly loaded in ONE query
+    messages = db.query(models.Message).options(
+        selectinload(models.Message.reactions),
+        selectinload(models.Message.translations)
+    ).filter(
         models.Message.group_id.is_(None),
         or_(
             and_(models.Message.sender_id == current_user.id, models.Message.recipient_id == partner_id),
@@ -33,11 +36,18 @@ async def get_direct_messages(
     ).order_by(models.Message.created_at.desc()).limit(200).all()
     messages.reverse()
 
-    # Automatically mark incoming messages as read
-    for msg in messages:
-        if msg.recipient_id == current_user.id and msg.status != "read":
-            msg.status = "read"
-    db.commit()
+    # Automatically mark incoming messages as read in ONE single bulk update
+    unread_incoming = [m for m in messages if m.recipient_id == current_user.id and m.status != "read"]
+    if unread_incoming:
+        for m in unread_incoming:
+            m.status = "read"
+        db.query(models.Message).filter(
+            models.Message.sender_id == partner_id,
+            models.Message.recipient_id == current_user.id,
+            models.Message.group_id.is_(None),
+            models.Message.status != "read"
+        ).update({"status": "read"}, synchronize_session=False)
+        db.commit()
 
     # Attach recipient-specific translations
     await translation_service.attach_translations_to_messages(messages, current_user, db)

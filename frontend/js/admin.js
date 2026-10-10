@@ -1124,6 +1124,7 @@
             // Fallback sync when in serverless mode or disconnected
             if (this._adminSyncTimer) clearInterval(this._adminSyncTimer);
             this._adminSyncTimer = setInterval(async () => {
+                if (document.hidden) return;
                 if (window.wsClient && window.wsClient.isConnected) return;
                 try {
                     await this.loadMetrics();
@@ -1131,7 +1132,7 @@
                         await this.loadActivity();
                     }
                 } catch {}
-            }, 6000);
+            }, 12000);
 
             // Metrics updated
             window.wsClient.on('admin_metrics_updated', (data) => {

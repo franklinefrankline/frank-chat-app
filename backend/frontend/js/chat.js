@@ -1903,7 +1903,7 @@ class ChatController {
     activateRealTimeSync() {
         if (this._syncTimer) clearInterval(this._syncTimer);
         this.runRealTimeSyncCycle();
-        const interval = document.visibilityState === 'visible' ? 1800 : 5000;
+        const interval = document.visibilityState === 'visible' ? 3000 : 10000;
         this._syncTimer = setInterval(() => this.runRealTimeSyncCycle(), interval);
     }
 
@@ -1998,7 +1998,7 @@ class ChatController {
 
             // 2. Sync Sidebar Conversation List (Latest snippets, unread badges, new chats)
             this._syncCycleCount = (this._syncCycleCount || 0) + 1;
-            if (this._syncCycleCount % 2 === 0 && typeof window.appController !== 'undefined') {
+            if (this._syncCycleCount % 4 === 0 && typeof window.appController !== 'undefined') {
                 window.appController.loadConversations(false);
             }
 

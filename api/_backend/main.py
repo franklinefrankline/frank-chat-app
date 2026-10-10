@@ -29,11 +29,7 @@ from routes import auth, users, messages, groups, files, admin, smart, conversat
 from websocket.chat import handle_websocket_connection
 from services.smart_service import smart_service
 
-# Create database tables automatically
-try:
-    Base.metadata.create_all(bind=engine)
-except Exception as e:
-    print(f"Table creation note: {e}")
+is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
 
 def check_and_migrate_db():
     try:
@@ -60,10 +56,16 @@ def check_and_migrate_db():
     except Exception as e:
         print(f"Migration note: {e}")
 
-try:
-    check_and_migrate_db()
-except Exception as e:
-    print(f"Migration init note: {e}")
+if not is_serverless or os.getenv("RUN_MIGRATIONS", "").lower() in ["1", "true"]:
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Table creation note: {e}")
+
+    try:
+        check_and_migrate_db()
+    except Exception as e:
+        print(f"Migration init note: {e}")
 
 
 # Seed initial demo users if database is newly initialized
@@ -162,7 +164,8 @@ def seed_demo_users():
     finally:
         db.close()
 
-seed_demo_users()
+if not is_serverless or os.getenv("RUN_MIGRATIONS", "").lower() in ["1", "true"]:
+    seed_demo_users()
 
 
 # Security Headers Middleware

@@ -4,7 +4,7 @@ from typing import Optional, List
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, desc
+from sqlalchemy import or_, desc, func, case, and_
 from database import get_db
 import models
 import schemas
@@ -21,19 +21,16 @@ def get_metrics(
 ):
     """Return real-time metrics calculated directly from database records."""
     not_deleted = or_(models.User.status.is_(None), models.User.status != "deleted")
-    total_users = db.query(models.User).filter(not_deleted).count()
-    active_accounts = db.query(models.User).filter(
-        not_deleted,
-        models.User.is_active == True,
-        models.User.account_status == "active"
-    ).count()
-    disabled_accounts = db.query(models.User).filter(
-        not_deleted,
-        or_(
-            models.User.account_status.in_(["disabled", "deactivated", "inactive"]),
-            models.User.is_active == False
-        )
-    ).count()
+    user_counts = db.query(
+        func.count(models.User.id).label("total"),
+        func.count(case((and_(models.User.is_active == True, models.User.account_status == "active"), 1))).label("active"),
+        func.count(case((or_(models.User.account_status.in_(["disabled", "deactivated", "inactive"]), models.User.is_active == False), 1))).label("disabled")
+    ).filter(not_deleted).first()
+
+    total_users = user_counts.total if user_counts else 0
+    active_accounts = user_counts.active if user_counts else 0
+    disabled_accounts = user_counts.disabled if user_counts else 0
+
     total_messages = db.query(models.Message).count()
     groups_count = db.query(models.Group).count()
     files_count = db.query(models.Document).count()
@@ -542,10 +539,26 @@ def get_groups_metadata(
 ):
     """Group metadata only. Absolutely NO chat messages or message content."""
     groups = db.query(models.Group).order_by(models.Group.created_at.desc()).all()
+    if not groups:
+        return []
+
+    group_ids = [g.id for g in groups]
+    creator_ids = list(set(g.created_by for g in groups if g.created_by))
+
+    # Single batch query for member counts
+    counts_raw = db.query(
+        models.GroupMember.group_id,
+        func.count(models.GroupMember.id)
+    ).filter(models.GroupMember.group_id.in_(group_ids)).group_by(models.GroupMember.group_id).all()
+    count_map = {r[0]: r[1] for r in counts_raw}
+
+    # Single batch query for creators
+    creators = db.query(models.User).filter(models.User.id.in_(creator_ids)).all() if creator_ids else []
+    creator_map = {u.id: u for u in creators}
+
     results = []
     for g in groups:
-        count = db.query(models.GroupMember).filter(models.GroupMember.group_id == g.id).count()
-        creator = db.query(models.User).filter(models.User.id == g.created_by).first()
+        creator = creator_map.get(g.created_by)
         results.append(schemas.AdminGroupResponse(
             id=g.id,
             name=g.name,
@@ -553,7 +566,7 @@ def get_groups_metadata(
             privacy=g.privacy,
             created_by=g.created_by,
             creator_name=creator.full_name if creator else "User",
-            members_count=count,
+            members_count=count_map.get(g.id, 1),
             created_at=g.created_at
         ))
     return results
@@ -573,9 +586,15 @@ def get_audit_logs(
     offset = (page - 1) * limit
 
     logs = query.order_by(models.AuditLog.created_at.desc()).offset(offset).limit(limit).all()
+
+    # Single batch query for admin users
+    admin_ids = list(set(l.admin_id for l in logs if l.admin_id))
+    admins = db.query(models.User).filter(models.User.id.in_(admin_ids)).all() if admin_ids else []
+    admin_map = {u.id: u for u in admins}
+
     log_responses = []
     for log in logs:
-        admin_user = db.query(models.User).filter(models.User.id == log.admin_id).first()
+        admin_user = admin_map.get(log.admin_id)
         log_responses.append(schemas.AuditLogResponse(
             id=log.id,
             admin_id=log.admin_id,

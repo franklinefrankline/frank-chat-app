@@ -23,21 +23,22 @@ class EmailService:
         Retrieves SMTP configuration from environment variables.
         Reloads dynamically so changes to .env take immediate effect.
         """
-        try:
-            import dotenv
-            current_dir = os.path.dirname(__file__)
-            candidates = [
-                os.path.join(os.path.dirname(current_dir), ".env"),
-                os.path.join(os.path.dirname(os.path.dirname(current_dir)), ".env"),
-                os.path.abspath("backend/.env"),
-                os.path.abspath(".env"),
-            ]
-            for cand in candidates:
-                if os.path.isfile(cand):
-                    dotenv.load_dotenv(cand, override=True)
-                    break
-        except Exception:
-            pass
+        if not os.getenv("SMTP_USER"):
+            try:
+                import dotenv
+                current_dir = os.path.dirname(__file__)
+                candidates = [
+                    os.path.join(os.path.dirname(current_dir), ".env"),
+                    os.path.join(os.path.dirname(os.path.dirname(current_dir)), ".env"),
+                    os.path.abspath("backend/.env"),
+                    os.path.abspath(".env"),
+                ]
+                for cand in candidates:
+                    if os.path.isfile(cand):
+                        dotenv.load_dotenv(cand, override=True)
+                        break
+            except Exception:
+                pass
 
         host = os.getenv("SMTP_HOST", "smtp.gmail.com").strip().strip("'\"")
         port_raw = os.getenv("SMTP_PORT", "587").strip().strip("'\"")

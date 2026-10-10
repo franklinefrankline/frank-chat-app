@@ -1,7 +1,7 @@
 from typing import List, Optional
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload, joinedload
 from sqlalchemy import desc
 from database import get_db
 import models
@@ -274,7 +274,10 @@ def get_group_messages(
     if not membership:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group.")
 
-    messages = db.query(models.Message).filter(
+    messages = db.query(models.Message).options(
+        selectinload(models.Message.reactions),
+        selectinload(models.Message.translations)
+    ).filter(
         models.Message.group_id == group_id
     ).order_by(models.Message.created_at.desc()).limit(200).all()
     messages.reverse()
@@ -295,7 +298,9 @@ def get_group_members(
     if not membership:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group.")
 
-    members = db.query(models.GroupMember).filter(models.GroupMember.group_id == group_id).all()
+    members = db.query(models.GroupMember).options(
+        joinedload(models.GroupMember.user)
+    ).filter(models.GroupMember.group_id == group_id).all()
     return members
 
 
