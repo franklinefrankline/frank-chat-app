@@ -9,3 +9,9 @@ __pycache__/
 .env*
 !.env.example
 tests/
+backups/
+uploads/
+backend/uploads/
+backend/venv/
+.venv/
+
