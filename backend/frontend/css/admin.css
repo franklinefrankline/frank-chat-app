@@ -538,23 +538,27 @@
     background: var(--surface-muted);
 }
 
-.btn-action-status-disable {
+.btn-action-status-disable,
+.btn-action-deactivate {
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger);
     border-color: rgba(239, 68, 68, 0.2);
 }
 
-.btn-action-status-disable:hover {
+.btn-action-status-disable:hover,
+.btn-action-deactivate:hover {
     background: rgba(239, 68, 68, 0.2);
 }
 
-.btn-action-status-enable {
+.btn-action-status-enable,
+.btn-action-activate {
     background: rgba(34, 197, 94, 0.1);
     color: var(--success);
     border-color: rgba(34, 197, 94, 0.2);
 }
 
-.btn-action-status-enable:hover {
+.btn-action-status-enable:hover,
+.btn-action-activate:hover {
     background: rgba(34, 197, 94, 0.2);
 }
 

@@ -127,7 +127,7 @@ class AdminUserListResponse(BaseModel):
 
 
 class AdminUserStatusUpdate(BaseModel):
-    status: str = Field(..., pattern="^(active|disabled)$")
+    status: str = Field(..., pattern="^(active|activate|disabled|disable|deactivated|deactivate|inactive)$")
 
 
 class AdminGroupResponse(BaseModel):

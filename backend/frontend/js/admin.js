@@ -564,17 +564,18 @@
 
             tbody.innerHTML = this.users.map(u => {
                 const isSelf = this.currentUser && this.currentUser.id === u.id;
-                const statusBadge = u.account_status === 'disabled'
-                    ? `<span class="badge-status-disabled">● DISABLED</span>`
+                const isInactive = u.account_status === 'disabled' || u.account_status === 'deactivated' || u.is_active === false;
+                const statusBadge = isInactive
+                    ? `<span class="badge-status-disabled">● DEACTIVATED</span>`
                     : `<span class="badge-status-active">● ACTIVE</span>`;
 
                 const roleBadge = u.role === 'admin'
                     ? `<span class="badge-role-admin">Admin</span>`
                     : `<span class="badge-role-user">User</span>`;
 
-                const statusActionBtn = u.account_status === 'disabled'
-                    ? `<button type="button" class="btn-action btn-action-status-enable" data-action="enable" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}">Enable Account</button>`
-                    : `<button type="button" class="btn-action btn-action-status-disable" data-action="disable" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}" ${isSelf ? 'disabled title="Cannot disable your own admin account"' : ''}>Disable Account</button>`;
+                const statusActionBtn = isInactive
+                    ? `<button type="button" class="btn-action btn-action-activate btn-action-status-enable" data-action="activate" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}">Activate</button>`
+                    : `<button type="button" class="btn-action btn-action-deactivate btn-action-status-disable" data-action="deactivate" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}" ${isSelf ? 'disabled title="Cannot deactivate your own admin account"' : ''}>Deactivate</button>`;
 
                 const deleteAccountBtn = isSelf
                     ? `<button type="button" class="btn-action btn-action-delete" disabled title="Cannot delete your own admin account" style="opacity:0.4; cursor:not-allowed;">Delete</button>`
@@ -647,9 +648,9 @@
 
                 if (action === 'view') {
                     this.showUserDetails(userId);
-                } else if (action === 'disable') {
-                    this.handleStatusChange(userId, userName, 'disabled');
-                } else if (action === 'enable') {
+                } else if (action === 'deactivate' || action === 'disable') {
+                    this.handleStatusChange(userId, userName, 'deactivated');
+                } else if (action === 'activate' || action === 'enable') {
                     this.handleStatusChange(userId, userName, 'active');
                 } else if (action === 'delete-data') {
                     this.handleDeleteUserData(userId, userName);
@@ -676,6 +677,7 @@
                 }
 
                 const isSelf = this.currentUser && this.currentUser.id === user.id;
+                const isInactive = user.account_status === 'disabled' || user.account_status === 'deactivated' || user.is_active === false;
 
                 body.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
@@ -687,7 +689,7 @@
                             <div style="font-size: 13px; color: var(--text-muted);">@${this.escapeHtml(user.username)}</div>
                             <div style="margin-top: 4px; display: flex; gap: 6px;">
                                 <span class="${user.role === 'admin' ? 'badge-role-admin' : 'badge-role-user'}">${user.role}</span>
-                                <span class="${user.account_status === 'disabled' ? 'badge-status-disabled' : 'badge-status-active'}">${user.account_status}</span>
+                                <span class="${isInactive ? 'badge-status-disabled' : 'badge-status-active'}">${isInactive ? 'deactivated' : 'active'}</span>
                             </div>
                         </div>
                     </div>
@@ -731,12 +733,21 @@
                         </div>
                     </div>
 
-                    <!-- Administrator Account Deletion Control -->
-                    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 12px;">
-                        <div>
+                    <!-- Administrator Account Controls -->
+                    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
                             ${isSelf ? `
-                                <span style="font-size: 12px; color: var(--text-muted); font-style: italic;">Cannot delete your own admin account</span>
+                                <span style="font-size: 12px; color: var(--text-muted); font-style: italic;">Cannot modify or delete your own admin account</span>
                             ` : `
+                                ${isInactive ? `
+                                    <button type="button" class="btn btn-primary btn-sm" id="modalActivateAccountBtn" data-id="${user.id}" data-name="${this.escapeHtml(user.full_name || user.username)}" style="font-weight: 700;">
+                                        Activate Account
+                                    </button>
+                                ` : `
+                                    <button type="button" class="btn btn-warning btn-sm" id="modalDeactivateAccountBtn" data-id="${user.id}" data-name="${this.escapeHtml(user.full_name || user.username)}" style="font-weight: 700; background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
+                                        Deactivate Account
+                                    </button>
+                                `}
                                 <button type="button" class="btn btn-danger btn-sm" id="modalDeleteAccountBtn" data-id="${user.id}" data-name="${this.escapeHtml(user.full_name || user.username)}" data-email="${this.escapeHtml(user.email || '')}" data-frank-id="${this.escapeHtml(user.frank_id || '')}" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="3 6 5 6 21 6"></polyline>
@@ -751,6 +762,20 @@
                 `;
 
                 // Wire modal action buttons
+                const modalActivateBtn = document.getElementById('modalActivateAccountBtn');
+                if (modalActivateBtn) {
+                    modalActivateBtn.addEventListener('click', () => {
+                        modal.classList.remove('open', 'active');
+                        this.handleStatusChange(user.id, user.full_name || user.username, 'active');
+                    });
+                }
+                const modalDeactivateBtn = document.getElementById('modalDeactivateAccountBtn');
+                if (modalDeactivateBtn) {
+                    modalDeactivateBtn.addEventListener('click', () => {
+                        modal.classList.remove('open', 'active');
+                        this.handleStatusChange(user.id, user.full_name || user.username, 'deactivated');
+                    });
+                }
                 const modalDeleteBtn = document.getElementById('modalDeleteAccountBtn');
                 if (modalDeleteBtn) {
                     modalDeleteBtn.addEventListener('click', () => {
@@ -778,52 +803,67 @@
             const row = document.querySelector(`tr[data-user-id="${userId}"]`);
             if (!row) return;
             const isSelf = this.currentUser && this.currentUser.id === userId;
+            const isInactive = newStatus === 'disabled' || newStatus === 'deactivated' || newStatus === false;
             const badgeCell = row.cells[4];
             if (badgeCell) {
-                badgeCell.innerHTML = newStatus === 'disabled'
-                    ? `<span class="badge-status-disabled">● DISABLED</span>`
+                badgeCell.innerHTML = isInactive
+                    ? `<span class="badge-status-disabled">● DEACTIVATED</span>`
                     : `<span class="badge-status-active">● ACTIVE</span>`;
             }
-            const actionBtn = row.querySelector('.btn-action-status-enable, .btn-action-status-disable');
+            const actionBtn = row.querySelector('.btn-action-activate, .btn-action-deactivate, .btn-action-status-enable, .btn-action-status-disable');
             if (actionBtn) {
-                if (newStatus === 'disabled') {
-                    actionBtn.className = 'btn-action btn-action-status-enable';
-                    actionBtn.setAttribute('data-action', 'enable');
-                    actionBtn.textContent = 'Enable Account';
+                if (isInactive) {
+                    actionBtn.className = 'btn-action btn-action-activate btn-action-status-enable';
+                    actionBtn.setAttribute('data-action', 'activate');
+                    actionBtn.textContent = 'Activate';
                     actionBtn.disabled = false;
                 } else {
-                    actionBtn.className = 'btn-action btn-action-status-disable';
-                    actionBtn.setAttribute('data-action', 'disable');
-                    actionBtn.textContent = 'Disable Account';
+                    actionBtn.className = 'btn-action btn-action-deactivate btn-action-status-disable';
+                    actionBtn.setAttribute('data-action', 'deactivate');
+                    actionBtn.textContent = 'Deactivate';
                     if (isSelf) actionBtn.disabled = true;
                 }
             }
         }
 
         handleStatusChange(userId, userName, newStatus) {
-            const isDisabling = newStatus === 'disabled';
+            const isSelf = this.currentUser && this.currentUser.id === userId;
+            if (isSelf) {
+                toast.error('Cannot change the status of your own administrator account.');
+                return;
+            }
+            const isDeactivating = newStatus === 'disabled' || newStatus === 'deactivated';
             this.showConfirmDialog({
-                title: isDisabling ? 'Disable this account?' : 'Enable this account?',
-                message: isDisabling
-                    ? 'The user will temporarily lose access but their account and data will be preserved.'
-                    : 'The user will be able to log in again using their existing credentials.',
-                confirmText: isDisabling ? 'Disable' : 'Enable',
-                confirmClass: isDisabling ? 'btn-danger' : 'btn-primary',
+                title: isDeactivating ? `Deactivate ${userName}?` : `Activate ${userName}?`,
+                message: isDeactivating
+                    ? `Are you sure you want to deactivate the account for ${userName}? The user will be immediately logged out and unable to sign in, but their conversations and data will be safely preserved.`
+                    : `Are you sure you want to activate the account for ${userName}? The user will be permitted to log in again with their existing credentials.`,
+                confirmText: isDeactivating ? 'Deactivate' : 'Activate',
+                confirmClass: isDeactivating ? 'btn-danger' : 'btn-primary',
                 onConfirm: async () => {
                     try {
-                        if (isDisabling && typeof api.disableAdminUser === 'function') {
-                            await api.disableAdminUser(userId);
-                        } else if (!isDisabling && typeof api.enableAdminUser === 'function') {
-                            await api.enableAdminUser(userId);
+                        if (isDeactivating) {
+                            if (typeof api.deactivateAdminUser === 'function') {
+                                await api.deactivateAdminUser(userId);
+                            } else {
+                                await api.updateAdminUserStatus(userId, 'deactivated');
+                            }
                         } else {
-                            await api.updateAdminUserStatus(userId, newStatus);
+                            if (typeof api.activateAdminUser === 'function') {
+                                await api.activateAdminUser(userId);
+                            } else {
+                                await api.updateAdminUserStatus(userId, 'active');
+                            }
                         }
-                        toast.success(`User ${userName} is now ${newStatus}`);
+                        toast.success(`Account for ${userName} is now ${isDeactivating ? 'deactivated' : 'active'}.`);
 
                         // Live DOM update without full page reload
                         const userObj = this.users.find(u => u.id === userId);
-                        if (userObj) userObj.account_status = newStatus;
-                        this.updateUserRowStatus(userId, newStatus);
+                        if (userObj) {
+                            userObj.account_status = isDeactivating ? 'deactivated' : 'active';
+                            userObj.is_active = !isDeactivating;
+                        }
+                        this.updateUserRowStatus(userId, isDeactivating ? 'deactivated' : 'active');
 
                         await Promise.all([this.loadMetrics(), this.loadAuditLogs()]);
                     } catch (err) {
@@ -853,18 +893,23 @@
         }
 
         handleDeleteUserAccount(userId, userName, userEmail, userFrankId) {
+            const isSelf = this.currentUser && this.currentUser.id === userId;
+            if (isSelf) {
+                toast.error('Cannot delete your own administrator account.');
+                return;
+            }
             const fidText = userFrankId ? ` (FRANK ID: ${userFrankId})` : '';
             const emailText = userEmail ? ` [${userEmail}]` : '';
             this.showConfirmDialog({
                 title: 'Delete Account',
-                message: `Are you sure you want to delete this account? (${userName}${emailText}${fidText})`,
-                warning: 'This action will deactivate the user account while safely preserving conversation and message history.',
+                message: `Are you sure you want to permanently delete the account for ${userName}${emailText}${fidText}?`,
+                warning: 'This action cannot be undone. The account and authentication access for this user will be permanently removed.',
                 confirmText: 'Delete Account',
                 confirmClass: 'btn-danger',
                 onConfirm: async () => {
                     try {
                         const res = await api.deleteAdminUserAccount(userId);
-                        toast.success(res?.message || `Account for ${userName} permanently deleted`);
+                        toast.success(res?.message || `Account for ${userName} permanently deleted.`);
                         
                         // Close details modal if open
                         const detailsModal = document.getElementById('adminUserDetailsModal');
