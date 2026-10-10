@@ -20,14 +20,15 @@ def get_metrics(
     db: Session = Depends(get_db)
 ):
     """Return real-time metrics calculated directly from database records."""
-    total_users = db.query(models.User).filter(models.User.status != "deleted").count()
+    not_deleted = or_(models.User.status.is_(None), models.User.status != "deleted")
+    total_users = db.query(models.User).filter(not_deleted).count()
     active_accounts = db.query(models.User).filter(
-        models.User.status != "deleted",
+        not_deleted,
         models.User.is_active == True,
         models.User.account_status == "active"
     ).count()
     disabled_accounts = db.query(models.User).filter(
-        models.User.status != "deleted",
+        not_deleted,
         or_(
             models.User.account_status.in_(["disabled", "deactivated", "inactive"]),
             models.User.is_active == False
@@ -60,7 +61,7 @@ def get_users(
     db: Session = Depends(get_db)
 ):
     """Paginated, searchable, filterable list of users with safe metadata only."""
-    query = db.query(models.User).filter(models.User.status != "deleted")
+    query = db.query(models.User).filter(or_(models.User.status.is_(None), models.User.status != "deleted"))
 
     if q and q.strip():
         pattern = f"%{q.strip()}%"
