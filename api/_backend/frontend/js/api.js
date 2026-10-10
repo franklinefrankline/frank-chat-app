@@ -766,6 +766,12 @@ const api = {
         });
     },
 
+    async validateResetToken(token, email = null) {
+        const params = new URLSearchParams({ token });
+        if (email) params.set('email', email);
+        return this.request(`/api/auth/validate-reset-token?${params.toString()}`);
+    },
+
     async getSMTPStatus() {
         return this.request('/api/auth/smtp/status');
     },

@@ -34,8 +34,8 @@ services:
       ENVIRONMENT: production
       HOST: 0.0.0.0
       PORT: 8000
-      FRONTEND_URL: https://frank-chat-vercel.app
-      CORS_ORIGINS: https://frank-chat-vercel.app,https://frank-chat-vercel.vercel.app,http://localhost:8000
+      FRONTEND_URL: https://frank-chat-app.vercel.app
+      CORS_ORIGINS: https://frank-chat-app.vercel.app,http://localhost:8000
       MAX_FILE_SIZE_MB: 25
     ports:
       - "8000:8000"

@@ -26,7 +26,7 @@ NEON_URL = "postgresql://neondb_owner:npg_8kgYbEIv9cAj@ep-gentle-butterfly-b4le0
 SQLITE_PATH = "backend/chatapp.db"
 
 def run_migration():
-    backup_dir = os.path.abspath("backups/migration_20261010_105054")
+    backup_dir = os.path.abspath("backups/migration_20261010_152619")
     os.makedirs(backup_dir, exist_ok=True)
     print(f"=== STEP 1: BACKUPS (Destination: {backup_dir}) ===", flush=True)
 
@@ -352,7 +352,9 @@ def run_migration():
         m_recipient = user_id_map.get(s_recipient) if s_recipient else None
         m_group = group_id_map.get(s_group) if s_group else None
 
-        if not m_sender:
+        if s_mid in neon_msg_ids:
+            message_id_map[s_mid] = s_mid
+            msgs_skipped += 1
             continue
 
         sig = (m_sender, m_recipient, m_group, content, str(created_at))
@@ -406,8 +408,8 @@ def run_migration():
         s_did = d["id"]
         stored_fn = d["stored_filename"]
 
-        if stored_fn and stored_fn in neon_doc_files:
-            document_id_map[s_did] = neon_doc_files[stored_fn]
+        if (stored_fn and stored_fn in neon_doc_files) or s_did in neon_doc_ids:
+            document_id_map[s_did] = neon_doc_files.get(stored_fn, s_did)
             docs_skipped += 1
             continue
 

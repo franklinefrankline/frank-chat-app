@@ -327,8 +327,16 @@ class EmailService:
         if action_button_label and action_button_url:
             btn_html = f"""
             <div style="margin: 28px 0; text-align: center;">
-                <a href="{action_button_url}" style="background: #ea580c; color: #ffffff; text-decoration: none; padding: 13px 28px; border-radius: 8px; font-weight: 700; font-size: 15px; display: inline-block; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);">
+                <a href="{action_button_url}" target="_blank" rel="noopener noreferrer" style="background-color: #ea580c; color: #ffffff; text-decoration: none; padding: 13px 32px; border-radius: 8px; font-weight: 700; font-size: 15px; display: inline-block; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);">
                     {action_button_label}
+                </a>
+            </div>
+            <div style="margin: 16px 0 24px 0; padding: 14px 18px; background-color: #faf8f5; border-radius: 8px; border: 1px dashed #e7dfd5; text-align: center;">
+                <p style="margin: 0 0 6px 0; font-size: 12px; color: #78716c; font-weight: 600;">
+                    Can't click the button above? Copy and paste this link into your browser:
+                </p>
+                <a href="{action_button_url}" target="_blank" rel="noopener noreferrer" style="color: #ea580c; text-decoration: underline; font-size: 12px; word-break: break-all; line-height: 1.4;">
+                    {action_button_url}
                 </a>
             </div>
             """

@@ -108,8 +108,8 @@ Configure these environment variables in your backend hosting service:
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/dbname?sslmode=require` |
 | `SECRET_KEY` | 32+ character random key for JWT tokens | `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `ENVIRONMENT` | Environment identifier | `production` |
-| `FRONTEND_URL` | Production frontend domain | `https://frank-chat-vercel.app` |
-| `CORS_ORIGINS` | Comma-separated allowed origins | `https://frank-chat-vercel.app,https://frank-chat-vercel.vercel.app` |
+| `FRONTEND_URL` | Production frontend domain | `https://frank-chat-app.vercel.app` |
+| `CORS_ORIGINS` | Comma-separated allowed origins | `https://frank-chat-app.vercel.app` |
 | `PORT` | ASGI listening port | Provided automatically by host (e.g. `8000` / `10000`) |
 | `MAX_FILE_SIZE_MB` | Maximum document upload size | `25` |
 | `MAX_VIDEO_SIZE_MB` | Maximum video upload size | `50` |

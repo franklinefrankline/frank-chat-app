@@ -2,7 +2,8 @@ import os
 import hashlib
 import hmac
 import secrets
-from datetime import timedelta
+import urllib.parse
+from datetime import timedelta, timezone
 import sys
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -23,6 +24,48 @@ from services.email_service import email_service
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 FRANK_ID_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+
+def get_frontend_base_url() -> str:
+    """
+    Resolves the frontend base URL accurately:
+    - Production: Uses FRONTEND_URL environment variable, defaulting to https://frank-chat-app.vercel.app in Vercel/production environments.
+    - Local development: Uses FRONTEND_URL or defaults to http://localhost:8000.
+    - Guarantees valid protocol (https:// or http://) and strips trailing slashes.
+    """
+    raw = (os.getenv("FRONTEND_URL") or "").strip()
+    is_vercel = os.getenv("VERCEL") == "1" or bool(os.getenv("VERCEL_ENV"))
+    is_prod_env = os.getenv("ENVIRONMENT", "").lower() == "production"
+
+    if not raw:
+        if is_vercel or is_prod_env:
+            raw = "https://frank-chat-app.vercel.app"
+        else:
+            port = os.getenv("PORT", "8000")
+            raw = f"http://localhost:{port}"
+
+    # If protocol is missing, ensure valid scheme
+    if not raw.startswith("http://") and not raw.startswith("https://"):
+        if "localhost" in raw or "127.0.0.1" in raw:
+            raw = f"http://{raw}"
+        else:
+            raw = f"https://{raw}"
+
+    # In production or Vercel, never allow localhost fallback
+    if (is_vercel or is_prod_env) and ("localhost" in raw or "127.0.0.1" in raw):
+        raw = "https://frank-chat-app.vercel.app"
+
+    return raw.rstrip("/")
+
+
+def build_password_reset_url(email: str, token: str) -> str:
+    """
+    Constructs an absolute, valid password reset URL with URL-encoded query parameters.
+    """
+    base = get_frontend_base_url()
+    safe_email = urllib.parse.quote(email.strip().lower())
+    safe_token = urllib.parse.quote(token.strip())
+    return f"{base}/reset-password.html?email={safe_email}&token={safe_token}"
 
 
 def generate_unique_frank_id(db: Session) -> str:
@@ -451,8 +494,7 @@ async def send_otp(req: schemas.SendOTPRequest, db: Session = Depends(get_db)):
     if purpose == "registration":
         delivered, msg = await email_service.send_registration_otp(clean_email, otp_code, expires_in_minutes=10)
     else:
-        frontend_base = os.getenv("FRONTEND_URL", "http://localhost:8000").rstrip("/")
-        reset_link = f"{frontend_base}/reset-password.html?email={clean_email}&token={token}"
+        reset_link = build_password_reset_url(clean_email, token)
         delivered, msg = await email_service.send_password_reset_otp(clean_email, otp_code, reset_link=reset_link, expires_in_minutes=15)
 
     if not delivered:
@@ -575,8 +617,7 @@ async def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depe
         db.add(otp_rec)
         db.commit()
 
-        frontend_base = os.getenv("FRONTEND_URL", "http://localhost:8000").rstrip("/")
-        reset_link = f"{frontend_base}/reset-password.html?email={clean_email}&token={reset_token}"
+        reset_link = build_password_reset_url(clean_email, reset_token)
 
         sent, send_err = await email_service.send_password_reset_otp(
             clean_email, otp_code, reset_link=reset_link, expires_in_minutes=15
@@ -597,6 +638,65 @@ async def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depe
         "success": True,
         "message": "If an account exists with this email, password reset instructions have been sent."
     }
+
+
+@router.get("/validate-reset-token")
+def validate_reset_token(token: str, email: str = None, db: Session = Depends(get_db)):
+    """
+    Validates a password reset token before the user submits a new password.
+    Returns status and user email if valid; raises 400 with a descriptive error if invalid, expired, or already used.
+    """
+    candidate_token = (token or "").strip()
+    if not candidate_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token is required."
+        )
+
+    now_dt = models.get_utc_now()
+    otp_rec = db.query(models.OTPCode).filter(
+        models.OTPCode.token == candidate_token,
+        models.OTPCode.purpose == "password_reset"
+    ).order_by(models.OTPCode.id.desc()).first()
+
+    if otp_rec:
+        if otp_rec.is_used:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This password reset link has already been used. Please request a new one."
+            )
+        exp = otp_rec.expires_at
+        if exp is not None:
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            now = now_dt if now_dt.tzinfo else now_dt.replace(tzinfo=timezone.utc)
+            if exp <= now:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="This password reset link has expired. Please request a new one."
+                )
+        return {
+            "valid": True,
+            "email": otp_rec.email,
+            "message": "Reset token is valid."
+        }
+
+    # Fallback support for legacy JWT reset tokens
+    payload = decode_token(candidate_token)
+    if payload and payload.get("purpose") == "pwd_reset":
+        username = payload.get("sub")
+        user = db.query(models.User).filter(models.User.username == username).first()
+        if user:
+            return {
+                "valid": True,
+                "email": user.email,
+                "message": "Reset token is valid."
+            }
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Invalid or expired password reset link."
+    )
 
 
 @router.post("/reset-password")
