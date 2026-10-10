@@ -169,8 +169,8 @@ def run_live_verification():
         msg_id = conn.execute(text("SELECT id FROM messages WHERE sender_id = :uid"), {"uid": test_user_id}).scalar()
         conn.execute(
             text("""
-                INSERT INTO reactions (message_id, user_id, emoji, created_at)
-                VALUES (:mid, :uid, '👍', NOW())
+                INSERT INTO reactions (message_id, user_id, emoji)
+                VALUES (:mid, :uid, '👍')
             """),
             {"mid": msg_id, "uid": test_user_id}
         )
