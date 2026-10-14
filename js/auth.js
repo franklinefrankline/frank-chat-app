@@ -270,7 +270,7 @@ if (registerForm) {
 
     function startResendCooldown() {
         if (resendTimer) clearInterval(resendTimer);
-        resendCountdown = 60;
+        resendCountdown = 30;
         if (!resendOtpBtn) return;
         resendOtpBtn.disabled = true;
         const btnText = resendOtpBtn.querySelector('.btn-text');
@@ -435,7 +435,7 @@ if (registerForm) {
 
         try {
             const res = await api.sendOTP(email, 'registration');
-            showToast(res.message || `New verification code sent to ${email}`, 'success');
+            showToast(res.message || `New verification code sent to ${email}. Please check your Inbox and Spam / Junk folder.`, 'success');
             startResendCooldown();
         } catch (err) {
             const msg = err.message || (err.data && (err.data.detail || err.data.message)) || 'Failed to resend code.';
@@ -455,6 +455,9 @@ if (registerForm) {
             currentOtpStep.style.display = 'none';
             currentStepFields.style.display = 'block';
             resetSubmitBtnState();
+            setTimeout(() => {
+                emailInput?.focus();
+            }, 50);
         }
     });
 

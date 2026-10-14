@@ -435,12 +435,12 @@ class EmailService:
         self,
         to_email: str,
         otp_code: str,
-        expires_in_minutes: int = 10,
+        expires_in_minutes: int = 15,
     ) -> Tuple[bool, str]:
         """
         Sends a registration verification OTP email.
         """
-        subject = f"Your FRANK Think Verification Code: {otp_code}"
+        subject = f"{otp_code} is your FRANK Think verification code"
         subtitle = "Thank you for creating an account on FRANK Think."
         instructions = "Please enter the 6-digit verification code below to verify your email address and activate your account."
 
@@ -471,7 +471,7 @@ class EmailService:
         """
         Sends a password reset email with both OTP code and direct reset link.
         """
-        subject = f"Reset your FRANK Think Password"
+        subject = f"{otp_code} is your FRANK Think password reset code"
         subtitle = "We received a request to reset your FRANK Think password."
         instructions = "You can enter the verification code below on the reset page, or click the button below to update your password directly."
 
