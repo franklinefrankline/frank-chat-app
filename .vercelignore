@@ -1,17 +1,59 @@
+# Databases & Dumps
 *.db
+*.db*
+**/*.db
+**/*.db*
 *.sqlite
-node_modules/
-test-results/
-playwright-report/
-.pytest_cache/
-__pycache__/
-*.pyc
-.env*
-!.env.example
-tests/
-backups/
-uploads/
-backend/uploads/
-backend/venv/
-.venv/
+*.sqlite3
+**/*.sqlite*
+**/*.bak
+*.bak
+chatapp.db
+backend/chatapp.db
 
+# Backups & Uploads
+backups/
+backups/**
+**/backups/**
+uploads/
+uploads/**
+**/uploads/**
+backend/uploads/
+backend/uploads/**
+
+# Environments & Secrets
+.env
+.env*
+**/.env*
+!.env.example
+
+# Python
+__pycache__/
+**/__pycache__/**
+*.pyc
+**/*.pyc
+backend/venv/
+backend/venv/**
+.venv/
+.venv/**
+
+# Node & Testing
+node_modules/
+node_modules/**
+tests/
+tests/**
+test-results/
+test-results/**
+playwright-report/
+playwright-report/**
+.pytest_cache/
+.pytest_cache/**
+scratch/
+scratch/**
+scratch_*
+
+# Git & IDE
+.git
+.github
+.vscode
+.idea

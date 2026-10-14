@@ -92,8 +92,14 @@ async def upload_avatar(
 
     # Ensure upload folder exists
     backend_dir = Path(__file__).resolve().parent.parent
-    avatars_dir = backend_dir / "uploads" / "avatars"
-    avatars_dir.mkdir(parents=True, exist_ok=True)
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        avatars_dir = Path("/tmp") / "uploads" / "avatars"
+    else:
+        avatars_dir = backend_dir / "uploads" / "avatars"
+    try:
+        avatars_dir.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        print(f"Avatars dir note: {e}")
 
     # Clean previous local avatar if one existed
     if current_user.avatar_url and current_user.avatar_url.startswith("/uploads/avatars/"):

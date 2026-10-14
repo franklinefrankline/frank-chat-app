@@ -253,10 +253,17 @@ else:
     frontend_dir = None
 
 # Mount persistent /uploads folder for avatars and files
-uploads_storage_dir = Path(__file__).resolve().parent / "uploads"
-uploads_storage_dir.mkdir(parents=True, exist_ok=True)
-(uploads_storage_dir / "avatars").mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(uploads_storage_dir)), name="uploads")
+if is_serverless or os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+    uploads_storage_dir = Path("/tmp") / "uploads"
+else:
+    uploads_storage_dir = Path(__file__).resolve().parent / "uploads"
+
+try:
+    uploads_storage_dir.mkdir(parents=True, exist_ok=True)
+    (uploads_storage_dir / "avatars").mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=str(uploads_storage_dir)), name="uploads")
+except Exception as e:
+    print(f"Uploads mount note: {e}")
 
 if frontend_dir and frontend_dir.exists():
     if (frontend_dir / "css").exists():
