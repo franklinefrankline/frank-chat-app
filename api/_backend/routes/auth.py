@@ -109,9 +109,8 @@ def verify_otp_code(candidate: str, stored_hash: str) -> bool:
 
 @router.post("/register", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
 def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
-    # Server-side guard for administrator-only mode
-    admin_only = os.getenv("ADMIN_ONLY_MODE", "true").lower() in ["true", "1", "yes"]
-    if admin_only:
+    # Check if admin-only mode is explicitly enabled (default: false to allow registration)
+    if os.getenv("ADMIN_ONLY_MODE", "false").lower() in ["true", "1", "yes"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Public registration is currently disabled. Access is restricted to the administrator."
@@ -422,10 +421,9 @@ async def send_otp(req: schemas.SendOTPRequest, db: Session = Depends(get_db)):
             detail="Email delivery is unavailable: SMTP credentials are not configured in backend/.env."
         )
 
-    # If registration, check admin-only mode and ensure active account doesn't already exist
+    # If registration, check if admin-only mode is explicitly enabled
     if purpose == "registration":
-        admin_only = os.getenv("ADMIN_ONLY_MODE", "true").lower() in ["true", "1", "yes"]
-        if admin_only:
+        if os.getenv("ADMIN_ONLY_MODE", "false").lower() in ["true", "1", "yes"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Public registration is currently disabled. Access is restricted to the administrator."
