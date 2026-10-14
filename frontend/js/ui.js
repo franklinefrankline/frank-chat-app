@@ -26,7 +26,7 @@ const uiModule = {
         menu.style.visibility = 'hidden';
         menu.style.display = 'block';
         menu.style.position = 'fixed';
-        menu.style.zIndex = '350';
+        menu.style.zIndex = '1200';
         menu.style.maxHeight = '';
         menu.style.overflowY = 'visible';
 
@@ -35,7 +35,7 @@ const uiModule = {
         const viewportH = window.innerHeight;
         const margin = 8;
 
-        let targetWidth = 268;
+        let targetWidth = 270;
         if (viewportW <= 480) {
             targetWidth = Math.min(360, viewportW - (margin * 2));
         } else {
@@ -43,67 +43,51 @@ const uiModule = {
         }
         menu.style.width = `${targetWidth}px`;
 
-        const naturalHeight = menu.offsetHeight || menu.scrollHeight || 420;
-        const spaceBelow = viewportH - triggerRect.bottom;
-        const spaceAbove = triggerRect.top;
+        const naturalHeight = menu.offsetHeight || menu.scrollHeight || 500;
+        const spaceBelow = viewportH - triggerRect.bottom - margin;
+        const spaceAbove = triggerRect.top - margin;
 
         let top = 0;
         let maxHeight = viewportH - (margin * 2);
 
-        // Vertical collision: if space below is limited and space above is larger, open UPWARD
-        if (spaceBelow < (naturalHeight + margin) && spaceAbove > spaceBelow) {
-            top = triggerRect.top - naturalHeight - 6;
-            if (top < margin) {
-                top = margin;
-                maxHeight = Math.max(160, triggerRect.top - margin - 6);
-            } else {
-                maxHeight = Math.max(160, naturalHeight);
-            }
+        // If trigger is located near the top header (within top 120px), always open DOWNWARD
+        if (triggerRect.top < 120) {
+            top = Math.max(margin, triggerRect.bottom + 6);
+            maxHeight = Math.max(160, viewportH - top - margin);
+        } else if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+            // Trigger is near bottom (e.g. sidebar profile card) -> open UPWARD
+            maxHeight = Math.max(160, spaceAbove - 6);
+            const desiredHeight = Math.min(naturalHeight, maxHeight);
+            top = Math.max(margin, triggerRect.top - desiredHeight - 6);
         } else {
             // Open DOWNWARD
-            top = triggerRect.bottom + 6;
-            if (top + naturalHeight > viewportH - margin) {
-                maxHeight = Math.max(160, viewportH - top - margin);
-            } else {
-                maxHeight = Math.max(160, naturalHeight);
-            }
+            top = Math.max(margin, triggerRect.bottom + 6);
+            maxHeight = Math.max(160, viewportH - top - margin);
         }
 
-        menu.style.maxHeight = `${maxHeight}px`;
+        menu.style.maxHeight = `${Math.round(maxHeight)}px`;
         menu.style.overflowY = 'auto';
-
-        const finalHeight = menu.offsetHeight;
-        if (spaceBelow < (naturalHeight + margin) && spaceAbove > spaceBelow) {
-            top = Math.max(margin, triggerRect.top - finalHeight - 6);
-        }
+        menu.style.overflowX = 'hidden';
 
         // Horizontal alignment: anchor to trigger
         let left = 0;
-        if (viewportW <= 480) {
-            left = Math.max(margin, (viewportW - targetWidth) / 2);
+        const triggerCenter = triggerRect.left + (triggerRect.width / 2);
+        if (triggerCenter > viewportW / 2) {
+            // Trigger is on the right side of the screen -> anchor menu's right to trigger's right
+            left = triggerRect.right - targetWidth;
         } else {
-            const triggerCenter = triggerRect.left + (triggerRect.width / 2);
-            if (triggerCenter < viewportW / 2) {
-                left = triggerRect.left;
-                if (left + targetWidth > viewportW - margin) {
-                    left = viewportW - targetWidth - margin;
-                }
-            } else {
-                left = triggerRect.right - targetWidth;
-                if (left < margin) {
-                    left = margin;
-                }
-            }
+            // Trigger is on the left side of the screen -> anchor menu's left to trigger's left
+            left = triggerRect.left;
         }
 
-        // Viewport bounds clamp
+        // Clamp left strictly inside viewport margins so it NEVER overflows the right or left edge
         left = Math.max(margin, Math.min(left, viewportW - targetWidth - margin));
-        top = Math.max(margin, Math.min(top, viewportH - finalHeight - margin));
 
         menu.style.top = `${Math.round(top)}px`;
         menu.style.left = `${Math.round(left)}px`;
         menu.style.right = 'auto';
         menu.style.bottom = 'auto';
+        menu.style.zIndex = '1200';
         menu.style.visibility = 'visible';
     },
 
@@ -256,16 +240,16 @@ const uiModule = {
     setupFrankIdCopy() {
         // Global click delegation for all FRANK ID copy buttons
         document.addEventListener('click', (e) => {
-            const copyBtn = e.target.closest('.btn-copy-frank-id');
+            const copyBtn = e.target.closest('.btn-copy-frank-id, .btn-copy-fid, .btn-copy-fid-header');
             if (copyBtn) {
                 e.preventDefault();
                 e.stopPropagation();
 
                 let fid = copyBtn.dataset.frankId;
                 if (!fid) {
-                    const container = copyBtn.closest('.frank-id-copy-group, .sidebar-user, .dropdown-user-header, .frank-id-card, .profile-card, .detail-row');
+                    const container = copyBtn.closest('.chat-header-frank-id-wrap, .drawer-frank-id-box, .frank-id-copy-group, .sidebar-user, .dropdown-user-header, .frank-id-card, .profile-card, .detail-row');
                     if (container) {
-                        const badge = container.querySelector('.frank-id-badge, #sidebarUserFrankId, #menuUserFrankId, #profileFrankId, #profileCardFrankId');
+                        const badge = container.querySelector('#chatHeaderFrankId, #drawerFrankIdVal, .frank-id-badge, #sidebarUserFrankId, #menuUserFrankId, #profileFrankId, #profileCardFrankId');
                         if (badge) fid = badge.textContent;
                     }
                 }
@@ -275,6 +259,18 @@ const uiModule = {
                 }
 
                 copyFrankId(fid, copyBtn);
+                return;
+            }
+
+            // Also support clicking directly on header pill or badge
+            const headerWrap = e.target.closest('.chat-header-frank-id-wrap');
+            if (headerWrap && !e.target.closest('button')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const fidEl = headerWrap.querySelector('#chatHeaderFrankId');
+                const btn = headerWrap.querySelector('.btn-copy-fid-header');
+                const fid = fidEl ? fidEl.textContent.trim() : '';
+                if (fid) copyFrankId(fid, btn);
                 return;
             }
 
@@ -291,7 +287,7 @@ const uiModule = {
         // Accessible keyboard trigger (Enter / Space)
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
-                const copyBtn = document.activeElement && document.activeElement.closest('.btn-copy-frank-id');
+                const copyBtn = document.activeElement && document.activeElement.closest('.btn-copy-frank-id, .btn-copy-fid, .btn-copy-fid-header');
                 if (copyBtn) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -379,11 +375,11 @@ async function copyFrankId(rawId, btnEl) {
 
     if (success) {
         if (typeof showToast === 'function') {
-            showToast('✓ FRANK ID copied', 'success');
+            showToast('FRANK ID copied', 'success');
         }
 
         // Apply temporary visual feedback to button(s)
-        const buttons = btnEl ? [btnEl] : Array.from(document.querySelectorAll('.btn-copy-frank-id'));
+        const buttons = btnEl ? [btnEl] : Array.from(document.querySelectorAll('.btn-copy-frank-id, .btn-copy-fid, .btn-copy-fid-header'));
         buttons.forEach(btn => {
             if (!btn) return;
             btn.classList.add('copied');
@@ -432,4 +428,5 @@ if (document.readyState === 'loading') {
 }
 
 window.uiModule = uiModule;
+window.ui = uiModule;
 

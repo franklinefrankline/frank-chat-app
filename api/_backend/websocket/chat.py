@@ -186,6 +186,11 @@ class ConnectionManager:
             should_close = True
         user_map = {}
         try:
+            group = db.query(models.Group).filter(models.Group.id == gid).first()
+            if group and group.created_by:
+                creator = db.query(models.User).filter(models.User.id == group.created_by).first()
+                if creator:
+                    user_map[group.created_by] = creator
             members = db.query(models.GroupMember).filter(models.GroupMember.group_id == gid).all()
             for m in members:
                 u = db.query(models.User).filter(models.User.id == m.user_id).first()
@@ -251,7 +256,7 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
         await websocket.close(code=1008)
         return
 
-    if getattr(user, "account_status", "active") == "disabled":
+    if getattr(user, "is_active", True) is False or getattr(user, "account_status", "active") in ["disabled", "deactivated", "deleted"] or getattr(user, "status", "active") == "deleted":
         await websocket.close(code=1008)
         return
 

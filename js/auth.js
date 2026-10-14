@@ -41,7 +41,9 @@ const auth = {
                 window.theme.apply(user.theme, false);
             }
             if (user.language && typeof window.i18n !== 'undefined') {
-                window.i18n.setLanguage(user.language, { saveToDb: false });
+                if (typeof window.i18n.getLanguage === 'function' && window.i18n.getLanguage() !== user.language) {
+                    window.i18n.setLanguage(user.language, { saveToDb: false, silent: true });
+                }
             }
         } else {
             localStorage.removeItem('chatapp_user');
@@ -157,10 +159,44 @@ if (loginForm) {
                 }
             }, 500);
         } catch (err) {
+            const isAccountDisabled = (err.status === 403) || (err.message && (
+                err.message.toLowerCase().includes('disabled') || 
+                err.message.toLowerCase().includes('deactivated') ||
+                err.message.toLowerCase().includes('contact an administrator')
+            ));
+
+            const disabledBanner = document.getElementById('disabledAccountBanner');
+            if (isAccountDisabled && disabledBanner) {
+                disabledBanner.style.display = 'block';
+                const msgEl = document.getElementById('disabledAccountMessage');
+                if (msgEl) {
+                    msgEl.textContent = err.message || (window.i18n ? window.i18n.t('contact.disabledNotice') : 'Account is disabled. Please contact an administrator.');
+                }
+                const contactBtn = document.getElementById('contactAdminDisabledBtn');
+                if (contactBtn && !contactBtn.dataset.bound) {
+                    contactBtn.dataset.bound = 'true';
+                    contactBtn.addEventListener('click', () => {
+                        if (typeof window.openContactAdminModal === 'function') {
+                            window.openContactAdminModal({
+                                email: usernameInput ? usernameInput.value.trim() : '',
+                                source: 'disabled_account'
+                            });
+                        }
+                    });
+                }
+            } else if (disabledBanner) {
+                disabledBanner.style.display = 'none';
+            }
+
             showToast(err.message || 'Invalid username or password.', 'error');
             submitBtn.disabled = false;
             submitBtn.querySelector('.btn-text').textContent = 'Sign In';
         }
+    });
+
+    usernameInput?.addEventListener('input', () => {
+        const disabledBanner = document.getElementById('disabledAccountBanner');
+        if (disabledBanner) disabledBanner.style.display = 'none';
     });
 }
 

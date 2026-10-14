@@ -317,3 +317,20 @@ class OTPCode(Base):
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
 
+
+class AccountAccessRequest(Base):
+    __tablename__ = "account_access_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    request_reference = Column(String(50), unique=True, index=True, nullable=False)
+    email = Column(String(120), index=True, nullable=False)
+    account_email = Column(String(120), nullable=True)
+    frank_id = Column(String(20), nullable=True)
+    subject = Column(String(200), nullable=False)
+    description = Column(Text, nullable=False)
+    status = Column(String(20), default="Pending", index=True, nullable=False)  # "Pending", "In Review", "Resolved", "Rejected"
+    admin_notes = Column(Text, nullable=True)
+    source = Column(String(50), default="disabled_account", nullable=False)  # "disabled_account", "landing_page"
+    created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+

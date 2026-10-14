@@ -116,6 +116,14 @@ def extract_text_from_file(file_path: Path, filename: str, mime_type: Optional[s
                                     paragraphs.append(p_text)
             except Exception as docx_err:
                 logger.warning(f"DOCX OpenXML parser error: {docx_err}")
+                # Resilient fallback for plain text / test docx or binary DOC files
+                try:
+                    words = re.findall(rb'[A-Za-z0-9 ,.\-:;\'"?!]{4,}', raw_bytes)
+                    text_fallback = " ".join(w.decode("latin-1", errors="ignore").strip() for w in words[:400] if len(w.strip()) > 3)
+                    if text_fallback.strip():
+                        paragraphs.append(text_fallback.strip())
+                except Exception:
+                    pass
 
             full_text = "\n\n".join(paragraphs)
             return {
@@ -126,7 +134,75 @@ def extract_text_from_file(file_path: Path, filename: str, mime_type: Optional[s
                 "has_readable_text": bool(full_text.strip()),
             }
 
-        # 3. Plain Text, Markdown, CSV, JSON, Log files
+        # 3. Excel Spreadsheets (XLSX, XLSM, XLTX, XLS) - Pure standard library zipfile + XML
+        elif ext in (".xlsx", ".xlsm", ".xltx") or (mime_type and any(m in mime_type.lower() for m in ["spreadsheet", "excel", "sheet"])):
+            raw_bytes = file_path.read_bytes()
+            extracted_cells: List[str] = []
+            try:
+                with zipfile.ZipFile(io.BytesIO(raw_bytes), "r") as z:
+                    shared_strings: List[str] = []
+                    if "xl/sharedStrings.xml" in z.namelist():
+                        root = ET.fromstring(z.read("xl/sharedStrings.xml"))
+                        for elem in root.iter():
+                            if elem.tag.endswith("t") and elem.text:
+                                shared_strings.append(elem.text.strip())
+
+                    # Also extract sheet row data
+                    sheet_names = [n for n in z.namelist() if n.startswith("xl/worksheets/sheet") and n.endswith(".xml")]
+                    for s_name in sheet_names[:5]:  # Up to first 5 sheets
+                        s_root = ET.fromstring(z.read(s_name))
+                        for row in s_root.findall(".//{http://schemas.openxmlformats.org/spreadsheetml/2006/main}row"):
+                            row_texts = []
+                            for c in row.findall(".//{http://schemas.openxmlformats.org/spreadsheetml/2006/main}c"):
+                                t_attr = c.get("t")
+                                v_elem = c.find("{http://schemas.openxmlformats.org/spreadsheetml/2006/main}v")
+                                if v_elem is not None and v_elem.text:
+                                    val = v_elem.text.strip()
+                                    if t_attr == "s" and val.isdigit() and int(val) < len(shared_strings):
+                                        row_texts.append(shared_strings[int(val)])
+                                    else:
+                                        row_texts.append(val)
+                            if row_texts:
+                                extracted_cells.append(" | ".join(row_texts))
+
+                    if not extracted_cells and shared_strings:
+                        extracted_cells = shared_strings
+            except Exception as xlsx_err:
+                logger.warning(f"XLSX OpenXML parser error: {xlsx_err}")
+                # Fallback for plain text or binary excel spreadsheets
+                try:
+                    words = re.findall(rb'[A-Za-z0-9 ,.\-:;\'"?!]{4,}', raw_bytes)
+                    text_fallback = " ".join(w.decode("latin-1", errors="ignore").strip() for w in words[:400] if len(w.strip()) > 3)
+                    if text_fallback.strip():
+                        extracted_cells.append(text_fallback.strip())
+                except Exception:
+                    pass
+
+            full_text = "\n".join(extracted_cells)
+            has_readable = bool(full_text.strip())
+            return {
+                "filename": filename,
+                "text": full_text.strip(),
+                "pages": [{"page": 1, "text": full_text.strip()}] if has_readable else [],
+                "page_count": 1,
+                "has_readable_text": has_readable,
+            }
+
+        elif ext == ".xls" or (mime_type and "excel" in mime_type.lower() and ext != ".xlsx"):
+            # Older binary XLS or TSV/HTML disguised as XLS
+            raw_bytes = file_path.read_bytes()
+            words = re.findall(rb'[A-Za-z0-9 ,.\-:;\'"?!]{4,}', raw_bytes)
+            decoded_text = " ".join(w.decode("latin-1", errors="ignore") for w in words[:400])
+            has_readable = bool(decoded_text.strip())
+            return {
+                "filename": filename,
+                "text": decoded_text.strip(),
+                "pages": [{"page": 1, "text": decoded_text.strip()}] if has_readable else [],
+                "page_count": 1,
+                "has_readable_text": has_readable,
+            }
+
+        # 4. Plain Text, Markdown, CSV, JSON, Log files
         elif ext in (".txt", ".md", ".log", ".json", ".csv", ".xml", ".yaml", ".yml") or (mime_type and any(m in mime_type.lower() for m in ["text", "json", "csv"])):
             raw_bytes = file_path.read_bytes()
             try:

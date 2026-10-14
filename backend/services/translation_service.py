@@ -367,16 +367,20 @@ class TranslationService:
         self,
         messages: list,
         current_user: models.User,
-        db: Session
+        db: Session,
+        target_language: Optional[str] = None
     ) -> list:
         """
-        Attaches recipient-specific translation to messages according to current_user.language.
+        Attaches recipient-specific translation to messages according to target_language or current_user.language.
         Only translates incoming messages (sender != current_user) when user.auto_translate is True.
         """
         if not current_user or not getattr(current_user, "auto_translate", True):
             return messages
 
-        user_lang = self.normalize_lang(getattr(current_user, "language", "en"))
+        user_lang = self.normalize_lang(target_language or getattr(current_user, "language", "en"))
+        translations_map = {}  # msg.id -> (translated_content, source_language, target_language)
+
+        # Pass 1: Ensure all required translations exist in DB or cache
         for msg in messages:
             if not getattr(msg, "content", None):
                 continue
@@ -394,17 +398,21 @@ class TranslationService:
                         break
 
             if trans:
-                msg.translated_content = trans.translated_content
-                msg.source_language = trans.source_language
-                msg.target_language = trans.target_language
+                translations_map[msg.id] = (trans.translated_content, trans.source_language, trans.target_language)
             else:
                 src_lang = self.detect_language(msg.content)
                 if src_lang != user_lang:
                     t_rec = await self.get_or_create_message_translation(db, msg, user_lang, src_lang)
                     if t_rec:
-                        msg.translated_content = t_rec.translated_content
-                        msg.source_language = t_rec.source_language
-                        msg.target_language = t_rec.target_language
+                        translations_map[msg.id] = (t_rec.translated_content, t_rec.source_language, t_rec.target_language)
+
+        # Pass 2: Attach attributes after all DB transactions are settled
+        for msg in messages:
+            if msg.id in translations_map:
+                trans_content, src_l, tgt_l = translations_map[msg.id]
+                msg.translated_content = trans_content
+                msg.source_language = src_l
+                msg.target_language = tgt_l
 
         return messages
 

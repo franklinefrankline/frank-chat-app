@@ -668,3 +668,58 @@ class ActionItemFullUpdate(BaseModel):
     status: Optional[str] = None
 
 
+# ---------------- ACCOUNT ACCESS REQUEST SCHEMAS ----------------
+
+class AccountAccessRequestCreate(BaseModel):
+    email: str = Field(..., min_length=5, max_length=120)
+    subject: str = Field(..., min_length=3, max_length=200)
+    description: str = Field(..., min_length=5, max_length=5000)
+    account_email: Optional[str] = Field(None, max_length=120)
+    frank_id: Optional[str] = Field(None, max_length=20)
+    source: Optional[str] = Field("disabled_account", max_length=50)
+
+
+class AccountAccessRequestUpdate(BaseModel):
+    status: Optional[str] = Field(None, pattern="^(Pending|In Review|Resolved|Rejected)$")
+    admin_notes: Optional[str] = None
+
+
+class AccountAccessRequestResponse(BaseModel):
+    id: int
+    request_reference: str
+    email: str
+    account_email: Optional[str] = None
+    frank_id: Optional[str] = None
+    subject: str
+    description: str
+    status: str = "Pending"
+    admin_notes: Optional[str] = None
+    source: str = "disabled_account"
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_serializer("created_at", "updated_at", check_fields=False)
+    def serialize_utc_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
+        return format_iso_utc(dt)
+
+    class Config:
+        from_attributes = True
+
+
+class AccountAccessRequestPublicSubmitResponse(BaseModel):
+    success: bool = True
+    message: str
+    request_reference: str
+    status: str = "Pending"
+
+
+class AccountAccessRequestListResponse(BaseModel):
+    items: List[AccountAccessRequestResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    pending_count: int
+
+
+

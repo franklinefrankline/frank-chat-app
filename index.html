@@ -73,8 +73,6 @@
                 </div>
             </div>
 
-            <a href="login.html" class="btn btn-ghost" data-i18n="nav.signIn">Sign In</a>
-            <a href="register.html" class="btn btn-primary" data-i18n="nav.startChatting">Start Chatting</a>
 
             <!-- Mobile Navigation Drawer Toggle Button -->
             <button type="button" class="btn btn-ghost btn-icon landing-mobile-toggle" id="landingMobileToggle" aria-label="Open Navigation Menu" title="Open Menu">
@@ -108,10 +106,6 @@
             <a href="#preview" class="landing-mobile-link" data-i18n="nav.experience">Experience</a>
             <a href="#about" class="landing-mobile-link" data-i18n="nav.about">About</a>
         </nav>
-        <div class="landing-mobile-actions">
-            <a href="login.html" class="btn btn-ghost btn-full" data-i18n="nav.signIn">Sign In</a>
-            <a href="register.html" class="btn btn-primary btn-full" data-i18n="nav.startChatting">Start Chatting</a>
-        </div>
         <div class="mobile-lang-box">
             <span class="mobile-lang-title" data-i18n="nav.language">Language</span>
             <div class="lang-selector-container mobile-lang-selector" id="mobileLangSelector">
@@ -146,15 +140,27 @@
                 <h1 id="heroTitle" data-i18n="hero.title">Communication, Reimagined.</h1>
                 <p data-i18n="hero.subtitle">Chat, connect and collaborate with people in a secure, beautifully designed messaging experience.</p>
 
-                <div class="hero-actions">
-                    <a href="register.html" class="btn btn-primary btn-large">
-                        <span data-i18n="hero.startChatting">Start Chatting</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                            <polyline points="12 5 19 12 12 19"></polyline>
-                        </svg>
-                    </a>
-                    <a href="#features" class="btn btn-secondary btn-large" data-i18n="hero.exploreFeatures">Explore Features</a>
+                <div class="hero-actions-group">
+                    <div class="hero-primary-btns">
+                        <a href="register.html" class="btn btn-primary btn-large hero-start-btn" id="heroStartChattingBtn" aria-label="Start Chatting on FRANK">
+                            <span data-i18n="hero.startChatting">Start Chatting</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                        </a>
+                        <a href="login.html" class="btn btn-secondary btn-large hero-login-btn" id="heroLoginBtn" aria-label="Login to your FRANK account">
+                            <span data-i18n="hero.login">Login</span>
+                        </a>
+                    </div>
+                    <div class="hero-secondary-btns">
+                        <a href="#features" class="btn btn-ghost hero-explore-btn" id="heroExploreBtn" data-i18n="hero.exploreFeatures">
+                            <span>Explore Features</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </a>
+                    </div>
                 </div>
 
                 <div class="hero-stats">
@@ -401,11 +407,24 @@
     </main>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
         <div style="display: flex; align-items: center; gap: 8px;">
             <img src="assets/brand/frank-icon.svg" alt="FRANK" width="22" height="22" style="border-radius: 5px;">
             <strong>FRANK</strong> — <span data-i18n="footer.copyright">&copy; 2026 FRANK. All rights reserved.</span>
         </div>
+
+        <!-- Support / Contact Administrator Action -->
+        <div class="footer-support-section" style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;" data-i18n="footer.needHelp">Need Help?</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="landingContactAdminBtn" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 6px 12px;" aria-label="Contact Administrator">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                <span data-i18n="contact.contactAdmin">Contact Administrator</span>
+            </button>
+        </div>
+
         <div>
             <span data-i18n="footer.think">Think</span>
         </div>
@@ -414,6 +433,14 @@
     <!-- Scripts -->
     <script src="js/i18n.js"></script>
     <script src="js/theme.js"></script>
+    <script src="js/contact_modal.js"></script>
     <script src="js/ui.js"></script>
+    <script>
+        document.getElementById('landingContactAdminBtn')?.addEventListener('click', function () {
+            if (typeof window.openContactAdminModal === 'function') {
+                window.openContactAdminModal({ source: 'landing_page' });
+            }
+        });
+    </script>
 </body>
 </html>

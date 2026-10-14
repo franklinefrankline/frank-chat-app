@@ -629,7 +629,10 @@ def view_file_content(
     headers = {
         "Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}",
         "X-Content-Type-Options": "nosniff",
-        "Accept-Ranges": "bytes"
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0"
     }
 
     return FileResponse(
@@ -683,7 +686,10 @@ def download_file(
     encoded_filename = urllib.parse.quote(doc.original_filename)
     headers = {
         "Content-Disposition": f"attachment; filename=\"{doc.original_filename}\"; filename*=UTF-8''{encoded_filename}",
-        "X-Content-Type-Options": "nosniff"
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0"
     }
 
     return FileResponse(
@@ -1192,6 +1198,33 @@ async def send_updated_file_to_conversation(
 
     if not target_recipient_id and not target_group_id:
         target_recipient_id = doc.conversation_id or current_user.id
+
+    # Server-side destination & permission validation
+    if target_group_id:
+        group = db.query(models.Group).filter(models.Group.id == target_group_id).first()
+        if not group:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target group not found.")
+        membership = db.query(models.GroupMember).filter(
+            models.GroupMember.group_id == target_group_id,
+            models.GroupMember.user_id == current_user.id
+        ).first()
+        if not membership and group.created_by == current_user.id:
+            membership = models.GroupMember(
+                group_id=target_group_id,
+                user_id=current_user.id,
+                role="owner",
+                joined_at=datetime.now(timezone.utc)
+            )
+            db.add(membership)
+            db.commit()
+        elif not membership and current_user.role == "admin":
+            pass
+        elif not membership:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to send documents to this group.")
+    elif target_recipient_id:
+        recipient_user = db.query(models.User).filter(models.User.id == target_recipient_id).first()
+        if not recipient_user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target recipient not found.")
 
     comment = req.comment if req and req.comment else f"Updated: {doc.original_filename} (v{doc.current_version_number or 1})"
 

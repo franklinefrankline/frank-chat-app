@@ -46,6 +46,21 @@
             // Groups state
             this.groups = [];
 
+            // Account access requests state
+            this.accessRequests = [];
+            this.accessRequestsPagination = {
+                page: 1,
+                limit: 10,
+                total: 0,
+                totalPages: 1
+            };
+            this.accessRequestsFilters = {
+                q: '',
+                status: 'all',
+                source: 'all'
+            };
+            this.accessRequestsDebounce = null;
+
             // Modal confirm state
             this.confirmCallback = null;
         }
@@ -73,14 +88,37 @@
                 // 2. Setup Navigation and UI Handlers
                 this.bindNavigationEvents();
                 this.bindSearchAndFilterEvents();
+                this.bindAccessRequestsEvents();
                 this.bindModalEvents();
                 this.bindActionEvents();
 
                 // 3. Connect WebSocket and register admin listeners
                 this.setupWebSocket();
 
+                // Multilingual UI listener
+                window.addEventListener('frank:languageChanged', () => {
+                    this.renderAdminProfileInfo();
+                    if (this.users && this.users.length > 0) {
+                        this.renderUsersTable();
+                        this.renderUsersPagination();
+                    }
+                    if (this.groups && this.groups.length > 0) {
+                        this.renderGroupsTable();
+                    }
+                    if (this.auditLogs && this.auditLogs.length > 0) {
+                        this.renderAuditTable();
+                        this.renderAuditPagination();
+                    }
+                    if (this.accessRequests && this.accessRequests.length > 0) {
+                        this.renderAccessRequestsTable();
+                        this.renderAccessRequestsPagination();
+                    }
+                    this.switchSection(this.activeSection);
+                });
+
                 // 4. Initial Data Load
                 await this.loadMetrics();
+                await this.loadAccessRequestsMetrics();
                 await this.loadUsers();
                 await this.loadGroups();
                 await this.loadAuditLogs();
@@ -246,12 +284,18 @@
             // Sign out handlers
             const signOutBtn = document.getElementById('adminSignOutBtn');
             const profileSignOutBtn = document.getElementById('profileSignOutBtn');
-            const handleSignOut = () => {
+            const drawerSignOutBtn = document.getElementById('adminDrawerSignOutBtn');
+            const headerSignOutBtn = document.getElementById('adminHeaderSignOutBtn');
+
+            const handleSignOut = (e) => {
+                if (e) e.preventDefault();
                 auth.logout();
                 window.location.href = 'login.html';
             };
             if (signOutBtn) signOutBtn.addEventListener('click', handleSignOut);
             if (profileSignOutBtn) profileSignOutBtn.addEventListener('click', handleSignOut);
+            if (drawerSignOutBtn) drawerSignOutBtn.addEventListener('click', handleSignOut);
+            if (headerSignOutBtn) headerSignOutBtn.addEventListener('click', handleSignOut);
         }
 
         switchSection(sectionId) {
@@ -268,11 +312,12 @@
 
             // Update visible section
             const sections = {
-                'overview': { el: document.getElementById('sectionOverview'), title: 'Overview & Metrics' },
-                'users': { el: document.getElementById('sectionUsers'), title: 'User Management' },
-                'groups': { el: document.getElementById('sectionGroups'), title: 'Groups & Channels' },
-                'audit': { el: document.getElementById('sectionAudit'), title: 'Audit Logs' },
-                'profile': { el: document.getElementById('sectionProfile'), title: 'Admin Profile' }
+                'overview': { el: document.getElementById('sectionOverview'), key: 'admin.metrics', title: 'Overview & Metrics' },
+                'users': { el: document.getElementById('sectionUsers'), key: 'admin.userManagement', title: 'User Management' },
+                'groups': { el: document.getElementById('sectionGroups'), key: 'admin.groupsChats', title: 'Groups & Channels' },
+                'audit': { el: document.getElementById('sectionAudit'), key: 'admin.auditLogs', title: 'Audit Logs' },
+                'access-requests': { el: document.getElementById('sectionAccessRequests'), key: 'admin.accessRequests', title: 'Account Access Requests' },
+                'profile': { el: document.getElementById('sectionProfile'), key: 'admin.adminProfile', title: 'Admin Profile' }
             };
 
             Object.entries(sections).forEach(([key, config]) => {
@@ -280,7 +325,10 @@
                     if (key === sectionId) {
                         config.el.classList.add('active');
                         const topbarTitle = document.getElementById('adminTopbarTitle');
-                        if (topbarTitle) topbarTitle.textContent = config.title;
+                        if (topbarTitle) {
+                            topbarTitle.setAttribute('data-i18n', config.key);
+                            topbarTitle.textContent = (window.i18n ? window.i18n.t(config.key) : null) || config.title;
+                        }
                     } else {
                         config.el.classList.remove('active');
                     }
@@ -294,6 +342,11 @@
             if (overlay) {
                 overlay.classList.remove('active');
                 overlay.classList.remove('show');
+            }
+
+            // Trigger section-specific loads
+            if (sectionId === 'access-requests') {
+                this.loadAccessRequests();
             }
         }
 
@@ -552,10 +605,11 @@
             if (!tbody) return;
 
             if (this.users.length === 0) {
+                const emptyMsg = window.i18n ? window.i18n.t('admin.noUsersMatched', 'No user accounts matched the filter criteria.') : 'No user accounts matched the filter criteria.';
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 36px;">
-                            No user accounts matched the filter criteria.
+                            ${emptyMsg}
                         </td>
                     </tr>
                 `;
@@ -566,20 +620,27 @@
                 const isSelf = this.currentUser && this.currentUser.id === u.id;
                 const isInactive = u.account_status === 'disabled' || u.account_status === 'deactivated' || u.is_active === false;
                 const statusBadge = isInactive
-                    ? `<span class="badge-status-disabled">● DEACTIVATED</span>`
-                    : `<span class="badge-status-active">● ACTIVE</span>`;
+                    ? `<span class="badge-status-disabled">● ${window.i18n ? window.i18n.t('admin.deactivated', 'DEACTIVATED') : 'DEACTIVATED'}</span>`
+                    : `<span class="badge-status-active">● ${window.i18n ? window.i18n.t('admin.active', 'ACTIVE') : 'ACTIVE'}</span>`;
 
                 const roleBadge = u.role === 'admin'
-                    ? `<span class="badge-role-admin">Admin</span>`
-                    : `<span class="badge-role-user">User</span>`;
+                    ? `<span class="badge-role-admin">${window.i18n ? window.i18n.t('admin.roleAdmin', 'Admin') : 'Admin'}</span>`
+                    : `<span class="badge-role-user">${window.i18n ? window.i18n.t('admin.user', 'User') : 'User'}</span>`;
+
+                const activateText = window.i18n ? window.i18n.t('admin.activate', 'Activate') : 'Activate';
+                const deactivateText = window.i18n ? window.i18n.t('admin.deactivate', 'Deactivate') : 'Deactivate';
+                const deleteText = window.i18n ? window.i18n.t('common.delete', 'Delete') : 'Delete';
+                const viewText = window.i18n ? window.i18n.t('common.view', 'View') : 'View';
+                const wipeText = window.i18n ? window.i18n.t('admin.wipeData', 'Wipe Data') : 'Wipe Data';
+                const youText = window.i18n ? window.i18n.t('common.you', 'YOU') : 'YOU';
 
                 const statusActionBtn = isInactive
-                    ? `<button type="button" class="btn-action btn-action-activate btn-action-status-enable" data-action="activate" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}">Activate</button>`
-                    : `<button type="button" class="btn-action btn-action-deactivate btn-action-status-disable" data-action="deactivate" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}" ${isSelf ? 'disabled title="Cannot deactivate your own admin account"' : ''}>Deactivate</button>`;
+                    ? `<button type="button" class="btn-action btn-action-activate btn-action-status-enable" data-action="activate" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}">${activateText}</button>`
+                    : `<button type="button" class="btn-action btn-action-deactivate btn-action-status-disable" data-action="deactivate" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}" ${isSelf ? 'disabled title="Cannot deactivate your own admin account"' : ''}>${deactivateText}</button>`;
 
                 const deleteAccountBtn = isSelf
-                    ? `<button type="button" class="btn-action btn-action-delete" disabled title="Cannot delete your own admin account" style="opacity:0.4; cursor:not-allowed;">Delete</button>`
-                    : `<button type="button" class="btn-action btn-action-delete" data-action="delete-account" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}" data-email="${this.escapeHtml(u.email || '')}" data-frank-id="${this.escapeHtml(u.frank_id || '')}">Delete</button>`;
+                    ? `<button type="button" class="btn-action btn-action-delete" disabled title="Cannot delete your own admin account" style="opacity:0.4; cursor:not-allowed;">${deleteText}</button>`
+                    : `<button type="button" class="btn-action btn-action-delete" data-action="delete-account" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}" data-email="${this.escapeHtml(u.email || '')}" data-frank-id="${this.escapeHtml(u.frank_id || '')}">${deleteText}</button>`;
 
                 return `
                     <tr data-user-id="${u.id}">
@@ -589,7 +650,7 @@
                                     <span>${this.getInitials(u.full_name || u.username)}</span>
                                 </div>
                                 <div style="min-width:0;">
-                                    <div style="font-weight: 700; color: var(--text);">${this.escapeHtml(u.full_name || u.username)} ${isSelf ? '<span style="font-size:10px; color:var(--primary); font-weight:800;">(YOU)</span>' : ''}</div>
+                                    <div style="font-weight: 700; color: var(--text);">${this.escapeHtml(u.full_name || u.username)} ${isSelf ? `<span style="font-size:10px; color:var(--primary); font-weight:800;">(${youText})</span>` : ''}</div>
                                     <div style="font-size: 11px; color: var(--text-muted);">@${this.escapeHtml(u.username)}</div>
                                 </div>
                             </div>
@@ -605,9 +666,9 @@
                         <td data-label="Created" style="color: var(--text-muted); font-size: 12px;">${this.formatDate(u.created_at)}</td>
                         <td data-label="Actions" style="text-align: right;">
                             <div class="action-buttons-wrap">
-                                <button type="button" class="btn-action btn-action-view" data-action="view" data-id="${u.id}">View</button>
+                                <button type="button" class="btn-action btn-action-view" data-action="view" data-id="${u.id}">${viewText}</button>
                                 ${statusActionBtn}
-                                <button type="button" class="btn-action btn-action-wipe" data-action="delete-data" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}" title="Delete user messages and documents without removing account">Wipe Data</button>
+                                <button type="button" class="btn-action btn-action-wipe" data-action="delete-data" data-id="${u.id}" data-name="${this.escapeHtml(u.full_name || u.username)}" title="Delete user messages and documents without removing account">${wipeText}</button>
                                 ${deleteAccountBtn}
                             </div>
                         </td>
@@ -626,8 +687,13 @@
             const start = total === 0 ? 0 : (page - 1) * limit + 1;
             const end = Math.min(page * limit, total);
 
-            if (info) info.textContent = `Showing ${start}–${end} of ${total} users`;
-            if (pageNum) pageNum.textContent = `Page ${page} of ${totalPages || 1}`;
+            const showingLabel = window.i18n ? window.i18n.t('admin.showing', 'Showing') : 'Showing';
+            const ofLabel = window.i18n ? window.i18n.t('common.of', 'of') : 'of';
+            const usersLabel = window.i18n ? window.i18n.t('admin.users', 'users') : 'users';
+            const pageLabel = window.i18n ? window.i18n.t('common.page', 'Page') : 'Page';
+
+            if (info) info.textContent = `${showingLabel} ${start}–${end} ${ofLabel} ${total} ${usersLabel}`;
+            if (pageNum) pageNum.textContent = `${pageLabel} ${page} ${ofLabel} ${totalPages || 1}`;
 
             if (prevBtn) prevBtn.disabled = page <= 1;
             if (nextBtn) nextBtn.disabled = page >= totalPages;
@@ -679,17 +745,33 @@
                 const isSelf = this.currentUser && this.currentUser.id === user.id;
                 const isInactive = user.account_status === 'disabled' || user.account_status === 'deactivated' || user.is_active === false;
 
+                const youText = window.i18n ? window.i18n.t('common.you', 'YOU') : 'YOU';
+                const roleText = user.role === 'admin' ? (window.i18n ? window.i18n.t('admin.roleAdmin', 'Admin') : 'Admin') : (window.i18n ? window.i18n.t('admin.user', 'User') : 'User');
+                const statusText = isInactive ? (window.i18n ? window.i18n.t('admin.deactivated', 'deactivated') : 'deactivated') : (window.i18n ? window.i18n.t('admin.active', 'active') : 'active');
+                const emailLabel = window.i18n ? window.i18n.t('admin.thEmail', 'Email Address') : 'Email Address';
+                const regLabel = window.i18n ? window.i18n.t('admin.registeredAt', 'Registered At') : 'Registered At';
+                const lastSeenLabel = window.i18n ? window.i18n.t('admin.lastSeen', 'Last Seen') : 'Last Seen';
+                const neverText = window.i18n ? window.i18n.t('common.never', 'Never') : 'Never';
+                const activitySummaryLabel = window.i18n ? window.i18n.t('admin.activitySummary', 'Activity Summary (Metadata Only)') : 'Activity Summary (Metadata Only)';
+                const messagesLabel = window.i18n ? window.i18n.t('admin.totalMessages', 'Messages') : 'Messages';
+                const filesLabel = window.i18n ? window.i18n.t('admin.filesDocs', 'Files') : 'Files';
+                const groupsLabel = window.i18n ? window.i18n.t('admin.groupsChannels', 'Groups') : 'Groups';
+                const activateBtnText = window.i18n ? window.i18n.t('admin.activateAccount', 'Activate Account') : 'Activate Account';
+                const deactivateBtnText = window.i18n ? window.i18n.t('admin.deactivateAccount', 'Deactivate Account') : 'Deactivate Account';
+                const deleteBtnText = window.i18n ? window.i18n.t('admin.deleteAccount', 'Delete Account') : 'Delete Account';
+                const closeBtnText = window.i18n ? window.i18n.t('common.close', 'Close') : 'Close';
+
                 body.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
                         <div class="avatar avatar-lg">
                             <span>${this.getInitials(user.full_name || user.username)}</span>
                         </div>
                         <div>
-                            <div style="font-size: 16px; font-weight: 800; color: var(--text);">${this.escapeHtml(user.full_name || user.username)} ${isSelf ? '<span style="font-size:11px; color:var(--primary); font-weight:800;">(YOU)</span>' : ''}</div>
+                            <div style="font-size: 16px; font-weight: 800; color: var(--text);">${this.escapeHtml(user.full_name || user.username)} ${isSelf ? `<span style="font-size:11px; color:var(--primary); font-weight:800;">(${youText})</span>` : ''}</div>
                             <div style="font-size: 13px; color: var(--text-muted);">@${this.escapeHtml(user.username)}</div>
                             <div style="margin-top: 4px; display: flex; gap: 6px;">
-                                <span class="${user.role === 'admin' ? 'badge-role-admin' : 'badge-role-user'}">${user.role}</span>
-                                <span class="${isInactive ? 'badge-status-disabled' : 'badge-status-active'}">${isInactive ? 'deactivated' : 'active'}</span>
+                                <span class="${user.role === 'admin' ? 'badge-role-admin' : 'badge-role-user'}">${roleText}</span>
+                                <span class="${isInactive ? 'badge-status-disabled' : 'badge-status-active'}">${statusText}</span>
                             </div>
                         </div>
                     </div>
@@ -699,7 +781,7 @@
                         <span class="detail-value">#${user.id}</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label">Email Address</span>
+                        <span class="detail-label">${emailLabel}</span>
                         <span class="detail-value">${this.escapeHtml(user.email || '—')}</span>
                     </div>
                     <div class="detail-row">
@@ -707,28 +789,28 @@
                         <span class="detail-value" style="font-family: monospace; color: var(--accent-cyan); font-weight: 800;">${this.escapeHtml(user.frank_id || '—')}</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label">Registered At</span>
+                        <span class="detail-label">${regLabel}</span>
                         <span class="detail-value">${this.formatDate(user.created_at)}</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label">Last Seen</span>
-                        <span class="detail-value">${user.last_seen ? this.formatDate(user.last_seen) : 'Never'}</span>
+                        <span class="detail-label">${lastSeenLabel}</span>
+                        <span class="detail-value">${user.last_seen ? this.formatDate(user.last_seen) : neverText}</span>
                     </div>
 
                     <div style="margin-top: 16px; padding: 14px; background: var(--surface-elevated); border-radius: var(--radius-md); border: 1px solid var(--border);">
-                        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Activity Summary (Metadata Only)</div>
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">${activitySummaryLabel}</div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center;">
                             <div>
                                 <div style="font-size: 18px; font-weight: 800; color: var(--text);">${user.messages_count ?? user.message_count ?? 0}</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">Messages</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">${messagesLabel}</div>
                             </div>
                             <div>
                                 <div style="font-size: 18px; font-weight: 800; color: var(--text);">${user.files_count ?? user.file_count ?? 0}</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">Files</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">${filesLabel}</div>
                             </div>
                             <div>
                                 <div style="font-size: 18px; font-weight: 800; color: var(--text);">${user.groups_count ?? user.group_count ?? 0}</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">Groups</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">${groupsLabel}</div>
                             </div>
                         </div>
                     </div>
@@ -741,11 +823,11 @@
                             ` : `
                                 ${isInactive ? `
                                     <button type="button" class="btn btn-primary btn-sm" id="modalActivateAccountBtn" data-id="${user.id}" data-name="${this.escapeHtml(user.full_name || user.username)}" style="font-weight: 700;">
-                                        Activate Account
+                                        ${activateBtnText}
                                     </button>
                                 ` : `
                                     <button type="button" class="btn btn-warning btn-sm" id="modalDeactivateAccountBtn" data-id="${user.id}" data-name="${this.escapeHtml(user.full_name || user.username)}" style="font-weight: 700; background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
-                                        Deactivate Account
+                                        ${deactivateBtnText}
                                     </button>
                                 `}
                                 <button type="button" class="btn btn-danger btn-sm" id="modalDeleteAccountBtn" data-id="${user.id}" data-name="${this.escapeHtml(user.full_name || user.username)}" data-email="${this.escapeHtml(user.email || '')}" data-frank-id="${this.escapeHtml(user.frank_id || '')}" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
@@ -753,11 +835,11 @@
                                         <polyline points="3 6 5 6 21 6"></polyline>
                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                                     </svg>
-                                    Delete Account
+                                    ${deleteBtnText}
                                 </button>
                             `}
                         </div>
-                        <button type="button" class="btn btn-secondary btn-sm" id="modalCloseDetailsBtn">Close</button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="modalCloseDetailsBtn">${closeBtnText}</button>
                     </div>
                 `;
 
@@ -935,35 +1017,7 @@
             try {
                 const res = await api.getAdminGroups();
                 this.groups = Array.isArray(res) ? res : (res && res.groups ? res.groups : []);
-
-                if (this.groups.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 36px;">
-                                No group channels found in the database.
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-
-                tbody.innerHTML = this.groups.map(g => `
-                    <tr>
-                        <td style="font-weight: 700; color: var(--text);">${this.escapeHtml(g.name)}</td>
-                        <td><span style="font-family: monospace; font-size: 11px; color: var(--text-muted);">#${g.id}</span></td>
-                        <td>
-                            <span class="badge ${g.is_private ? 'badge-secondary' : 'badge-primary'}">
-                                ${g.is_private ? 'Private' : 'Public'}
-                            </span>
-                        </td>
-                        <td style="color: var(--text-secondary);">${this.escapeHtml(g.creator_name || `User #${g.created_by}`)}</td>
-                        <td>
-                            <span style="font-weight: 700;">${g.member_count || 0}</span>
-                            <span style="color: var(--text-muted); font-size: 12px;"> members</span>
-                        </td>
-                        <td style="color: var(--text-muted); font-size: 12px;">${this.formatDate(g.created_at)}</td>
-                    </tr>
-                `).join('');
+                this.renderGroupsTable();
             } catch (err) {
                 console.error('Failed to load groups:', err);
                 tbody.innerHTML = `
@@ -974,6 +1028,44 @@
                     </tr>
                 `;
             }
+        }
+
+        renderGroupsTable() {
+            const tbody = document.getElementById('groupsTableBody');
+            if (!tbody) return;
+
+            if (this.groups.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 36px;">
+                            No group channels found in the database.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const privateText = window.i18n ? window.i18n.t('common.private', 'Private') : 'Private';
+            const publicText = window.i18n ? window.i18n.t('common.public', 'Public') : 'Public';
+            const membersText = window.i18n ? window.i18n.t('admin.members', 'members') : 'members';
+
+            tbody.innerHTML = this.groups.map(g => `
+                <tr>
+                    <td style="font-weight: 700; color: var(--text);">${this.escapeHtml(g.name)}</td>
+                    <td><span style="font-family: monospace; font-size: 11px; color: var(--text-muted);">#${g.id}</span></td>
+                    <td>
+                        <span class="badge ${g.is_private ? 'badge-secondary' : 'badge-primary'}">
+                            ${g.is_private ? privateText : publicText}
+                        </span>
+                    </td>
+                    <td style="color: var(--text-secondary);">${this.escapeHtml(g.creator_name || `User #${g.created_by}`)}</td>
+                    <td>
+                        <span style="font-weight: 700;">${g.member_count || 0}</span>
+                        <span style="color: var(--text-muted); font-size: 12px;"> ${membersText}</span>
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 12px;">${this.formatDate(g.created_at)}</td>
+                </tr>
+            `).join('');
         }
 
         async loadAuditLogs() {
@@ -992,31 +1084,7 @@
                 this.auditPagination.page = res.page || 1;
                 this.auditPagination.totalPages = res.pages || 1;
 
-                if (this.auditLogs.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 36px;">
-                                No administrative audit entries recorded yet.
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-
-                tbody.innerHTML = this.auditLogs.map(log => `
-                    <tr>
-                        <td style="white-space: nowrap; color: var(--text-muted); font-size: 12px;">${this.formatDate(log.created_at)}</td>
-                        <td style="font-weight: 600; color: var(--text);">${this.escapeHtml(log.admin_name || `Admin #${log.admin_id}`)}</td>
-                        <td>
-                            <span class="badge ${this.getAuditBadgeClass(log.action)}">
-                                ${this.escapeHtml(log.action)}
-                            </span>
-                        </td>
-                        <td style="font-weight: 600; color: var(--text-secondary);">${this.escapeHtml(log.target_type || '—')} #${log.target_id || ''}</td>
-                        <td style="color: var(--text-secondary); font-size: 12px;">${this.escapeHtml(log.details || '—')}</td>
-                    </tr>
-                `).join('');
-
+                this.renderAuditTable();
                 this.renderAuditPagination();
             } catch (err) {
                 console.error('Failed to load audit logs:', err);
@@ -1030,6 +1098,36 @@
             }
         }
 
+        renderAuditTable() {
+            const tbody = document.getElementById('auditTableBody');
+            if (!tbody) return;
+
+            if (this.auditLogs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 36px;">
+                            No administrative audit entries recorded yet.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = this.auditLogs.map(log => `
+                <tr>
+                    <td style="white-space: nowrap; color: var(--text-muted); font-size: 12px;">${this.formatDate(log.created_at)}</td>
+                    <td style="font-weight: 600; color: var(--text);">${this.escapeHtml(log.admin_name || `Admin #${log.admin_id}`)}</td>
+                    <td>
+                        <span class="badge ${this.getAuditBadgeClass(log.action)}">
+                            ${this.escapeHtml(log.action)}
+                        </span>
+                    </td>
+                    <td style="font-weight: 600; color: var(--text-secondary);">${this.escapeHtml(log.target_type || '—')} #${log.target_id || ''}</td>
+                    <td style="color: var(--text-secondary); font-size: 12px;">${this.escapeHtml(log.details || '—')}</td>
+                </tr>
+            `).join('');
+        }
+
         renderAuditPagination() {
             const info = document.getElementById('auditPaginationInfo');
             const pageNum = document.getElementById('auditPageNum');
@@ -1040,8 +1138,13 @@
             const start = total === 0 ? 0 : (page - 1) * limit + 1;
             const end = Math.min(page * limit, total);
 
-            if (info) info.textContent = `Showing ${start}–${end} of ${total} logs`;
-            if (pageNum) pageNum.textContent = `Page ${page} of ${totalPages || 1}`;
+            const showingLabel = window.i18n ? window.i18n.t('admin.showing', 'Showing') : 'Showing';
+            const ofLabel = window.i18n ? window.i18n.t('common.of', 'of') : 'of';
+            const logsLabel = window.i18n ? window.i18n.t('admin.auditLogs', 'logs') : 'logs';
+            const pageLabel = window.i18n ? window.i18n.t('common.page', 'Page') : 'Page';
+
+            if (info) info.textContent = `${showingLabel} ${start}–${end} ${ofLabel} ${total} ${logsLabel}`;
+            if (pageNum) pageNum.textContent = `${pageLabel} ${page} ${ofLabel} ${totalPages || 1}`;
 
             if (prevBtn) prevBtn.disabled = page <= 1;
             if (nextBtn) nextBtn.disabled = page >= totalPages;
@@ -1233,6 +1336,368 @@
                     this.loadMetrics();
                 }
             });
+
+            // Access request event listener
+            window.wsClient.on('admin_access_request_created', (data) => {
+                this.loadAccessRequestsMetrics();
+                if (this.activeSection === 'access-requests') {
+                    this.loadAccessRequests();
+                }
+                const ref = data.request ? data.request.request_reference : '';
+                toast.info(`New account access request received: ${ref}`);
+            });
+        }
+
+        /* -----------------------------------------------------------------
+           ACCOUNT ACCESS REQUESTS METHODS
+           ----------------------------------------------------------------- */
+        bindAccessRequestsEvents() {
+            // Search input
+            const searchInput = document.getElementById('accessRequestsSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    const val = searchInput.value.trim();
+                    if (this.accessRequestsDebounce) clearTimeout(this.accessRequestsDebounce);
+                    this.accessRequestsDebounce = setTimeout(() => {
+                        this.accessRequestsFilters.q = val;
+                        this.accessRequestsPagination.page = 1;
+                        this.loadAccessRequests();
+                    }, 300);
+                });
+            }
+
+            // Status filter
+            const statusFilter = document.getElementById('accessRequestsStatusFilter');
+            if (statusFilter) {
+                statusFilter.addEventListener('change', () => {
+                    this.accessRequestsFilters.status = statusFilter.value;
+                    this.accessRequestsPagination.page = 1;
+                    this.loadAccessRequests();
+                });
+            }
+
+            // Source filter
+            const sourceFilter = document.getElementById('accessRequestsSourceFilter');
+            if (sourceFilter) {
+                sourceFilter.addEventListener('change', () => {
+                    this.accessRequestsFilters.source = sourceFilter.value;
+                    this.accessRequestsPagination.page = 1;
+                    this.loadAccessRequests();
+                });
+            }
+
+            // Refresh button
+            const refreshBtn = document.getElementById('accessRequestsRefreshBtn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => {
+                    this.loadAccessRequests();
+                    this.loadAccessRequestsMetrics();
+                });
+            }
+
+            // Pagination
+            const prevBtn = document.getElementById('accessRequestsPrevBtn');
+            const nextBtn = document.getElementById('accessRequestsNextBtn');
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => {
+                    if (this.accessRequestsPagination.page > 1) {
+                        this.accessRequestsPagination.page--;
+                        this.loadAccessRequests();
+                    }
+                });
+            }
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    if (this.accessRequestsPagination.page < this.accessRequestsPagination.totalPages) {
+                        this.accessRequestsPagination.page++;
+                        this.loadAccessRequests();
+                    }
+                });
+            }
+
+            // Modal close & save
+            const closeBtn = document.getElementById('closeAccessRequestModalBtn');
+            const cancelBtn = document.getElementById('cancelAccessRequestModalBtn');
+            const saveBtn = document.getElementById('saveAccessRequestModalBtn');
+
+            closeBtn?.addEventListener('click', () => this.closeAccessRequestModal());
+            cancelBtn?.addEventListener('click', () => this.closeAccessRequestModal());
+            saveBtn?.addEventListener('click', () => this.saveAccessRequest());
+
+            // Delegated table view details click
+            const tbody = document.getElementById('accessRequestsTableBody');
+            if (tbody) {
+                tbody.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.btn-view-request');
+                    if (btn) {
+                        const reqId = parseInt(btn.getAttribute('data-id'), 10);
+                        if (reqId) this.openAccessRequestModal(reqId);
+                    }
+                });
+            }
+        }
+
+        async loadAccessRequestsMetrics() {
+            try {
+                const res = await api.getAdminAccessRequests({ limit: 1 });
+                if (!res) return;
+
+                const pendingBadge = document.getElementById('navPendingAccessBadge');
+                if (pendingBadge) {
+                    if (res.pending_count > 0) {
+                        pendingBadge.textContent = String(res.pending_count);
+                        pendingBadge.style.display = 'inline-block';
+                    } else {
+                        pendingBadge.style.display = 'none';
+                    }
+                }
+
+                const statTotal = document.getElementById('metricTotalAccessRequests');
+                const statPending = document.getElementById('metricPendingAccessRequests');
+                if (statTotal) statTotal.textContent = String(res.total);
+                if (statPending) statPending.textContent = String(res.pending_count);
+            } catch (err) {
+                console.error('Failed to load access request metrics:', err);
+            }
+        }
+
+        async loadAccessRequests() {
+            const tbody = document.getElementById('accessRequestsTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                        <div class="spinner" style="margin: 0 auto 12px;"></div>
+                        <div>Loading access requests...</div>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const params = {
+                    page: this.accessRequestsPagination.page,
+                    limit: this.accessRequestsPagination.limit
+                };
+                if (this.accessRequestsFilters.q) params.q = this.accessRequestsFilters.q;
+                if (this.accessRequestsFilters.status && this.accessRequestsFilters.status !== 'all') params.status = this.accessRequestsFilters.status;
+                if (this.accessRequestsFilters.source && this.accessRequestsFilters.source !== 'all') params.source = this.accessRequestsFilters.source;
+
+                const res = await api.getAdminAccessRequests(params);
+                if (!res) return;
+
+                this.accessRequests = res.items || [];
+                this.accessRequestsPagination.total = res.total || 0;
+                this.accessRequestsPagination.totalPages = res.total_pages || 1;
+                this.accessRequestsPagination.page = res.page || 1;
+
+                // Update metric counters
+                const statTotal = document.getElementById('metricTotalAccessRequests');
+                const statPending = document.getElementById('metricPendingAccessRequests');
+                const statInReview = document.getElementById('metricInReviewAccessRequests');
+                const statResolved = document.getElementById('metricResolvedAccessRequests');
+
+                if (statTotal) statTotal.textContent = String(res.total || 0);
+                if (statPending) statPending.textContent = String(res.pending_count || 0);
+
+                // Compute counts from current set or rough indicators
+                const inReviewCount = this.accessRequests.filter(r => r.status === 'In Review').length;
+                const resolvedCount = this.accessRequests.filter(r => r.status === 'Resolved' || r.status === 'Rejected').length;
+                if (statInReview) statInReview.textContent = String(inReviewCount);
+                if (statResolved) statResolved.textContent = String(resolvedCount);
+
+                const pendingBadge = document.getElementById('navPendingAccessBadge');
+                if (pendingBadge) {
+                    if (res.pending_count > 0) {
+                        pendingBadge.textContent = String(res.pending_count);
+                        pendingBadge.style.display = 'inline-block';
+                    } else {
+                        pendingBadge.style.display = 'none';
+                    }
+                }
+
+                this.renderAccessRequestsTable();
+                this.renderAccessRequestsPagination();
+            } catch (err) {
+                console.error('Failed to load access requests:', err);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: var(--danger); padding: 24px;">
+                            Failed to load access requests. ${this.escapeHtml(err.message || '')}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        renderAccessRequestsTable() {
+            const tbody = document.getElementById('accessRequestsTableBody');
+            if (!tbody) return;
+
+            if (this.accessRequests.length === 0) {
+                const noReqMsg = window.i18n ? window.i18n.t('admin.noRequestsFound', 'No access requests match the current filters.') : 'No access requests match the current filters.';
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <div style="font-size: 14px; font-weight: 500;">${this.escapeHtml(noReqMsg)}</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = this.accessRequests.map(req => {
+                const badge = this.getAccessRequestStatusBadge(req.status);
+                const sourceBadge = req.source === 'landing_page' 
+                    ? `<span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(59, 130, 246, 0.12); color: #3b82f6; font-weight: 600;">Landing Page</span>`
+                    : `<span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(239, 68, 68, 0.12); color: #ef4444; font-weight: 600;">Disabled Account</span>`;
+                
+                const viewDetailsLabel = window.i18n ? window.i18n.t('admin.viewDetails', 'View Details') : 'View Details';
+
+                return `
+                    <tr>
+                        <td>
+                            <span style="font-family: monospace; font-weight: 700; color: var(--accent-cyan); font-size: 12.5px;">${this.escapeHtml(req.request_reference)}</span>
+                        </td>
+                        <td>
+                            <span style="font-weight: 600; color: var(--text); font-size: 13px;">${this.escapeHtml(req.email)}</span>
+                        </td>
+                        <td>
+                            <span style="color: var(--text-muted); font-size: 13px;">${this.escapeHtml(req.account_email || '—')}</span>
+                        </td>
+                        <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <span title="${this.escapeHtml(req.subject)}">${this.escapeHtml(req.subject)}</span>
+                        </td>
+                        <td>${sourceBadge}</td>
+                        <td style="font-size: 12px; color: var(--text-muted);">${this.formatDate(req.created_at)}</td>
+                        <td>${badge}</td>
+                        <td>
+                            <button type="button" class="btn btn-secondary btn-sm btn-view-request" data-id="${req.id}" style="font-size: 12px; padding: 5px 10px;">
+                                ${this.escapeHtml(viewDetailsLabel)}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        getAccessRequestStatusBadge(status) {
+            const s = (status || 'Pending').toLowerCase();
+            if (s === 'resolved') {
+                return `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700; padding: 3px 8px; border-radius: 6px;">Resolved</span>`;
+            }
+            if (s === 'rejected') {
+                return `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; font-weight: 700; padding: 3px 8px; border-radius: 6px;">Rejected</span>`;
+            }
+            if (s === 'in review') {
+                return `<span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9; font-weight: 700; padding: 3px 8px; border-radius: 6px;">In Review</span>`;
+            }
+            return `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-weight: 700; padding: 3px 8px; border-radius: 6px;">Pending</span>`;
+        }
+
+        renderAccessRequestsPagination() {
+            const info = document.getElementById('accessRequestsPaginationInfo');
+            const pageNum = document.getElementById('accessRequestsPageNum');
+            const prevBtn = document.getElementById('accessRequestsPrevBtn');
+            const nextBtn = document.getElementById('accessRequestsNextBtn');
+
+            const { page, limit, total, totalPages } = this.accessRequestsPagination;
+            const start = total === 0 ? 0 : (page - 1) * limit + 1;
+            const end = Math.min(page * limit, total);
+
+            const showingLabel = window.i18n ? window.i18n.t('admin.showing', 'Showing') : 'Showing';
+            const ofLabel = window.i18n ? window.i18n.t('common.of', 'of') : 'of';
+            const pageLabel = window.i18n ? window.i18n.t('common.page', 'Page') : 'Page';
+
+            if (info) info.textContent = `${showingLabel} ${start}–${end} ${ofLabel} ${total} requests`;
+            if (pageNum) pageNum.textContent = `${pageLabel} ${page} ${ofLabel} ${totalPages || 1}`;
+
+            if (prevBtn) prevBtn.disabled = page <= 1;
+            if (nextBtn) nextBtn.disabled = page >= totalPages;
+        }
+
+        async openAccessRequestModal(reqId) {
+            const modal = document.getElementById('adminAccessRequestModal');
+            if (!modal) return;
+
+            let req = this.accessRequests.find(r => r.id === reqId);
+            if (!req) {
+                try {
+                    req = await api.getAdminAccessRequestDetails(reqId);
+                } catch (e) {
+                    toast.error('Failed to load request details');
+                    return;
+                }
+            }
+
+            document.getElementById('currentAccessRequestId').value = req.id;
+            document.getElementById('modalReqReference').textContent = req.request_reference || '--';
+            document.getElementById('modalReqEmail').textContent = req.email || '--';
+            document.getElementById('modalReqAccountEmail').textContent = req.account_email || '—';
+            document.getElementById('modalReqSource').textContent = req.source === 'landing_page' ? 'Landing Page' : 'Disabled Account';
+            document.getElementById('modalReqDate').textContent = this.formatDate(req.created_at);
+            document.getElementById('modalReqSubject').textContent = req.subject || '--';
+            document.getElementById('modalReqDescription').textContent = req.description || '--';
+            
+            const statusSelect = document.getElementById('modalReqStatusSelect');
+            if (statusSelect) statusSelect.value = req.status || 'Pending';
+
+            const notesText = document.getElementById('modalReqAdminNotes');
+            if (notesText) notesText.value = req.admin_notes || '';
+
+            const statusBadge = document.getElementById('modalAccessRequestStatusBadge');
+            if (statusBadge) {
+                statusBadge.innerHTML = this.getAccessRequestStatusBadge(req.status);
+            }
+
+            modal.classList.add('open');
+            modal.classList.add('active');
+            modal.style.display = 'flex';
+        }
+
+        closeAccessRequestModal() {
+            const modal = document.getElementById('adminAccessRequestModal');
+            if (modal) {
+                modal.classList.remove('open');
+                modal.classList.remove('active');
+                modal.style.display = 'none';
+            }
+        }
+
+        async saveAccessRequest() {
+            const idInput = document.getElementById('currentAccessRequestId');
+            const statusSelect = document.getElementById('modalReqStatusSelect');
+            const notesText = document.getElementById('modalReqAdminNotes');
+            const saveBtn = document.getElementById('saveAccessRequestModalBtn');
+
+            const reqId = parseInt(idInput?.value, 10);
+            if (!reqId) return;
+
+            const status = statusSelect?.value || 'Pending';
+            const adminNotes = notesText?.value || '';
+
+            saveBtn.disabled = true;
+            try {
+                const updated = await api.updateAdminAccessRequest(reqId, {
+                    status: status,
+                    admin_notes: adminNotes
+                });
+
+                toast.success('Request updated successfully');
+                this.closeAccessRequestModal();
+
+                // Update in memory and refresh
+                const idx = this.accessRequests.findIndex(r => r.id === reqId);
+                if (idx !== -1) {
+                    this.accessRequests[idx] = updated;
+                }
+                this.renderAccessRequestsTable();
+                this.loadAccessRequestsMetrics();
+            } catch (err) {
+                toast.error(err.message || 'Failed to update request');
+            } finally {
+                saveBtn.disabled = false;
+            }
         }
 
         prependActivityItem(item) {

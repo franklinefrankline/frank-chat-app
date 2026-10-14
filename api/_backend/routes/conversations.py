@@ -122,7 +122,18 @@ def get_conversation_details(
             models.GroupMember.group_id == conversation_id,
             models.GroupMember.user_id == current_user.id
         ).first()
-        if not grp_member:
+        if not grp_member and group.created_by == current_user.id:
+            grp_member = models.GroupMember(
+                group_id=conversation_id,
+                user_id=current_user.id,
+                role="owner",
+                joined_at=datetime.now(timezone.utc)
+            )
+            db.add(grp_member)
+            db.commit()
+        elif not grp_member and current_user.role == "admin":
+            pass
+        elif not grp_member:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not have access to this conversation."
@@ -181,6 +192,7 @@ def get_conversation_details(
 @router.get("/{conversation_id}/messages", response_model=List[schemas.MessageResponse])
 async def get_conversation_messages(
     conversation_id: int,
+    target_language: Optional[str] = None,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -208,7 +220,7 @@ async def get_conversation_messages(
             models.Message.recipient_id == current_user.id
         ).order_by(models.Message.created_at.desc()).limit(200).all()
         messages.reverse()
-        await translation_service.attach_translations_to_messages(messages, current_user, db)
+        await translation_service.attach_translations_to_messages(messages, current_user, db, target_language=target_language)
         return messages
 
     # 1. Try finding as direct conversation by conversation.id
@@ -246,7 +258,7 @@ async def get_conversation_messages(
                     msg.status = "read"
             db.commit()
 
-            await translation_service.attach_translations_to_messages(messages, current_user, db)
+            await translation_service.attach_translations_to_messages(messages, current_user, db, target_language=target_language)
             return messages
         else:
             # Check if conversation_id was actually passed as partner_id
@@ -271,7 +283,7 @@ async def get_conversation_messages(
                         if msg.recipient_id == current_user.id and msg.status != "read":
                             msg.status = "read"
                     db.commit()
-                    await translation_service.attach_translations_to_messages(messages, current_user, db)
+                    await translation_service.attach_translations_to_messages(messages, current_user, db, target_language=target_language)
                     return messages
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -285,16 +297,33 @@ async def get_conversation_messages(
             models.GroupMember.group_id == conversation_id,
             models.GroupMember.user_id == current_user.id
         ).first()
-        if not grp_member:
+        if not grp_member and group.created_by == current_user.id:
+            grp_member = models.GroupMember(
+                group_id=conversation_id,
+                user_id=current_user.id,
+                role="owner",
+                joined_at=datetime.now(timezone.utc)
+            )
+            db.add(grp_member)
+            db.commit()
+        elif not grp_member and current_user.role == "admin":
+            pass
+        elif not grp_member:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not have access to this conversation."
             )
-        messages = db.query(models.Message).filter(
+        from sqlalchemy.orm import joinedload, selectinload
+        messages = db.query(models.Message).options(
+            joinedload(models.Message.sender),
+            joinedload(models.Message.document),
+            selectinload(models.Message.reactions),
+            selectinload(models.Message.translations)
+        ).filter(
             models.Message.group_id == conversation_id
         ).order_by(models.Message.created_at.desc()).limit(200).all()
         messages.reverse()
-        await translation_service.attach_translations_to_messages(messages, current_user, db)
+        await translation_service.attach_translations_to_messages(messages, current_user, db, target_language=target_language)
         return messages
 
     # 3. Check if conversation_id was passed as partner_id in a direct chat
@@ -335,7 +364,7 @@ async def get_conversation_messages(
                 msg.status = "read"
         db.commit()
 
-        await translation_service.attach_translations_to_messages(messages, current_user, db)
+        await translation_service.attach_translations_to_messages(messages, current_user, db, target_language=target_language)
         return messages
 
     raise HTTPException(

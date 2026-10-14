@@ -1,9 +1,14 @@
 /* -------------------------------------------------------------------------
    USER PROFILE MODULE
-   Profile rendering, live metadata display, and profile editing
+   Profile rendering, live metadata display, profile photo upload & editing
    ------------------------------------------------------------------------- */
 
 const profileModule = {
+    stagedPhotoFile: null,
+    stagedPhotoUrl: null,
+    stagedRemovePhoto: false,
+    previewBlobUrl: null,
+
     async init() {
         if (!document.getElementById('profileDisplayName')) return;
 
@@ -17,11 +22,104 @@ const profileModule = {
 
         toggleBtn?.addEventListener('click', () => {
             const isHidden = editSection.style.display === 'none';
-            editSection.style.display = isHidden ? 'block' : 'none';
+            if (isHidden) {
+                editSection.style.display = 'block';
+                this.resetStagedPhotoState();
+            } else {
+                editSection.style.display = 'none';
+            }
         });
 
         cancelBtn?.addEventListener('click', () => {
+            this.resetStagedPhotoState();
             editSection.style.display = 'none';
+        });
+
+        // Photo controls
+        const uploadTriggerBtn = document.getElementById('uploadPhotoTriggerBtn');
+        const photoFileInput = document.getElementById('profilePhotoFileInput');
+        const removePhotoBtn = document.getElementById('removePhotoBtn');
+        const applyUrlBtn = document.getElementById('applyAvatarUrlBtn');
+        const editAvatarUrl = document.getElementById('editAvatarUrl');
+
+        uploadTriggerBtn?.addEventListener('click', () => {
+            photoFileInput?.click();
+        });
+
+        photoFileInput?.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            // Validate format
+            const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            const validExts = ['.jpg', '.jpeg', '.png', '.webp'];
+            const ext = (file.name.substring(file.name.lastIndexOf('.')) || '').toLowerCase();
+            if (!validTypes.includes(file.type) && !validExts.includes(ext)) {
+                showToast('Please select a JPG, PNG, or WebP photo.', 'warning');
+                e.target.value = '';
+                return;
+            }
+
+            // Validate size <= 5 MB
+            const maxSize = 5 * 1024 * 1024;
+            if (file.size > maxSize) {
+                showToast('Image size exceeds 5 MB. Please select a smaller photo.', 'warning');
+                e.target.value = '';
+                return;
+            }
+
+            if (this.previewBlobUrl) {
+                try { URL.revokeObjectURL(this.previewBlobUrl); } catch (_) {}
+            }
+
+            this.stagedPhotoFile = file;
+            this.stagedPhotoUrl = null;
+            this.stagedRemovePhoto = false;
+            this.previewBlobUrl = URL.createObjectURL(file);
+
+            if (editAvatarUrl) editAvatarUrl.value = '';
+            this.updatePreviewDisplay(this.previewBlobUrl);
+            showToast('Photo selected. Click "Save Changes" to apply.', 'info');
+        });
+
+        applyUrlBtn?.addEventListener('click', () => {
+            const urlVal = (editAvatarUrl?.value || '').trim();
+            if (!urlVal) {
+                showToast('Please enter an image URL', 'warning');
+                return;
+            }
+            try {
+                const parsed = new URL(urlVal);
+                if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                    showToast('URL must begin with http:// or https://', 'warning');
+                    return;
+                }
+            } catch (_) {
+                showToast('Please enter a valid image URL', 'warning');
+                return;
+            }
+
+            this.stagedPhotoFile = null;
+            this.stagedPhotoUrl = urlVal;
+            this.stagedRemovePhoto = false;
+            if (photoFileInput) photoFileInput.value = '';
+
+            this.updatePreviewDisplay(urlVal);
+            showToast('Previewing image URL', 'info');
+        });
+
+        removePhotoBtn?.addEventListener('click', () => {
+            this.stagedPhotoFile = null;
+            this.stagedPhotoUrl = null;
+            this.stagedRemovePhoto = true;
+            if (photoFileInput) photoFileInput.value = '';
+            if (editAvatarUrl) editAvatarUrl.value = '';
+
+            const user = auth.getUser() || {};
+            const initials = (user.full_name || user.username || 'CU').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'CU';
+            const inner = document.getElementById('profilePhotoPreviewInner');
+            if (inner) inner.innerHTML = `<span id="previewInitials">${initials}</span>`;
+            showToast('Photo removed for preview. Click "Save Changes" to confirm.', 'info');
         });
 
         editForm?.addEventListener('submit', async (e) => {
@@ -30,6 +128,44 @@ const profileModule = {
         });
 
         await this.loadProfileData();
+    },
+
+    updatePreviewDisplay(imgSrc) {
+        const inner = document.getElementById('profilePhotoPreviewInner');
+        if (!inner) return;
+        const user = auth.getUser() || {};
+        const initials = (user.full_name || user.username || 'CU').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'CU';
+
+        inner.innerHTML = `
+            <img src="${imgSrc}" alt="Preview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" onerror="this.onerror=null; this.parentElement.innerHTML='<span id=\\'previewInitials\\'>${initials}</span>'; showToast('Unable to load image from URL', 'error');">
+        `;
+    },
+
+    resetStagedPhotoState() {
+        if (this.previewBlobUrl) {
+            try { URL.revokeObjectURL(this.previewBlobUrl); } catch (_) {}
+            this.previewBlobUrl = null;
+        }
+        this.stagedPhotoFile = null;
+        this.stagedPhotoUrl = null;
+        this.stagedRemovePhoto = false;
+
+        const fileInput = document.getElementById('profilePhotoFileInput');
+        if (fileInput) fileInput.value = '';
+
+        const user = auth.getUser() || {};
+        const editAvatar = document.getElementById('editAvatarUrl');
+        if (editAvatar) editAvatar.value = user.avatar_url || '';
+
+        const inner = document.getElementById('profilePhotoPreviewInner');
+        if (inner) {
+            if (user.avatar_url) {
+                inner.innerHTML = `<img src="${user.avatar_url}" alt="Preview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;">`;
+            } else {
+                const initials = (user.full_name || user.username || 'CU').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'CU';
+                inner.innerHTML = `<span id="previewInitials">${initials}</span>`;
+            }
+        }
     },
 
     async loadProfileData() {
@@ -107,16 +243,18 @@ const profileModule = {
                 const parsedDate = window.messagesModule ? window.messagesModule.parseDate(user.created_at) : new Date(user.created_at);
                 joinedEl.textContent = parsedDate ? parsedDate.toLocaleDateString([], { month: 'long', year: 'numeric' }) : '';
             }
+
+            const initials = (user.full_name || user.username || '??').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '??';
+
             if (avatarEl) {
                 if (user.avatar_url) {
-                    avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${user.full_name}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;"><span class="avatar-status online" id="profileStatusDot"></span>`;
+                    avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${user.full_name}" style="width:100%; height:100%; object-fit:cover; border-radius:50%; display:block;" onerror="this.onerror=null; this.parentElement.innerHTML='<span id=\\'profileInitials\\'>${initials}</span><span class=\\'avatar-status online\\' id=\\'profileStatusDot\\'></span>';"><span class="avatar-status online" id="profileStatusDot"></span>`;
                 } else {
-                    const initials = (user.full_name || user.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
                     avatarEl.innerHTML = `<span id="profileInitials">${initials}</span><span class="avatar-status online" id="profileStatusDot"></span>`;
                 }
             }
 
-            // Populate form inputs
+            // Populate form inputs and preview
             const editFullName = document.getElementById('editFullName');
             const editBio = document.getElementById('editBio');
             const editAvatar = document.getElementById('editAvatarUrl');
@@ -124,15 +262,23 @@ const profileModule = {
             if (editBio) editBio.value = bioText;
             if (editAvatar) editAvatar.value = user.avatar_url || '';
 
+            const previewInner = document.getElementById('profilePhotoPreviewInner');
+            if (previewInner) {
+                if (user.avatar_url) {
+                    previewInner.innerHTML = `<img src="${user.avatar_url}" alt="Preview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" onerror="this.onerror=null; this.parentElement.innerHTML='<span id=\\'previewInitials\\'>${initials}</span>';">`;
+                } else {
+                    previewInner.innerHTML = `<span id="previewInitials">${initials}</span>`;
+                }
+            }
+
         } catch (err) {
             showToast('Failed to load profile details', 'error');
         }
     },
 
     async handleProfileSave() {
-        const full_name = document.getElementById('editFullName').value.trim();
-        const bio = document.getElementById('editBio').value.trim();
-        const avatar_url = document.getElementById('editAvatarUrl').value.trim();
+        const full_name = (document.getElementById('editFullName')?.value || '').trim();
+        const bio = (document.getElementById('editBio')?.value || '').trim();
         const saveBtn = document.getElementById('saveProfileBtn');
 
         if (!full_name) {
@@ -144,10 +290,27 @@ const profileModule = {
         saveBtn.textContent = 'Saving...';
 
         try {
-            const updated = await api.updateProfile({ full_name, bio, avatar_url });
-            auth.setUser(updated);
+            let updatedUser = null;
+
+            // 1. Handle Photo Upload / Removal / URL
+            if (this.stagedRemovePhoto) {
+                updatedUser = await api.removeAvatar();
+            } else if (this.stagedPhotoFile instanceof File) {
+                updatedUser = await api.uploadAvatar(this.stagedPhotoFile);
+            }
+
+            // 2. Update Name, Bio, and Avatar URL if applicable
+            const updatePayload = { full_name, bio };
+            if (this.stagedPhotoUrl !== null && !this.stagedRemovePhoto && !this.stagedPhotoFile) {
+                updatePayload.avatar_url = this.stagedPhotoUrl;
+            }
+
+            updatedUser = await api.updateProfile(updatePayload);
+            auth.setUser(updatedUser);
+
             showToast('Profile updated successfully!', 'success');
             document.getElementById('editProfileSection').style.display = 'none';
+            this.resetStagedPhotoState();
             await this.loadProfileData();
         } catch (err) {
             showToast(err.message || 'Failed to update profile', 'error');
@@ -163,3 +326,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.profileModule = profileModule;
+

@@ -7,7 +7,7 @@ from datetime import timedelta, timezone
 import sys
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_, and_
 from database import get_db
 import models
 import schemas
@@ -32,15 +32,19 @@ def get_frontend_base_url() -> str:
     - Production: Uses FRONTEND_URL environment variable, defaulting to https://frank-chat-app.vercel.app in Vercel/production environments.
     - Local development: Uses FRONTEND_URL or defaults to http://localhost:8000.
     - Guarantees valid protocol (https:// or http://) and strips trailing slashes.
+    - NEVER leaks localhost or 127.0.0.1 into production reset emails.
     """
     raw = (os.getenv("FRONTEND_URL") or "").strip()
-    is_vercel = os.getenv("VERCEL") == "1" or bool(os.getenv("VERCEL_ENV"))
-    is_prod_env = os.getenv("ENVIRONMENT", "").lower() == "production"
+    db_url = os.getenv("DATABASE_URL", "").lower()
+    is_neon_db = "neon.tech" in db_url or "aws" in db_url or "postgres" in db_url
+    is_vercel = os.getenv("VERCEL") == "1" or bool(os.getenv("VERCEL_ENV")) or bool(os.getenv("VERCEL_URL"))
+    is_prod_env = (os.getenv("ENVIRONMENT", "").lower() == "production") or is_neon_db or is_vercel
 
-    if not raw:
-        if is_vercel or is_prod_env:
+    if is_prod_env:
+        if not raw or "localhost" in raw or "127.0.0.1" in raw:
             raw = "https://frank-chat-app.vercel.app"
-        else:
+    else:
+        if not raw:
             port = os.getenv("PORT", "8000")
             raw = f"http://localhost:{port}"
 
@@ -52,7 +56,7 @@ def get_frontend_base_url() -> str:
             raw = f"https://{raw}"
 
     # In production or Vercel, never allow localhost fallback
-    if (is_vercel or is_prod_env) and ("localhost" in raw or "127.0.0.1" in raw):
+    if is_prod_env and ("localhost" in raw or "127.0.0.1" in raw):
         raw = "https://frank-chat-app.vercel.app"
 
     return raw.rstrip("/")
@@ -105,11 +109,24 @@ def verify_otp_code(candidate: str, stored_hash: str) -> bool:
 
 @router.post("/register", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
 def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
+    # Server-side guard for administrator-only mode
+    admin_only = os.getenv("ADMIN_ONLY_MODE", "true").lower() in ["true", "1", "yes"]
+    if admin_only:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Public registration is currently disabled. Access is restricted to the administrator."
+        )
+
     clean_email = user_in.email.strip().lower()
     clean_full_name = (user_in.full_name or user_in.name or "").strip()
 
-    # Check email duplicate (case-insensitive)
-    if db.query(models.User).filter(func.lower(models.User.email) == clean_email).first():
+    # Check email duplicate (case-insensitive) against active non-deleted accounts
+    active_email_user = db.query(models.User).filter(
+        func.lower(models.User.email) == clean_email,
+        or_(models.User.status.is_(None), models.User.status != "deleted"),
+        or_(models.User.account_status.is_(None), models.User.account_status != "deleted")
+    ).first()
+    if active_email_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email already exists."
@@ -172,8 +189,12 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
     # Resolve or auto-generate unique username
     if user_in.username and user_in.username.strip():
         candidate_username = user_in.username.strip()
-        # Check username (case-insensitive)
-        if db.query(models.User).filter(func.lower(models.User.username) == candidate_username.lower()).first():
+        # Check username (case-insensitive) against active non-deleted accounts
+        if db.query(models.User).filter(
+            func.lower(models.User.username) == candidate_username.lower(),
+            or_(models.User.status.is_(None), models.User.status != "deleted"),
+            or_(models.User.account_status.is_(None), models.User.account_status != "deleted")
+        ).first():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Username already taken. Please choose another one."
@@ -190,7 +211,11 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
 
         clean_username = base_username
         counter = 1
-        while db.query(models.User).filter(func.lower(models.User.username) == clean_username.lower()).first():
+        while db.query(models.User).filter(
+            func.lower(models.User.username) == clean_username.lower(),
+            or_(models.User.status.is_(None), models.User.status != "deleted"),
+            or_(models.User.account_status.is_(None), models.User.account_status != "deleted")
+        ).first():
             clean_username = f"{base_username}{counter}"
             counter += 1
 
@@ -306,53 +331,6 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
         ))
     ).all()
 
-    if not candidates and ident_lower in ["admin", "frankline", "frankline30999112@gmail.com", "alex", "sarah", "david", "alex@frank.app", "sarah@frank.app", "david@frank.app"]:
-        # Auto-seed standard accounts in ephemeral serverless container
-        try:
-            admin_cand = db.query(models.User).filter(
-                (models.User.email == "frankline30999112@gmail.com") | (models.User.username == "frankline")
-            ).first()
-            if not admin_cand:
-                admin_cand = models.User(
-                    username="frankline",
-                    email="frankline30999112@gmail.com",
-                    frank_id="A00001",
-                    full_name="Frankline (Super Admin)",
-                    name="Frankline (Super Admin)",
-                    bio="FRANK System Super Administrator",
-                    avatar_url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-                    hashed_password=hash_password("#Frankline2006"),
-                    password_hash=hash_password("#Frankline2006"),
-                    role="admin",
-                    account_status="active",
-                    is_online=True
-                )
-                db.add(admin_cand)
-                db.commit()
-        except Exception:
-            pass
-        try:
-            import main as backend_main
-            if hasattr(backend_main, "seed_demo_users"):
-                backend_main.seed_demo_users()
-        except Exception:
-            pass
-        if "frank_serverless_backend" in sys.modules:
-            try:
-                mod = sys.modules["frank_serverless_backend"]
-                if hasattr(mod, "seed_demo_users"):
-                    mod.seed_demo_users()
-            except Exception:
-                pass
-        try:
-            candidates = db.query(models.User).filter(
-                (func.lower(models.User.email) == ident_lower) |
-                (func.lower(models.User.full_name) == ident_lower) |
-                (func.lower(models.User.username) == ident_lower)
-            ).all()
-        except Exception:
-            pass
-
     if not candidates:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -372,7 +350,7 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
     if user:
         cand_status = str(getattr(user, "account_status", "") or getattr(user, "status", "") or "active").lower()
         is_active = getattr(user, "is_active", True)
-        if is_active is False or cand_status in ["disabled", "deactivated", "inactive"]:
+        if is_active is False or cand_status in ["disabled", "deactivated", "inactive", "deleted"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Account is disabled. Please contact an administrator."
@@ -381,7 +359,7 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
         # Check if all matching candidate(s) are deactivated
         all_deactivated = all(
             (getattr(cand, "is_active", True) is False) or
-            (str(getattr(cand, "account_status", "") or getattr(cand, "status", "") or "active").lower() in ["disabled", "deactivated", "inactive"])
+            (str(getattr(cand, "account_status", "") or getattr(cand, "status", "") or "active").lower() in ["disabled", "deactivated", "inactive", "deleted"])
             for cand in candidates
         )
         if all_deactivated:
@@ -444,9 +422,19 @@ async def send_otp(req: schemas.SendOTPRequest, db: Session = Depends(get_db)):
             detail="Email delivery is unavailable: SMTP credentials are not configured in backend/.env."
         )
 
-    # If registration, ensure account doesn't already exist
+    # If registration, check admin-only mode and ensure active account doesn't already exist
     if purpose == "registration":
-        existing = db.query(models.User).filter(func.lower(models.User.email) == clean_email).first()
+        admin_only = os.getenv("ADMIN_ONLY_MODE", "true").lower() in ["true", "1", "yes"]
+        if admin_only:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Public registration is currently disabled. Access is restricted to the administrator."
+            )
+        existing = db.query(models.User).filter(
+            func.lower(models.User.email) == clean_email,
+            or_(models.User.status.is_(None), models.User.status != "deleted"),
+            or_(models.User.account_status.is_(None), models.User.account_status != "deleted")
+        ).first()
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -569,14 +557,21 @@ def verify_otp(req: schemas.VerifyOTPRequest, db: Session = Depends(get_db)):
 
 @router.post("/forgot-password")
 async def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
-    clean_email = req.email.strip().lower()
-    user = db.query(models.User).filter(func.lower(models.User.email) == clean_email).first()
+    clean_email = (req.email or "").strip().lower()
+
+    if not clean_email or "@" not in clean_email or "." not in clean_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please provide a valid email address."
+        )
 
     if not email_service.is_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Email delivery is unavailable: SMTP credentials are not configured in backend/.env."
         )
+
+    user = db.query(models.User).filter(func.lower(models.User.email) == clean_email).first()
 
     if user:
         now_dt = models.get_utc_now()

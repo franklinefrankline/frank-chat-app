@@ -1,0 +1,1811 @@
+/* -------------------------------------------------------------------------
+   FRANK THINK — IN-CHAT DOCUMENT VIEWER STYLES
+   Exact layout matching reference screenshots for PDF, Word, Excel, PPTX.
+   Embedded seamlessly inside activeChatView between header and composer.
+   ------------------------------------------------------------------------- */
+
+/* Container: embedded inside activeChatView between header and composer */
+.in-chat-doc-viewer {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0%;
+    min-height: 0;
+    height: auto;
+    width: 100%;
+    max-width: 100%;
+    background: var(--theme-card, #F8EFE2);
+    border-top: 1px solid var(--theme-border, #D8C5AA);
+    border-bottom: 1px solid var(--theme-border, #D8C5AA);
+    overflow: hidden;
+    position: relative;
+    z-index: 10;
+    box-sizing: border-box;
+}
+
+/* Fullscreen Mode - Covers entire viewport */
+body.doc-viewer-fullscreen-active {
+    overflow: hidden !important;
+}
+
+body.doc-viewer-fullscreen-active .sidebar,
+body.doc-viewer-fullscreen-active .conversations-sidebar,
+body.doc-viewer-fullscreen-active .chat-header,
+body.doc-viewer-fullscreen-active .chat-composer-container,
+body.doc-viewer-fullscreen-active .chat-drawer,
+body.doc-viewer-fullscreen-active .chat-search-bar {
+    display: none !important;
+}
+
+body.doc-viewer-fullscreen-active #chatApp,
+body.doc-viewer-fullscreen-active .chat-window,
+body.doc-viewer-fullscreen-active #activeChatView {
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+    contain: none !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    position: static !important;
+}
+
+.in-chat-doc-viewer.is-fullscreen,
+.in-chat-doc-viewer:fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    z-index: 999999 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    background: var(--theme-card, #F8EFE2) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* In fullscreen, sandstone header is hidden so toolbar sits at the very top */
+.in-chat-doc-viewer.is-fullscreen .in-chat-doc-header,
+.in-chat-doc-viewer:fullscreen .in-chat-doc-header {
+    display: none !important;
+}
+
+.in-chat-doc-viewer.is-fullscreen .in-chat-doc-toolbar,
+.in-chat-doc-viewer:fullscreen .in-chat-doc-toolbar {
+    position: relative !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    z-index: 20 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+    flex-shrink: 0 !important;
+}
+
+.in-chat-doc-viewer.is-fullscreen .in-chat-doc-body,
+.in-chat-doc-viewer:fullscreen .in-chat-doc-body {
+    flex: 1 1 0% !important;
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+/* 1. Top Sandstone Card Header (matches media_1791280951377.png & 361) */
+.in-chat-doc-header {
+    height: 48px;
+    min-height: 48px;
+    background: var(--theme-surface, #FFF9F0);
+    border-bottom: 1px solid var(--theme-border, #D8C5AA);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    gap: 12px;
+}
+
+.in-chat-doc-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.in-chat-doc-type-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.in-chat-doc-type-icon.pdf {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.in-chat-doc-type-icon.word {
+    background: #DBEAFE;
+    color: #2563EB;
+}
+
+.in-chat-doc-type-icon.excel {
+    background: #D1FAE5;
+    color: #059669;
+}
+
+.in-chat-doc-type-icon.presentation {
+    background: #FFEDD5;
+    color: #EA580C;
+}
+
+.in-chat-doc-type-icon.text {
+    background: #F3F4F6;
+    color: #4B5563;
+}
+
+.in-chat-doc-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.in-chat-doc-filename {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--theme-text, #2D241D);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.in-chat-doc-meta {
+    font-size: 11px;
+    color: var(--theme-text-muted, #8F7B67);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+}
+
+.in-chat-doc-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.in-chat-doc-close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    color: var(--theme-text-muted, #8F7B67);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.in-chat-doc-close-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--theme-text, #2D241D);
+}
+
+/* 2. Document Toolbar (Dark Charcoal #323639 matching media_1791280951377.png) */
+.in-chat-doc-toolbar {
+    height: 42px;
+    min-height: 42px;
+    background: #323639;
+    border-bottom: 1px solid #232729;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+    gap: 8px;
+    user-select: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+
+.in-chat-doc-toolbar::-webkit-scrollbar {
+    display: none;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.toolbar-left {
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.toolbar-center {
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.toolbar-right {
+    flex-shrink: 0;
+}
+
+.toolbar-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #E2E8F0;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-size: 13px;
+    padding: 0;
+}
+
+.toolbar-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #FFFFFF;
+}
+
+.toolbar-btn:active,
+.toolbar-btn.active {
+    background: rgba(255, 255, 255, 0.25);
+    color: #FFFFFF;
+}
+
+.toolbar-btn.toolbar-btn-close:hover {
+    background: #EF4444;
+    color: #FFFFFF;
+}
+
+/* Visible Exit Fullscreen Pill */
+.doc-exit-fullscreen-pill {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-right: 4px;
+    white-space: nowrap;
+}
+
+.doc-exit-fullscreen-pill:hover {
+    background: rgba(255, 255, 255, 0.28);
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.in-chat-doc-viewer.is-fullscreen .doc-exit-fullscreen-pill,
+.in-chat-doc-viewer:fullscreen .doc-exit-fullscreen-pill {
+    display: inline-flex !important;
+}
+
+@media (max-width: 500px) {
+    .doc-exit-fullscreen-pill span {
+        display: none;
+    }
+    .doc-exit-fullscreen-pill {
+        padding: 3px 6px;
+    }
+}
+
+.toolbar-btn.btn-sm {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+}
+
+.toolbar-doc-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #E2E8F0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+    margin-left: 6px;
+}
+
+.toolbar-sep {
+    width: 1px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 6px;
+    flex-shrink: 0;
+}
+
+.toolbar-page-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #E2E8F0;
+}
+
+.toolbar-page-box input {
+    width: 36px;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    color: #FFFFFF;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 2px;
+    outline: none;
+}
+
+.toolbar-page-box input:focus {
+    border-color: #38BDF8;
+}
+
+/* Remove number spinner buttons */
+.toolbar-page-box input::-webkit-outer-spin-button,
+.toolbar-page-box input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.toolbar-page-sep {
+    color: #94A3B8;
+    font-size: 12px;
+}
+
+.toolbar-zoom-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #E2E8F0;
+    min-width: 44px;
+    text-align: center;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.toolbar-zoom-label:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* 3. In-Document Search Strip */
+.in-chat-doc-search-bar {
+    height: 38px;
+    min-height: 38px;
+    background: #23272A;
+    border-bottom: 1px solid #1A1D20;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    color: #E2E8F0;
+}
+
+.in-chat-doc-search-bar input {
+    flex: 1;
+    max-width: 260px;
+    height: 26px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: #FFFFFF;
+    font-size: 12px;
+    padding: 0 8px;
+    outline: none;
+}
+
+.in-chat-doc-search-bar input:focus {
+    border-color: #38BDF8;
+}
+
+.doc-search-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94A3B8;
+    min-width: 50px;
+}
+
+/* 4. Excel Formula Bar */
+.in-chat-doc-formula-bar {
+    height: 34px;
+    min-height: 34px;
+    background: var(--theme-surface, #FFF9F0);
+    border-bottom: 1px solid var(--theme-border, #D8C5AA);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 8px;
+}
+
+.formula-cell-coord {
+    width: 46px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-mono, monospace);
+    background: var(--theme-card, #F8EFE2);
+    border: 1px solid var(--theme-border, #D8C5AA);
+    border-radius: 3px;
+    color: var(--theme-text, #2D241D);
+}
+
+.formula-fx {
+    font-size: 12px;
+    font-style: italic;
+    font-weight: 800;
+    color: var(--theme-accent, #B86B3D);
+    user-select: none;
+}
+
+.formula-input {
+    flex: 1;
+    height: 24px;
+    border: none;
+    background: transparent;
+    font-family: var(--font-mono, monospace);
+    font-size: 12px;
+    color: var(--theme-text, #2D241D);
+    outline: none;
+    padding: 0;
+}
+
+/* 5. Split Document Body */
+.in-chat-doc-body {
+    display: flex;
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+    background: #E5E7EB;
+}
+
+[data-theme="monochrome"] .in-chat-doc-body,
+[data-theme="dark"] .in-chat-doc-body {
+    background: #181A1B;
+}
+
+/* Left Thumbnail Panel */
+.in-chat-doc-thumbnails-panel {
+    width: 190px;
+    min-width: 190px;
+    max-width: 190px;
+    height: 100%;
+    background: var(--theme-surface, #FFF9F0);
+    border-right: 1px solid var(--theme-border, #D8C5AA);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.2s, max-width 0.2s, border-right 0.2s;
+    user-select: none;
+    z-index: 5;
+}
+
+.in-chat-doc-thumbnails-panel.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    border-right: none !important;
+}
+
+.thumbnails-header {
+    height: 36px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--theme-text-muted, #8F7B67);
+    border-bottom: 1px solid var(--theme-border, #D8C5AA);
+}
+
+.thumbnails-close-btn {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--theme-text-muted, #8F7B67);
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 11px;
+}
+
+.thumbnails-close-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--theme-text, #2D241D);
+}
+
+.thumbnails-list {
+    flex: 1 1 0%;
+    overflow-y: auto;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Thumbnail Cards */
+.thumb-card {
+    background: #FFFFFF;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.thumb-card:hover {
+    border-color: var(--theme-border, #D8C5AA);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.thumb-card.active {
+    border-color: #2563EB !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25), 0 3px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.thumb-card canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 2px;
+}
+
+.thumb-card-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--theme-text-muted, #8F7B67);
+    margin-top: 4px;
+}
+
+.thumb-card.active .thumb-card-num {
+    color: #2563EB;
+}
+
+/* Excel Sheet list in thumbnail panel */
+.sheet-thumb-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--theme-text, #2D241D);
+    background: var(--theme-card, #F8EFE2);
+    border: 1px solid var(--theme-border, #D8C5AA);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.sheet-thumb-item:hover {
+    background: #FFFFFF;
+    border-color: #10B981;
+}
+
+.sheet-thumb-item.active {
+    background: #D1FAE5;
+    border-color: #059669;
+    color: #065F46;
+}
+
+/* PPTX Slide thumbnails */
+.slide-thumb-preview {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    font-size: 9px;
+    color: #475569;
+    text-align: center;
+    pointer-events: none;
+}
+
+/* 6. Main Document Viewport */
+.in-chat-doc-viewport {
+    flex: 1 1 0%;
+    min-width: 0;
+    height: 100%;
+    overflow: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.doc-content-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    transition: transform 0.15s ease-out;
+}
+
+/* Loading Overlay */
+.doc-loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    gap: 12px;
+}
+
+[data-theme="monochrome"] .doc-loading-overlay,
+[data-theme="dark"] .doc-loading-overlay {
+    background: rgba(20, 20, 20, 0.85);
+}
+
+.doc-loading-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--theme-text-muted, #8F7B67);
+}
+
+/* 7. PDF Page Elements */
+.pdf-page-container {
+    margin-bottom: 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    background: #FFFFFF;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+    max-width: 100%;
+}
+
+.pdf-page-container canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+/* 8. Word DOCX Viewport Elements */
+.docx-container {
+    width: 100%;
+    max-width: 850px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.docx-wrapper,
+.docx-view-sheet-wrapper {
+    background: transparent !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+}
+
+.docx-wrapper > section,
+.docx-view-sheet-wrapper > section,
+section.docx-view-sheet {
+    background: #FFFFFF !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.15) !important;
+    margin: 0 auto 24px auto !important;
+    border-radius: 2px !important;
+    box-sizing: border-box !important;
+    width: 794px !important;
+    min-width: 794px !important;
+    max-width: 794px !important;
+    min-height: 1123px !important;
+    padding: 72px 80px !important;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    position: relative !important;
+    display: block !important;
+}
+
+.docx-table-responsive-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+    margin: 12px 0;
+}
+
+
+/* 9. Excel Spreadsheet Grid Elements (Strictly bounded so horizontal scrollbar sits directly above worksheet tabs) */
+.in-chat-doc-viewer.is-excel-mode .in-chat-doc-body {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    display: flex !important;
+}
+
+.in-chat-doc-viewer.is-excel-mode .in-chat-doc-viewport {
+    padding: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    align-items: stretch !important;
+}
+
+.in-chat-doc-viewer.is-excel-mode .doc-content-stage {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    align-items: stretch !important;
+}
+
+.excel-spreadsheet-wrapper {
+    flex: 1 1 0%;
+    min-height: 0;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #FFFFFF;
+    border: none;
+    border-radius: 0;
+    overflow: hidden;
+}
+
+.excel-grid-container {
+    flex: 1 1 0%;
+    min-height: 0;
+    height: 100%;
+    width: 100%;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    position: relative;
+    background: #FFFFFF;
+    scrollbar-width: thin !important;
+    scrollbar-color: #94A3B8 #F1F5F9 !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+}
+
+/* Crisp high-visibility scrollbars directly above worksheet tabs */
+.excel-grid-container::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.excel-grid-container::-webkit-scrollbar-track {
+    background: #F1F5F9;
+    border-top: 1px solid #CBD5E1;
+    border-left: 1px solid #CBD5E1;
+}
+
+.excel-grid-container::-webkit-scrollbar-thumb {
+    background: #94A3B8;
+    border-radius: 6px;
+    border: 2px solid #F1F5F9;
+}
+
+.excel-grid-container::-webkit-scrollbar-thumb:hover {
+    background: #64748B;
+}
+
+.excel-grid-container::-webkit-scrollbar-corner {
+    background: #F1F5F9;
+}
+
+.excel-table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 12px;
+    table-layout: fixed !important;
+    width: max-content !important;
+    min-width: 100% !important;
+    background: #FFFFFF;
+}
+
+.excel-th {
+    background: #F3F4F6 !important;
+    border-right: 1px solid #D1D5DB !important;
+    border-bottom: 1px solid #D1D5DB !important;
+    padding: 4px 8px;
+    font-weight: 600;
+    color: #4B5563;
+    text-align: center;
+    user-select: none;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    min-width: 88px;
+    width: 88px;
+    max-width: 140px;
+    height: 26px;
+    box-sizing: border-box;
+}
+
+.excel-th.corner-header {
+    left: 0;
+    top: 0;
+    z-index: 20;
+    background: #E5E7EB !important;
+    border-right: 1px solid #CBD5E1 !important;
+    border-bottom: 1px solid #CBD5E1 !important;
+    min-width: 48px;
+    width: 48px;
+    max-width: 48px;
+}
+
+.excel-row-header {
+    background: #F3F4F6 !important;
+    border-right: 1px solid #D1D5DB !important;
+    border-bottom: 1px solid #E5E7EB !important;
+    padding: 4px 6px;
+    font-weight: 600;
+    color: #4B5563;
+    text-align: center;
+    user-select: none;
+    position: sticky;
+    left: 0;
+    z-index: 9;
+    min-width: 48px;
+    width: 48px;
+    max-width: 48px;
+    height: 24px;
+    box-sizing: border-box;
+}
+
+.excel-th.header-highlight,
+.excel-row-header.header-highlight {
+    background: #D1FAE5 !important;
+    color: #065F46 !important;
+    font-weight: 700;
+}
+
+.excel-td {
+    border-right: 1px solid #E5E7EB !important;
+    border-bottom: 1px solid #E5E7EB !important;
+    padding: 3px 8px;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: cell;
+    height: 24px;
+    min-width: 88px;
+    width: 88px;
+    box-sizing: border-box;
+    background: #FFFFFF;
+}
+
+.excel-td.selected {
+    outline: 2px solid #107C41 !important;
+    outline-offset: -1px;
+    background: rgba(16, 124, 65, 0.08) !important;
+}
+
+.excel-td.search-match {
+    background: #FEF08A !important;
+}
+
+/* 10. Excel Bottom Sheets Strip (Positioned Directly Below Grid Scrollbar & Fixed Above Composer) */
+.in-chat-doc-sheets-strip {
+    height: 32px;
+    min-height: 32px;
+    background: #E5E7EB;
+    border-top: 1px solid #D1D5DB;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 4px;
+    user-select: none;
+    overflow-x: auto;
+    flex-shrink: 0;
+    z-index: 8;
+}
+
+.sheets-nav-btns {
+    display: flex;
+    gap: 2px;
+    margin-right: 4px;
+}
+
+.sheets-nav-btn {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 3px;
+    font-size: 9px;
+    color: #4B5563;
+    cursor: pointer;
+}
+
+.sheets-nav-btn:hover {
+    background: #F3F4F6;
+    color: #111827;
+}
+
+.sheets-tabs-container {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    overflow-x: auto;
+}
+
+.sheet-tab {
+    height: 25px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4B5563;
+    background: #F3F4F6;
+    border: 1px solid #D1D5DB;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.sheet-tab:hover {
+    background: #FFFFFF;
+    color: #111827;
+}
+
+.sheet-tab.active {
+    background: #FFFFFF;
+    color: #107C41;
+    border-top: 2px solid #107C41;
+    font-weight: 700;
+}
+
+/* 11. PowerPoint Slide Elements & Dedicated Slideshow Presentation Engine */
+.toolbar-btn.doc-present-tool-btn {
+    width: auto !important;
+    min-width: 84px !important;
+    height: 30px !important;
+    padding: 0 12px !important;
+    border-radius: 6px !important;
+    display: inline-flex;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.2px !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    background: #EA580C !important;
+    border: 1px solid #C2410C !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 1px 3px rgba(234, 88, 12, 0.3) !important;
+    transition: all 0.15s ease !important;
+}
+
+.in-chat-doc-viewer:not(.is-presentation-mode) #docPresentBtn {
+    display: none !important;
+}
+
+.in-chat-doc-viewer.is-presentation-mode #docPresentBtn {
+    display: inline-flex !important;
+}
+
+.toolbar-btn.doc-present-tool-btn:hover {
+    background: #C2410C !important;
+    border-color: #9A3412 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.45) !important;
+    transform: translateY(-0.5px);
+}
+
+.toolbar-btn.doc-present-tool-btn svg {
+    flex-shrink: 0;
+}
+
+/* Responsive Toolbar Overflow Menu */
+.doc-toolbar-overflow-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.doc-overflow-btn {
+    display: none;
+}
+
+.doc-overflow-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    background: #23272A;
+    border: 1px solid #3F4448;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    padding: 4px;
+    z-index: 1000;
+    min-width: 175px;
+    box-sizing: border-box;
+    animation: fadeIn 0.15s ease;
+}
+
+.doc-overflow-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    background: transparent;
+    border: none;
+    color: #E2E8F0;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 4px;
+    text-align: left;
+    transition: background 0.12s, color 0.12s;
+    box-sizing: border-box;
+}
+
+.doc-overflow-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+}
+
+.doc-overflow-item svg {
+    flex-shrink: 0;
+    color: #94A3B8;
+}
+
+.doc-overflow-item:hover svg {
+    color: #FFFFFF;
+}
+
+/* Responsive Toolbar Behavior */
+@media (max-width: 900px) {
+    .toolbar-doc-title {
+        max-width: 90px;
+    }
+}
+
+@media (max-width: 768px) {
+    .doc-desktop-tool-btn {
+        display: none !important;
+    }
+    .toolbar-sep {
+        display: none !important;
+    }
+    #docZoomOutBtn,
+    #docZoomLevel,
+    #docZoomInBtn,
+    #docZoomResetBtn {
+        display: none !important;
+    }
+    .doc-overflow-btn {
+        display: inline-flex !important;
+    }
+}
+
+/* Actual Miniature Slide Preview Thumbnails */
+.slide-thumb-preview {
+    width: 140px;
+    aspect-ratio: 16/9;
+    background: #FFFFFF;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    position: relative;
+    overflow: hidden;
+    display: block;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.slide-thumb-preview.aspect-4-3 {
+    aspect-ratio: 4/3;
+}
+
+.slide-thumb-mini-stage {
+    width: 960px;
+    height: 540px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: top left;
+    transform: scale(0.145833); /* 140px / 960px */
+    pointer-events: none;
+    user-select: none;
+    box-sizing: border-box;
+    overflow: hidden;
+    background: #FFFFFF;
+}
+
+.slide-thumb-preview.aspect-4-3 .slide-thumb-mini-stage {
+    height: 720px;
+    transform: scale(0.145833); /* 140px / 960px */
+}
+
+.pptx-stage-container {
+    width: 100%;
+    max-width: 1200px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+.pptx-stage {
+    width: 100%;
+    max-width: 1060px;
+    aspect-ratio: 16/9;
+    background: #FFFFFF;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+    display: block;
+    box-sizing: border-box;
+    transform-origin: center center;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pptx-stage.aspect-4-3 {
+    aspect-ratio: 4/3;
+    max-width: 860px;
+}
+
+/* Positioned Slide Elements */
+.pptx-slide-element {
+    position: absolute;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.pptx-slide-text-shape {
+    word-break: break-word;
+    user-select: text;
+}
+
+.pptx-slide-text-p {
+    margin: 0;
+    padding: 0;
+    line-height: 1.35;
+}
+
+.pptx-slide-text-p.bullet-item {
+    padding-left: 1.4em;
+    position: relative;
+}
+
+.pptx-slide-text-p.bullet-item::before {
+    content: "•";
+    position: absolute;
+    left: 0.3em;
+    color: inherit;
+    font-size: 1.1em;
+}
+
+.pptx-slide-pic-shape img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* Dedicated Slideshow Presentation Overlay */
+.doc-slideshow-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #080B10;
+    z-index: 9999999;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    overflow: hidden;
+    user-select: none;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.doc-slideshow-overlay.is-active {
+    display: flex !important;
+}
+
+.doc-slideshow-stage-container {
+    flex: 1 1 0%;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 24px;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+}
+
+.doc-slideshow-stage {
+    background: #FFFFFF;
+    border-radius: 6px;
+    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.85);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: transform 0.2s ease;
+    max-width: 100%;
+    max-height: 100%;
+    flex-shrink: 0;
+}
+
+.doc-slideshow-stage.aspect-4-3 {
+    aspect-ratio: 4/3;
+}
+
+/* Slide Transitions */
+.slide-transition-fade {
+    animation: pptxSlideFade 0.5s ease-out forwards;
+}
+@keyframes pptxSlideFade {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.slide-transition-push-left {
+    animation: pptxSlidePushLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes pptxSlidePushLeft {
+    from { opacity: 0; transform: translateX(80px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.slide-transition-push-right {
+    animation: pptxSlidePushRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes pptxSlidePushRight {
+    from { opacity: 0; transform: translateX(-80px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.slide-transition-push-up {
+    animation: pptxSlidePushUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes pptxSlidePushUp {
+    from { opacity: 0; transform: translateY(60px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-transition-push-down {
+    animation: pptxSlidePushDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes pptxSlidePushDown {
+    from { opacity: 0; transform: translateY(-60px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-transition-wipe {
+    animation: pptxSlideWipe 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+@keyframes pptxSlideWipe {
+    from { clip-path: inset(0 100% 0 0); }
+    to { clip-path: inset(0 0 0 0); }
+}
+
+.slide-transition-zoom {
+    animation: pptxSlideZoom 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes pptxSlideZoom {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Object Entrance Animations */
+.anim-initial-hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+.anim-fade-in {
+    animation: pptxAnimFadeIn 0.5s ease-out forwards !important;
+    visibility: visible !important;
+}
+@keyframes pptxAnimFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.anim-fly-in-bottom {
+    animation: pptxAnimFlyBottom 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    visibility: visible !important;
+}
+@keyframes pptxAnimFlyBottom {
+    from { opacity: 0; transform: translateY(50px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.anim-fly-in-left {
+    animation: pptxAnimFlyLeft 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    visibility: visible !important;
+}
+@keyframes pptxAnimFlyLeft {
+    from { opacity: 0; transform: translateX(-60px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.anim-fly-in-right {
+    animation: pptxAnimFlyRight 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    visibility: visible !important;
+}
+@keyframes pptxAnimFlyRight {
+    from { opacity: 0; transform: translateX(60px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.anim-fly-in-top {
+    animation: pptxAnimFlyTop 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    visibility: visible !important;
+}
+@keyframes pptxAnimFlyTop {
+    from { opacity: 0; transform: translateY(-50px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.anim-zoom-in {
+    animation: pptxAnimZoomIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    visibility: visible !important;
+}
+@keyframes pptxAnimZoomIn {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.anim-wipe-in {
+    animation: pptxAnimWipeIn 0.5s ease-out forwards !important;
+    visibility: visible !important;
+}
+@keyframes pptxAnimWipeIn {
+    from { clip-path: inset(0 100% 0 0); opacity: 0.3; }
+    to { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+
+.anim-appear {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Dedicated Fixed, Non-Transparent Bottom Presentation Toolbar */
+.doc-slideshow-toolbar,
+.doc-slideshow-hud {
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    flex: 0 0 54px !important;
+    height: 54px !important;
+    width: 100% !important;
+    background: #0F172A !important; /* Solid, opaque dark background - never transparent */
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+    z-index: 10000000 !important;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5) !important;
+    padding: 0 20px !important;
+    box-sizing: border-box !important;
+    user-select: none !important;
+    pointer-events: auto !important;
+}
+
+/* Ensure the bottom toolbar is never auto-hidden */
+.doc-slideshow-hud.hud-hidden,
+.doc-slideshow-toolbar.hud-hidden {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important;
+    display: flex !important;
+}
+
+.slideshow-hud-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #F1F5F9;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.15s, transform 0.15s, color 0.15s, border-color 0.15s;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.slideshow-hud-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #FFFFFF;
+    transform: scale(1.05);
+}
+
+.slideshow-hud-btn:active {
+    transform: scale(0.96);
+}
+
+.slideshow-hud-btn.slideshow-hud-exit {
+    width: auto;
+    border-radius: 6px;
+    padding: 0 14px;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(239, 68, 68, 0.22);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    color: #FCA5A5;
+}
+
+.slideshow-hud-btn.slideshow-hud-exit:hover {
+    background: #DC2626;
+    border-color: #DC2626;
+    color: #FFFFFF;
+}
+
+.slideshow-hud-counter {
+    font-size: 13px;
+    font-weight: 700;
+    color: #E2E8F0;
+    padding: 0 8px;
+    letter-spacing: 0.5px;
+    min-width: 56px;
+    text-align: center;
+}
+
+.slideshow-hud-sep {
+    width: 1px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.18);
+    margin: 0 2px;
+}
+
+/* Word Document Realistic Page Thumbnail Card Styles */
+.docx-page-thumb-preview {
+    width: 90px;
+    height: 120px;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 3px;
+    overflow: hidden;
+    padding: 8px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+    user-select: none;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    position: relative;
+    pointer-events: none;
+}
+
+.docx-thumb-heading {
+    font-size: 7.5px;
+    font-weight: 700;
+    color: #0F172A;
+    line-height: 1.2;
+    border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.docx-thumb-body {
+    font-size: 6.5px;
+    line-height: 1.25;
+    color: #64748B;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+}
+
+.docx-thumb-table-badge,
+.docx-thumb-img-badge {
+    font-size: 6px;
+    font-weight: 600;
+    padding: 1px 4px;
+    border-radius: 2px;
+    background: #EFF6FF;
+    color: #1D4ED8;
+    display: inline-block;
+    align-self: flex-start;
+}
+
+/* 12. Fallback Unsupported Card */
+.doc-unsupported-card {
+    background: var(--theme-surface, #FFF9F0);
+    border: 1px solid var(--theme-border, #D8C5AA);
+    border-radius: 12px;
+    padding: 36px 24px;
+    text-align: center;
+    max-width: 440px;
+    margin: auto;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.doc-unsupported-icon {
+    font-size: 48px;
+    margin-bottom: 14px;
+}
+
+.doc-unsupported-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--theme-text, #2D241D);
+    margin-bottom: 8px;
+}
+
+.doc-unsupported-desc {
+    font-size: 13px;
+    color: var(--theme-text-muted, #8F7B67);
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+/* 13. Search Highlights */
+.doc-search-highlight {
+    background: #FEF08A !important;
+    color: #000000 !important;
+    border-radius: 2px;
+    padding: 0 2px;
+}
+
+.doc-search-highlight.active-match {
+    background: #F97316 !important;
+    color: #FFFFFF !important;
+}
+
+/* 14. Responsive Layout */
+@media (max-width: 768px) {
+    .in-chat-doc-viewer {
+        height: auto;
+        min-height: 0;
+        flex: 1 1 0%;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .in-chat-doc-thumbnails-panel {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2);
+        z-index: 30 !important;
+    }
+
+    .toolbar-doc-title {
+        display: none !important;
+    }
+
+    .toolbar-center {
+        gap: 2px;
+    }
+
+    .toolbar-page-box input {
+        width: 30px;
+    }
+
+    .toolbar-zoom-label {
+        min-width: 34px;
+        font-size: 11px;
+    }
+
+    .in-chat-doc-viewport {
+        padding: 12px 8px;
+        width: 100%;
+        box-sizing: border-box;
+        overflow-x: auto;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .doc-content-stage {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .docx-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .docx-view-sheet-wrapper,
+    .docx-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+
+    .docx-view-sheet-wrapper > section.docx-view-sheet,
+    .docx-wrapper > section.docx-view-sheet,
+    section.docx-view-sheet {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        margin: 0 auto 16px auto !important;
+        padding: 24px 18px !important;
+        overflow-wrap: break-word !important;
+        word-wrap: break-word !important;
+        word-break: normal !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+        border-radius: 4px !important;
+        background: #FFFFFF !important;
+    }
+
+    section.docx-view-sheet article {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    section.docx-view-sheet p {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-wrap: break-word !important;
+        word-wrap: break-word !important;
+        line-height: 1.5 !important;
+        box-sizing: border-box !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    section.docx-view-sheet h1,
+    section.docx-view-sheet h2,
+    section.docx-view-sheet h3,
+    section.docx-view-sheet h4,
+    section.docx-view-sheet h5,
+    section.docx-view-sheet h6 {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-wrap: break-word !important;
+        word-wrap: break-word !important;
+        box-sizing: border-box !important;
+        line-height: 1.3 !important;
+    }
+
+    section.docx-view-sheet ul,
+    section.docx-view-sheet ol {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        padding-left: 20px !important;
+        margin-left: 0 !important;
+    }
+
+    section.docx-view-sheet li {
+        overflow-wrap: break-word !important;
+        word-wrap: break-word !important;
+        line-height: 1.5 !important;
+    }
+
+    section.docx-view-sheet table {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .docx-table-responsive-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        box-sizing: border-box !important;
+        margin: 12px 0 !important;
+    }
+
+    section.docx-view-sheet img {
+        max-width: 100% !important;
+        height: auto !important;
+        object-fit: contain !important;
+    }
+
+    section.docx-view-sheet a {
+        color: var(--theme-accent, #B86B3D) !important;
+        overflow-wrap: break-word !important;
+        word-break: break-all !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .toolbar-btn#docPrintToolBtn {
+        display: none;
+    }
+}

@@ -22,6 +22,8 @@
   },
   "homepage": "https://github.com/franklinefrankline/frank-chat-app#readme",
   "dependencies": {
+    "dompurify": "^3.4.17",
+    "marked": "^18.1.1",
     "playwright": "^1.63.0"
   }
 }

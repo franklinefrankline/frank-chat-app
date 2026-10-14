@@ -86,6 +86,15 @@
                     <span data-i18n="admin.auditLogs">Audit Logs</span>
                 </button>
 
+                <button type="button" class="nav-item" data-section="access-requests" id="navAccessRequestsBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    <span data-i18n="admin.accessRequests">Access Requests</span>
+                    <span class="badge" id="navPendingAccessBadge" style="display: none; margin-left: auto; font-size: 11px; padding: 2px 7px; border-radius: 10px; background: #ef4444; color: #ffffff; font-weight: 700;">0</span>
+                </button>
+
                 <div class="sidebar-section-title" data-i18n="settings.account">Account</div>
 
                 <button type="button" class="nav-item" data-section="profile" id="navProfileBtn">
@@ -94,6 +103,15 @@
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                     <span data-i18n="admin.adminProfile">Admin Profile</span>
+                </button>
+
+                <button type="button" class="nav-item nav-item-logout" id="adminDrawerSignOutBtn" aria-label="Sign Out">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    <span data-i18n="settings.logout">Sign Out</span>
                 </button>
             </nav>
 
@@ -106,18 +124,24 @@
                     </div>
                     <div class="sidebar-user-info">
                         <div class="sidebar-user-name" id="adminSidebarName">Administrator</div>
-                        <div style="font-size: 11px; color: var(--accent-cyan); font-weight: 700;">Role: Admin</div>
+                        <div style="font-size: 11px; color: var(--accent-cyan); font-weight: 700;"><span data-i18n="admin.role">Role</span>: <span data-i18n="admin.roleAdmin">Admin</span></div>
                     </div>
                 </div>
 
                 <div style="margin-top: 12px; display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-full btn-sm" id="adminSidebarThemeBtn" style="display: flex; align-items: center; justify-content: center; gap: 6px;" aria-label="Change Theme" title="Change Theme">
+                        <span class="theme-icon-wrap" style="display: inline-flex; align-items: center;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        </span>
+                        <span data-i18n="admin.theme">Theme</span>
+                    </button>
                     <button type="button" class="btn btn-secondary btn-full btn-sm" id="adminSignOutBtn" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                             <polyline points="16 17 21 12 16 7"></polyline>
                             <line x1="21" y1="12" x2="9" y2="12"></line>
                         </svg>
-                        <span>Sign Out</span>
+                        <span data-i18n="settings.logout">Sign Out</span>
                     </button>
                 </div>
             </div>
@@ -140,6 +164,23 @@
                     <div class="admin-topbar-title" id="adminTopbarTitle" data-i18n="admin.metrics">Overview &amp; Metrics</div>
                 </div>
                 <div class="admin-topbar-actions">
+                    <!-- Theme Toggle Button -->
+                    <button type="button" class="btn btn-ghost btn-icon" id="adminThemeToggleBtn" aria-label="Change Theme" title="Change Theme" style="width: 34px; height: 34px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+                        <span class="theme-icon-wrap" style="display: inline-flex; align-items: center;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <line x1="12" y1="1" x2="12" y2="3"></line>
+                                <line x1="12" y1="21" x2="12" y2="23"></line>
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                                <line x1="1" y1="12" x2="3" y2="12"></line>
+                                <line x1="21" y1="12" x2="23" y2="12"></line>
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                            </svg>
+                        </span>
+                    </button>
+
                     <!-- Language Selector -->
                     <div class="lang-selector-container" id="adminLangSelector">
                         <button type="button" class="btn btn-ghost lang-btn" id="adminLangDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language" style="padding: 5px 10px; font-size: 13px; min-height: 32px;">
@@ -166,11 +207,21 @@
                             <polyline points="1 20 1 14 7 14"></polyline>
                             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
                         </svg>
-                        <span class="admin-refresh-text">Refresh</span>
+                        <span class="admin-refresh-text" data-i18n="admin.refresh">Refresh</span>
                     </button>
                     <span class="live-status-pill" id="adminLiveBadge">
                         <span class="live-dot"></span> LIVE
                     </span>
+
+                    <!-- Mobile & Responsive Header Logout Button -->
+                    <button type="button" class="btn btn-secondary btn-sm admin-topbar-logout-btn" id="adminHeaderSignOutBtn" aria-label="Sign Out" title="Sign Out of Admin Session">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        <span class="admin-logout-btn-text" data-i18n="settings.logout">Sign Out</span>
+                    </button>
                 </div>
             </header>
 
@@ -178,8 +229,8 @@
             <section class="admin-section active" id="sectionOverview">
                 <div class="section-header">
                     <div>
-                        <h1 class="section-title">System Overview &amp; Live Metrics</h1>
-                        <p class="section-subtitle">Real-time statistics sourced directly from the production database.</p>
+                        <h1 class="section-title" data-i18n="admin.systemOverviewTitle">System Overview &amp; Live Metrics</h1>
+                        <p class="section-subtitle" data-i18n="admin.systemOverviewSubtitle">Real-time statistics sourced directly from the production database.</p>
                     </div>
                 </div>
 
@@ -195,9 +246,9 @@
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                             </svg>
                         </div>
-                        <div class="metric-label">TOTAL USERS</div>
+                        <div class="metric-label" data-i18n="admin.totalUsers">TOTAL USERS</div>
                         <div class="metric-value" id="metricTotalUsers">--</div>
-                        <div class="metric-footer">Real PostgreSQL count</div>
+                        <div class="metric-footer" data-i18n="admin.realDbCount">Real PostgreSQL count</div>
                     </div>
 
                     <!-- Active Accounts -->
@@ -208,9 +259,9 @@
                                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
                             </svg>
                         </div>
-                        <div class="metric-label">ACTIVE ACCOUNTS</div>
+                        <div class="metric-label" data-i18n="admin.activeAccounts">ACTIVE ACCOUNTS</div>
                         <div class="metric-value" id="metricActiveAccounts">--</div>
-                        <div class="metric-footer">Permitted to authenticate</div>
+                        <div class="metric-footer" data-i18n="admin.permittedAuth">Permitted to authenticate</div>
                     </div>
 
                     <!-- Disabled Accounts -->
@@ -221,9 +272,9 @@
                                 <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
                             </svg>
                         </div>
-                        <div class="metric-label">DISABLED ACCOUNTS</div>
+                        <div class="metric-label" data-i18n="admin.disabledAccounts">DISABLED ACCOUNTS</div>
                         <div class="metric-value" id="metricDisabledAccounts">--</div>
-                        <div class="metric-footer">Access suspended</div>
+                        <div class="metric-footer" data-i18n="admin.accessSuspended">Access suspended</div>
                     </div>
 
                     <!-- Email Verification -->
@@ -234,9 +285,9 @@
                                 <polyline points="22,6 12,13 2,6"></polyline>
                             </svg>
                         </div>
-                        <div class="metric-label">EMAIL VERIFICATION</div>
+                        <div class="metric-label" data-i18n="admin.emailVerification">EMAIL VERIFICATION</div>
                         <div class="metric-value" id="metricEmailVerified">--</div>
-                        <div class="metric-footer">Verified user records</div>
+                        <div class="metric-footer" data-i18n="admin.verifiedRecords">Verified user records</div>
                     </div>
 
                     <!-- Total Messages -->
@@ -246,9 +297,9 @@
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                             </svg>
                         </div>
-                        <div class="metric-label">TOTAL MESSAGES</div>
+                        <div class="metric-label" data-i18n="admin.totalMessages">TOTAL MESSAGES</div>
                         <div class="metric-value" id="metricTotalMessages">--</div>
-                        <div class="metric-footer">Persisted message count</div>
+                        <div class="metric-footer" data-i18n="admin.persistedCount">Persisted message count</div>
                     </div>
 
                     <!-- Groups & Channels -->
@@ -261,9 +312,9 @@
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                             </svg>
                         </div>
-                        <div class="metric-label">GROUPS &amp; CHANNELS</div>
+                        <div class="metric-label" data-i18n="admin.groupsChannels">GROUPS &amp; CHANNELS</div>
                         <div class="metric-value" id="metricTotalGroups">--</div>
-                        <div class="metric-footer">Active team channels</div>
+                        <div class="metric-footer" data-i18n="admin.activeChannels">Active team channels</div>
                     </div>
 
                     <!-- Files & Documents -->
@@ -274,9 +325,9 @@
                                 <polyline points="13 2 13 9 20 9"></polyline>
                             </svg>
                         </div>
-                        <div class="metric-label">FILES &amp; DOCUMENTS</div>
+                        <div class="metric-label" data-i18n="admin.filesDocs">FILES &amp; DOCUMENTS</div>
                         <div class="metric-value" id="metricTotalFiles">--</div>
-                        <div class="metric-footer">Stored document assets</div>
+                        <div class="metric-footer" data-i18n="admin.storedAssets">Stored document assets</div>
                     </div>
                 </div>
 
@@ -284,14 +335,14 @@
                 <div class="admin-card" style="margin-top: 24px;">
                     <div class="admin-card-header">
                         <div>
-                            <h2 class="admin-card-title">Live Activity Stream</h2>
-                            <p class="admin-card-desc">System events and administrative actions (Metadata only — zero message contents).</p>
+                            <h2 class="admin-card-title" data-i18n="admin.liveActivityStream">Live Activity Stream</h2>
+                            <p class="admin-card-desc" data-i18n="admin.liveActivityDesc">System events and administrative actions (Metadata only — zero message contents).</p>
                         </div>
                     </div>
                     <div class="activity-stream" id="liveActivityList">
                         <div class="empty-state" style="padding: 24px;">
                             <div class="spinner"></div>
-                            <div style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">Loading activity...</div>
+                            <div style="font-size: 13px; color: var(--text-muted); margin-top: 8px;" data-i18n="common.loading">Loading activity...</div>
                         </div>
                     </div>
                 </div>
@@ -301,8 +352,8 @@
             <section class="admin-section" id="sectionUsers">
                 <div class="section-header">
                     <div>
-                        <h1 class="section-title">User Management</h1>
-                        <p class="section-subtitle">View, search, filter, enable, disable, and manage production user accounts.</p>
+                        <h1 class="section-title" data-i18n="admin.userManagement">User Management</h1>
+                        <p class="section-subtitle" data-i18n="admin.userManagementDesc">View, search, filter, enable, disable, and manage production user accounts.</p>
                     </div>
                 </div>
 
@@ -313,16 +364,16 @@
                             <circle cx="11" cy="11" r="8"></circle>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
-                        <input type="text" id="adminUserSearchInput" placeholder="Search by Name, Email, or 6-char FRANK ID..." autocomplete="off">
+                        <input type="text" id="adminUserSearchInput" placeholder="Search by Name, Email, or 6-char FRANK ID..." data-i18n-placeholder="admin.searchUserPlaceholder" autocomplete="off">
                         <button type="button" id="adminClearSearchBtn" style="display:none; color:var(--text-muted); border:none; background:transparent; cursor:pointer;">✕</button>
                     </div>
 
                     <div class="filter-chips-row" id="userFilterChips">
-                        <button type="button" class="filter-chip active" data-filter="all">All Users</button>
-                        <button type="button" class="filter-chip" data-filter="active">Active</button>
-                        <button type="button" class="filter-chip" data-filter="disabled">Disabled</button>
-                        <button type="button" class="filter-chip" data-filter="admin">Administrators</button>
-                        <button type="button" class="filter-chip" data-filter="user">Normal Users</button>
+                        <button type="button" class="filter-chip active" data-filter="all" data-i18n="admin.filterAll">All Users</button>
+                        <button type="button" class="filter-chip" data-filter="active" data-i18n="admin.filterActive">Active</button>
+                        <button type="button" class="filter-chip" data-filter="disabled" data-i18n="admin.filterDisabled">Disabled</button>
+                        <button type="button" class="filter-chip" data-filter="admin" data-i18n="admin.filterAdmins">Administrators</button>
+                        <button type="button" class="filter-chip" data-filter="user" data-i18n="admin.filterUsers">Normal Users</button>
                     </div>
                 </div>
 
@@ -332,20 +383,20 @@
                         <table class="admin-table" id="usersTable">
                             <thead>
                                 <tr>
-                                    <th>User</th>
-                                    <th>Email</th>
-                                    <th>FRANK ID</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Created</th>
-                                    <th style="text-align: right;">Actions</th>
+                                    <th data-i18n="admin.thUser">User</th>
+                                    <th data-i18n="admin.thEmail">Email</th>
+                                    <th data-i18n="admin.thFrankId">FRANK ID</th>
+                                    <th data-i18n="admin.thRole">Role</th>
+                                    <th data-i18n="admin.thStatus">Status</th>
+                                    <th data-i18n="admin.thCreated">Created</th>
+                                    <th style="text-align: right;" data-i18n="admin.thActions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="usersTableBody">
                                 <tr>
                                     <td colspan="7" style="text-align: center; padding: 32px;">
                                         <div class="spinner" style="margin: 0 auto 8px auto;"></div>
-                                        <div style="font-size: 13px; color: var(--text-muted);">Loading users...</div>
+                                        <div style="font-size: 13px; color: var(--text-muted);" data-i18n="common.loading">Loading users...</div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -356,9 +407,9 @@
                     <div class="pagination-bar">
                         <div class="pagination-info" id="usersPaginationInfo">Showing 0 of 0 users</div>
                         <div class="pagination-controls">
-                            <button type="button" class="btn btn-secondary btn-sm" id="usersPrevBtn" disabled>Previous</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="usersPrevBtn" data-i18n="common.previous" disabled>Previous</button>
                             <span class="pagination-page-number" id="usersPageNum">Page 1</span>
-                            <button type="button" class="btn btn-secondary btn-sm" id="usersNextBtn" disabled>Next</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="usersNextBtn" data-i18n="common.next" disabled>Next</button>
                         </div>
                     </div>
                 </div>
@@ -368,8 +419,8 @@
             <section class="admin-section" id="sectionGroups">
                 <div class="section-header">
                     <div>
-                        <h1 class="section-title">Groups &amp; Channels</h1>
-                        <p class="section-subtitle">Administrative metadata for team groups and channels. (Private messages strictly omitted).</p>
+                        <h1 class="section-title" data-i18n="admin.groupsChats">Groups &amp; Channels</h1>
+                        <p class="section-subtitle" data-i18n="admin.groupsDesc">Administrative metadata for team groups and channels. (Private messages strictly omitted).</p>
                     </div>
                 </div>
 
@@ -378,19 +429,19 @@
                         <table class="admin-table" id="groupsTable">
                             <thead>
                                 <tr>
-                                    <th>Group Name</th>
-                                    <th>Group ID</th>
-                                    <th>Privacy</th>
-                                    <th>Creator</th>
-                                    <th>Members</th>
-                                    <th>Created Date</th>
+                                    <th data-i18n="admin.thGroupName">Group Name</th>
+                                    <th data-i18n="admin.thGroupId">Group ID</th>
+                                    <th data-i18n="admin.thPrivacy">Privacy</th>
+                                    <th data-i18n="admin.thCreator">Creator</th>
+                                    <th data-i18n="admin.thMembers">Members</th>
+                                    <th data-i18n="admin.thCreatedDate">Created Date</th>
                                 </tr>
                             </thead>
                             <tbody id="groupsTableBody">
                                 <tr>
                                     <td colspan="6" style="text-align: center; padding: 32px;">
                                         <div class="spinner" style="margin: 0 auto 8px auto;"></div>
-                                        <div style="font-size: 13px; color: var(--text-muted);">Loading groups...</div>
+                                        <div style="font-size: 13px; color: var(--text-muted);" data-i18n="common.loading">Loading groups...</div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -403,8 +454,8 @@
             <section class="admin-section" id="sectionAudit">
                 <div class="section-header">
                     <div>
-                        <h1 class="section-title">Audit Logs</h1>
-                        <p class="section-subtitle">Chronological record of all administrative operations performed in FRANK.</p>
+                        <h1 class="section-title" data-i18n="admin.auditLogs">Audit Logs</h1>
+                        <p class="section-subtitle" data-i18n="admin.auditDesc">Chronological record of all administrative operations performed in FRANK.</p>
                     </div>
                 </div>
 
@@ -413,18 +464,18 @@
                         <table class="admin-table" id="auditTable">
                             <thead>
                                 <tr>
-                                    <th>Timestamp</th>
-                                    <th>Administrator</th>
-                                    <th>Action</th>
-                                    <th>Target</th>
-                                    <th>Details</th>
+                                    <th data-i18n="admin.thTimestamp">Timestamp</th>
+                                    <th data-i18n="admin.thAdministrator">Administrator</th>
+                                    <th data-i18n="admin.thAction">Action</th>
+                                    <th data-i18n="admin.thTarget">Target</th>
+                                    <th data-i18n="admin.thDetails">Details</th>
                                 </tr>
                             </thead>
                             <tbody id="auditTableBody">
                                 <tr>
                                     <td colspan="5" style="text-align: center; padding: 32px;">
                                         <div class="spinner" style="margin: 0 auto 8px auto;"></div>
-                                        <div style="font-size: 13px; color: var(--text-muted);">Loading audit logs...</div>
+                                        <div style="font-size: 13px; color: var(--text-muted);" data-i18n="common.loading">Loading audit logs...</div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -434,9 +485,142 @@
                     <div class="pagination-bar">
                         <div class="pagination-info" id="auditPaginationInfo">Showing 0 logs</div>
                         <div class="pagination-controls">
-                            <button type="button" class="btn btn-secondary btn-sm" id="auditPrevBtn" disabled>Previous</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="auditPrevBtn" data-i18n="common.previous" disabled>Previous</button>
                             <span class="pagination-page-number" id="auditPageNum">Page 1</span>
-                            <button type="button" class="btn btn-secondary btn-sm" id="auditNextBtn" disabled>Next</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="auditNextBtn" data-i18n="common.next" disabled>Next</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: ACCOUNT ACCESS REQUESTS -->
+            <section class="admin-section" id="sectionAccessRequests">
+                <div class="section-header">
+                    <div>
+                        <h1 class="section-title" data-i18n="admin.accessRequests">Account Access Requests</h1>
+                        <p class="section-subtitle" data-i18n="admin.accessRequestsDesc">Review and manage user account access and reactivation requests</p>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="accessRequestsRefreshBtn" title="Refresh Requests">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                            <span data-i18n="admin.refresh">Refresh</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4 Access Request Metric Cards -->
+                <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px;">
+                    <div class="metric-card" id="cardTotalAccessRequests">
+                        <div class="metric-icon-wrap" style="background: rgba(37, 99, 235, 0.12); color: #3b82f6;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                        </div>
+                        <div class="metric-label" data-i18n="admin.totalRequests">TOTAL REQUESTS</div>
+                        <div class="metric-value" id="metricTotalAccessRequests">0</div>
+                    </div>
+
+                    <div class="metric-card" id="cardPendingAccessRequests">
+                        <div class="metric-icon-wrap" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <div class="metric-label" data-i18n="admin.pendingRequests">PENDING REQUESTS</div>
+                        <div class="metric-value" id="metricPendingAccessRequests" style="color: #f59e0b;">0</div>
+                    </div>
+
+                    <div class="metric-card" id="cardInReviewAccessRequests">
+                        <div class="metric-icon-wrap" style="background: rgba(14, 165, 233, 0.12); color: #0ea5e9;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                        </div>
+                        <div class="metric-label" data-i18n="admin.inReviewRequests">IN REVIEW</div>
+                        <div class="metric-value" id="metricInReviewAccessRequests" style="color: #0ea5e9;">0</div>
+                    </div>
+
+                    <div class="metric-card" id="cardResolvedAccessRequests">
+                        <div class="metric-icon-wrap" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div class="metric-label" data-i18n="admin.resolvedRequests">RESOLVED / CLOSED</div>
+                        <div class="metric-value" id="metricResolvedAccessRequests" style="color: #10b981;">0</div>
+                    </div>
+                </div>
+
+                <!-- Table Card Container -->
+                <div class="table-card">
+                    <div class="table-card-header" style="flex-wrap: wrap; gap: 12px;">
+                        <!-- Search Box -->
+                        <div class="search-wrap" style="flex: 1; min-width: 220px;">
+                            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" id="accessRequestsSearch" class="search-input" placeholder="Search by reference, email, subject..." data-i18n-placeholder="admin.searchRequestsPlaceholder">
+                        </div>
+
+                        <!-- Filters -->
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <select id="accessRequestsStatusFilter" class="form-input" style="padding: 7px 12px; font-size: 13px; min-width: 140px;">
+                                <option value="all" data-i18n="admin.allStatuses">All Statuses</option>
+                                <option value="Pending" data-i18n="admin.statusPending">Pending</option>
+                                <option value="In Review" data-i18n="admin.statusInReview">In Review</option>
+                                <option value="Resolved" data-i18n="admin.statusResolved">Resolved</option>
+                                <option value="Rejected" data-i18n="admin.statusRejected">Rejected</option>
+                            </select>
+
+                            <select id="accessRequestsSourceFilter" class="form-input" style="padding: 7px 12px; font-size: 13px; min-width: 140px;">
+                                <option value="all" data-i18n="admin.allSources">All Sources</option>
+                                <option value="disabled_account" data-i18n="admin.sourceDisabled">Disabled Account</option>
+                                <option value="landing_page" data-i18n="admin.sourceLanding">Landing Page</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table" id="accessRequestsTable">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="admin.requestRef">Reference</th>
+                                    <th data-i18n="admin.contactEmail">Contact Email</th>
+                                    <th data-i18n="admin.affectedAccount">Affected Account</th>
+                                    <th data-i18n="admin.subject">Subject</th>
+                                    <th data-i18n="admin.source">Source</th>
+                                    <th data-i18n="admin.submittedDate">Submitted Date</th>
+                                    <th data-i18n="admin.status">Status</th>
+                                    <th data-i18n="admin.actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accessRequestsTableBody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                                        <div class="spinner" style="margin: 0 auto 12px;"></div>
+                                        <div>Loading access requests...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination-bar">
+                        <div class="pagination-info" id="accessRequestsPaginationInfo">Showing 0 requests</div>
+                        <div class="pagination-controls">
+                            <button type="button" class="btn btn-secondary btn-sm" id="accessRequestsPrevBtn" data-i18n="common.previous" disabled>Previous</button>
+                            <span class="pagination-page-number" id="accessRequestsPageNum">Page 1</span>
+                            <button type="button" class="btn btn-secondary btn-sm" id="accessRequestsNextBtn" data-i18n="common.next" disabled>Next</button>
                         </div>
                     </div>
                 </div>
@@ -446,8 +630,8 @@
             <section class="admin-section" id="sectionProfile">
                 <div class="section-header">
                     <div>
-                        <h1 class="section-title">Admin Profile</h1>
-                        <p class="section-subtitle">Your active administrator identity and session security.</p>
+                        <h1 class="section-title" data-i18n="admin.adminProfile">Admin Profile</h1>
+                        <p class="section-subtitle" data-i18n="admin.adminProfileDesc">Your active administrator identity and session security.</p>
                     </div>
                 </div>
 
@@ -460,22 +644,22 @@
                         <div>
                             <div style="font-size: 18px; font-weight: 800; color: var(--text);" id="profileCardName">Administrator</div>
                             <div style="font-size: 13px; color: var(--text-muted);" id="profileCardUsername">@admin</div>
-                            <span class="badge badge-primary" style="margin-top: 4px; display: inline-block;">System Administrator</span>
+                            <span class="badge badge-primary" style="margin-top: 4px; display: inline-block;" data-i18n="admin.systemAdmin">System Administrator</span>
                         </div>
                     </div>
 
                     <div class="detail-row">
-                        <span class="detail-label">Email</span>
+                        <span class="detail-label" data-i18n="admin.thEmail">Email</span>
                         <span class="detail-value" id="profileCardEmail">admin@frank.app</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label">FRANK ID</span>
+                        <span class="detail-label" data-i18n="admin.thFrankId">FRANK ID</span>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span class="detail-value frank-id-badge" id="profileCardFrankId">ADM001</span>
                             <button type="button" class="btn-copy-frank-id" aria-label="Copy FRANK ID" title="Copy FRANK ID">
                                 <svg class="copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                 </svg>
                                 <svg class="check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none; color: var(--success, #10B981);">
                                     <polyline points="20 6 9 17 4 12"></polyline>
@@ -484,16 +668,16 @@
                         </div>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label">Security Role</span>
-                        <span class="detail-value">Administrator</span>
+                        <span class="detail-label" data-i18n="admin.securityRole">Security Role</span>
+                        <span class="detail-value" data-i18n="admin.roleAdmin">Administrator</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label">Session Status</span>
-                        <span class="detail-value" style="color: var(--success); font-weight: 700;">Active &amp; Authenticated</span>
+                        <span class="detail-label" data-i18n="admin.sessionStatus">Session Status</span>
+                        <span class="detail-value" style="color: var(--success); font-weight: 700;" data-i18n="admin.sessionActive">Active &amp; Authenticated</span>
                     </div>
 
                     <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
-                        <button type="button" class="btn btn-secondary" id="profileSignOutBtn">Sign Out of Admin Session</button>
+                        <button type="button" class="btn btn-secondary" id="profileSignOutBtn" data-i18n="admin.signOutAdmin">Sign Out of Admin Session</button>
                     </div>
                 </div>
             </section>
@@ -507,7 +691,7 @@
     <div class="modal-backdrop" id="adminUserDetailsModal" role="dialog" aria-modal="true" aria-labelledby="modalUserDetailsTitle">
         <div class="modal-card" style="max-width: 520px;">
             <div class="modal-header">
-                <h2 class="modal-title" id="modalUserDetailsTitle">User Details</h2>
+                <h2 class="modal-title" id="modalUserDetailsTitle" data-i18n="admin.userDetails">User Details</h2>
                 <button type="button" class="modal-close" id="closeUserDetailsModalBtn" aria-label="Close modal">✕</button>
             </div>
             <div class="modal-body" id="userDetailsModalBody">
@@ -520,7 +704,7 @@
     <div class="modal-backdrop" id="adminConfirmModal" role="dialog" aria-modal="true" aria-labelledby="adminConfirmTitle">
         <div class="modal-card" style="max-width: 480px;">
             <div class="modal-header">
-                <h2 class="modal-title" id="adminConfirmTitle">Confirm Action</h2>
+                <h2 class="modal-title" id="adminConfirmTitle" data-i18n="admin.confirmAction">Confirm Action</h2>
                 <button type="button" class="modal-close" id="adminConfirmCloseBtn" aria-label="Close modal">✕</button>
             </div>
             <div class="modal-body">
@@ -530,8 +714,75 @@
                 </div>
             </div>
             <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
-                <button type="button" class="btn btn-secondary" id="adminConfirmCancelBtn">Cancel</button>
-                <button type="button" class="btn btn-danger" id="adminConfirmSubmitBtn">Confirm</button>
+                <button type="button" class="btn btn-secondary" id="adminConfirmCancelBtn" data-i18n="common.cancel">Cancel</button>
+                <button type="button" class="btn btn-danger" id="adminConfirmSubmitBtn" data-i18n="admin.confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Access Request Details Modal -->
+    <div class="modal-backdrop" id="adminAccessRequestModal" role="dialog" aria-modal="true" aria-labelledby="modalAccessRequestTitle" style="display: none;">
+        <div class="modal-card" style="max-width: 580px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <h2 class="modal-title" id="modalAccessRequestTitle" data-i18n="admin.requestDetails">Request Details</h2>
+                    <span class="status-badge" id="modalAccessRequestStatusBadge" style="font-size: 11px; padding: 2px 8px; border-radius: 6px;">Pending</span>
+                </div>
+                <button type="button" class="modal-close" id="closeAccessRequestModalBtn" aria-label="Close modal">✕</button>
+            </div>
+            <div class="modal-body" id="accessRequestModalBody">
+                <input type="hidden" id="currentAccessRequestId">
+                <div class="detail-row">
+                    <span class="detail-label" data-i18n="admin.requestRef">Reference</span>
+                    <span class="detail-value" id="modalReqReference" style="font-family: monospace; font-weight: 700; color: var(--accent-cyan);">--</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" data-i18n="admin.contactEmail">Contact Email</span>
+                    <span class="detail-value" id="modalReqEmail">--</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" data-i18n="admin.affectedAccount">Affected Account</span>
+                    <span class="detail-value" id="modalReqAccountEmail">--</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" data-i18n="admin.source">Source</span>
+                    <span class="detail-value" id="modalReqSource">--</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" data-i18n="admin.submittedDate">Submitted Date</span>
+                    <span class="detail-value" id="modalReqDate">--</span>
+                </div>
+                <div class="detail-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+                    <span class="detail-label" data-i18n="admin.subject">Subject</span>
+                    <span class="detail-value" id="modalReqSubject" style="font-weight: 600; color: var(--text);">--</span>
+                </div>
+                <div style="margin-top: 12px; margin-bottom: 16px;">
+                    <span class="detail-label" style="display: block; margin-bottom: 6px;" data-i18n="contact.description">Issue Description</span>
+                    <div id="modalReqDescription" style="padding: 12px; background: var(--bg-hover, rgba(255,255,255,0.03)); border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 13.5px; line-height: 1.5; max-height: 160px; overflow-y: auto; white-space: pre-wrap; color: var(--text);">--</div>
+                </div>
+
+                <!-- Admin Action: Status Update & Notes -->
+                <div style="padding-top: 14px; border-top: 1px solid var(--border);">
+                    <div style="margin-bottom: 14px;">
+                        <label for="modalReqStatusSelect" style="display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px;" data-i18n="admin.status">Status</label>
+                        <select id="modalReqStatusSelect" class="form-input" style="padding: 8px 12px; font-size: 13.5px; width: 100%;">
+                            <option value="Pending">Pending</option>
+                            <option value="In Review">In Review</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="modalReqAdminNotes" style="display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px;" data-i18n="admin.adminNotes">Private Administrator Notes</label>
+                        <textarea id="modalReqAdminNotes" class="form-input" rows="3" placeholder="Add internal investigation notes or action taken..." data-i18n-placeholder="admin.adminNotesPlaceholder" style="width: 100%; box-sizing: border-box; resize: vertical; min-height: 70px; font-size: 13px;"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="btn btn-secondary" id="cancelAccessRequestModalBtn" data-i18n="common.cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveAccessRequestModalBtn">
+                    <span id="saveAccessRequestText" data-i18n="admin.saveChanges">Save Changes</span>
+                </button>
             </div>
         </div>
     </div>

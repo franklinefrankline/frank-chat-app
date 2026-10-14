@@ -92,10 +92,19 @@ class DocumentsController {
         }
     }
 
-    openDocument(fileId, fileType, filename, directUrl) {
+    openDocument(fileId, fileType, filename, directUrl, meta = {}) {
         const validFileId = (fileId && !isNaN(fileId) && parseInt(fileId, 10) > 0) ? parseInt(fileId, 10) : null;
         if (!validFileId && !directUrl && !filename) {
             console.warn('>>> [DOCUMENTS] openDocument called without valid fileId or directUrl');
+            return;
+        }
+
+        const filenameClean = filename || 'Document';
+        const ext = (filenameClean.split('.').pop() || '').toLowerCase();
+        const isOfficeDoc = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'txt', 'text', 'md', 'json', 'log'].includes(ext);
+
+        if (isOfficeDoc && window.inChatDocViewer) {
+            window.inChatDocViewer.open(validFileId, fileType, filenameClean, directUrl, meta);
             return;
         }
 
@@ -121,8 +130,6 @@ class DocumentsController {
 
         const token = api.getToken();
         const viewUrl = validFileId ? api.getFileViewUrl(validFileId) : directUrl;
-        const filenameClean = filename || 'Document';
-        const ext = (filenameClean.split('.').pop() || '').toLowerCase();
 
         // Accurately determine effective category from extension
         let effectiveType = fileType;
@@ -381,9 +388,9 @@ class DocumentsController {
         modal.style.opacity = '1';
     }
 
-    async downloadDocument(fileId, filename, directUrl) {
+    async downloadDocument(fileId, filename, directUrl, version = null) {
         const validFileId = (fileId && !isNaN(fileId) && parseInt(fileId, 10) > 0) ? parseInt(fileId, 10) : null;
-        const url = validFileId ? api.getFileDownloadUrl(validFileId) : directUrl;
+        const url = (validFileId ? api.getFileDownloadUrl(validFileId, version) : null) || directUrl;
         if (!url) return;
         try {
             const res = await fetch(url);
@@ -976,7 +983,10 @@ class DocumentBrowserController {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 if (this.dom.sendModal && this.dom.sendModal.style.display !== 'none') {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
                     this.closeSendToChatModal();
+                    return;
                 } else if (this.dom.workspace && this.dom.workspace.style.display !== 'none') {
                     const officeWs = document.getElementById('frankDocumentWorkspace');
                     if (!officeWs || !officeWs.classList.contains('active')) {
@@ -1216,19 +1226,62 @@ class DocumentBrowserController {
     }
 
     // ---------------- SEND TO CHAT WORKFLOW ----------------
-    async openSendToChatModal(docId, filename) {
-        this.stagedSendDocId = docId;
-        this.stagedSendDocName = filename || 'Document';
-        this.selectedRecipient = null;
+    async openSendToChatModal(docId, filename, docMeta = null) {
+        if (!docId) {
+            console.error('Cannot open send modal: No docId provided');
+            return;
+        }
 
         if (!this.dom.sendModal) this.cacheDom();
         if (!this.dom.sendModal) return;
 
-        this.dom.sendModal.style.display = 'flex';
-        if (this.dom.recipientSearch) this.dom.recipientSearch.value = '';
-        if (this.dom.commentInput) this.dom.commentInput.value = `Here is the latest: ${this.stagedSendDocName}`;
-        if (this.dom.confirmSendBtn) this.dom.confirmSendBtn.disabled = true;
+        this.stagedSendDocId = docId;
+        this.stagedSendDocName = filename || (docMeta && docMeta.original_filename) || 'Document';
+        this.stagedSendDocMeta = docMeta;
+        this.selectedRecipient = null;
+        this.isSending = false;
 
+        // Update document info card in modal
+        const docNameEl = document.getElementById('docSendDocName');
+        const docMetaEl = document.getElementById('docSendDocMeta');
+        const docIconEl = document.getElementById('docSendDocIcon');
+        if (docNameEl) docNameEl.textContent = this.stagedSendDocName;
+        if (docMetaEl) {
+            const ver = (docMeta && docMeta.current_version_number) ? `v${docMeta.current_version_number}` : 'v1';
+            const cat = this.getFileCategory ? this.getFileCategory(this.stagedSendDocName) : 'document';
+            const catUpper = cat.charAt(0).toUpperCase() + cat.slice(1);
+            docMetaEl.textContent = `${catUpper} Workbook • ${ver}`;
+        }
+        if (docIconEl) {
+            const ext = this.stagedSendDocName.split('.').pop().toLowerCase();
+            if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+                docIconEl.style.background = '#107c41';
+                docIconEl.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>`;
+            } else if (ext === 'docx' || ext === 'doc') {
+                docIconEl.style.background = '#2563EB';
+                docIconEl.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>`;
+            } else {
+                docIconEl.style.background = 'var(--theme-accent, #B86B3D)';
+                docIconEl.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
+            }
+        }
+
+        // Reset search, comment input, and send button
+        if (this.dom.recipientSearch) {
+            this.dom.recipientSearch.value = '';
+        }
+        if (this.dom.commentInput) {
+            this.dom.commentInput.value = `Here is the latest: ${this.stagedSendDocName}`;
+        }
+        if (this.dom.confirmSendBtn) {
+            this.dom.confirmSendBtn.disabled = true;
+            this.dom.confirmSendBtn.textContent = 'Send Document';
+        }
+
+        // Show modal
+        this.dom.sendModal.style.display = 'flex';
+
+        // Load recipients with loading and error/retry states
         await this.populateRecipientList();
     }
 
@@ -1237,32 +1290,59 @@ class DocumentBrowserController {
             this.dom.sendModal.style.display = 'none';
         }
         this.stagedSendDocId = null;
+        this.stagedSendDocName = null;
+        this.stagedSendDocMeta = null;
         this.selectedRecipient = null;
+        this.currentVisibleRecipients = null;
+        this.isSending = false;
+        if (this.dom.confirmSendBtn) {
+            this.dom.confirmSendBtn.disabled = true;
+            this.dom.confirmSendBtn.textContent = 'Send Document';
+        }
+        if (this.dom.recipientSearch) {
+            this.dom.recipientSearch.value = '';
+        }
     }
 
     async populateRecipientList() {
         if (!this.dom.recipientList) return;
-        this.dom.recipientList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);"><div class="spinner"></div></div>';
+        this.dom.recipientList.innerHTML = `
+            <div class="doc-send-loading-state" style="padding:24px;text-align:center;color:var(--text-muted,#7A6E65);">
+                <div class="spinner" style="margin:0 auto 8px auto;"></div>
+                <div style="font-size:12px;">Loading contacts and conversations...</div>
+            </div>
+        `;
 
         try {
             const [conversations, allUsers] = await Promise.all([
-                api.getConversations().catch(() => []),
-                api.getUsers().catch(() => [])
+                api.getConversations().catch(err => {
+                    console.warn('Could not load conversations:', err);
+                    return [];
+                }),
+                api.getUsers().catch(err => {
+                    console.warn('Could not load users:', err);
+                    return [];
+                })
             ]);
-            const currentUser = auth.getUser();
+
+            const currentUser = (typeof auth !== 'undefined' && typeof auth.getUser === 'function') ? auth.getUser() : null;
             const selfId = currentUser ? Number(currentUser.id) : null;
 
             let recipients = [];
             const seenUserIds = new Set();
+            const seenGroupIds = new Set();
             if (selfId) seenUserIds.add(selfId);
 
-            // 1. Add self chat
+            // 1. Add self chat (user's own conversation notes)
             if (currentUser) {
                 recipients.push({
                     id: selfId,
                     type: 'self',
                     name: `${currentUser.full_name || currentUser.username} (You)`,
-                    subtitle: 'Notes to self',
+                    username: currentUser.username || '',
+                    frank_id: currentUser.frank_id || '',
+                    subtitle: 'Message yourself • Notes & workbooks',
+                    avatar_url: currentUser.avatar_url || '',
                     icon: '👤'
                 });
             }
@@ -1270,66 +1350,108 @@ class DocumentBrowserController {
             // 2. Add existing conversations (Recent Chats & Groups)
             (conversations || []).forEach(c => {
                 const isGroup = c.type === 'group';
-                if (!isGroup) {
-                    const uid = Number(c.id);
-                    if (uid === selfId || seenUserIds.has(uid)) return;
+                if (isGroup) {
+                    const gid = Number(c.id || c.group_id);
+                    if (!gid || seenGroupIds.has(gid)) return;
+                    seenGroupIds.add(gid);
+                    recipients.push({
+                        id: gid,
+                        type: 'group',
+                        group_id: gid,
+                        name: c.name || 'Group Chat',
+                        username: '',
+                        frank_id: '',
+                        subtitle: `${c.member_count || 1} members • Group`,
+                        avatar_url: c.avatar_url || '',
+                        icon: '👥'
+                    });
+                } else {
+                    const uid = Number(c.id || c.partner_id);
+                    if (!uid || uid === selfId || seenUserIds.has(uid)) return;
                     seenUserIds.add(uid);
+                    recipients.push({
+                        id: uid,
+                        type: 'direct',
+                        conversation_id: c.conversation_id || null,
+                        name: c.name || c.full_name || c.username || 'User',
+                        username: c.username || '',
+                        frank_id: c.frank_id || '',
+                        subtitle: `@${c.username || 'user'}${c.frank_id ? ' • ' + c.frank_id : ''}`,
+                        avatar_url: c.avatar_url || '',
+                        icon: '💬'
+                    });
                 }
-                recipients.push({
-                    id: c.id,
-                    type: isGroup ? 'group' : 'direct',
-                    conversation_id: c.conversation_id || null,
-                    name: c.name || c.username || 'Chat',
-                    subtitle: isGroup ? 'Group Conversation' : `@${c.username || 'user'}`,
-                    icon: isGroup ? '👥' : '💬'
-                });
             });
 
-            // 3. Add registered contacts (from allUsers)
+            // 3. Add contacts from all registered users
             (allUsers || []).forEach(u => {
                 const uid = Number(u.id);
-                if (uid === selfId || seenUserIds.has(uid)) return;
+                if (!uid || uid === selfId || seenUserIds.has(uid)) return;
                 seenUserIds.add(uid);
                 recipients.push({
                     id: uid,
                     type: 'direct',
                     conversation_id: null,
                     name: u.full_name || u.username || 'User',
-                    subtitle: `@${u.username || 'user'}${u.bio ? ' • ' + u.bio : ''}`,
+                    username: u.username || '',
+                    frank_id: u.frank_id || '',
+                    subtitle: `@${u.username || 'user'}${u.frank_id ? ' • ' + u.frank_id : (u.bio ? ' • ' + u.bio : '')}`,
+                    avatar_url: u.avatar_url || '',
                     icon: '💬'
                 });
             });
 
             this.renderedRecipients = recipients;
+            this.currentVisibleRecipients = recipients;
             this.renderRecipientRows(recipients);
         } catch (err) {
             console.error('Failed to load recipients:', err);
-            this.dom.recipientList.innerHTML = '<div style="padding:14px;text-align:center;color:var(--danger);">Failed to load contacts</div>';
+            this.dom.recipientList.innerHTML = `
+                <div class="doc-send-error-state" style="padding:20px 14px;text-align:center;">
+                    <div style="color:var(--danger,#e53e3e);font-size:13px;font-weight:600;margin-bottom:8px;">Failed to load contacts and conversations</div>
+                    <button type="button" class="btn btn-secondary btn-sm" id="docSendRetryBtn" style="margin:0 auto;">Retry</button>
+                </div>
+            `;
+            document.getElementById('docSendRetryBtn')?.addEventListener('click', () => {
+                this.populateRecipientList();
+            });
         }
     }
 
     renderRecipientRows(recipients) {
         if (!this.dom.recipientList) return;
         if (!recipients || recipients.length === 0) {
-            this.dom.recipientList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">No recipients found</div>';
+            this.dom.recipientList.innerHTML = `
+                <div class="doc-send-empty-state" style="padding:24px 16px;text-align:center;color:var(--text-muted,#7A6E65);font-size:13px;">
+                    <div style="font-size:22px;margin-bottom:6px;">🔍</div>
+                    <div>No matching recipients found</div>
+                </div>
+            `;
             return;
         }
 
         let html = '';
         recipients.forEach(r => {
-            const isSelected = this.selectedRecipient && this.selectedRecipient.id === r.id && this.selectedRecipient.type === r.type;
+            const isSelected = this.selectedRecipient && 
+                Number(this.selectedRecipient.id) === Number(r.id) && 
+                this.selectedRecipient.type === r.type;
+
+            const avatarMarkup = r.avatar_url 
+                ? `<img src="${r.avatar_url}" alt="${messagesModule.escapeHTML(r.name)}" class="doc-send-recipient-avatar">`
+                : `<div class="doc-send-recipient-avatar-placeholder">${r.icon || '💬'}</div>`;
+
             html += `
                 <div class="doc-send-recipient-row ${isSelected ? 'selected' : ''}" data-id="${r.id}" data-type="${r.type}">
-                    <span style="font-size:18px;">${r.icon}</span>
+                    ${avatarMarkup}
                     <div style="flex:1;min-width:0;">
-                        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        <div style="font-size:13px;font-weight:700;color:var(--theme-text,#2D241E);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                             ${messagesModule.escapeHTML(r.name)}
                         </div>
-                        <div style="font-size:11px;color:var(--text-muted);">
+                        <div style="font-size:11px;color:var(--text-muted,#7A6E65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                             ${messagesModule.escapeHTML(r.subtitle)}
                         </div>
                     </div>
-                    ${isSelected ? '<span style="color:var(--primary);font-weight:700;">✓</span>' : ''}
+                    ${isSelected ? '<span style="color:var(--theme-accent,#B86B3D);font-weight:700;font-size:16px;">✓</span>' : ''}
                 </div>
             `;
         });
@@ -1338,12 +1460,12 @@ class DocumentBrowserController {
 
         this.dom.recipientList.querySelectorAll('.doc-send-recipient-row').forEach(row => {
             row.addEventListener('click', () => {
-                const id = parseInt(row.dataset.id, 10);
+                const id = Number(row.dataset.id);
                 const type = row.dataset.type;
-                const rec = (this.renderedRecipients || []).find(r => r.id === id && r.type === type);
+                const rec = (this.renderedRecipients || []).find(r => Number(r.id) === id && r.type === type);
                 if (rec) {
                     this.selectedRecipient = rec;
-                    this.renderRecipientRows(this.renderedRecipients);
+                    this.renderRecipientRows(this.currentVisibleRecipients || this.renderedRecipients);
                     if (this.dom.confirmSendBtn) {
                         this.dom.confirmSendBtn.disabled = false;
                     }
@@ -1356,28 +1478,39 @@ class DocumentBrowserController {
         const q = (query || '').toLowerCase().trim();
         if (!this.renderedRecipients) return;
         if (!q) {
+            this.currentVisibleRecipients = this.renderedRecipients;
             this.renderRecipientRows(this.renderedRecipients);
             return;
         }
-        const filtered = this.renderedRecipients.filter(r => 
-            r.name.toLowerCase().includes(q) || r.subtitle.toLowerCase().includes(q)
-        );
+        const filtered = this.renderedRecipients.filter(r => {
+            const name = (r.name || '').toLowerCase();
+            const username = (r.username || '').toLowerCase();
+            const frankId = (r.frank_id || '').toLowerCase();
+            const subtitle = (r.subtitle || '').toLowerCase();
+            return name.includes(q) || username.includes(q) || frankId.includes(q) || subtitle.includes(q);
+        });
+        this.currentVisibleRecipients = filtered;
         this.renderRecipientRows(filtered);
     }
 
     async executeSendToChat() {
-        if (!this.stagedSendDocId || !this.selectedRecipient) return;
+        if (this.isSending) return;
+        if (!this.stagedSendDocId || !this.selectedRecipient) {
+            showToast('Please select a recipient first', 'warning');
+            return;
+        }
 
         const recipient = this.selectedRecipient;
         const docId = this.stagedSendDocId;
         const docName = this.stagedSendDocName;
 
+        this.isSending = true;
         if (this.dom.confirmSendBtn) {
             this.dom.confirmSendBtn.disabled = true;
-            this.dom.confirmSendBtn.textContent = 'Sending...';
+            this.dom.confirmSendBtn.innerHTML = '<span class="spinner" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:6px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;"></span>Sending...';
         }
 
-        const comment = (this.dom.commentInput?.value || '').trim() || `Shared: ${docName}`;
+        const comment = (this.dom.commentInput?.value || '').trim() || `Shared workbook: ${docName}`;
 
         const payload = {
             comment: comment,
@@ -1394,28 +1527,36 @@ class DocumentBrowserController {
                 const officeWs = document.getElementById('frankDocumentWorkspace');
                 if (officeWs && officeWs.classList.contains('active')) {
                     if (window.frankOfficeWorkspace) {
+                        window.frankOfficeWorkspace.isDirty = false;
                         window.frankOfficeWorkspace.closeWorkspace();
                     }
                 }
 
                 this.closeBrowser();
+
                 if (window.chatController) {
                     if (recipient.type === 'group') {
-                        window.chatController.openGroupChat({ id: recipient.id, name: recipient.name });
+                        await window.chatController.openGroupChat({ id: recipient.id, name: recipient.name });
                     } else {
-                        window.chatController.openDirectChat({ id: recipient.id, name: recipient.name, username: recipient.name });
+                        await window.chatController.openDirectChat({ id: recipient.id, name: recipient.name, username: recipient.username || recipient.name });
+                    }
+                    if (typeof window.chatController.loadConversations === 'function') {
+                        window.chatController.loadConversations();
                     }
                 }
             } else {
-                throw new Error('Server returned unexpected status');
+                throw new Error((res && res.detail) || 'Server returned unexpected status');
             }
         } catch (err) {
             console.error('Failed to send document to chat:', err);
-            showToast(err.message || 'Unable to send document to chat', 'error');
+            const errMsg = err.message || (err.detail ? (typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail)) : 'Unable to send document to chat');
+            showToast(errMsg, 'error');
             if (this.dom.confirmSendBtn) {
                 this.dom.confirmSendBtn.disabled = false;
                 this.dom.confirmSendBtn.textContent = 'Send Document';
             }
+        } finally {
+            this.isSending = false;
         }
     }
 }

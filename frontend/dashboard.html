@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="sandstone">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -25,9 +25,10 @@
     <link rel="stylesheet" href="css/chat.css">
     <link rel="stylesheet" href="css/smart.css">
     <link rel="stylesheet" href="css/office_workspace.css">
+    <link rel="stylesheet" href="css/doc_viewer.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
-<body>
+<body data-theme="sandstone">
     <!-- Custom Desktop Cursor (Miniature FRANK F) -->
 
     <!-- Application Loading Screen with Official FRANK Brand Icon & Instant Fade-out (Sections 11 & 12) -->
@@ -58,18 +59,193 @@
         <!-- WebSocket Reconnection & Status Banner -->
         <div class="connection-banner" id="connectionBanner" style="display:none;"></div>
 
-        <!-- ================= 1. LEFT SIDEBAR (260px) ================= -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-brand">
-                <a href="index.html" class="brand-text" title="FRANK — Think">
-                    <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" class="brand-logo-img" style="width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;">
+        <!-- ================= TOP HEADER (Desktop & Mobile) ================= -->
+        <header class="app-top-header" id="appTopHeader">
+            <!-- Left: Hamburger Menu & FRANK Think Branding & PRO Badge -->
+            <div class="top-header-left">
+                <button type="button" class="btn btn-ghost btn-icon app-hamburger-btn" id="openSidebarBtn" aria-label="Toggle navigation drawer" title="Menu">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <a href="index.html" class="top-header-brand" id="topHeaderBrand" title="FRANK — Think">
+                    <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" class="brand-logo-img" width="28" height="28" style="border-radius: 8px; flex-shrink: 0;">
                     <div class="brand-title-wrap">
                         <span class="brand-title-text">FRANK</span>
                         <span class="brand-tagline-text">Think</span>
                     </div>
                 </a>
-                <span class="brand-badge">PRO</span>
+                <span class="brand-badge pro-badge">PRO</span>
             </div>
+
+            <!-- Center: Wide Conversation & FRANK ID Search Bar -->
+            <div class="top-header-center">
+                <div class="top-header-search-wrap">
+                    <div class="top-header-search">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); flex-shrink: 0;">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="topHeaderSearchInput" placeholder="Search conversations, users, or FRANK ID..." aria-label="Search conversations or FRANK ID">
+                        <button type="button" id="topHeaderClearSearchBtn" class="top-header-clear-btn" style="display:none;" aria-label="Clear search">✕</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Language Selector, Notifications Bell, User Profile Dropdown -->
+            <div class="top-header-right">
+                <!-- Language Selector Dropdown -->
+                <div class="lang-selector-container" id="dashLangSelector">
+                    <button type="button" class="btn btn-ghost lang-btn" id="dashLangDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language" style="padding: 5px 10px; font-size: 13px; min-height: 32px;">
+                        <svg class="lang-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                        <span class="current-lang-label">English</span>
+                        <svg class="chevron-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="lang-dropdown-menu" id="dashLangDropdownMenu" role="menu" aria-label="Select Language">
+                        <button type="button" class="lang-option active" data-lang="en" role="menuitem">English</button>
+                        <button type="button" class="lang-option" data-lang="ta" role="menuitem">தமிழ்</button>
+                        <button type="button" class="lang-option" data-lang="hi" role="menuitem">हिन्दी</button>
+                    </div>
+                </div>
+
+                <!-- Notification Bell Button -->
+                <button type="button" class="btn btn-ghost btn-icon top-header-notification-btn" id="topHeaderNotificationBtn" aria-label="Notifications" title="Notifications">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                </button>
+
+                <!-- Desktop Profile Button with dropdown -->
+                <div class="desktop-profile-btn-wrap" id="desktopProfileBtnWrap" style="position: relative;">
+                    <button type="button" class="btn btn-ghost desktop-profile-trigger" id="desktopProfileBtn" aria-label="Open user menu" title="User Profile" aria-haspopup="true" aria-expanded="false">
+                        <div class="avatar avatar-sm" id="desktopHeaderAvatar" style="width: 32px; height: 32px; font-size: 12px; font-weight: 700; cursor: pointer;">
+                            <span id="desktopHeaderInitials">CU</span>
+                        </div>
+                        <div class="top-header-user-meta">
+                            <span class="top-header-user-name" id="topHeaderUserName">Loading...</span>
+                            <span class="top-header-user-status" id="topHeaderUserStatus"><span class="status-dot-sm online" id="topHeaderStatusDot"></span><span id="topHeaderStatusLabel">Online</span></span>
+                        </div>
+                        <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <!-- Desktop Profile Dropdown Menu -->
+                    <div class="dropdown-menu desktop-profile-dropdown" id="desktopProfileDropdown" role="menu" aria-label="User Menu">
+                        <div class="dropdown-user-header" style="padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+                            <div class="avatar avatar-sm menu-user-avatar" id="desktopDropdownAvatar" style="width: 36px; height: 36px; font-size: 13px; font-weight: 700; flex-shrink: 0;">
+                                <span id="desktopDropdownInitials">?</span>
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div class="menu-user-name" id="desktopDropdownName" style="font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Loading...</div>
+                                <div class="menu-user-status" style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                    <span class="menu-user-status-dot" id="desktopDropdownStatusDot" style="width: 6px; height: 6px; border-radius: 50%; background: var(--success, #10B981); display: inline-block;"></span>
+                                    <span class="menu-user-status-label" id="desktopDropdownStatusLabel">Online</span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 3px;">
+                                    <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); font-family: monospace;">
+                                        FRANK ID: <span id="desktopDropdownFrankId" style="font-weight: 800; color: var(--accent-cyan); letter-spacing: 0.5px;">------</span>
+                                    </div>
+                                    <button type="button" class="btn-copy-frank-id menu-copy-btn" id="copyDesktopMenuFrankIdBtn" aria-label="Copy FRANK ID" title="Copy FRANK ID" style="padding: 2px; min-width: 20px; min-height: 20px; background: transparent; border: none; cursor: pointer; color: var(--text-muted);">
+                                        <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                        </svg>
+                                        <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none; color: var(--success, #10B981);">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Tools Section -->
+                        <button type="button" class="dropdown-item" id="desktopDropdownNewChatBtn" data-open-modal="newChatModal">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <span data-i18n="chat.newChat">New Chat</span>
+                        </button>
+                        <button type="button" class="dropdown-item" id="desktopDropdownNewGroupBtn" data-open-modal="createGroupModal">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            <span data-i18n="chat.newGroup">New Group</span>
+                        </button>
+                        <button type="button" class="dropdown-item" id="desktopDropdownInviteBtn" data-open-modal="invitePeopleModal">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                            <span data-i18n="chat.inviteViaLink">Invite Via Link</span>
+                        </button>
+                        <div class="dropdown-divider"></div>
+
+                        <!-- Navigation & Settings -->
+                        <a href="profile.html" class="dropdown-item" id="desktopDropdownProfileLink">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            <span data-i18n="settings.profile">Profile</span>
+                        </a>
+                        <a href="settings.html" class="dropdown-item" id="desktopDropdownSettingsLink">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            <span data-i18n="settings.title">Settings</span>
+                        </a>
+                        <a href="settings.html?tab=privacy" class="dropdown-item" id="desktopDropdownPrivacyLink">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            <span data-i18n="settings.privacy">Privacy &amp; Security</span>
+                        </a>
+                        <a href="settings.html?tab=help" class="dropdown-item" id="desktopDropdownHelpLink">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            <span data-i18n="footer.contact">Contact Support</span>
+                        </a>
+                        <a href="settings.html?tab=notifications" class="dropdown-item" id="desktopDropdownNotificationsLink">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                            <span>Notifications</span>
+                        </a>
+                        <a href="settings.html?tab=appearance" class="dropdown-item" id="desktopDropdownAppearanceLink">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 0 0 20v-20z"></path></svg>
+                            <span>Appearance</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+
+                        <!-- Theme Toggle -->
+                        <button type="button" class="dropdown-item" id="desktopThemeToggleBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor"></path></svg>
+                            <span>Theme Toggle</span>
+                        </button>
+                        <div class="dropdown-divider"></div>
+
+                        <!-- Logout -->
+                        <button type="button" class="dropdown-item danger" id="desktopDropdownLogoutBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                            <span data-i18n="settings.logout">Log Out</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Body Layout below header -->
+        <div class="chat-main-layout" id="chatMainLayout">
+
+            <!-- ================= 1. LEFT NAVIGATION DRAWER ================= -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header-bar">
+                    <div class="sidebar-header-brand" style="display: flex; align-items: center; gap: 8px;">
+                        <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" class="brand-logo-img" style="width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;">
+                        <div class="brand-title-wrap">
+                            <span class="brand-title-text" style="font-size: 16px; font-weight: 800;">FRANK</span>
+                            <span class="brand-tagline-text" style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Think</span>
+                        </div>
+                        <span class="brand-badge pro-badge" style="font-size: 9px; padding: 1px 6px;">PRO</span>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-icon sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close navigation drawer" title="Close drawer">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
 
             <!-- New Chat Primary Action Button -->
             <button type="button" class="btn btn-primary btn-full sidebar-new-chat-btn" id="newChatModalBtn" data-sidebar-action="sidebarNewChatActionBtn" data-open-modal="newChatModal" style="margin-bottom: var(--space-4); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700;">
@@ -361,145 +537,87 @@
             </div>
         </aside>
 
-        <!-- ================= 2. CONVERSATION / GROUP PANEL (340px) ================= -->
-        <section class="conversation-panel" id="conversationPanel">
-            <!-- Mobile & Desktop Unified Header -->
-            <div class="conversation-header">
-                <!-- Mobile Logo Header (Screen 1) -->
-                <div class="mobile-header-brand" id="mobileHeaderBrand">
-                    <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" class="brand-logo-img" width="28" height="28" style="border-radius: 8px; flex-shrink: 0;">
-                    <div class="brand-title-wrap">
-                        <span class="brand-title-text mobile-brand-title" style="font-size: 17px; font-weight: 900; letter-spacing: 0.5px;">FRANK</span>
-                    </div>
-                </div>
+        <!-- Two-Column Main Chat Workspace (Right of Navigation Drawer) -->
+        <div class="main-chat-workspace" id="mainChatWorkspace">
 
-                <!-- Desktop Chat List Header Title -->
-                <h1 class="conversation-header-title desktop-header-title" id="desktopHeaderTitle" data-i18n="chat.chats">Chats</h1>
+            <!-- ================= 2. CONVERSATION / GROUP PANEL (360px) ================= -->
+            <section class="conversation-panel" id="conversationPanel">
+                <!-- Unified Header for Conversation List -->
+                <div class="conversation-header">
+                    <!-- Desktop Chat List Header Title -->
+                    <h1 class="conversation-header-title desktop-header-title" id="desktopHeaderTitle" data-i18n="chat.chats">Chats</h1>
 
-                <div class="conversation-header-actions">
-                    <!-- Language Selector Dropdown (PRIMARY - top header only) -->
-                    <div class="lang-selector-container" id="dashLangSelector">
-                        <button type="button" class="btn btn-ghost lang-btn" id="dashLangDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language" style="padding: 5px 10px; font-size: 13px; min-height: 32px;">
-                            <svg class="lang-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="2" y1="12" x2="22" y2="12"></line>
-                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                            </svg>
-                            <span class="current-lang-label">English</span>
-                            <svg class="chevron-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <polyline points="6 9 12 15 18 9"></polyline>
+                    <div class="conversation-header-actions">
+                        <!-- Edit Document Action Button -->
+                        <button type="button" class="btn btn-ghost btn-icon" id="chatsHeaderEditDocBtn" title="Edit Document" aria-label="Edit Document">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 22H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2h7l5 5v3.5"></path>
+                                <polyline points="13 2 13 7 18 7"></polyline>
+                                <path d="M14 19l6.5-6.5a1.414 1.414 0 0 1 2 2L16 21l-3 1 1-3z"></path>
                             </svg>
                         </button>
-                        <div class="lang-dropdown-menu" id="dashLangDropdownMenu" role="menu" aria-label="Select Language">
-                            <button type="button" class="lang-option active" data-lang="en" role="menuitem">English</button>
-                            <button type="button" class="lang-option" data-lang="ta" role="menuitem">தமிழ்</button>
-                            <button type="button" class="lang-option" data-lang="hi" role="menuitem">हिन्दी</button>
-                        </div>
-                    </div>
-
-                    <!-- Desktop Profile Button with dropdown -->
-                    <div class="desktop-profile-btn-wrap" id="desktopProfileBtnWrap" style="position: relative;">
-                        <button type="button" class="btn btn-ghost btn-icon desktop-profile-trigger" id="desktopProfileBtn" aria-label="Open user menu" title="Open user menu" aria-haspopup="true" aria-expanded="false">
-                            <div class="avatar avatar-sm" id="desktopHeaderAvatar" style="width: 30px; height: 30px; font-size: 12px; font-weight: 700; cursor: pointer;">
-                                <span id="desktopHeaderInitials">?</span>
-                            </div>
+                        <!-- New Chat Action Button -->
+                        <button type="button" class="btn btn-ghost btn-icon" id="chatsHeaderNewBtn" data-open-modal="newChatModal" title="New Chat" aria-label="New Chat">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
                         </button>
-                        <!-- Desktop Profile Dropdown Menu -->
-                        <div class="dropdown-menu desktop-profile-dropdown" id="desktopProfileDropdown" role="menu" aria-label="User Menu">
-                            <!-- User Info Header -->
-                            <div class="dropdown-user-header" style="padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
-                                <div class="avatar avatar-sm menu-user-avatar" id="desktopDropdownAvatar" style="width: 36px; height: 36px; font-size: 13px; font-weight: 700; flex-shrink: 0;">
-                                    <span id="desktopDropdownInitials">?</span>
+                        <!-- Filter Action Button & Popover -->
+                        <div class="chats-filter-btn-wrap" id="chatsFilterBtnWrap" style="position: relative; display: inline-flex;">
+                            <button type="button" class="btn btn-ghost btn-icon" id="chatsHeaderFilterBtn" title="Filter Conversations" aria-label="Filter" aria-haspopup="true" aria-expanded="false">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                                </svg>
+                                <span class="filter-active-dot" id="filterActiveDot" style="display: none;"></span>
+                            </button>
+                            <!-- Filter Popover Panel -->
+                            <div class="chats-filter-popover" id="chatsFilterPopover" role="menu" aria-label="Filter Chats" style="display: none;">
+                                <div class="chats-filter-popover-header">
+                                    <span class="chats-filter-popover-title">Filter Conversations</span>
+                                    <button type="button" class="btn-clear-filter" id="clearChatsFilterBtn" title="Reset filter">Reset</button>
                                 </div>
-                                <div style="flex: 1; min-width: 0;">
-                                    <div class="menu-user-name" id="desktopDropdownName" style="font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Loading...</div>
-                                    <div class="menu-user-status" style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                                        <span class="menu-user-status-dot" id="desktopDropdownStatusDot" style="width: 6px; height: 6px; border-radius: 50%; background: var(--success, #10B981); display: inline-block;"></span>
-                                        <span class="menu-user-status-label" id="desktopDropdownStatusLabel">Online</span>
-                                    </div>
-                                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 3px;">
-                                        <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); font-family: monospace;">
-                                            FRANK ID: <span id="desktopDropdownFrankId" style="font-weight: 800; color: var(--accent-cyan); letter-spacing: 0.5px;">------</span>
-                                        </div>
-                                        <button type="button" class="btn-copy-frank-id menu-copy-btn" id="copyDesktopMenuFrankIdBtn" aria-label="Copy FRANK ID" title="Copy FRANK ID" style="padding: 2px; min-width: 20px; min-height: 20px; background: transparent; border: none; cursor: pointer; color: var(--text-muted);">
-                                            <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                            </svg>
-                                            <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none; color: var(--success, #10B981);">
-                                                <polyline points="20 6 9 17 4 12"></polyline>
-                                            </svg>
-                                        </button>
-                                    </div>
+                                <div class="chats-filter-options">
+                                    <button type="button" class="filter-popover-item active" data-filter="all" role="menuitem">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                        <span class="filter-item-label" data-i18n="chat.allConversations">All Conversations</span>
+                                        <span class="filter-check-indicator">✓</span>
+                                    </button>
+                                    <button type="button" class="filter-popover-item" data-filter="unread" role="menuitem">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                        <span class="filter-item-label" data-i18n="chat.filterUnread">Unread</span>
+                                        <span class="filter-check-indicator">✓</span>
+                                    </button>
+                                    <button type="button" class="filter-popover-item" data-filter="groups" role="menuitem">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                        <span class="filter-item-label" data-i18n="chat.groups">Groups</span>
+                                        <span class="filter-check-indicator">✓</span>
+                                    </button>
+                                    <button type="button" class="filter-popover-item" data-filter="direct" role="menuitem">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                        <span class="filter-item-label" data-i18n="chat.directMessages">Direct Messages</span>
+                                        <span class="filter-check-indicator">✓</span>
+                                    </button>
+                                    <button type="button" class="filter-popover-item" data-filter="favorites" role="menuitem">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                        <span class="filter-item-label" data-i18n="chat.favorites">Favorites</span>
+                                        <span class="filter-check-indicator">✓</span>
+                                    </button>
+                                    <button type="button" class="filter-popover-item" data-filter="attachments" role="menuitem">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                                        <span class="filter-item-label" data-i18n="chat.filterAttachments">With Attachments</span>
+                                        <span class="filter-check-indicator">✓</span>
+                                    </button>
+                                    <button type="button" class="filter-popover-item" data-filter="archived" role="menuitem">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+                                        <span class="filter-item-label" data-i18n="chat.archived">Archived</span>
+                                        <span class="filter-check-indicator">✓</span>
+                                    </button>
                                 </div>
                             </div>
-                            <!-- Tools Section -->
-                            <button type="button" class="dropdown-item" id="desktopDropdownNewChatBtn" data-open-modal="newChatModal">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                                <span data-i18n="chat.newChat">New Chat</span>
-                            </button>
-                            <button type="button" class="dropdown-item" id="desktopDropdownNewGroupBtn" data-open-modal="createGroupModal">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                                <span data-i18n="chat.newGroup">New Group</span>
-                            </button>
-                            <button type="button" class="dropdown-item" id="desktopDropdownInviteBtn" data-open-modal="invitePeopleModal">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                                <span data-i18n="chat.inviteViaLink">Invite Via Link</span>
-                            </button>
-                            <div class="dropdown-divider"></div>
-
-                            <!-- Navigation & Settings -->
-                            <a href="profile.html" class="dropdown-item" id="desktopDropdownProfileLink">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                                <span data-i18n="settings.profile">Profile</span>
-                            </a>
-                            <a href="settings.html" class="dropdown-item" id="desktopDropdownSettingsLink">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                                <span data-i18n="settings.title">Settings</span>
-                            </a>
-                            <a href="settings.html?tab=privacy" class="dropdown-item" id="desktopDropdownPrivacyLink">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                                <span data-i18n="settings.privacy">Privacy &amp; Security</span>
-                            </a>
-                            <a href="settings.html?tab=help" class="dropdown-item" id="desktopDropdownHelpLink">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                <span data-i18n="footer.contact">Contact Support</span>
-                            </a>
-                            <a href="settings.html?tab=notifications" class="dropdown-item" id="desktopDropdownNotificationsLink">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                                <span>Notifications</span>
-                            </a>
-                            <a href="settings.html?tab=appearance" class="dropdown-item" id="desktopDropdownAppearanceLink">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 0 0 20v-20z"></path></svg>
-                                <span>Appearance</span>
-                            </a>
-                            <div class="dropdown-divider"></div>
-
-                            <!-- Theme Toggle -->
-                            <button type="button" class="dropdown-item" id="desktopThemeToggleBtn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor"></path></svg>
-                                <span>Theme Toggle</span>
-                            </button>
-                            <div class="dropdown-divider"></div>
-
-                            <!-- Logout -->
-                            <button type="button" class="dropdown-item danger" id="desktopDropdownLogoutBtn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                                <span data-i18n="settings.logout">Log Out</span>
-                            </button>
                         </div>
                     </div>
-
-                    <!-- Mobile Menu / More Drawer Trigger (Screen 1) -->
-                    <button type="button" class="btn btn-ghost btn-icon mobile-menu-btn" id="openSidebarBtn" aria-label="Open menu" title="Open menu">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="1.5"></circle>
-                            <circle cx="12" cy="5" r="1.5"></circle>
-                            <circle cx="12" cy="19" r="1.5"></circle>
-                        </svg>
-                    </button>
                 </div>
-            </div>
 
             <!-- Mobile Tabs (Chats, Groups, Contacts) -->
             <div class="mobile-tabs-container" id="mobileTabsContainer">
@@ -620,8 +738,25 @@
                             <span id="chatPartnerInitials">Q</span>
                             <span class="avatar-status" id="chatPartnerStatusDot"></span>
                         </div>
-                        <div>
-                            <div class="chat-partner-name" id="chatPartnerName">Active Conversation</div>
+                        <div class="chat-partner-meta">
+                            <div class="chat-partner-title-row">
+                                <span class="chat-partner-name" id="chatPartnerName">Active Conversation</span>
+                                <div class="chat-header-frank-id-wrap" id="chatHeaderFrankIdWrap" style="display: none;" title="Click to copy FRANK ID">
+                                    <span class="header-fid-badge" id="chatHeaderFidBadge">
+                                        <span class="header-fid-prefix">ID:</span>
+                                        <span class="header-fid-val" id="chatHeaderFrankId">------</span>
+                                    </span>
+                                    <button type="button" class="btn-copy-fid-header btn-copy-frank-id" id="chatHeaderCopyFidBtn" aria-label="Copy FRANK ID" title="Copy FRANK ID">
+                                        <svg class="copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                        </svg>
+                                        <svg class="check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none; color: var(--success, #10B981);">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                             <div class="chat-partner-presence" id="chatPartnerPresenceText">Online</div>
                         </div>
                     </div>
@@ -733,6 +868,240 @@
                     </svg>
                     <input type="text" id="chatSearchInput" placeholder="Search messages or shared document filenames...">
                     <button type="button" class="btn btn-ghost btn-icon btn-sm" id="closeChatSearchBtn">✕</button>
+                </div>
+
+                <!-- Same-Page In-Chat Document Viewer (Opens within chat between header & composer) -->
+                <div id="inChatDocViewer" class="in-chat-doc-viewer" style="display: none;" role="region" aria-label="In-Chat Document Viewer">
+                    <!-- Top Sandstone Card Header (matches reference screenshots media_1791280951377.png & 361) -->
+                    <div class="in-chat-doc-header" id="inChatDocHeader">
+                        <div class="in-chat-doc-title-group">
+                            <span class="in-chat-doc-type-icon pdf" id="inChatDocTypeIcon">📄</span>
+                            <div class="in-chat-doc-info">
+                                <span class="in-chat-doc-filename" id="inChatDocFilename">Document</span>
+                                <span class="in-chat-doc-meta" id="inChatDocMeta">PDF</span>
+                            </div>
+                        </div>
+                        <div class="in-chat-doc-top-actions">
+                            <button type="button" class="btn btn-secondary btn-sm" id="inChatDocDownloadBtn" title="Download original file" data-i18n-title="office.downloadOriginal">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                <span data-i18n="office.download">Download</span>
+                            </button>
+                            <button type="button" class="in-chat-doc-close-btn" id="inChatDocCloseBtn" aria-label="Close viewer" title="Close document" data-i18n-title="common.close" data-i18n-aria-label="common.close">✕</button>
+                        </div>
+                    </div>
+
+                    <!-- Viewer Toolbar (Dark Charcoal #323639 matching media_1791280951377.png) -->
+                    <div class="in-chat-doc-toolbar" id="inChatDocToolbar">
+                        <div class="toolbar-group toolbar-left">
+                            <button type="button" class="toolbar-btn" id="docToggleThumbsBtn" title="Toggle Thumbnail Panel" aria-label="Toggle Thumbnails" data-i18n-title="office.toggleThumbs" data-i18n-aria-label="office.toggleThumbs">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                            </button>
+                            <span class="toolbar-doc-title" id="toolbarDocTitle">Document</span>
+                        </div>
+
+                        <div class="toolbar-group toolbar-center">
+                            <!-- Prev / Next & Page / Slide Counter -->
+                            <button type="button" class="toolbar-btn" id="docPrevBtn" title="Previous (Page/Slide)" aria-label="Previous" data-i18n-title="office.prev" data-i18n-aria-label="office.prev">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            </button>
+                            <div class="toolbar-page-box" id="docPageBox">
+                                <span id="docPagePrefix" style="display:none;margin-right:2px;" data-i18n="office.slide">Slide</span>
+                                <input type="number" id="docPageInput" value="1" min="1" max="1" aria-label="Current Page">
+                                <span class="toolbar-page-sep">/</span>
+                                <span id="docPageTotal">1</span>
+                            </div>
+                            <button type="button" class="toolbar-btn" id="docNextBtn" title="Next (Page/Slide)" aria-label="Next" data-i18n-title="office.next" data-i18n-aria-label="office.next">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </button>
+
+                            <span class="toolbar-sep"></span>
+
+                            <!-- Zoom Controls -->
+                            <button type="button" class="toolbar-btn" id="docZoomOutBtn" title="Zoom Out" aria-label="Zoom Out" data-i18n-title="office.zoomOut" data-i18n-aria-label="office.zoomOut">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            </button>
+                            <span class="toolbar-zoom-label" id="docZoomLevel" title="Current Zoom">100%</span>
+                            <button type="button" class="toolbar-btn" id="docZoomInBtn" title="Zoom In" aria-label="Zoom In" data-i18n-title="office.zoomIn" data-i18n-aria-label="office.zoomIn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            </button>
+                            <button type="button" class="toolbar-btn" id="docZoomResetBtn" title="Fit / Reset Zoom" aria-label="Reset Zoom" data-i18n-title="office.resetZoom" data-i18n-aria-label="office.resetZoom">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+                            </button>
+                        </div>
+
+                        <div class="toolbar-group toolbar-right">
+                            <!-- Search Toggle (Desktop) -->
+                            <button type="button" class="toolbar-btn doc-desktop-tool-btn" id="docSearchToggleBtn" title="Search Text in Document" aria-label="Search" data-i18n-title="office.searchText" data-i18n-aria-label="office.searchText">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            </button>
+
+                            <!-- Download Original File (Desktop) -->
+                            <button type="button" class="toolbar-btn doc-desktop-tool-btn" id="docDownloadToolBtn" title="Download Original File" aria-label="Download" data-i18n-title="office.downloadOriginal" data-i18n-aria-label="office.downloadOriginal">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            </button>
+
+                            <!-- Print Document (Desktop) -->
+                            <button type="button" class="toolbar-btn doc-desktop-tool-btn" id="docPrintToolBtn" title="Print Document" aria-label="Print" data-i18n-title="office.print" data-i18n-aria-label="office.print">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                            </button>
+
+                            <!-- Dedicated Presentation Slideshow Mode Toggle (for PPTX) -->
+                            <button type="button" class="toolbar-btn doc-present-tool-btn" id="docPresentBtn" title="Start Slideshow (Present from current slide)" aria-label="Start Slideshow" data-i18n-title="office.startSlideshow" data-i18n-aria-label="office.startSlideshow" style="display: none;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                                <span class="present-btn-text" data-i18n="office.present">Present</span>
+                            </button>
+
+                            <!-- Visible Exit Fullscreen Pill (displayed in fullscreen mode) -->
+                            <button type="button" class="doc-exit-fullscreen-pill" id="docExitFullscreenPill" title="Exit Full Screen (Esc)" aria-label="Exit Full Screen" data-i18n-title="office.exitFullScreen" data-i18n-aria-label="office.exitFullScreen">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+                                </svg>
+                                <span data-i18n="office.exitFullScreen">Exit Full Screen</span>
+                            </button>
+
+                            <!-- Fullscreen Mode Toggle -->
+                            <button type="button" class="toolbar-btn" id="docFullscreenToolBtn" title="Full Screen" aria-label="Full Screen" data-i18n-title="office.fullScreen" data-i18n-aria-label="office.fullScreen">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                            </button>
+
+                            <!-- Responsive Overflow Menu Button (for narrower / mobile screens) -->
+                            <div class="doc-toolbar-overflow-wrap" id="docToolbarOverflowWrap" style="position: relative; display: inline-flex;">
+                                <button type="button" class="toolbar-btn doc-overflow-btn" id="docMoreActionsBtn" title="More Options" aria-label="More Options" aria-haspopup="true" aria-expanded="false" data-i18n-title="office.moreOptions" data-i18n-aria-label="office.moreOptions">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="1.5"></circle>
+                                        <circle cx="12" cy="5" r="1.5"></circle>
+                                        <circle cx="12" cy="19" r="1.5"></circle>
+                                    </svg>
+                                </button>
+                                <div class="doc-overflow-dropdown" id="docMoreActionsDropdown" style="display: none;" role="menu" aria-label="Document Options">
+                                    <button type="button" class="doc-overflow-item" id="docOverflowSearchBtn" role="menuitem">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                        <span data-i18n="office.findInDoc">Find in Document</span>
+                                    </button>
+                                    <button type="button" class="doc-overflow-item" id="docOverflowDownloadBtn" role="menuitem">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                        <span data-i18n="office.downloadFile">Download File</span>
+                                    </button>
+                                    <button type="button" class="doc-overflow-item" id="docOverflowPrintBtn" role="menuitem">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                                        <span data-i18n="office.printDoc">Print Document</span>
+                                    </button>
+                                    <button type="button" class="doc-overflow-item" id="docOverflowFitZoomBtn" role="menuitem">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+                                        <span data-i18n="office.resetZoom">Reset / Fit Zoom</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Close Button -->
+                            <button type="button" class="toolbar-btn toolbar-btn-close" id="docToolbarCloseBtn" title="Close Viewer" aria-label="Close" data-i18n-title="common.close" data-i18n-aria-label="common.close">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Search Strip -->
+                    <div class="in-chat-doc-search-bar" id="docSearchBar" style="display: none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" id="docSearchInput" placeholder="Find in document..." aria-label="Find text" data-i18n-placeholder="office.findInDocPlaceholder">
+                        <span class="doc-search-count" id="docSearchCount">0 / 0</span>
+                        <button type="button" class="toolbar-btn btn-sm" id="docSearchPrevBtn" title="Previous Match">▲</button>
+                        <button type="button" class="toolbar-btn btn-sm" id="docSearchNextBtn" title="Next Match">▼</button>
+                        <button type="button" class="toolbar-btn btn-sm" id="docSearchCloseBtn" title="Close Search">✕</button>
+                    </div>
+
+                    <!-- Excel Formula Bar -->
+                    <div class="in-chat-doc-formula-bar" id="docFormulaBar" style="display: none;">
+                        <span class="formula-cell-coord" id="docActiveCellCoord">A1</span>
+                        <span class="formula-fx">fx</span>
+                        <input type="text" class="formula-input" id="docFormulaInput" placeholder="" readonly>
+                    </div>
+
+                    <!-- Main Split Body -->
+                    <div class="in-chat-doc-body" id="inChatDocBody">
+                        <!-- Left Thumbnail / Outline Panel -->
+                        <aside class="in-chat-doc-thumbnails-panel" id="docThumbnailsPanel">
+                            <div class="thumbnails-header">
+                                <span id="docThumbnailsTitle" data-i18n="office.thumbnails">Thumbnails</span>
+                                <button type="button" class="thumbnails-close-btn" id="docCloseThumbsPanelBtn" title="Collapse panel">◀</button>
+                            </div>
+                            <div class="thumbnails-list" id="docThumbnailsList">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </aside>
+
+                        <!-- Main Document Viewport -->
+                        <main class="in-chat-doc-viewport" id="docViewport">
+                            <div class="doc-loading-overlay" id="docLoadingOverlay">
+                                <div class="spinner"></div>
+                                <div class="doc-loading-text" id="docLoadingText" data-i18n="office.loadingDoc">Loading document...</div>
+                            </div>
+                            <div class="doc-content-stage" id="docContentStage">
+                                <!-- Dynamic document pages / spreadsheets / slides -->
+                            </div>
+                        </main>
+                    </div>
+
+                    <!-- Excel Bottom Sheets Strip -->
+                    <div class="in-chat-doc-sheets-strip" id="docSheetsStrip" style="display: none;">
+                        <div class="sheets-nav-btns">
+                            <button type="button" class="sheets-nav-btn" id="docSheetScrollLeftBtn">◀</button>
+                            <button type="button" class="sheets-nav-btn" id="docSheetScrollRightBtn">▶</button>
+                        </div>
+                        <div class="sheets-tabs-container" id="docSheetsTabsContainer">
+                            <!-- Dynamic worksheet tabs -->
+                        </div>
+                    </div>
+
+                    <!-- Dedicated PowerPoint Slideshow Presentation Overlay -->
+                    <div class="doc-slideshow-overlay" id="docSlideshowOverlay" style="display: none;" role="dialog" aria-modal="true" aria-label="Slideshow Presentation Mode">
+                        <div class="doc-slideshow-stage-container" id="docSlideshowStageContainer">
+                            <div class="doc-slideshow-stage" id="docSlideshowStage">
+                                <!-- Active slide dynamically mounted here with native animations & transitions -->
+                            </div>
+                        </div>
+
+                        <!-- Dedicated Solid Opaque Bottom Toolbar -->
+                        <div class="doc-slideshow-toolbar doc-slideshow-hud" id="docSlideshowHud" role="toolbar" aria-label="Presentation Controls">
+                            <button type="button" class="slideshow-hud-btn" id="docSlideshowStartBtn" title="First Slide (Home)" aria-label="First Slide">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                                    <line x1="5" y1="19" x2="5" y2="5"></line>
+                                </svg>
+                            </button>
+                            <button type="button" class="slideshow-hud-btn" id="docSlideshowPrevBtn" title="Previous Slide (← / ↑)" aria-label="Previous Slide">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+                            <span class="slideshow-hud-counter" id="docSlideshowCounter">1 / 1</span>
+                            <button type="button" class="slideshow-hud-btn" id="docSlideshowNextBtn" title="Next Slide (→ / Space)" aria-label="Next Slide">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+                            <span class="slideshow-hud-sep"></span>
+                            <button type="button" class="slideshow-hud-btn" id="docSlideshowPlayBtn" title="Play / Pause Auto-Play" aria-label="Play / Pause Auto-Play">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" id="docSlideshowPlayIcon">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                            </button>
+                            <button type="button" class="slideshow-hud-btn" id="docSlideshowFsBtn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" id="docSlideshowFsIcon">
+                                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                                </svg>
+                            </button>
+                            <button type="button" class="slideshow-hud-btn slideshow-hud-exit" id="docSlideshowExitBtn" title="Exit Presentation (Esc)" aria-label="Exit Presentation">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                                <span>Exit</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Scrollable Messages Area -->
@@ -999,12 +1368,31 @@
             </div>
 
             <div class="drawer-content">
-                <div class="avatar avatar-xl" id="drawerAvatar" style="margin-bottom: var(--space-3);">
+                <div class="avatar avatar-xl" id="drawerAvatar" style="margin-bottom: var(--space-3); flex-shrink: 0;">
                     <span id="drawerInitials">Q</span>
                 </div>
-                <h3 id="drawerName" style="font-size: 18px; font-weight: 800; color: var(--text);">Name</h3>
-                <div id="drawerSubtitle" style="font-size: 13px; color: var(--text-muted); margin-bottom: var(--space-3);">@username</div>
-                <p class="drawer-bio" id="drawerBio">Bio or group description goes here...</p>
+                <h3 id="drawerName" style="font-size: 17px; font-weight: 800; color: var(--text); margin: 0 0 4px 0; word-break: break-word; line-height: 1.3; max-width: 100%; text-align: center;">Name</h3>
+                <div id="drawerSubtitle" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4; text-align: center;">@username</div>
+
+                <!-- Dedicated Drawer FRANK ID Box -->
+                <div class="drawer-frank-id-box" id="drawerFrankIdBox" style="display: none;">
+                    <div class="drawer-fid-content">
+                        <span class="drawer-fid-label">FRANK ID</span>
+                        <span class="drawer-fid-code" id="drawerFrankIdVal">------</span>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm btn-copy-fid btn-copy-frank-id" id="drawerCopyFrankIdBtn" aria-label="Copy FRANK ID" title="Copy FRANK ID">
+                        <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <svg class="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none; color: var(--success, #10B981);">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span class="copy-btn-text">Copy</span>
+                    </button>
+                </div>
+
+                <p class="drawer-bio" id="drawerBio" style="font-size: 12px; color: var(--text-secondary); margin: 0 0 14px; line-height: 1.5; word-break: break-word; text-align: center;">Bio or group description goes here...</p>
 
                 <!-- Drawer Tabs: Members & Documents -->
                 <div class="drawer-tabs-bar" id="drawerTabsBar">
@@ -1013,35 +1401,38 @@
                 </div>
 
                 <!-- Members Section -->
-                <div class="drawer-section" id="drawerMembersSection" style="margin-top: 0; padding-top: 0; border-top: none;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <div class="drawer-section" id="drawerMembersSection" style="margin-top: 0; padding-top: 0; border-top: none; width: 100%;">
+                    <div class="drawer-section-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; width: 100%;">
                         <span class="drawer-section-title" style="margin-bottom: 0;">Group Members</span>
-                        <button type="button" class="btn btn-ghost btn-sm" id="drawerAddMemberActionBtn" onclick="if(window.groupsModule && window.chatController) window.groupsModule.openAddMembersModal(window.chatController.activeId);">+ Add</button>
+                        <button type="button" class="btn btn-secondary btn-xs" id="drawerAddMemberActionBtn" style="font-weight: 700; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Add
+                        </button>
                     </div>
-                    <div id="drawerMembersList" style="max-height: 220px; overflow-y: auto;">
+                    <div id="drawerMembersList" class="drawer-members-list" style="width: 100%;">
                         <!-- Injected dynamically -->
                     </div>
                 </div>
 
                 <!-- Shared Documents Section -->
-                <div class="drawer-section" id="drawerDocsSection" style="display: none; margin-top: 0; padding-top: 0; border-top: none;">
+                <div class="drawer-section" id="drawerDocsSection" style="display: none; margin-top: 0; padding-top: 0; border-top: none; width: 100%;">
                     <div class="drawer-section-title">Shared Documents</div>
-                    <div id="drawerDocsList" style="max-height: 260px; overflow-y: auto;">
+                    <div id="drawerDocsList" style="width: 100%;">
                         <!-- Injected dynamically -->
                     </div>
                 </div>
 
                 <!-- Security & Encryption -->
-                <div class="drawer-section">
+                <div class="drawer-section" id="drawerSecuritySection" style="width: 100%;">
                     <div class="drawer-section-title">Security &amp; Encryption</div>
-                    <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-secondary);">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                        Protected WebSocket Session
+                    <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-secondary); padding: 8px 10px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-md);">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--success, #10B981)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        <span style="font-weight: 600;">Protected WebSocket Session</span>
                     </div>
                 </div>
 
-                <!-- Danger Action: Leave Group -->
-                <div class="drawer-section" id="drawerLeaveGroupSection">
+                <!-- Danger Action: Delete or Leave Group -->
+                <div class="drawer-section" id="drawerLeaveGroupSection" style="width: 100%;">
                     <button type="button" class="btn btn-danger btn-full btn-sm" id="drawerLeaveGroupBtn" style="display:none;" onclick="if(window.groupsModule && window.chatController) window.groupsModule.leaveGroup(window.chatController.activeId, window.chatController.activePartner?.name);">
                         Leave Group
                     </button>
@@ -1233,7 +1624,9 @@
                 </div>
             </div>
         </aside>
-    </div>
+        </div> <!-- End main-chat-workspace -->
+    </div> <!-- End chat-main-layout -->
+</div> <!-- End chat-app -->
 
     <!-- ================= MODALS ================= -->
 
@@ -1554,6 +1947,15 @@
                 </button>
             </div>
             <div class="doc-send-modal-body">
+                <div class="doc-send-document-card" id="docSendDocCard">
+                    <div id="docSendDocIcon" class="doc-send-doc-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+                    </div>
+                    <div class="doc-send-doc-details">
+                        <div id="docSendDocName" class="doc-send-doc-name">Document</div>
+                        <div id="docSendDocMeta" class="doc-send-doc-meta">Workbook</div>
+                    </div>
+                </div>
                 <div>
                     <input type="text" class="input input-sm" id="docSendRecipientSearch" placeholder="Search contacts, groups, chats..." style="width:100%;margin-bottom:10px;">
                     <div class="doc-send-recipient-list" id="docSendRecipientList">
@@ -1581,6 +1983,15 @@
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/websocket.js"></script>
+    <!-- In-Chat Document Viewer Engines (Local & Offline Capable) -->
+    <script src="vendor/pdf.min.js"></script>
+    <script src="vendor/jszip.min.js"></script>
+    <script src="vendor/docx-preview.min.js"></script>
+    <script src="vendor/xlsx.full.min.js"></script>
+    <script src="vendor/purify.min.js"></script>
+    <script src="vendor/marked.min.js"></script>
+    <script src="js/in_chat_doc_viewer.js"></script>
+    <script src="js/office_sheets_engine.js"></script>
     <script src="js/office_workspace.js"></script>
     <script src="js/documents.js"></script>
     <script src="js/voice.js"></script>

@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, selectinload, joinedload
 from sqlalchemy import or_, and_
 from database import get_db
 import models
@@ -15,6 +15,7 @@ router = APIRouter(prefix="/messages", tags=["Messages"])
 @router.get("/direct/{partner_id}", response_model=List[schemas.MessageResponse])
 async def get_direct_messages(
     partner_id: int,
+    target_language: Optional[str] = None,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -25,6 +26,8 @@ async def get_direct_messages(
 
     # Fetch messages between current_user and partner with reactions and translations eagerly loaded in ONE query
     messages = db.query(models.Message).options(
+        joinedload(models.Message.sender),
+        joinedload(models.Message.document),
         selectinload(models.Message.reactions),
         selectinload(models.Message.translations)
     ).filter(
@@ -50,7 +53,7 @@ async def get_direct_messages(
         db.commit()
 
     # Attach recipient-specific translations
-    await translation_service.attach_translations_to_messages(messages, current_user, db)
+    await translation_service.attach_translations_to_messages(messages, current_user, db, target_language=target_language)
 
     return messages
 
@@ -109,7 +112,18 @@ async def send_message(
             models.GroupMember.group_id == msg_in.group_id,
             models.GroupMember.user_id == current_user.id
         ).first()
-        if not membership:
+        if not membership and group.created_by == current_user.id:
+            membership = models.GroupMember(
+                group_id=msg_in.group_id,
+                user_id=current_user.id,
+                role="owner",
+                joined_at=datetime.now(timezone.utc)
+            )
+            db.add(membership)
+            db.commit()
+        elif not membership and current_user.role == "admin":
+            pass
+        elif not membership:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to send messages in this conversation.")
 
     msg = models.Message(
@@ -212,6 +226,13 @@ async def send_message(
         })
         await manager.broadcast_admin_metrics(db)
     except Exception as e:
+        pass
+
+    try:
+        msg.sender = current_user
+        if msg_in.file_id and 'doc' in locals() and doc:
+            msg.document = doc
+    except Exception:
         pass
 
     return msg

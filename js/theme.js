@@ -12,12 +12,12 @@ const theme = {
     },
 
     normalize(choice) {
-        if (!choice) return this.THEMES.MONOCHROME;
+        if (!choice) return this.THEMES.SANDSTONE;
         const c = String(choice).toLowerCase().trim();
-        if (c === 'sandstone' || c === 'light') {
-            return this.THEMES.SANDSTONE;
+        if (c === 'monochrome' || c === 'dark') {
+            return this.THEMES.MONOCHROME;
         }
-        return this.THEMES.MONOCHROME;
+        return this.THEMES.SANDSTONE;
     },
 
     init() {
@@ -105,7 +105,7 @@ const theme = {
         // Sandstone icon: warm sun/palette icon
         const sandstoneIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Sandstone Theme"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
 
-        document.querySelectorAll('#themeToggleBtn, #dashboardThemeBtn, #desktopThemeToggleBtn, #sidebarThemeToggleBtn').forEach(btn => {
+        document.querySelectorAll('#themeToggleBtn, #dashboardThemeBtn, #desktopThemeToggleBtn, #sidebarThemeToggleBtn, #adminThemeToggleBtn, #adminSidebarThemeBtn').forEach(btn => {
             const icon = isMonochrome ? sandstoneIcon : monochromeIcon;
             const iconWrap = btn.querySelector('.theme-icon-wrap');
             if (iconWrap) {
@@ -149,7 +149,7 @@ const theme = {
 
         // Global single-point theme click handler
         document.addEventListener('click', (e) => {
-            const btn = e.target.closest('#themeToggleBtn, #dashboardThemeBtn, #desktopThemeToggleBtn, #sidebarThemeToggleBtn');
+            const btn = e.target.closest('#themeToggleBtn, #dashboardThemeBtn, #desktopThemeToggleBtn, #sidebarThemeToggleBtn, #adminThemeToggleBtn, #adminSidebarThemeBtn');
             if (btn) {
                 e.stopPropagation();
                 this.toggle();

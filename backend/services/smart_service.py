@@ -17,6 +17,7 @@ import models
 import schemas
 from services.document_extractor import extract_text_from_file
 from services.gemini_provider import gemini_provider
+from routes.files import verify_document_access
 
 
 # ---------------- RATE LIMITING CACHE ----------------
@@ -654,7 +655,8 @@ class SmartConversationService:
 
     async def _call_gemini_json(self, prompt: str, api_key: str) -> Optional[Dict[str, Any]]:
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            model = (os.getenv("GEMINI_MODEL") or "gemini-3.8-flash").strip()
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
             payload = json.dumps({
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {"temperature": 0.2, "maxOutputTokens": 512}
@@ -1379,16 +1381,81 @@ class SmartConversationService:
             q = db.query(models.Document).filter(or_(*filter_cond))
 
         if message_id:
-            q = q.filter(models.Document.message_id == message_id)
+            target_m = db.query(models.Message).filter(models.Message.id == message_id).first()
+            msg_file_id = target_m.file_id if target_m else -1
+            q = q.filter(
+                or_(
+                    models.Document.message_id == message_id,
+                    models.Document.id == msg_file_id
+                )
+            )
 
         docs = q.order_by(models.Document.id.desc()).all()
 
         user_cache: Dict[int, str] = {}
         file_items = []
         for d in docs:
+            if not verify_document_access(d, current_user, db):
+                continue
+
             if d.uploader_id not in user_cache:
                 u = db.query(models.User).filter(models.User.id == d.uploader_id).first()
                 user_cache[d.uploader_id] = (u.full_name or u.username) if u else "User"
+
+            msg_id = None
+            if d.message_id:
+                # Verify that d.message_id belongs to THIS conversation
+                if conversation_type == "group":
+                    chk = db.query(models.Message.id).filter(
+                        models.Message.id == d.message_id,
+                        models.Message.group_id == conv_id
+                    ).first()
+                else:
+                    if is_self:
+                        chk = db.query(models.Message.id).filter(
+                            models.Message.id == d.message_id,
+                            models.Message.group_id.is_(None),
+                            models.Message.sender_id == current_user.id,
+                            models.Message.recipient_id == current_user.id
+                        ).first()
+                    else:
+                        chk = db.query(models.Message.id).filter(
+                            models.Message.id == d.message_id,
+                            models.Message.group_id.is_(None),
+                            or_(
+                                and_(models.Message.sender_id == current_user.id, models.Message.recipient_id == partner_id),
+                                and_(models.Message.sender_id == partner_id, models.Message.recipient_id == current_user.id)
+                            )
+                        ).first()
+                if chk:
+                    msg_id = chk[0]
+
+            if not msg_id:
+                # Find message referencing this file strictly IN THIS conversation
+                if conversation_type == "group":
+                    rel_m = db.query(models.Message.id).filter(
+                        models.Message.file_id == d.id,
+                        models.Message.group_id == conv_id
+                    ).first()
+                else:
+                    if is_self:
+                        rel_m = db.query(models.Message.id).filter(
+                            models.Message.file_id == d.id,
+                            models.Message.group_id.is_(None),
+                            models.Message.sender_id == current_user.id,
+                            models.Message.recipient_id == current_user.id
+                        ).first()
+                    else:
+                        rel_m = db.query(models.Message.id).filter(
+                            models.Message.file_id == d.id,
+                            models.Message.group_id.is_(None),
+                            or_(
+                                and_(models.Message.sender_id == current_user.id, models.Message.recipient_id == partner_id),
+                                and_(models.Message.sender_id == partner_id, models.Message.recipient_id == current_user.id)
+                            )
+                        ).first()
+                if rel_m:
+                    msg_id = rel_m[0]
 
             file_items.append(schemas.SmartFileItem(
                 id=d.id,
@@ -1397,7 +1464,7 @@ class SmartConversationService:
                 file_type=d.file_type or "document",
                 mime_type=d.mime_type or "application/octet-stream",
                 uploader_name=user_cache[d.uploader_id],
-                message_id=d.message_id,
+                message_id=msg_id,
                 created_at=schemas.format_iso_utc(d.created_at),
                 download_url=f"/api/files/{d.id}/download"
             ))
@@ -1634,7 +1701,8 @@ class SmartConversationService:
         import urllib.request
         import json
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            model = (os.getenv("GEMINI_MODEL") or "gemini-3.8-flash").strip()
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
             prompt_text = (
                 f"Analyze this chat message from {sender_name}: '{content}'.\n"
                 "Return valid JSON ONLY with keys: 'summary' (one line), 'key_takeaway', 'category', 'tone', 'has_action_item' (bool), 'is_question' (bool), 'suggested_reply'."
@@ -1650,7 +1718,7 @@ class SmartConversationService:
                 if text.startswith("```"):
                     text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
                 parsed = json.loads(text)
-                parsed["provider"] = "gemini-1.5-flash"
+                parsed["provider"] = model
                 return parsed
         except Exception:
             return None
@@ -1659,7 +1727,8 @@ class SmartConversationService:
         import urllib.request
         import json
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            model = (os.getenv("GEMINI_MODEL") or "gemini-3.8-flash").strip()
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
             prompt_text = (
                 f"Analyze this document: '{filename}'. Extracted content snippet:\n{doc_text[:3000]}\n"
                 "Return valid JSON ONLY with keys: 'summary', 'classification', 'key_takeaway', 'format', 'size_formatted', 'security_status'."
@@ -1675,7 +1744,7 @@ class SmartConversationService:
                 if text.startswith("```"):
                     text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
                 parsed = json.loads(text)
-                parsed["provider"] = "gemini-1.5-flash"
+                parsed["provider"] = model
                 return parsed
         except Exception:
             return None
@@ -1746,17 +1815,25 @@ class SmartConversationService:
         if not doc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found.")
 
-        # Strict authorization check
-        conv_id, partner_id, is_self = self.resolve_conversation(conversation_id, "group" if doc.group_id else "direct", current_user, db)
-        if doc.group_id:
-            if doc.group_id != conv_id and current_user.role != "admin":
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-        else:
-            if doc.uploader_id not in (current_user.id, partner_id) and current_user.role != "admin":
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        # Strict authorization check using canonical document access validator
+        if not verify_document_access(doc, current_user, db):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to attachment.")
 
-        if message_id and doc.message_id and doc.message_id != message_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment does not belong to specified message.")
+        conv_id, partner_id, is_self = self.resolve_conversation(conversation_id, "group" if doc.group_id else "direct", current_user, db)
+
+        if message_id:
+            msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+            if not msg:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found.")
+            is_belong = (msg.file_id == doc.id) or (doc.message_id == message_id)
+            if not is_belong:
+                # Also check all document IDs associated with this message
+                linked_ids = [d.id for d in db.query(models.Document.id).filter(models.Document.message_id == msg.id).all()]
+                if msg.file_id:
+                    linked_ids.append(msg.file_id)
+                is_belong = doc.id in linked_ids
+            if not is_belong:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment does not belong to specified message.")
 
         filename = doc.original_filename or "Document"
         file_type = doc.file_type or "document"
@@ -1765,9 +1842,13 @@ class SmartConversationService:
         # Attempt to extract text from disk or storage
         extracted_text = ""
         disk_candidates = [
-            Path("uploads") / str(doc.id) / filename,
-            Path("uploads") / filename,
+            Path("backend/uploads") / doc.stored_filename,
+            Path("uploads") / doc.stored_filename,
+            Path(f"backend/uploads/{conv_id}/{doc.stored_filename}"),
+            Path(f"uploads/{conv_id}/{doc.stored_filename}"),
             Path("backend/uploads") / filename,
+            Path("uploads") / filename,
+            Path("uploads") / str(doc.id) / filename,
             Path("uploads") / f"{doc.id}_{filename}"
         ]
         found_disk = None
@@ -1780,8 +1861,24 @@ class SmartConversationService:
             try:
                 ext_info = extract_text_from_file(found_disk, filename, doc.mime_type)
                 extracted_text = ext_info.get("text", "")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Error extracting text from disk file {found_disk}: {e}")
+        elif getattr(doc, "file_data", None):
+            try:
+                import base64
+                import tempfile
+                b_content = base64.b64decode(doc.file_data)
+                with tempfile.NamedTemporaryFile(suffix=f"_{doc.original_filename}", delete=False) as tmp:
+                    tmp.write(b_content)
+                    tmp_path = Path(tmp.name)
+                ext_info = extract_text_from_file(tmp_path, filename, doc.mime_type)
+                extracted_text = ext_info.get("text", "")
+                try:
+                    tmp_path.unlink(missing_ok=True)
+                except Exception:
+                    pass
+            except Exception as e:
+                logger.warning(f"Error extracting document text from db base64 payload: {e}")
 
         gemini_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         analysis = None
@@ -1879,23 +1976,63 @@ class SmartConversationService:
                 doc = db.query(models.Document).filter(models.Document.id == attachment_id).first()
                 if not doc:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
-                if doc.group_id:
-                    is_member = db.query(models.GroupMember).filter(
-                        models.GroupMember.group_id == doc.group_id,
-                        models.GroupMember.user_id == current_user.id
-                    ).first() is not None or current_user.role == "admin"
-                    if not is_member:
-                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to document.")
-                    conv_id = doc.group_id
-                    conversation_type = "group"
-                else:
-                    is_doc_user = (doc.uploader_id == current_user.id or doc.conversation_id == current_user.id) or current_user.role == "admin"
-                    if not is_doc_user:
-                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to document.")
-                    conversation_type = "direct"
-                if message_id and doc.message_id and doc.message_id != message_id:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Attachment does not belong to specified message.")
+                if not verify_document_access(doc, current_user, db):
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to document.")
+                if not conv_id:
+                    if doc.group_id:
+                        conv_id = doc.group_id
+                        conversation_type = "group"
+                    else:
+                        conversation_type = "direct"
+
+                if target_msg:
+                    is_belong = (target_msg.file_id == doc.id) or (doc.message_id == target_msg.id)
+                    if not is_belong:
+                        linked_ids = [d.id for d in db.query(models.Document.id).filter(models.Document.message_id == target_msg.id).all()]
+                        if target_msg.file_id:
+                            linked_ids.append(target_msg.file_id)
+                        is_belong = doc.id in linked_ids
+                    if not is_belong:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Attachment does not belong to specified message.")
+                    # Self-heal bidirectional link if missing
+                    changed = False
+                    if not doc.message_id:
+                        doc.message_id = target_msg.id
+                        changed = True
+                    if not target_msg.file_id:
+                        target_msg.file_id = doc.id
+                        changed = True
+                    if changed:
+                        try:
+                            db.commit()
+                        except Exception:
+                            db.rollback()
                 target_att = doc
+            elif target_msg:
+                # If message is selected without explicit attachment_id, auto-select message's attachment if present
+                if target_msg.file_id:
+                    rel_doc = db.query(models.Document).filter(models.Document.id == target_msg.file_id).first()
+                    if rel_doc and verify_document_access(rel_doc, current_user, db):
+                        target_att = rel_doc
+                if not target_att:
+                    rel_doc = db.query(models.Document).filter(models.Document.message_id == target_msg.id).first()
+                    if rel_doc and verify_document_access(rel_doc, current_user, db):
+                        target_att = rel_doc
+
+            available_attachments = []
+            if target_msg:
+                docs_for_msg = db.query(models.Document).filter(
+                    or_(models.Document.message_id == target_msg.id, models.Document.id == target_msg.file_id)
+                ).all()
+                for d_item in docs_for_msg:
+                    if verify_document_access(d_item, current_user, db):
+                        available_attachments.append({
+                            "id": d_item.id,
+                            "filename": d_item.original_filename,
+                            "file_type": d_item.file_type or "document",
+                            "file_size": d_item.file_size or 0,
+                            "is_selected": (target_att is not None and target_att.id == d_item.id)
+                        })
 
             is_doc_only = (attachment_id is not None and (message_id is None or include_message is False))
             is_msg_only = (message_id is not None and (attachment_id is None or include_document is False))
@@ -2118,6 +2255,7 @@ class SmartConversationService:
                     "size": target_att.file_size,
                     "page_count": doc_info.get("page_count", 1) if doc_info else 1
                 } if target_att else None,
+                "available_attachments": available_attachments,
                 "key_points": key_points,
                 "important_information": important_info if important_info else ([summary_text] if summary_text else []),
                 "summary": {
@@ -2183,7 +2321,7 @@ class SmartConversationService:
         files_list = [
             {
                 "id": str(f.id),
-                "message_id": str(f.id),
+                "message_id": str(f.message_id or "") if f.message_id else "",
                 "filename": f.original_filename,
                 "mime_type": f.mime_type,
                 "size": f.file_size,

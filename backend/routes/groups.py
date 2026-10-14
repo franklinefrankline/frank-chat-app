@@ -12,15 +12,18 @@ router = APIRouter(prefix="/groups", tags=["Groups"])
 
 
 def get_user_role_in_group(group_id: int, user_id: int, db: Session) -> Optional[str]:
+    group = db.query(models.Group).filter(models.Group.id == group_id).first()
+    if group and group.created_by == user_id:
+        return "owner"
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user and user.role == "admin":
+        return "admin"
     mem = db.query(models.GroupMember).filter(
         models.GroupMember.group_id == group_id,
         models.GroupMember.user_id == user_id
     ).first()
     if not mem:
         return None
-    group = db.query(models.Group).filter(models.Group.id == group_id).first()
-    if group and group.created_by == user_id:
-        return "owner"
     return mem.role
 
 
@@ -262,25 +265,46 @@ def delete_group(
 
 
 @router.get("/{group_id}/messages", response_model=List[schemas.MessageResponse])
-def get_group_messages(
+async def get_group_messages(
     group_id: int,
+    target_language: Optional[str] = None,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    group = db.query(models.Group).filter(models.Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
+
     membership = db.query(models.GroupMember).filter(
         models.GroupMember.group_id == group_id,
         models.GroupMember.user_id == current_user.id
     ).first()
-    if not membership:
+    if not membership and group.created_by == current_user.id:
+        membership = models.GroupMember(
+            group_id=group_id,
+            user_id=current_user.id,
+            role="owner",
+            joined_at=datetime.now(timezone.utc)
+        )
+        db.add(membership)
+        db.commit()
+    elif not membership and current_user.role == "admin":
+        pass
+    elif not membership:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group.")
 
     messages = db.query(models.Message).options(
+        joinedload(models.Message.sender),
+        joinedload(models.Message.document),
         selectinload(models.Message.reactions),
         selectinload(models.Message.translations)
     ).filter(
         models.Message.group_id == group_id
     ).order_by(models.Message.created_at.desc()).limit(200).all()
     messages.reverse()
+
+    from services.translation_service import translation_service
+    await translation_service.attach_translations_to_messages(messages, current_user, db, target_language=target_language)
 
     return messages
 
@@ -291,12 +315,27 @@ def get_group_members(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    group = db.query(models.Group).filter(models.Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
+
     membership = db.query(models.GroupMember).filter(
         models.GroupMember.group_id == group_id,
         models.GroupMember.user_id == current_user.id
     ).first()
-    if not membership:
+    if not membership and group.created_by != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group.")
+
+    # Self-heal creator membership if missing
+    if not membership and group.created_by == current_user.id:
+        membership = models.GroupMember(
+            group_id=group_id,
+            user_id=current_user.id,
+            role="owner",
+            joined_at=datetime.now(timezone.utc)
+        )
+        db.add(membership)
+        db.commit()
 
     members = db.query(models.GroupMember).options(
         joinedload(models.GroupMember.user)
@@ -305,19 +344,34 @@ def get_group_members(
 
 
 @router.post("/{group_id}/members", response_model=List[schemas.GroupMemberResponse])
-def add_group_members(
+async def add_group_members(
     group_id: int,
     add_in: schemas.GroupMemberAdd,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    actor_role = get_user_role_in_group(group_id, current_user.id, db)
-    if actor_role not in ["owner", "admin"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owners and admins can add members to this group.")
-
     group = db.query(models.Group).filter(models.Group.id == group_id).first()
     if not group:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
+
+    actor_role = get_user_role_in_group(group_id, current_user.id, db)
+    is_authorized = (actor_role in ["owner", "admin"]) or (group.created_by == current_user.id) or (current_user.role == "admin")
+    if not is_authorized:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owners and admins can add members to this group.")
+
+    # Ensure current owner has membership record if missing
+    owner_mem = db.query(models.GroupMember).filter(
+        models.GroupMember.group_id == group_id,
+        models.GroupMember.user_id == current_user.id
+    ).first()
+    if not owner_mem and group.created_by == current_user.id:
+        owner_mem = models.GroupMember(
+            group_id=group_id,
+            user_id=current_user.id,
+            role="owner",
+            joined_at=datetime.now(timezone.utc)
+        )
+        db.add(owner_mem)
 
     added_names = []
     for uid in add_in.user_ids:
@@ -335,13 +389,14 @@ def add_group_members(
                     joined_at=datetime.now(timezone.utc)
                 )
                 db.add(new_mem)
-                added_names.append(user.full_name)
+                added_names.append(user.full_name or user.username)
 
+    sys_msg = None
     if added_names:
         sys_msg = models.Message(
             sender_id=current_user.id,
             group_id=group_id,
-            content=f"{current_user.full_name} added {', '.join(added_names)} to the group.",
+            content=f"{current_user.full_name or current_user.username} added {', '.join(added_names)} to the group.",
             status="sent",
             created_at=datetime.now(timezone.utc)
         )
@@ -349,7 +404,41 @@ def add_group_members(
 
     db.commit()
 
-    return db.query(models.GroupMember).filter(models.GroupMember.group_id == group_id).all()
+    if added_names:
+        try:
+            from websocket.chat import manager
+            await manager.broadcast_to_group(group_id, {
+                "type": "group_members_updated",
+                "group_id": group_id,
+                "added_users": added_names
+            })
+            if sys_msg:
+                db.refresh(sys_msg)
+                await manager.broadcast_to_group(group_id, {
+                    "type": "message",
+                    "message": {
+                        "id": sys_msg.id,
+                        "message_id": sys_msg.id,
+                        "sender_id": sys_msg.sender_id,
+                        "group_id": sys_msg.group_id,
+                        "content": sys_msg.content,
+                        "message_type": "text",
+                        "status": "sent",
+                        "created_at": schemas.format_iso_utc(sys_msg.created_at),
+                        "sender": {
+                            "id": current_user.id,
+                            "username": current_user.username,
+                            "full_name": current_user.full_name,
+                            "avatar_url": current_user.avatar_url
+                        }
+                    }
+                })
+        except Exception:
+            pass
+
+    return db.query(models.GroupMember).options(
+        joinedload(models.GroupMember.user)
+    ).filter(models.GroupMember.group_id == group_id).all()
 
 
 @router.patch("/{group_id}/members/{user_id}/role", response_model=schemas.GroupMemberResponse)

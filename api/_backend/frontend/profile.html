@@ -27,7 +27,7 @@
 
     <!-- Minimal App Header -->
     <header style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-8); border-bottom: 1px solid var(--border); background: var(--surface);">
-        <a href="dashboard.html" class="btn btn-ghost" style="font-weight: 600;">
+        <a href="dashboard.html" class="btn btn-ghost" style="font-weight: 600;" data-i18n="profile.backToMessages">
             ← Back to Messages
         </a>
         <a href="dashboard.html" class="brand-link" style="color: var(--text); display: flex; align-items: center; gap: 8px;">
@@ -70,7 +70,7 @@
                         <span class="avatar-status online" id="profileStatusDot"></span>
                     </div>
                 </div>
-                <button type="button" class="btn btn-primary" id="toggleEditProfileBtn">
+                <button type="button" class="btn btn-primary" id="toggleEditProfileBtn" data-i18n="profile.editProfile">
                     Edit Profile
                 </button>
             </div>
@@ -82,12 +82,12 @@
                 <!-- Permanent 6-Character FRANK ID Card -->
                 <div class="frank-id-card">
                     <div>
-                        <div class="frank-id-card-title">
+                        <div class="frank-id-card-title" data-i18n="profile.permanentFrankId">
                             Permanent FRANK ID
                         </div>
                         <div style="display: flex; align-items: baseline; gap: 8px;">
                             <span id="profileFrankId" class="frank-id-card-number">------</span>
-                            <span style="font-size: 11px; color: var(--text-muted);">(Permanent &amp; Uneditable)</span>
+                            <span style="font-size: 11px; color: var(--text-muted);" data-i18n="profile.uneditableNotice">(Permanent &amp; Uneditable)</span>
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px;">
@@ -99,9 +99,9 @@
                             <svg class="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none; color: var(--success, #10B981);">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
-                            <span class="copy-btn-text">Copy</span>
+                            <span class="copy-btn-text" data-i18n="profile.copy">Copy</span>
                         </button>
-                        <button type="button" class="btn btn-primary btn-sm" id="shareFrankIdBtn" title="Share FRANK ID">
+                        <button type="button" class="btn btn-primary btn-sm" id="shareFrankIdBtn" title="Share FRANK ID" data-i18n="profile.shareFrankId">
                             🚀 Share FRANK ID
                         </button>
                     </div>
@@ -112,23 +112,63 @@
 
                 <!-- Edit Profile Inline Form -->
                 <div id="editProfileSection" style="display: none; background: var(--surface-elevated); padding: var(--space-6); border-radius: var(--radius-lg); margin-bottom: var(--space-6); border: 1px solid var(--border);">
-                    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: var(--space-4);">Edit Profile Details</h3>
+                    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: var(--space-4);" data-i18n="profile.editProfileDetails">Edit Profile Details</h3>
+
+                    <!-- Profile Photo Management Block -->
+                    <div class="profile-photo-edit-block" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
+                        <label class="form-label" style="font-weight: 700; margin-bottom: 10px;" data-i18n="profile.profilePhoto">Profile Photo</label>
+                        
+                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                            <!-- Live Preview Avatar -->
+                            <div class="avatar avatar-lg" id="profilePhotoPreviewWrap" style="width: 72px; height: 72px; font-size: 24px; font-weight: 700; border-radius: 50%; border: 2px solid var(--border); overflow: hidden; flex-shrink: 0; background: var(--surface-elevated); display: flex; align-items: center; justify-content: center;">
+                                <div id="profilePhotoPreviewInner" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                                    <span id="previewInitials">CU</span>
+                                </div>
+                            </div>
+
+                            <!-- Photo Action Buttons -->
+                            <div style="flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 8px;">
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <input type="file" id="profilePhotoFileInput" accept="image/jpeg,image/png,image/webp" style="display: none;">
+                                    <button type="button" class="btn btn-secondary btn-sm" id="uploadPhotoTriggerBtn">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                            <circle cx="12" cy="13" r="4"></circle>
+                                        </svg>
+                                        <span data-i18n="profile.uploadPhoto">Upload Photo</span>
+                                    </button>
+                                    <button type="button" class="btn btn-outline btn-sm" id="removePhotoBtn" style="color: var(--danger, #EF4444);" data-i18n="profile.removePhoto">
+                                        Remove Photo
+                                    </button>
+                                </div>
+                                <span style="font-size: 11px; color: var(--text-muted);" data-i18n="profile.photoSupportNote">
+                                    Supports JPG, PNG, and WebP up to 5 MB.
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Image URL Alternative -->
+                        <div class="form-group" style="margin-top: 14px; margin-bottom: 0;">
+                            <label class="form-label" for="editAvatarUrl" style="font-size: 12px; margin-bottom: 4px;" data-i18n="profile.orUseImageUrl">Or Use Image URL</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="url" class="form-input" id="editAvatarUrl" placeholder="https://example.com/avatar.jpg" style="flex: 1;">
+                                <button type="button" class="btn btn-secondary btn-sm" id="applyAvatarUrlBtn" data-i18n="profile.previewUrl">Preview URL</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <form id="editProfileForm">
                         <div class="form-group">
-                            <label class="form-label" for="editFullName">Full Name</label>
+                            <label class="form-label" for="editFullName" data-i18n="profile.fullName">Full Name</label>
                             <input type="text" class="form-input" id="editFullName" required>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="editBio">Bio</label>
-                            <textarea class="form-textarea" id="editBio" rows="3" placeholder="Tell people a little about yourself..."></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="editAvatarUrl">Avatar Image URL (Optional)</label>
-                            <input type="url" class="form-input" id="editAvatarUrl" placeholder="https://example.com/avatar.jpg">
+                            <label class="form-label" for="editBio" data-i18n="profile.bio">Bio</label>
+                            <textarea class="form-textarea" id="editBio" rows="3" placeholder="Tell people a little about yourself..." data-i18n-placeholder="profile.bioPlaceholder"></textarea>
                         </div>
                         <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                            <button type="button" class="btn btn-secondary" id="cancelEditProfileBtn">Cancel</button>
-                            <button type="submit" class="btn btn-primary" id="saveProfileBtn">Save Changes</button>
+                            <button type="button" class="btn btn-secondary" id="cancelEditProfileBtn" data-i18n="profile.cancel">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="saveProfileBtn" data-i18n="profile.saveChanges">Save Changes</button>
                         </div>
                     </form>
                 </div>
@@ -136,16 +176,16 @@
                 <!-- Profile Metadata Grid -->
                 <div class="profile-meta-grid">
                     <div class="meta-box">
-                        <span class="meta-label">Email Address</span>
+                        <span class="meta-label" data-i18n="profile.emailAddress">Email Address</span>
                         <span class="meta-value" id="profileEmail">user@example.com</span>
                     </div>
                     <div class="meta-box">
-                        <span class="meta-label">Account Created</span>
+                        <span class="meta-label" data-i18n="profile.accountCreated">Account Created</span>
                         <span class="meta-value" id="profileJoined">September 2026</span>
                     </div>
                     <div class="meta-box">
-                        <span class="meta-label">Session Status</span>
-                        <span class="meta-value" style="color: var(--success);">Active &amp; Authenticated</span>
+                        <span class="meta-label" data-i18n="profile.sessionStatus">Session Status</span>
+                        <span class="meta-value" style="color: var(--success);" data-i18n="profile.activeAuthenticated">Active &amp; Authenticated</span>
                     </div>
                 </div>
             </div>

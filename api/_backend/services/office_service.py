@@ -295,10 +295,26 @@ class OfficeService:
                 }]
             }
 
-    def build_xlsx(self, sheets_data: List[Dict[str, Any]]) -> bytes:
+    def build_xlsx(self, sheets_data: Any) -> bytes:
         """Builds a compliant XLSX workbook archive from sheets data."""
         if not sheets_data:
             sheets_data = [{"name": "Sheet1", "data": [[""]]}]
+        elif isinstance(sheets_data, dict):
+            normalized = []
+            for sname, sval in sheets_data.items():
+                if isinstance(sval, dict):
+                    normalized.append({
+                        "name": sname,
+                        "data": sval.get("data", []),
+                        "formulas": sval.get("formulas", {})
+                    })
+                elif isinstance(sval, list):
+                    normalized.append({
+                        "name": sname,
+                        "data": sval,
+                        "formulas": {}
+                    })
+            sheets_data = normalized or [{"name": "Sheet1", "data": [[""]]}]
 
         shared_strings = []
         ss_map = {}
@@ -311,6 +327,8 @@ class OfficeService:
 
         sheet_xml_entries = []
         for s_idx, sheet in enumerate(sheets_data):
+            if isinstance(sheet, str):
+                sheet = {"name": sheet, "data": []}
             name = sheet.get("name", f"Sheet{s_idx+1}")
             rows = sheet.get("data", [])
             formulas = sheet.get("formulas", {})
@@ -335,13 +353,28 @@ class OfficeService:
                     coord = f"{col_letter}{r_num}"
 
                     formula = formulas.get(coord, "")
+                    evaluated_val = None
+                    if not formula and cell_str.startswith("="):
+                        formula = cell_str[1:].strip()
+                    elif formula and cell_str and cell_str != f"={formula}" and cell_str != formula:
+                        evaluated_val = cell_str
+
                     f_xml = f"<f>{self._escape_xml(formula)}</f>" if formula else ""
 
                     # Numeric check
                     if self._is_number(cell_str) and not formula:
                         row_parts.append(f'<c r="{coord}"><v>{cell_str}</v></c>')
                     elif formula:
-                        row_parts.append(f'<c r="{coord}">{f_xml}</c>')
+                        # Write formula and evaluated value if available
+                        val_to_write = evaluated_val if evaluated_val is not None else (cell_str if not cell_str.startswith("=") else "")
+                        if val_to_write:
+                            if self._is_number(val_to_write):
+                                row_parts.append(f'<c r="{coord}">{f_xml}<v>{val_to_write}</v></c>')
+                            else:
+                                ss_idx = get_ss_idx(val_to_write)
+                                row_parts.append(f'<c r="{coord}" t="s">{f_xml}<v>{ss_idx}</v></c>')
+                        else:
+                            row_parts.append(f'<c r="{coord}">{f_xml}</c>')
                     else:
                         ss_idx = get_ss_idx(cell_str)
                         row_parts.append(f'<c r="{coord}" t="s"><v>{ss_idx}</v></c>')
@@ -599,7 +632,10 @@ class OfficeService:
 
     # ---------------- HELPER METHODS ----------------
     def _escape_html(self, text: str) -> str:
-        return (text or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+        import html
+        # Unescape any pre-existing entities first so they are never double-escaped into &amp;amp;
+        raw = html.unescape(text or "")
+        return html.escape(raw)
 
     def _escape_xml(self, text: str) -> str:
         return (text or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;").replace("'", "&apos;")

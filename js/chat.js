@@ -74,10 +74,12 @@ class ChatController {
     }
 
     setupLanguageListener() {
-        window.addEventListener('frank:languageChanged', () => {
+        window.addEventListener('frank:languageChanged', async (e) => {
+            const nextLang = e.detail?.lang || (typeof i18n !== 'undefined' ? i18n.getLanguage() : 'en');
             // Update composer placeholder
-            if (this.dom.messageInput && typeof i18n !== 'undefined') {
-                this.dom.messageInput.placeholder = i18n.t('chat.typeMessage') || 'Type a message...';
+            const composerEl = this.dom.textarea || this.dom.messageInput;
+            if (composerEl && typeof i18n !== 'undefined') {
+                composerEl.placeholder = i18n.t('chat.typeMessage') || 'Type a message...';
             }
             // Update search input placeholder
             const searchInput = document.getElementById('searchConversationsInput');
@@ -91,16 +93,24 @@ class ChatController {
                     this.dom.partnerStatus.textContent = isOnline ? i18n.t('chat.online') : i18n.t('chat.offline');
                 }
             }
-            // Re-render messages to refresh translation badges and toggle labels
-            if (this.activeMessages && this.activeMessages.length > 0) {
-                this.renderMessagesList(this.activeMessages);
+            // Re-load active messages with target_language so previously received messages are translated immediately
+            if (this.activeId) {
+                try {
+                    if (this.activeType === 'direct') {
+                        await this.loadDirectMessages(this.activeId, true);
+                    } else if (this.activeType === 'group') {
+                        await this.loadGroupMessages(this.activeId, true);
+                    }
+                } catch (err) {
+                    console.warn('[Language switch message reload note]:', err);
+                }
             }
         });
     }
 
     setupContextMenuDismissal() {
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('#activeMessageContextMenu') && !e.target.closest('.msg-action-more-btn, .bubble-more-trigger')) {
+            if (!e.target.closest('#activeMessageContextMenu') && !e.target.closest('.msg-action-more-btn')) {
                 this.closeMessageContextMenu();
             }
         });
@@ -113,6 +123,13 @@ class ChatController {
 
     // ---------------- DIRECT CHAT SELECTION ----------------
     async openDirectChat(partner) {
+        const isSameChat = (Number(this.activeId) === Number(partner.id) && this.activeType === 'direct');
+        if (!isSameChat) {
+            this.activeMessages = [];
+            if (this.dom.messagesContainer) {
+                this.dom.messagesContainer.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+            }
+        }
         this.activeType = 'direct';
         this.activeId = partner.id;
         this.activeConversationId = partner.conversation_id || null;
@@ -131,12 +148,33 @@ class ChatController {
 
         const currentUser = auth.getUser();
         const isSelf = currentUser && Number(partner.id) === Number(currentUser.id);
+        let frankId = partner.frank_id || (isSelf && currentUser ? currentUser.frank_id : '');
+        if (!frankId && window.appController && window.appController.conversations) {
+            const cached = window.appController.conversations.find(c => Number(c.id) === Number(partner.id) && c.type !== 'group');
+            if (cached && cached.frank_id) {
+                frankId = cached.frank_id;
+                partner.frank_id = frankId;
+            }
+        }
 
         // Update Header UI
         if (this.dom.partnerName) {
             this.dom.partnerName.textContent = isSelf
                 ? `${currentUser.full_name || currentUser.username} (You)`
                 : (partner.name || partner.full_name || partner.username);
+        }
+
+        const fidWrap = document.getElementById('chatHeaderFrankIdWrap');
+        const fidVal = document.getElementById('chatHeaderFrankId');
+        const fidBtn = document.getElementById('chatHeaderCopyFidBtn');
+        if (fidWrap && fidVal) {
+            if (frankId) {
+                fidVal.textContent = frankId;
+                fidWrap.style.display = 'inline-flex';
+                if (fidBtn) fidBtn.dataset.frankId = frankId;
+            } else {
+                fidWrap.style.display = 'none';
+            }
         }
         if (this.dom.partnerInitials) {
             const name = isSelf ? (currentUser.full_name || currentUser.username || 'ME') : (partner.name || partner.full_name || partner.username || '??');
@@ -166,7 +204,7 @@ class ChatController {
         this.updateDetailsDrawer(partner);
 
         // Mobile responsive switch
-        if (window.innerWidth <= 768) {
+        if (window.innerWidth < 768) {
             document.getElementById('chatApp')?.classList.add('has-active-chat');
             document.getElementById('chatWindow')?.classList.add('mobile-open');
             const panel = document.getElementById('conversationPanel');
@@ -181,7 +219,7 @@ class ChatController {
         });
 
         // Load Messages
-        await this.loadDirectMessages(partner.id);
+        await this.loadDirectMessages(partner.id, isSameChat);
         if (window.smartController) {
             window.smartController.onConversationChanged(this.activeConversationId || partner.id, 'direct');
         }
@@ -190,6 +228,13 @@ class ChatController {
 
     // ---------------- GROUP CHAT SELECTION ----------------
     async openGroupChat(group) {
+        const isSameGroup = (Number(this.activeId) === Number(group.id) && this.activeType === 'group');
+        if (!isSameGroup) {
+            this.activeMessages = [];
+            if (this.dom.messagesContainer) {
+                this.dom.messagesContainer.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+            }
+        }
         this.activeType = 'group';
         this.activeId = group.id;
         this.activeConversationId = group.conversation_id || group.id;
@@ -204,6 +249,10 @@ class ChatController {
 
         const currentUser = auth.getUser();
         const isCreator = group.created_by === (currentUser ? currentUser.id : null);
+
+        // Hide Direct Chat Header FRANK ID
+        const fidWrap = document.getElementById('chatHeaderFrankIdWrap');
+        if (fidWrap) fidWrap.style.display = 'none';
 
         // Update Header UI
         if (this.dom.partnerName) {
@@ -230,7 +279,7 @@ class ChatController {
         this.updateDetailsDrawer(group);
 
         // Mobile responsive switch
-        if (window.innerWidth <= 768) {
+        if (window.innerWidth < 768) {
             document.getElementById('chatApp')?.classList.add('has-active-chat');
             document.getElementById('chatWindow')?.classList.add('mobile-open');
             const panel = document.getElementById('conversationPanel');
@@ -245,7 +294,7 @@ class ChatController {
         });
 
         // Load Messages
-        await this.loadGroupMessages(group.id);
+        await this.loadGroupMessages(group.id, isSameGroup);
         if (window.smartController) {
             window.smartController.onConversationChanged(this.activeConversationId || group.id, 'group');
         }
@@ -277,13 +326,17 @@ class ChatController {
     closeActiveChat() {
         this.activeType = null;
         this.activeId = null;
+        this.activeConversationId = null;
         this.activePartner = null;
+        this.activeMessages = [];
         if (this.dom.activeChatView) this.dom.activeChatView.style.display = 'none';
         if (this.dom.emptyPlaceholder) this.dom.emptyPlaceholder.style.display = 'flex';
-        if (this.dom.detailsDrawer) this.dom.detailsDrawer.style.display = 'none';
+        this.closeDrawer();
         if (window.smartController && window.smartController.isOpen) {
             window.smartController.close();
         }
+        document.getElementById('chatApp')?.classList.remove('has-active-chat');
+        document.getElementById('chatWindow')?.classList.remove('mobile-open');
     }
 
     getControlledErrorMessage(err) {
@@ -309,12 +362,22 @@ class ChatController {
     }
 
     // ---------------- LOAD MESSAGES ----------------
-    async loadDirectMessages(partnerId) {
+    async loadDirectMessages(partnerId, isSilentRefresh = false) {
         if (!this.dom.messagesContainer) return;
-        this.dom.messagesContainer.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+        this._loadSeq = (this._loadSeq || 0) + 1;
+        const currentSeq = this._loadSeq;
+
+        if (!isSilentRefresh) {
+            this.dom.messagesContainer.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+        }
 
         try {
             const messages = await api.getDirectMessages(partnerId);
+            // Ignore stale response if user switched conversations
+            if (currentSeq !== this._loadSeq || Number(this.activeId) !== Number(partnerId) || this.activeType !== 'direct') {
+                return;
+            }
+
             this.activeMessages = (messages || []).sort((a, b) => {
                 const da = messagesModule.parseDate(a.created_at);
                 const db = messagesModule.parseDate(b.created_at);
@@ -322,6 +385,9 @@ class ChatController {
             });
             this.renderMessagesList(this.activeMessages);
         } catch (err) {
+            if (currentSeq !== this._loadSeq || Number(this.activeId) !== Number(partnerId) || this.activeType !== 'direct') {
+                return;
+            }
             console.error('Failed to load direct messages:', err);
             const errorMsg = this.getControlledErrorMessage(err);
             this.dom.messagesContainer.innerHTML = `
@@ -333,12 +399,21 @@ class ChatController {
         }
     }
 
-    async loadGroupMessages(groupId) {
+    async loadGroupMessages(groupId, isSilentRefresh = false) {
         if (!this.dom.messagesContainer) return;
-        this.dom.messagesContainer.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+        this._loadSeq = (this._loadSeq || 0) + 1;
+        const currentSeq = this._loadSeq;
+
+        if (!isSilentRefresh) {
+            this.dom.messagesContainer.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+        }
 
         try {
             const messages = await api.getGroupMessages(groupId);
+            if (currentSeq !== this._loadSeq || Number(this.activeId) !== Number(groupId) || this.activeType !== 'group') {
+                return;
+            }
+
             this.activeMessages = (messages || []).sort((a, b) => {
                 const da = messagesModule.parseDate(a.created_at);
                 const db = messagesModule.parseDate(b.created_at);
@@ -346,6 +421,9 @@ class ChatController {
             });
             this.renderMessagesList(this.activeMessages);
         } catch (err) {
+            if (currentSeq !== this._loadSeq || Number(this.activeId) !== Number(groupId) || this.activeType !== 'group') {
+                return;
+            }
             console.error('Failed to load group messages:', err);
             const errorMsg = this.getControlledErrorMessage(err);
             this.dom.messagesContainer.innerHTML = `
@@ -360,35 +438,51 @@ class ChatController {
     renderMessagesList(messages) {
         const currentUser = auth.getUser();
         const currentUserId = currentUser ? currentUser.id : null;
+        const isGroup = this.activeType === 'group';
 
         this.dom.messagesContainer.innerHTML = '';
 
         if (!messages || messages.length === 0) {
+            const emptyTitle = isGroup ? 'No messages in this group yet' : 'Start the conversation';
+            const emptyDesc = isGroup ? 'Be the first to send a message to the group.' : 'Send a message or share a document below to connect.';
             this.dom.messagesContainer.innerHTML = `
-                <div class="empty-state" style="margin: auto;">
-                    <div style="font-size: 36px; margin-bottom: 8px;">💬</div>
-                    <h3 class="empty-state-title">Start the conversation</h3>
-                    <p class="empty-state-desc">Send a message or share a document below to connect.</p>
+                <div class="empty-state" style="margin: auto; text-align: center; padding: 32px 16px;">
+                    <div style="font-size: 36px; margin-bottom: 8px;">${isGroup ? '👥' : '💬'}</div>
+                    <h3 class="empty-state-title" style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">${emptyTitle}</h3>
+                    <p class="empty-state-desc" style="font-size: 13px; color: var(--text-muted);">${emptyDesc}</p>
                 </div>
             `;
             return;
         }
 
         let lastDate = null;
+        let lastSenderId = null;
+
         messages.forEach(msg => {
             if (!msg.created_at) msg.created_at = new Date().toISOString();
             const parsed = messagesModule.parseDate(msg.created_at) || new Date();
             const msgDate = parsed ? parsed.toDateString() : '';
-            if (msgDate && msgDate !== lastDate) {
+            const isNewDay = msgDate && msgDate !== lastDate;
+
+            if (isNewDay) {
                 lastDate = msgDate;
+                lastSenderId = null; // Reset consecutive grouping on new day divider
                 const datePill = document.createElement('div');
                 datePill.className = 'date-separator';
                 datePill.innerHTML = `<span>${this.formatDividerDate(msg.created_at)}</span>`;
                 this.dom.messagesContainer.appendChild(datePill);
             }
 
-            const msgRowHtml = messagesModule.renderMessageRow(msg, currentUserId);
-            this.dom.messagesContainer.insertAdjacentHTML('beforeend', msgRowHtml);
+            const currentSenderId = Number(msg.sender_id);
+            const isConsecutive = !isNewDay && (lastSenderId !== null) && (lastSenderId === currentSenderId);
+            lastSenderId = currentSenderId;
+
+            try {
+                const msgRowHtml = messagesModule.renderMessageRow(msg, currentUserId, { isGroup, isConsecutive });
+                this.dom.messagesContainer.insertAdjacentHTML('beforeend', msgRowHtml);
+            } catch (renderErr) {
+                console.error('Error rendering message:', renderErr, msg);
+            }
         });
 
         this.scrollToBottom();
@@ -626,16 +720,24 @@ class ChatController {
         const newDate = newD ? newD.toDateString() : '';
         const lastDate = lastD ? lastD.toDateString() : '';
 
-        if (newDate && newDate !== lastDate) {
+        const isNewDay = newDate && newDate !== lastDate;
+        if (isNewDay) {
             const datePill = document.createElement('div');
             datePill.className = 'date-separator';
             datePill.innerHTML = `<span>${this.formatDividerDate(msg.created_at)}</span>`;
             this.dom.messagesContainer.appendChild(datePill);
         }
 
+        const isGroup = this.activeType === 'group';
+        const isConsecutive = !isNewDay && !!lastMsg && (Number(lastMsg.sender_id) === Number(msg.sender_id));
+
         this.activeMessages.push(msg);
-        const html = messagesModule.renderMessageRow(msg, currentUserId);
-        this.dom.messagesContainer.insertAdjacentHTML('beforeend', html);
+        try {
+            const html = messagesModule.renderMessageRow(msg, currentUserId, { isGroup, isConsecutive });
+            this.dom.messagesContainer.insertAdjacentHTML('beforeend', html);
+        } catch (renderErr) {
+            console.error('Error rendering incoming message:', renderErr, msg);
+        }
         this.scrollToBottom();
     }
 
@@ -684,13 +786,22 @@ class ChatController {
         }
 
         this.setupDragAndDrop();
+        this.autoResizeTextarea();
         this.updateComposerActionButton();
     }
 
     autoResizeTextarea() {
         if (!this.dom.textarea) return;
+        const minH = window.innerWidth < 768 ? 40 : 38;
+        if (!this.dom.textarea.value) {
+            this.dom.textarea.style.height = minH + 'px';
+            this.dom.textarea.style.overflowY = 'hidden';
+            return;
+        }
         this.dom.textarea.style.height = 'auto';
-        this.dom.textarea.style.height = Math.min(this.dom.textarea.scrollHeight, 120) + 'px';
+        const targetHeight = Math.max(minH, Math.min(this.dom.textarea.scrollHeight, 120));
+        this.dom.textarea.style.height = targetHeight + 'px';
+        this.dom.textarea.style.overflowY = this.dom.textarea.scrollHeight > 120 ? 'auto' : 'hidden';
     }
 
     emitTyping() {
@@ -1098,8 +1209,8 @@ class ChatController {
         let posX = e.clientX || 0;
         let posY = e.clientY || 0;
 
-        if (e.target && e.target.closest('.action-tool-btn, .bubble-more-trigger')) {
-            const btn = e.target.closest('.action-tool-btn, .bubble-more-trigger');
+        if (e.target && e.target.closest('.action-tool-btn')) {
+            const btn = e.target.closest('.action-tool-btn');
             const btnRect = btn.getBoundingClientRect();
             posX = isSent ? (btnRect.right - menuRect.width) : btnRect.left;
             posY = btnRect.bottom + 4;
@@ -1161,7 +1272,7 @@ class ChatController {
             this.closeMessageContextMenu();
             const card = row.querySelector('.message-document-card, .message-photo-card, .message-video-card');
             const docFileId = card ? parseInt(card.dataset.fileId, 10) : null;
-            const filename = card?.querySelector('.file-name')?.textContent?.trim() || null;
+            const filename = card?.dataset.filename || card?.querySelector('.message-doc-title')?.textContent?.trim() || null;
             const convId = this.activeConversationId || this.activeId;
             if (window.smartController) {
                 if (docFileId) {
@@ -1186,8 +1297,12 @@ class ChatController {
 
         menu.querySelector('.ctx-delete')?.addEventListener('click', () => {
             this.closeMessageContextMenu();
-            const delBtn = row.querySelector('.msg-action-delete');
-            if (delBtn) delBtn.click();
+            const delBtn = row ? row.querySelector('.msg-action-delete') : null;
+            if (delBtn) {
+                delBtn.click();
+            } else if (typeof messagesModule !== 'undefined' && messagesModule.confirmDeleteMessage) {
+                messagesModule.confirmDeleteMessage(numId);
+            }
         });
     }
 
@@ -1371,26 +1486,41 @@ class ChatController {
             this.closeDrawer();
         });
 
-        // Drawer Tabs: Members vs Shared Documents
-        document.querySelectorAll('.drawer-tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.drawer-tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-
-                const tab = btn.dataset.tab;
-                const membersSec = document.getElementById('drawerMembersSection');
-                const docsSec = document.getElementById('drawerDocsSection');
-
-                if (tab === 'members') {
-                    if (membersSec) membersSec.style.display = 'block';
-                    if (docsSec) docsSec.style.display = 'none';
-                } else if (tab === 'docs') {
-                    if (membersSec) membersSec.style.display = 'none';
-                    if (docsSec) docsSec.style.display = 'block';
-                    this.loadSharedDocuments();
-                }
-            });
+        // Add Member button inside Group Members drawer section
+        document.getElementById('drawerAddMemberActionBtn')?.addEventListener('click', () => {
+            if (this.activeType === 'group' && window.groupsModule) {
+                window.groupsModule.openAddMembersModal(this.activeId);
+            }
         });
+
+        // Drawer Tabs: Members vs Shared Documents
+        document.getElementById('drawerTabMembersBtn')?.addEventListener('click', () => {
+            this.switchDrawerTab('members');
+        });
+
+        document.getElementById('drawerTabDocsBtn')?.addEventListener('click', () => {
+            this.switchDrawerTab('docs');
+        });
+    }
+
+    switchDrawerTab(tab = 'members') {
+        const membersBtn = document.getElementById('drawerTabMembersBtn');
+        const docsBtn = document.getElementById('drawerTabDocsBtn');
+        const membersSec = document.getElementById('drawerMembersSection');
+        const docsSec = document.getElementById('drawerDocsSection');
+
+        if (tab === 'members') {
+            membersBtn?.classList.add('active');
+            docsBtn?.classList.remove('active');
+            if (membersSec) membersSec.style.display = 'block';
+            if (docsSec) docsSec.style.display = 'none';
+        } else if (tab === 'docs') {
+            docsBtn?.classList.add('active');
+            membersBtn?.classList.remove('active');
+            if (membersSec) membersSec.style.display = 'none';
+            if (docsSec) docsSec.style.display = 'block';
+            this.loadSharedDocuments();
+        }
     }
 
     toggleDrawer() {
@@ -1407,13 +1537,45 @@ class ChatController {
         if (!this.dom.detailsDrawer) return;
         this.dom.detailsDrawer.style.display = 'flex';
         this.dom.detailsDrawer.classList.add('open');
-        this.loadSharedDocuments();
+        if (this.activeType === 'group') {
+            const activeTab = document.getElementById('drawerTabDocsBtn')?.classList.contains('active') ? 'docs' : 'members';
+            this.switchDrawerTab(activeTab);
+        } else {
+            this.loadSharedDocuments();
+        }
     }
 
     closeDrawer() {
         if (!this.dom.detailsDrawer) return;
         this.dom.detailsDrawer.style.display = 'none';
         this.dom.detailsDrawer.classList.remove('open');
+    }
+
+    async loadGroupDetails(groupId) {
+        if (!groupId) return;
+        try {
+            const group = await api.getGroup(groupId);
+            if (Number(this.activeId) === Number(groupId) && this.activeType === 'group') {
+                this.activePartner = group;
+                if (this.dom.partnerName) this.dom.partnerName.textContent = group.name;
+                if (this.dom.partnerPresence) {
+                    const count = group.members_count || 1;
+                    const currentUser = auth.getUser();
+                    const isCreator = group.created_by === (currentUser ? currentUser.id : null);
+                    this.dom.partnerPresence.textContent = `${count} member${count > 1 ? 's' : ''} • ${isCreator ? 'Created by you' : 'Group Discussion'}`;
+                }
+                const nameEl = document.getElementById('drawerName');
+                const subtitleEl = document.getElementById('drawerSubtitle');
+                const bioEl = document.getElementById('drawerBio');
+                const privacyLabel = (group.privacy === 'public') ? '🌐 Public Group' : '🔒 Private Group';
+                const count = group.members_count || 1;
+                if (nameEl) nameEl.textContent = group.name;
+                if (subtitleEl) subtitleEl.textContent = `${privacyLabel} • ${count} member${count > 1 ? 's' : ''}`;
+                if (bioEl) bioEl.textContent = group.description || 'No group description provided.';
+            }
+        } catch (err) {
+            console.warn('Failed to refresh group details:', err);
+        }
     }
 
     async updateDetailsDrawer(target) {
@@ -1425,10 +1587,23 @@ class ChatController {
         const initialsEl = document.getElementById('drawerInitials');
         const tabsBar = document.getElementById('drawerTabsBar');
         const membersSec = document.getElementById('drawerMembersSection');
+        const docsSec = document.getElementById('drawerDocsSection');
         const leaveBtn = document.getElementById('drawerLeaveGroupBtn');
 
         const currentUser = auth.getUser();
         const isSelf = !isGroup && currentUser && Number(target.id) === Number(currentUser.id);
+        let frankId = target.frank_id || (isSelf && currentUser ? currentUser.frank_id : '');
+        if (!frankId && !isGroup && window.appController && window.appController.conversations) {
+            const cached = window.appController.conversations.find(c => Number(c.id) === Number(target.id) && c.type !== 'group');
+            if (cached && cached.frank_id) {
+                frankId = cached.frank_id;
+                target.frank_id = frankId;
+            }
+        }
+
+        const fidBox = document.getElementById('drawerFrankIdBox');
+        const fidVal = document.getElementById('drawerFrankIdVal');
+        const fidBtn = document.getElementById('drawerCopyFrankIdBtn');
 
         const name = isSelf
             ? `${currentUser.full_name || currentUser.username} (You)`
@@ -1439,33 +1614,50 @@ class ChatController {
         }
 
         if (isGroup) {
+            if (fidBox) fidBox.style.display = 'none';
             const privacyLabel = (target.privacy === 'public') ? '🌐 Public Group' : '🔒 Private Group';
-            if (subtitleEl) subtitleEl.textContent = `${privacyLabel} • ${target.members_count || 1} members`;
+            const count = target.members_count || 1;
+            if (subtitleEl) subtitleEl.textContent = `${privacyLabel} • ${count} member${count > 1 ? 's' : ''}`;
             if (bioEl) bioEl.textContent = target.description || 'No group description provided.';
             if (tabsBar) tabsBar.style.display = 'flex';
-            if (membersSec) membersSec.style.display = 'block';
+
+            const activeTab = document.getElementById('drawerTabDocsBtn')?.classList.contains('active') ? 'docs' : 'members';
+            this.switchDrawerTab(activeTab);
 
             this.loadGroupMembersList(target.id);
         } else if (isSelf) {
-            const frankBadge = target.frank_id ? ` • ID: ${target.frank_id}` : '';
-            if (subtitleEl) subtitleEl.textContent = `@${target.username || 'user'}${frankBadge}`;
+            if (fidBox && fidVal && frankId) {
+                fidVal.textContent = frankId;
+                fidBox.style.display = 'flex';
+                if (fidBtn) fidBtn.dataset.frankId = frankId;
+            } else if (fidBox) {
+                fidBox.style.display = 'none';
+            }
+            if (subtitleEl) subtitleEl.textContent = `@${target.username || (currentUser && currentUser.username) || 'user'}`;
             if (bioEl) bioEl.textContent = 'Message yourself • Keep personal notes, files, drafts, to-dos, and bookmarks.';
-            if (tabsBar) tabsBar.style.display = 'flex';
+            if (tabsBar) tabsBar.style.display = 'none';
             if (membersSec) membersSec.style.display = 'none';
+            if (docsSec) docsSec.style.display = 'block';
             if (leaveBtn) leaveBtn.style.display = 'none';
+            this.loadSharedDocuments();
         } else {
-            const frankBadge = target.frank_id ? ` • ID: ${target.frank_id}` : '';
-            if (subtitleEl) subtitleEl.textContent = `@${target.username || 'user'}${frankBadge}`;
+            if (fidBox && fidVal && frankId) {
+                fidVal.textContent = frankId;
+                fidBox.style.display = 'flex';
+                if (fidBtn) fidBtn.dataset.frankId = frankId;
+            } else if (fidBox) {
+                fidBox.style.display = 'none';
+            }
+            if (subtitleEl) subtitleEl.textContent = `@${target.username || 'user'}`;
             let bio = target.bio || 'Productive conversations powered by FRANK.';
             if (bio.includes('ChatApp') || bio.includes('QENVO')) bio = bio.replace(/ChatApp|QENVO/gi, 'FRANK');
             if (bioEl) bioEl.textContent = bio;
-            if (tabsBar) tabsBar.style.display = 'flex';
+            if (tabsBar) tabsBar.style.display = 'none';
             if (membersSec) membersSec.style.display = 'none';
+            if (docsSec) docsSec.style.display = 'block';
             if (leaveBtn) leaveBtn.style.display = 'none';
+            this.loadSharedDocuments();
         }
-
-        // Shared documents
-        this.loadSharedDocuments();
     }
 
     async loadGroupMembersList(groupId) {
@@ -1474,7 +1666,7 @@ class ChatController {
         const leaveSection = document.getElementById('drawerLeaveGroupSection');
         if (!listContainer) return;
 
-        listContainer.innerHTML = '<div class="spinner" style="margin: 15px auto;"></div>';
+        listContainer.innerHTML = '<div class="spinner" style="margin: 20px auto;"></div>';
 
         const currentUser = auth.getUser();
         const currentUserId = currentUser ? currentUser.id : null;
@@ -1484,25 +1676,31 @@ class ChatController {
             listContainer.innerHTML = '';
 
             if (!members || members.length === 0) {
-                listContainer.innerHTML = '<div style="font-size:12px; color:var(--text-muted); text-align:center;">No members found</div>';
+                listContainer.innerHTML = '<div style="font-size:12px; color:var(--text-muted); text-align:center; padding: 16px 0;">No members found</div>';
                 return;
             }
 
             // Find current user role
-            const myMembership = members.find(m => m.user_id === currentUserId);
-            const myRole = myMembership ? myMembership.role : 'member';
+            const myMembership = members.find(m => Number(m.user_id) === Number(currentUserId));
+            const groupObj = (this.groups || []).find(g => Number(g.id) === Number(groupId));
+            const isCreator = groupObj && Number(groupObj.created_by) === Number(currentUserId);
+            const isPlatformAdmin = currentUser && currentUser.role === 'admin';
+            let myRole = myMembership ? myMembership.role : (isCreator ? 'owner' : (isPlatformAdmin ? 'admin' : 'member'));
+            if (isCreator) myRole = 'owner';
+            else if (isPlatformAdmin && myRole !== 'owner') myRole = 'admin';
 
             // Only owners and admins can add members
             if (addMemberActionBtn) {
-                addMemberActionBtn.style.display = (myRole === 'owner' || myRole === 'admin') ? 'inline-block' : 'none';
+                addMemberActionBtn.style.display = (myRole === 'owner' || myRole === 'admin' || isCreator || isPlatformAdmin) ? 'inline-flex' : 'none';
             }
 
             // Render delete or leave group buttons
             if (leaveSection) {
                 if (myRole === 'owner') {
                     leaveSection.innerHTML = `
-                        <button type="button" class="btn btn-danger btn-full btn-sm" id="drawerDeleteGroupBtn" style="font-weight: 700;">
-                            🗑️ Delete Group
+                        <button type="button" class="btn btn-danger btn-full btn-sm" id="drawerDeleteGroupBtn" style="font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border-radius: var(--radius-md);">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            Delete Group
                         </button>
                     `;
                     document.getElementById('drawerDeleteGroupBtn')?.addEventListener('click', () => {
@@ -1511,7 +1709,8 @@ class ChatController {
                     });
                 } else {
                     leaveSection.innerHTML = `
-                        <button type="button" class="btn btn-danger btn-full btn-sm" id="drawerLeaveGroupBtn">
+                        <button type="button" class="btn btn-danger btn-full btn-sm" id="drawerLeaveGroupBtn" style="font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border-radius: var(--radius-md);">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                             Leave Group
                         </button>
                     `;
@@ -1524,85 +1723,98 @@ class ChatController {
 
             members.forEach(m => {
                 const u = m.user || {};
+                const isSelf = Number(m.user_id) === Number(currentUserId);
                 const initials = (u.full_name || u.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
                 const role = m.role || 'member';
 
                 let roleBadge = '';
                 if (role === 'owner') {
-                    roleBadge = '<span class="member-role-badge" style="background: rgba(245, 158, 11, 0.15); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.3);">👑 Owner</span>';
+                    roleBadge = '<span class="member-role-badge role-owner">👑 Owner</span>';
                 } else if (role === 'admin') {
-                    roleBadge = '<span class="member-role-badge" style="background: rgba(99, 102, 241, 0.15); color: #6366F1; border: 1px solid rgba(99, 102, 241, 0.3);">🛡️ Admin</span>';
+                    roleBadge = '<span class="member-role-badge role-admin">🛡️ Admin</span>';
                 } else {
-                    roleBadge = '<span style="font-size:11px; color:var(--text-muted);">Member</span>';
+                    roleBadge = '<span class="member-role-badge role-member">Member</span>';
                 }
 
                 // Role actions
                 let actionsHtml = '';
-                if (m.user_id !== currentUserId) {
+                if (!isSelf) {
                     if (myRole === 'owner') {
                         if (role === 'admin') {
                             actionsHtml = `
-                                <div style="display: flex; gap: 4px;">
-                                    <button type="button" class="btn btn-ghost btn-xs demote-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Demote to Member" style="font-size: 11px; padding: 2px 6px;">Demote</button>
-                                    <button type="button" class="btn btn-ghost btn-xs danger remove-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Remove member" style="font-size: 11px; padding: 2px 6px; color: var(--danger);">✕</button>
-                                </div>
+                                <button type="button" class="btn btn-secondary btn-xs demote-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name || u.username)}" title="Demote to Member">Demote</button>
+                                <button type="button" class="btn btn-danger btn-xs remove-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name || u.username)}" title="Remove member" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3);">✕ Remove</button>
                             `;
                         } else if (role === 'member') {
                             actionsHtml = `
-                                <div style="display: flex; gap: 4px;">
-                                    <button type="button" class="btn btn-ghost btn-xs promote-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Promote to Admin" style="font-size: 11px; padding: 2px 6px;">Make Admin</button>
-                                    <button type="button" class="btn btn-ghost btn-xs danger remove-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Remove member" style="font-size: 11px; padding: 2px 6px; color: var(--danger);">✕</button>
-                                </div>
+                                <button type="button" class="btn btn-secondary btn-xs promote-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name || u.username)}" title="Promote to Admin">🛡️ Make Admin</button>
+                                <button type="button" class="btn btn-danger btn-xs remove-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name || u.username)}" title="Remove member" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3);">✕ Remove</button>
                             `;
                         }
                     } else if (myRole === 'admin' && role === 'member') {
                         actionsHtml = `
-                            <button type="button" class="btn btn-ghost btn-xs danger remove-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name)}" title="Remove member" style="font-size: 11px; padding: 2px 6px; color: var(--danger);">✕</button>
+                            <button type="button" class="btn btn-danger btn-xs remove-action" data-uid="${m.user_id}" data-name="${messagesModule.escapeHTML(u.full_name || u.username)}" title="Remove member" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3);">✕ Remove</button>
                         `;
                     }
                 }
 
-                const row = document.createElement('div');
-                row.className = 'drawer-member-row';
-                row.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border);';
-                row.innerHTML = `
-                    <div class="avatar avatar-sm">
-                        <span>${initials}</span>
-                        <span class="avatar-status ${u.is_online ? 'online' : 'offline'}"></span>
+                const card = document.createElement('div');
+                card.className = 'drawer-member-card';
+                card.dataset.userId = m.user_id;
+
+                const avatarContent = u.avatar_url
+                    ? `<img src="${u.avatar_url}" alt="${initials}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`
+                    : `<span>${initials}</span>`;
+
+                const fidPill = u.frank_id
+                    ? `<span class="drawer-member-fid-pill" title="FRANK ID">${messagesModule.escapeHTML(u.frank_id)}</span>`
+                    : '';
+
+                card.innerHTML = `
+                    <div class="drawer-member-header">
+                        <div class="avatar avatar-sm drawer-member-avatar">
+                            ${avatarContent}
+                            <span class="avatar-status ${u.is_online ? 'online' : 'offline'}"></span>
+                        </div>
+                        <div class="drawer-member-text">
+                            <div class="drawer-member-name-row">
+                                <span class="drawer-member-name" title="${messagesModule.escapeHTML(u.full_name || u.username)}">
+                                    ${messagesModule.escapeHTML(u.full_name || u.username)}${isSelf ? ' <span style="font-weight: 500; color: var(--text-muted); font-size: 11px;">(You)</span>' : ''}
+                                </span>
+                                ${roleBadge}
+                            </div>
+                            <div class="drawer-member-sub-row">
+                                <span class="drawer-member-handle">@${messagesModule.escapeHTML(u.username || 'user')}</span>
+                                ${fidPill}
+                            </div>
+                        </div>
                     </div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-size:13px; font-weight:700; color:var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${messagesModule.escapeHTML(u.full_name)}</div>
-                        <div style="font-size:11px; color:var(--text-muted);">@${messagesModule.escapeHTML(u.username)}${u.frank_id ? ` • ${u.frank_id}` : ''}</div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-                        ${roleBadge}
-                        ${actionsHtml}
-                    </div>
+                    ${actionsHtml ? `<div class="drawer-member-actions-row">${actionsHtml}</div>` : ''}
                 `;
 
                 // Wire action listeners
-                row.querySelector('.promote-action')?.addEventListener('click', (e) => {
-                    const uid = parseInt(e.currentTarget.dataset.uid, 10);
+                card.querySelector('.promote-action')?.addEventListener('click', (e) => {
+                    const uid = Number(e.currentTarget.dataset.uid);
                     const uname = e.currentTarget.dataset.name;
                     if (window.groupsModule) window.groupsModule.updateMemberRole(groupId, uid, 'admin', uname);
                 });
 
-                row.querySelector('.demote-action')?.addEventListener('click', (e) => {
-                    const uid = parseInt(e.currentTarget.dataset.uid, 10);
+                card.querySelector('.demote-action')?.addEventListener('click', (e) => {
+                    const uid = Number(e.currentTarget.dataset.uid);
                     const uname = e.currentTarget.dataset.name;
                     if (window.groupsModule) window.groupsModule.updateMemberRole(groupId, uid, 'member', uname);
                 });
 
-                row.querySelector('.remove-action')?.addEventListener('click', (e) => {
-                    const uid = parseInt(e.currentTarget.dataset.uid, 10);
+                card.querySelector('.remove-action')?.addEventListener('click', (e) => {
+                    const uid = Number(e.currentTarget.dataset.uid);
                     const uname = e.currentTarget.dataset.name;
                     if (window.groupsModule) window.groupsModule.removeMember(groupId, uid, uname);
                 });
 
-                listContainer.appendChild(row);
+                listContainer.appendChild(card);
             });
-        } catch {
-            listContainer.innerHTML = '<div style="font-size:12px; color:var(--danger); text-align:center;">Failed to load members</div>';
+        } catch (err) {
+            listContainer.innerHTML = '<div style="font-size:12px; color:var(--danger); text-align:center; padding: 16px 0;">Failed to load members</div>';
         }
     }
 
@@ -1729,7 +1941,7 @@ class ChatController {
         if (row) {
             const textEl = row.querySelector('.message-text-content');
             if (textEl) {
-                textEl.innerHTML = messagesModule.linkify(messagesModule.escapeHTML(msg.content));
+                textEl.innerHTML = messagesModule.formatMessageContent(msg.content);
             }
             const copyBtn = row.querySelector('.msg-action-copy');
             if (copyBtn) {
@@ -1771,6 +1983,15 @@ class ChatController {
     // ---------------- WEBSOCKET LISTENERS ----------------
     setupWebSocketListeners() {
         if (!window.wsClient) return;
+
+        // WebSocket Connection status tracking
+        window.wsClient.on('status', (data) => {
+            if (data && data.status === 'connected') {
+                this.deactivateRealTimeSync();
+            } else if (data && data.status === 'disconnected') {
+                this.activateRealTimeSync();
+            }
+        });
 
         // 1. Incoming Messages
         window.wsClient.on('message', (data) => {
@@ -1898,13 +2119,105 @@ class ChatController {
                 }
             }
         });
+
+        // 6. User Profile & Avatar Live Sync across connected users
+        window.wsClient.on('user_profile_updated', (data) => {
+            const u = data.user || data;
+            if (!u || !u.id) return;
+            const uid = Number(u.id);
+            const currentUser = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
+
+            // If current user updated their own profile
+            if (currentUser && Number(currentUser.id) === uid) {
+                const merged = { ...currentUser, ...u };
+                auth.setUser(merged);
+                if (window.appController) {
+                    window.appController.currentUser = merged;
+                    window.appController.updateSidebarUser(merged);
+                }
+            }
+
+            // If active conversation is with this user
+            if (this.activeType === 'direct' && Number(this.activeId) === uid) {
+                if (this.dom.partnerName && u.full_name) {
+                    this.dom.partnerName.textContent = u.full_name;
+                }
+                if (this.dom.partnerAvatar) {
+                    const initials = (u.full_name || u.username || '??').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+                    if (u.avatar_url) {
+                        this.dom.partnerAvatar.innerHTML = `<img src="${u.avatar_url}" alt="${messagesModule ? messagesModule.escapeHTML(u.full_name || u.username) : ''}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.onerror=null;this.parentElement.textContent='${initials}';">`;
+                    } else {
+                        this.dom.partnerAvatar.textContent = initials;
+                    }
+                }
+            }
+
+            // Sync conversation list items
+            document.querySelectorAll(`.conversation-item[data-user-id="${uid}"]`).forEach(item => {
+                const nameEl = item.querySelector('.conversation-name');
+                if (nameEl && u.full_name) nameEl.textContent = u.full_name;
+                const avatarEl = item.querySelector('.avatar');
+                if (avatarEl) {
+                    const initials = (u.full_name || u.username || '??').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+                    if (u.avatar_url) {
+                        avatarEl.innerHTML = `<img src="${u.avatar_url}" alt="${messagesModule ? messagesModule.escapeHTML(u.full_name || u.username) : ''}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.onerror=null;this.parentElement.textContent='${initials}';">`;
+                    } else {
+                        avatarEl.textContent = initials;
+                    }
+                }
+            });
+
+            // Sync message avatars in active chat
+            document.querySelectorAll(`.message-row[data-sender-id="${uid}"]`).forEach(row => {
+                const avatarEl = row.querySelector('.msg-avatar, .message-avatar');
+                if (avatarEl) {
+                    const initials = (u.full_name || u.username || '??').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+                    if (u.avatar_url) {
+                        avatarEl.innerHTML = `<img src="${u.avatar_url}" alt="${messagesModule ? messagesModule.escapeHTML(u.full_name || u.username) : ''}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.onerror=null;this.parentElement.textContent='${initials}';">`;
+                    } else {
+                        avatarEl.textContent = initials;
+                    }
+                }
+            });
+        });
+
+        // 7. Group Members Live Sync
+        window.wsClient.on('group_members_updated', async (data) => {
+            const gid = Number(data.group_id);
+            if (this.activeType === 'group' && Number(this.activeId) === gid) {
+                await this.loadGroupMembersList(gid);
+                if (typeof this.loadGroupDetails === 'function') {
+                    this.loadGroupDetails(gid);
+                }
+            }
+            if (window.appController) {
+                window.appController.loadConversations(false);
+            }
+        });
     }
 
     activateRealTimeSync() {
+        if (window.wsClient && window.wsClient.isConnected) {
+            this.deactivateRealTimeSync();
+            return;
+        }
         if (this._syncTimer) clearInterval(this._syncTimer);
         this.runRealTimeSyncCycle();
-        const interval = document.visibilityState === 'visible' ? 3000 : 10000;
-        this._syncTimer = setInterval(() => this.runRealTimeSyncCycle(), interval);
+        const interval = document.visibilityState === 'visible' ? 4000 : 12000;
+        this._syncTimer = setInterval(() => {
+            if (window.wsClient && window.wsClient.isConnected) {
+                this.deactivateRealTimeSync();
+                return;
+            }
+            this.runRealTimeSyncCycle();
+        }, interval);
+    }
+
+    deactivateRealTimeSync() {
+        if (this._syncTimer) {
+            clearInterval(this._syncTimer);
+            this._syncTimer = null;
+        }
     }
 
     async runRealTimeSyncCycle() {

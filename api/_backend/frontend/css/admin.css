@@ -134,6 +134,57 @@
     font-weight: 700;
 }
 
+/* Drawer navigation item for logout */
+.nav-item-logout {
+    color: var(--danger, #ef4444) !important;
+    margin-top: 4px;
+}
+
+.nav-item-logout svg {
+    stroke: var(--danger, #ef4444) !important;
+}
+
+.nav-item-logout:hover,
+.nav-item-logout:active {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #f87171 !important;
+}
+
+.nav-item-logout:hover svg,
+.nav-item-logout:active svg {
+    stroke: #f87171 !important;
+}
+
+/* Header logout button */
+.admin-topbar-logout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--danger, #ef4444);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: rgba(239, 68, 68, 0.08);
+    transition: all var(--transition-fast);
+    padding: 5px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    min-height: 32px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.admin-topbar-logout-btn svg {
+    stroke: currentColor;
+    flex-shrink: 0;
+}
+
+.admin-topbar-logout-btn:hover,
+.admin-topbar-logout-btn:active {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: var(--danger, #ef4444);
+    color: #f87171;
+}
+
 .sidebar-footer {
     padding: 16px;
     border-top: 1px solid var(--border);
@@ -762,11 +813,31 @@
         bottom: 0;
         width: 280px;
         max-width: calc(100vw - 44px);
+        height: 100%;
+        height: 100dvh;
+        max-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
         z-index: 350;
         box-shadow: var(--shadow-xl);
         transform: translateX(-100%);
         transition: transform var(--transition-smooth, 0.25s cubic-bezier(0.4, 0, 0.2, 1));
         will-change: transform;
+    }
+
+    .admin-sidebar .sidebar-nav {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        min-height: 0;
+    }
+
+    .admin-sidebar .sidebar-footer {
+        flex-shrink: 0;
+        margin-top: auto;
     }
 
     .admin-sidebar.open {
@@ -902,6 +973,15 @@
         padding: 3px 6px;
         font-size: 10px;
     }
+
+    .admin-logout-btn-text {
+        display: none;
+    }
+
+    .admin-topbar-logout-btn {
+        padding: 4px 8px;
+        min-height: 30px;
+    }
 }
 
 @media (max-width: 360px) {
@@ -915,6 +995,11 @@
     }
 
     #adminRefreshBtn {
+        padding: 4px 6px !important;
+        min-height: 28px !important;
+    }
+
+    .admin-topbar-logout-btn {
         padding: 4px 6px !important;
         min-height: 28px !important;
     }
@@ -1090,4 +1175,27 @@
     background: #262626;
     color: #FFFFFF;
 }
+
+/* Theme Toggle Buttons in Admin */
+#adminThemeToggleBtn {
+    color: var(--text);
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+#adminThemeToggleBtn:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+}
+
+#adminSidebarThemeBtn {
+    color: var(--text);
+}
+
+#adminSidebarThemeBtn:hover {
+    background: var(--bg-hover);
+}
+
 

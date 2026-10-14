@@ -168,6 +168,14 @@
     border-radius: var(--radius-sm);
 }
 
+.btn-xs {
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    min-height: 24px;
+    border-radius: var(--radius-sm);
+}
+
 .btn-full {
     width: 100%;
 }
@@ -435,7 +443,9 @@
     transition: opacity var(--transition-base), visibility var(--transition-base);
 }
 
-.modal-backdrop.open {
+.modal-backdrop.open,
+.modal-backdrop.show,
+.modal-backdrop.active {
     opacity: 1;
     visibility: visible;
 }
@@ -454,7 +464,9 @@
     flex-direction: column;
 }
 
-.modal-backdrop.open .modal-card {
+.modal-backdrop.open .modal-card,
+.modal-backdrop.show .modal-card,
+.modal-backdrop.active .modal-card {
     transform: scale(1) translateY(0);
 }
 

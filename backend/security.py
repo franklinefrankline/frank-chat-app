@@ -179,7 +179,7 @@ def get_current_user(
     if user is None:
         raise credentials_exception
 
-    if getattr(user, "is_active", True) is False or getattr(user, "account_status", "active") in ["disabled", "deactivated"]:
+    if getattr(user, "is_active", True) is False or getattr(user, "account_status", "active") in ["disabled", "deactivated", "deleted"] or getattr(user, "status", "active") == "deleted":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account has been deactivated. Please contact the administrator."
@@ -204,4 +204,9 @@ def get_user_from_token(token: str, db: Session) -> Optional[models.User]:
     payload = decode_token(token)
     if not payload:
         return None
-    return _resolve_user_from_payload(payload, db)
+    user = _resolve_user_from_payload(payload, db)
+    if not user:
+        return None
+    if getattr(user, "is_active", True) is False or getattr(user, "account_status", "active") in ["disabled", "deactivated", "deleted"] or getattr(user, "status", "active") == "deleted":
+        return None
+    return user

@@ -17,6 +17,16 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     DATABASE_URL = "postgresql://neondb_owner:npg_8kgYbEIv9cAj@ep-gentle-butterfly-b4le0fyp.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require"
 
+# Ensure SQLite relative paths resolve to the existing canonical database file to preserve user data
+if DATABASE_URL.startswith("sqlite"):
+    db_file_rel = DATABASE_URL.split("///")[-1].lstrip("./")
+    backend_db = Path(__file__).resolve().parent / db_file_rel
+    root_db = Path(__file__).resolve().parent.parent / db_file_rel
+    if backend_db.exists():
+        DATABASE_URL = f"sqlite:///{backend_db.resolve().as_posix()}"
+    elif root_db.exists():
+        DATABASE_URL = f"sqlite:///{root_db.resolve().as_posix()}"
+
 
 # Normalize PostgreSQL URL for SQLAlchemy 2.0+
 if DATABASE_URL.startswith("postgres://"):
@@ -74,7 +84,7 @@ engine = create_engine(
     **engine_kwargs
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=engine)
 Base = declarative_base()
 
 
@@ -166,7 +176,11 @@ def check_and_migrate_db():
                 alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
                 for row in result:
                     uid = row[0]
-                    new_fid = "".join(secrets.choice(alphabet) for _ in range(6))
+                    while True:
+                        new_fid = "".join(secrets.choice(alphabet) for _ in range(6))
+                        exists = conn.execute(text("SELECT 1 FROM users WHERE frank_id = :fid"), {"fid": new_fid}).fetchone()
+                        if not exists:
+                            break
                     conn.execute(text("UPDATE users SET frank_id = :fid WHERE id = :uid"), {"fid": new_fid, "uid": uid})
 
                 conn.execute(text("UPDATE users SET bio = REPLACE(REPLACE(bio, 'ChatApp', 'FRANK'), 'QENVO', 'FRANK') WHERE bio LIKE '%ChatApp%' OR bio LIKE '%QENVO%'"))

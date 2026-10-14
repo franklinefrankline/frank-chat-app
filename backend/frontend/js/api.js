@@ -586,6 +586,10 @@ const api = {
             ...(options.headers || {})
         };
 
+        if (typeof FormData !== 'undefined' && options.body instanceof FormData) {
+            delete headers['Content-Type'];
+        }
+
         const token = this.getToken();
         if (token && !headers['Authorization']) {
             headers['Authorization'] = `Bearer ${token}`;
@@ -805,12 +809,14 @@ const api = {
         return this.request(`/api/conversations/${conversationId}`);
     },
 
-    async getConversationMessages(conversationId) {
+    async getConversationMessages(conversationId, options = {}) {
+        const lang = options.target_language || (typeof i18n !== 'undefined' ? i18n.getLanguage() : '');
+        const query = lang ? `?target_language=${encodeURIComponent(lang)}` : '';
         try {
-            return await this.request(`/api/conversations/${conversationId}/messages`);
+            return await this.request(`/api/conversations/${conversationId}/messages${query}`);
         } catch (err) {
             if (err.status === 404) {
-                return await this.request(`/api/messages/direct/${conversationId}`);
+                return await this.request(`/api/messages/direct/${conversationId}${query}`);
             }
             throw err;
         }
@@ -823,13 +829,30 @@ const api = {
         });
     },
 
+    async uploadAvatar(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        return this.request('/api/users/avatar', {
+            method: 'POST',
+            body: formData
+        });
+    },
+
+    async removeAvatar() {
+        return this.request('/api/users/avatar', {
+            method: 'DELETE'
+        });
+    },
+
     // Messages endpoints
-    async getDirectMessages(partnerId) {
+    async getDirectMessages(partnerId, options = {}) {
+        const lang = options.target_language || (typeof i18n !== 'undefined' ? i18n.getLanguage() : '');
+        const query = lang ? `?target_language=${encodeURIComponent(lang)}` : '';
         try {
-            return await this.request(`/api/messages/direct/${partnerId}`);
+            return await this.request(`/api/messages/direct/${partnerId}${query}`);
         } catch (err) {
             if (err.status === 404) {
-                return await this.request(`/api/conversations/${partnerId}/messages`);
+                return await this.request(`/api/conversations/${partnerId}/messages${query}`);
             }
             throw err;
         }
@@ -885,8 +908,10 @@ const api = {
         });
     },
 
-    async getGroupMessages(groupId) {
-        return this.request(`/api/groups/${groupId}/messages`);
+    async getGroupMessages(groupId, options = {}) {
+        const lang = options.target_language || (typeof i18n !== 'undefined' ? i18n.getLanguage() : '');
+        const query = lang ? `?target_language=${encodeURIComponent(lang)}` : '';
+        return this.request(`/api/groups/${groupId}/messages${query}`);
     },
 
     async getGroupMembers(groupId) {
@@ -1170,18 +1195,20 @@ const api = {
         });
     },
 
-    getFileViewUrl(fileId) {
+    getFileViewUrl(fileId, version = null) {
         if (!fileId) return '';
         const baseUrl = this.baseUrl || API_BASE;
         const token = this.getToken();
-        return `${baseUrl}/api/files/${fileId}/view${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+        const vParam = version ? `&v=${encodeURIComponent(version)}` : '';
+        return `${baseUrl}/api/files/${fileId}/view${token ? `?token=${encodeURIComponent(token)}${vParam}` : (vParam ? `?${vParam.slice(1)}` : '')}`;
     },
 
-    getFileDownloadUrl(fileId) {
+    getFileDownloadUrl(fileId, version = null) {
         if (!fileId) return '';
         const baseUrl = this.baseUrl || API_BASE;
         const token = this.getToken();
-        return `${baseUrl}/api/files/${fileId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+        const vParam = version ? `&v=${encodeURIComponent(version)}` : '';
+        return `${baseUrl}/api/files/${fileId}/download${token ? `?token=${encodeURIComponent(token)}${vParam}` : (vParam ? `?${vParam.slice(1)}` : '')}`;
     },
 
     getDocumentVersionViewUrl(fileId, versionId) {
@@ -1343,6 +1370,28 @@ const api = {
 
     async getAdminActivity() {
         return this.request('/api/admin/activity');
+    },
+
+    async getAdminAccessRequests(params = {}) {
+        const query = new URLSearchParams();
+        if (params.page) query.set('page', params.page);
+        if (params.limit) query.set('limit', params.limit);
+        if (params.q) query.set('q', params.q);
+        if (params.status && params.status !== 'all') query.set('status', params.status);
+        if (params.source && params.source !== 'all') query.set('source', params.source);
+        const qs = query.toString();
+        return this.request(`/api/admin/access-requests${qs ? '?' + qs : ''}`);
+    },
+
+    async getAdminAccessRequestDetails(requestId) {
+        return this.request(`/api/admin/access-requests/${requestId}`);
+    },
+
+    async updateAdminAccessRequest(requestId, payload) {
+        return this.request(`/api/admin/access-requests/${requestId}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
     },
 
     // ---------------- SMART CONVERSATION API ----------------

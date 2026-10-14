@@ -25,7 +25,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from database import engine, Base, SessionLocal
 import models
 from security import hash_password
-from routes import auth, users, messages, groups, files, admin, smart, conversations
+from routes import auth, users, messages, groups, files, admin, smart, conversations, contact
 from websocket.chat import handle_websocket_connection
 from services.smart_service import smart_service
 
@@ -68,8 +68,9 @@ if not is_serverless or os.getenv("RUN_MIGRATIONS", "").lower() in ["1", "true"]
         print(f"Migration init note: {e}")
 
 
-# Seed initial demo users if database is newly initialized
+# Ensure default administrator exists if database is newly initialized
 def seed_demo_users():
+    """Ensures default admin exists. Demo accounts have been completely removed."""
     db = SessionLocal()
     try:
         # Ensure default administrator exists with requested credentials
@@ -94,73 +95,8 @@ def seed_demo_users():
             )
             db.add(admin_user)
             db.commit()
-
-        demo_users = [
-            {
-                "username": "alex",
-                "email": "alex@frank.app",
-                "frank_id": "F4M8Q1",
-                "full_name": "Alex Morgan",
-                "bio": "Product Designer & Tech Enthusiast 🚀",
-                "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-                "is_online": True
-            },
-            {
-                "username": "sarah",
-                "email": "sarah@frank.app",
-                "frank_id": "K7P2X9",
-                "full_name": "Sarah Connor",
-                "bio": "Building the future of real-time communication.",
-                "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-                "is_online": True
-            },
-            {
-                "username": "david",
-                "email": "david@frank.app",
-                "frank_id": "B3N8R5",
-                "full_name": "David Chen",
-                "bio": "Software Architect & Open Source Contributor.",
-                "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-                "is_online": False
-            }
-        ]
-
-        created = []
-        for u in demo_users:
-            existing = db.query(models.User).filter(
-                (models.User.username == u["username"]) | (models.User.email == u["email"])
-            ).first()
-            if not existing:
-                user = models.User(
-                    username=u["username"],
-                    email=u["email"],
-                    frank_id=u["frank_id"],
-                    full_name=u["full_name"],
-                    bio=u["bio"],
-                    avatar_url=u["avatar_url"],
-                    hashed_password=hash_password("password123"),
-                    role="user",
-                    account_status="active",
-                    is_online=u["is_online"]
-                )
-                db.add(user)
-                created.append(user)
-        if created:
-            db.commit()
-
-            # Seed an introductory welcome message from Alex to Sarah
-            if len(created) >= 2:
-                intro_msg = models.Message(
-                    sender_id=created[0].id,
-                    recipient_id=created[1].id,
-                    content="Welcome to FRANK! Feel free to test real-time messaging, emoji reactions, and reply threads.",
-                    status="read"
-                )
-                db.add(intro_msg)
-                db.commit()
-
     except Exception as e:
-        print(f"Seed note: {e}")
+        print(f"Admin init note: {e}")
     finally:
         db.close()
 
@@ -233,7 +169,7 @@ async def ensure_api_prefix(request: Request, call_next):
     path = request.url.path
     # Never rewrite static frontend assets or HTML pages
     if not any(path.endswith(ext) for ext in [".html", ".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".webp", ".woff", ".woff2", ".ttf"]):
-        for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health", "/admin", "/conversations", "/smart"]:
+        for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health", "/admin", "/conversations", "/smart", "/contact"]:
             if (path == pfx and pfx != "/admin") or path.startswith(pfx + "/"):
                 request.scope["path"] = "/api" + path
                 break
@@ -241,7 +177,7 @@ async def ensure_api_prefix(request: Request, call_next):
     return response
 
 # Include Routers with both /api prefix and root prefix
-for r in [auth.router, users.router, messages.router, groups.router, files.router, admin.router, smart.router, conversations.router]:
+for r in [auth.router, users.router, messages.router, groups.router, files.router, admin.router, smart.router, conversations.router, contact.router]:
     app.include_router(r, prefix="/api")
     app.include_router(r)
 
@@ -316,6 +252,12 @@ elif (root_dir / "index.html").exists():
 else:
     frontend_dir = None
 
+# Mount persistent /uploads folder for avatars and files
+uploads_storage_dir = Path(__file__).resolve().parent / "uploads"
+uploads_storage_dir.mkdir(parents=True, exist_ok=True)
+(uploads_storage_dir / "avatars").mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(uploads_storage_dir)), name="uploads")
+
 if frontend_dir and frontend_dir.exists():
     if (frontend_dir / "css").exists():
         app.mount("/css", StaticFiles(directory=str(frontend_dir / "css")), name="css")
@@ -325,6 +267,10 @@ if frontend_dir and frontend_dir.exists():
         app.mount("/assets", StaticFiles(directory=str(frontend_dir / "assets")), name="assets")
     if (frontend_dir / "i18n").exists():
         app.mount("/i18n", StaticFiles(directory=str(frontend_dir / "i18n")), name="i18n")
+    if (frontend_dir / "vendor").exists():
+        app.mount("/vendor", StaticFiles(directory=str(frontend_dir / "vendor")), name="vendor")
+    elif (root_dir / "vendor").exists():
+        app.mount("/vendor", StaticFiles(directory=str(root_dir / "vendor")), name="vendor")
 
     @app.get("/")
     def serve_landing():

@@ -1,5 +1,10 @@
+import os
+import uuid
+from pathlib import Path
+from datetime import datetime, timezone
+from urllib.parse import urlparse
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, desc, func, and_
 from database import get_db
@@ -8,6 +13,26 @@ import schemas
 from security import get_current_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+
+def serialize_user_for_ws(user: models.User) -> dict:
+    resp = schemas.UserResponse.from_orm(user).dict()
+    for k, v in resp.items():
+        if isinstance(v, datetime):
+            resp[k] = schemas.format_iso_utc(v)
+    return resp
+
+
+async def broadcast_profile_update(user: models.User):
+    try:
+        from websocket.chat import manager
+        payload = {
+            "type": "user_profile_updated",
+            "user": serialize_user_for_ws(user)
+        }
+        await manager.broadcast(payload)
+    except Exception as e:
+        print(f"Profile broadcast error: {e}")
 
 
 @router.get("", response_model=List[schemas.UserResponse])
@@ -39,8 +64,89 @@ def get_profile(current_user: models.User = Depends(get_current_user)):
     return current_user
 
 
+@router.post("/avatar", response_model=schemas.UserResponse)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    filename = file.filename or ""
+    ext = os.path.splitext(filename)[1].lower()
+    allowed_exts = {".jpg", ".jpeg", ".png", ".webp"}
+    allowed_mimes = {"image/jpeg", "image/png", "image/webp"}
+
+    if ext not in allowed_exts or (file.content_type and file.content_type not in allowed_mimes):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid image format. Supported formats: JPG, PNG, WebP."
+        )
+
+    # Validate size <= 5 MB (5 * 1024 * 1024)
+    content = await file.read()
+    max_size = 5 * 1024 * 1024
+    if len(content) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Image size exceeds 5MB limit. Please upload a smaller photo."
+        )
+
+    # Ensure upload folder exists
+    backend_dir = Path(__file__).resolve().parent.parent
+    avatars_dir = backend_dir / "uploads" / "avatars"
+    avatars_dir.mkdir(parents=True, exist_ok=True)
+
+    # Clean previous local avatar if one existed
+    if current_user.avatar_url and current_user.avatar_url.startswith("/uploads/avatars/"):
+        try:
+            old_rel = current_user.avatar_url.lstrip("/")
+            old_path = backend_dir / old_rel
+            if old_path.exists():
+                old_path.unlink()
+        except Exception:
+            pass
+
+    safe_filename = f"avatar_{current_user.id}_{int(datetime.now(timezone.utc).timestamp())}_{uuid.uuid4().hex[:8]}{ext}"
+    target_path = avatars_dir / safe_filename
+
+    with open(target_path, "wb") as f:
+        f.write(content)
+
+    avatar_url = f"/uploads/avatars/{safe_filename}"
+    current_user.avatar_url = avatar_url
+    current_user.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(current_user)
+
+    await broadcast_profile_update(current_user)
+    return current_user
+
+
+@router.delete("/avatar", response_model=schemas.UserResponse)
+async def remove_avatar(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user.avatar_url and current_user.avatar_url.startswith("/uploads/avatars/"):
+        try:
+            backend_dir = Path(__file__).resolve().parent.parent
+            old_rel = current_user.avatar_url.lstrip("/")
+            old_path = backend_dir / old_rel
+            if old_path.exists():
+                old_path.unlink()
+        except Exception:
+            pass
+
+    current_user.avatar_url = None
+    current_user.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(current_user)
+
+    await broadcast_profile_update(current_user)
+    return current_user
+
+
 @router.put("/profile", response_model=schemas.UserResponse)
-def update_profile(
+async def update_profile(
     user_update: schemas.UserUpdate,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -54,7 +160,20 @@ def update_profile(
     if user_update.bio is not None:
         current_user.bio = user_update.bio.strip()
     if user_update.avatar_url is not None:
-        current_user.avatar_url = user_update.avatar_url.strip()
+        url_val = user_update.avatar_url.strip()
+        if url_val:
+            parsed = urlparse(url_val)
+            if parsed.scheme in ["http", "https"]:
+                hostname = (parsed.hostname or "").lower()
+                if hostname in ["localhost", "127.0.0.1", "0.0.0.0", "::1"] or hostname.startswith("192.168.") or hostname.startswith("10.") or hostname.startswith("172.16.") or hostname.startswith("169.254."):
+                    raise HTTPException(status_code=400, detail="Invalid or restricted image URL.")
+                current_user.avatar_url = url_val
+            elif url_val.startswith("/uploads/") or url_val.startswith("assets/"):
+                current_user.avatar_url = url_val
+            else:
+                raise HTTPException(status_code=400, detail="Image URL must start with http:// or https://")
+        else:
+            current_user.avatar_url = None
     if user_update.theme is not None:
         clean_theme = user_update.theme.strip().lower()
         if clean_theme in ["monochrome", "sandstone", "dark", "light"]:
@@ -68,8 +187,11 @@ def update_profile(
     if user_update.default_view_translation is not None:
         current_user.default_view_translation = user_update.default_view_translation
 
+    current_user.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(current_user)
+
+    await broadcast_profile_update(current_user)
     return current_user
 
 
@@ -461,57 +583,32 @@ async def _perform_user_deletion(target_user: models.User, db: Session):
     except Exception:
         pass
 
-    # 2. Clean up uploaded files and documents
-    import os
-    from pathlib import Path
-    upload_dir = Path(__file__).resolve().parent.parent / "uploads"
-    docs = db.query(models.Document).filter(models.Document.uploader_id == target_id).all()
-    for doc in docs:
-        if doc.stored_filename:
-            file_path = upload_dir / doc.stored_filename
-            if file_path.exists():
-                try:
-                    os.remove(file_path)
-                except Exception:
-                    pass
-        db.delete(doc)
+    # 2. DATA PRESERVATION: DO NOT delete messages, documents, reactions, or conversation threads.
+    # Preserve all user history so conversation partners and records maintain full context.
+    # Soft-deactivate the account instead of permanently destroying data.
+    target_user.is_active = False
+    target_user.is_online = False
+    target_user.account_status = "deactivated"
+    target_user.status = "deleted"
 
-    # 3. Delete reactions
-    db.query(models.Reaction).filter(models.Reaction.user_id == target_id).delete(synchronize_session=False)
-
-    # 4. Delete messages
-    db.query(models.Message).filter(
-        or_(models.Message.sender_id == target_id, models.Message.recipient_id == target_id)
-    ).delete(synchronize_session=False)
-
-    # 5. Delete group memberships
-    db.query(models.GroupMember).filter(models.GroupMember.user_id == target_id).delete(synchronize_session=False)
-
-    # 6. Reassign groups created by user
+    # 3. Reassign groups created by user to admin if any, ensuring groups remain intact
     admin_fallback = db.query(models.User).filter(models.User.role == "admin").first()
     new_owner_id = admin_fallback.id if admin_fallback else None
     if new_owner_id:
         db.query(models.Group).filter(models.Group.created_by == target_id).update(
             {"created_by": new_owner_id}, synchronize_session=False
         )
+        if target_id != new_owner_id:
+            db.query(models.AuditLog).filter(models.AuditLog.admin_id == target_id).update(
+                {"admin_id": new_owner_id}, synchronize_session=False
+            )
 
-    # 7. Delete conversation preferences & conversations
-    db.query(models.ConversationPreference).filter(models.ConversationPreference.user_id == target_id).delete(synchronize_session=False)
-    db.query(models.Conversation).filter(
-        or_(models.Conversation.user_a_id == target_id, models.Conversation.user_b_id == target_id)
-    ).delete(synchronize_session=False)
-
-    # 8. Reassign audit logs if target was admin
-    if new_owner_id and target_id != new_owner_id:
-        db.query(models.AuditLog).filter(models.AuditLog.admin_id == target_id).update(
-            {"admin_id": new_owner_id}, synchronize_session=False
-        )
-
-    # 9. Delete user record from database
-    db.delete(target_user)
     db.commit()
 
-    return {"success": True, "message": f"Account @{target_username} has been permanently deleted."}
+    return {
+        "success": True,
+        "message": f"Account @{target_username} has been deactivated and closed. All historical messages and data are safely preserved."
+    }
 
 
 @router.delete("/me")

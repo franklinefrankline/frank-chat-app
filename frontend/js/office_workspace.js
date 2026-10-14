@@ -49,9 +49,9 @@ class FrankOfficeWorkspace {
             <!-- Top Header -->
             <div class="workspace-top-bar" id="workspaceTopBar">
                 <div class="workspace-top-left">
-                    <button type="button" class="workspace-back-btn" id="workspaceBackBtn" aria-label="Back to conversation" title="Back to chat">
+                    <button type="button" class="workspace-back-btn" id="workspaceBackBtn" aria-label="Back to conversation" title="Back to chat" data-i18n-aria-label="office.back" data-i18n-title="office.back">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                        <span>Back</span>
+                        <span data-i18n="office.back">Back</span>
                     </button>
                     <div class="workspace-file-identity">
                         <span class="workspace-file-icon" id="workspaceDocIcon">📄</span>
@@ -60,33 +60,33 @@ class FrankOfficeWorkspace {
                     </div>
                     <div class="workspace-save-status saved" id="workspaceSaveStatus">
                         <span id="saveStatusDot">●</span>
-                        <span id="saveStatusText">Saved</span>
+                        <span id="saveStatusText" data-i18n="office.saved">Saved</span>
                     </div>
-                    <button type="button" class="workspace-version-pill" id="workspaceVersionPill" title="View Version History">
+                    <button type="button" class="workspace-version-pill" id="workspaceVersionPill" title="View Version History" data-i18n-title="office.versionHistory">
                         <span id="workspaceVersionLabel">v1</span>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
                 </div>
                 <div class="workspace-top-actions">
-                    <button type="button" class="workspace-btn workspace-btn-primary" id="workspaceSaveBtn" title="Save document (Ctrl+S)">
+                    <button type="button" class="workspace-btn workspace-btn-primary" id="workspaceSaveBtn" title="Save document (Ctrl+S)" data-i18n-title="office.save">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                        <span class="btn-label">Save</span>
+                        <span class="btn-label" data-i18n="office.save">Save</span>
                     </button>
-                    <button type="button" class="workspace-btn workspace-btn-success" id="workspaceSendBtn" title="Send document to chat">
+                    <button type="button" class="workspace-btn workspace-btn-success" id="workspaceSendBtn" title="Send document to chat" data-i18n-title="office.sendToChat">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                        <span class="btn-label">Send to Chat</span>
+                        <span class="btn-label" data-i18n="office.sendToChat">Send to Chat</span>
                     </button>
-                    <button type="button" class="workspace-btn" id="workspaceDownloadBtn" title="Download Document">
+                    <button type="button" class="workspace-btn" id="workspaceDownloadBtn" title="Download Document" data-i18n-title="office.download">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        <span class="btn-label">Download</span>
+                        <span class="btn-label" data-i18n="office.download">Download</span>
                     </button>
-                    <button type="button" class="workspace-btn workspace-btn-icon" id="workspaceHistoryBtn" title="Version History">
+                    <button type="button" class="workspace-btn workspace-btn-icon" id="workspaceHistoryBtn" title="Version History" data-i18n-title="office.versionHistory" data-i18n-aria-label="office.versionHistory">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
                     </button>
-                    <button type="button" class="workspace-btn workspace-btn-icon" id="workspacePrintBtn" title="Print Document">
+                    <button type="button" class="workspace-btn workspace-btn-icon" id="workspacePrintBtn" title="Print Document" data-i18n-title="office.print" data-i18n-aria-label="office.print">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                     </button>
-                    <button type="button" class="workspace-btn workspace-btn-icon" id="workspaceFullscreenBtn" title="Toggle Fullscreen">
+                    <button type="button" class="workspace-btn workspace-btn-icon" id="workspaceFullscreenBtn" title="Toggle Fullscreen" data-i18n-title="office.fullScreen" data-i18n-aria-label="office.fullScreen">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
                     </button>
                 </div>
@@ -94,11 +94,11 @@ class FrankOfficeWorkspace {
 
             <!-- Contextual Menu & Toolbar -->
             <div class="workspace-menu-bar" id="workspaceMenuBar">
-                <span class="workspace-menu-item active">File</span>
-                <span class="workspace-menu-item">Edit</span>
-                <span class="workspace-menu-item">Insert</span>
-                <span class="workspace-menu-item">Format</span>
-                <span class="workspace-menu-item">View</span>
+                <span class="workspace-menu-item active" data-i18n="office.menuFile">File</span>
+                <span class="workspace-menu-item" data-i18n="office.menuEdit">Edit</span>
+                <span class="workspace-menu-item" data-i18n="office.menuInsert">Insert</span>
+                <span class="workspace-menu-item" data-i18n="office.menuFormat">Format</span>
+                <span class="workspace-menu-item" data-i18n="office.menuView">View</span>
             </div>
             <div class="workspace-toolbar-container" id="workspaceToolbar">
                 <!-- Dynamically populated based on document category -->
@@ -111,15 +111,15 @@ class FrankOfficeWorkspace {
 
             <!-- Bottom Status Bar -->
             <div class="workspace-status-bar" id="workspaceStatusBar">
-                <span id="statusBarLeft">Ready</span>
+                <span id="statusBarLeft" data-i18n="office.ready">Ready</span>
                 <span id="statusBarRight">UTF-8 • FRANK Office</span>
             </div>
 
             <!-- Version History Slide-over Drawer -->
             <div class="version-drawer" id="workspaceVersionDrawer">
                 <div class="version-drawer-header">
-                    <span>Version History</span>
-                    <button type="button" class="tool-btn" id="closeVersionDrawerBtn">✕</button>
+                    <span data-i18n="office.versionHistory">Version History</span>
+                    <button type="button" class="tool-btn" id="closeVersionDrawerBtn" aria-label="Close" data-i18n-aria-label="common.close">✕</button>
                 </div>
                 <div class="version-drawer-list" id="versionDrawerList">
                     <!-- Populated dynamically -->
@@ -129,12 +129,12 @@ class FrankOfficeWorkspace {
             <!-- Unsaved Changes Prompt Modal -->
             <div class="workspace-modal-overlay" id="workspaceUnsavedModal">
                 <div class="workspace-modal-card">
-                    <div class="workspace-modal-title">Unsaved Changes</div>
-                    <div class="workspace-modal-desc">You have unsaved changes. Leave without saving?</div>
+                    <div class="workspace-modal-title" data-i18n="office.unsavedChanges">Unsaved Changes</div>
+                    <div class="workspace-modal-desc" data-i18n="office.unsavedDesc">You have unsaved changes. Leave without saving?</div>
                     <div class="workspace-modal-buttons">
-                        <button type="button" class="workspace-btn" id="unsavedStayBtn">Stay</button>
-                        <button type="button" class="workspace-btn" id="unsavedDiscardBtn" style="color:var(--danger, #ef4444);">Leave</button>
-                        <button type="button" class="workspace-btn workspace-btn-primary" id="unsavedSaveExitBtn">Save &amp; Exit</button>
+                        <button type="button" class="workspace-btn" id="unsavedStayBtn" data-i18n="office.stay">Stay</button>
+                        <button type="button" class="workspace-btn" id="unsavedDiscardBtn" style="color:var(--danger, #ef4444);" data-i18n="office.leave">Leave</button>
+                        <button type="button" class="workspace-btn workspace-btn-primary" id="unsavedSaveExitBtn" data-i18n="office.saveAndExit">Save &amp; Exit</button>
                     </div>
                 </div>
             </div>
@@ -142,16 +142,20 @@ class FrankOfficeWorkspace {
             <!-- Version Conflict Modal -->
             <div class="workspace-modal-overlay" id="workspaceConflictModal">
                 <div class="workspace-modal-card">
-                    <div class="workspace-modal-title">Version Conflict</div>
-                    <div class="workspace-modal-desc" id="conflictModalDesc">This document was updated by another user while you were editing.</div>
+                    <div class="workspace-modal-title" data-i18n="office.versionConflict">Version Conflict</div>
+                    <div class="workspace-modal-desc" id="conflictModalDesc" data-i18n="office.conflictDesc">This document was updated by another user while you were editing.</div>
                     <div class="workspace-modal-buttons">
-                        <button type="button" class="workspace-btn" id="conflictCancelBtn">Cancel</button>
-                        <button type="button" class="workspace-btn" id="conflictLoadLatestBtn">Load Latest</button>
-                        <button type="button" class="workspace-btn workspace-btn-primary" id="conflictSaveNewBtn">Save as New Version</button>
+                        <button type="button" class="workspace-btn" id="conflictCancelBtn" data-i18n="common.cancel">Cancel</button>
+                        <button type="button" class="workspace-btn" id="conflictLoadLatestBtn" data-i18n="office.loadLatest">Load Latest</button>
+                        <button type="button" class="workspace-btn workspace-btn-primary" id="conflictSaveNewBtn" data-i18n="office.saveNewVersion">Save as New Version</button>
                     </div>
                 </div>
             </div>
         `;
+
+        if (window.i18n && typeof window.i18n.applyTranslations === 'function') {
+            window.i18n.applyTranslations(el);
+        }
     }
 
     bindGlobalEvents() {
@@ -209,7 +213,51 @@ class FrankOfficeWorkspace {
                 this.saveDocument();
             }
             if (e.key === 'Escape') {
+                const docSendModal = document.getElementById('docSendToChatModal');
+                if (docSendModal && docSendModal.style.display !== 'none') {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    if (window.documentBrowserController && typeof window.documentBrowserController.closeSendToChatModal === 'function') {
+                        window.documentBrowserController.closeSendToChatModal();
+                    } else {
+                        docSendModal.style.display = 'none';
+                    }
+                    return;
+                }
+
+                const contextMenu = document.getElementById('spreadsheetContextMenu') || document.querySelector('.sheets-context-menu');
+                const dropdownMenu = document.querySelector('.sheets-dropdown-menu');
                 const modal = document.querySelector('.workspace-modal-overlay.open');
+                const sheetsEngine = this.sheetsEngine;
+
+                if (contextMenu) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (sheetsEngine && typeof sheetsEngine.closeContextMenu === 'function') {
+                        sheetsEngine.closeContextMenu();
+                    } else {
+                        contextMenu.remove();
+                    }
+                    return;
+                }
+                if (dropdownMenu) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (sheetsEngine && typeof sheetsEngine.closeAllDropdowns === 'function') {
+                        sheetsEngine.closeAllDropdowns();
+                    } else {
+                        dropdownMenu.remove();
+                    }
+                    return;
+                }
+                if (sheetsEngine && sheetsEngine.isEditingInline) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof sheetsEngine.cancelInlineEditing === 'function') {
+                        sheetsEngine.cancelInlineEditing();
+                    }
+                    return;
+                }
                 if (modal) {
                     modal.classList.remove('open');
                 } else {
@@ -217,16 +265,25 @@ class FrankOfficeWorkspace {
                 }
             }
         });
+
+        // Listen for real-time language switches across the application
+        window.addEventListener('frank:languageChanged', () => {
+            const ws = document.getElementById('frankDocumentWorkspace');
+            if (ws && window.i18n && typeof window.i18n.applyTranslations === 'function') {
+                window.i18n.applyTranslations(ws);
+            }
+        });
     }
 
     // ---------------- OPEN DOCUMENT ENTRY POINT ----------------
     async openDocument(fileId, fileType, filename, directUrl) {
-        this.init();
         const validFileId = (fileId && !isNaN(fileId) && parseInt(fileId, 10) > 0) ? parseInt(fileId, 10) : null;
         if (!validFileId && !directUrl && !filename) {
             console.warn('OfficeWorkspace.openDocument called without valid fileId, directUrl, or filename');
             return;
         }
+
+        this.init();
 
         // Hide legacy attachment modal so it NEVER interferes or pops up over the workspace
         const legacyModal = document.getElementById('attachmentViewerModal');
@@ -353,11 +410,17 @@ class FrankOfficeWorkspace {
                 if (this.category === 'word' && data.parsed.html) {
                     const page = document.getElementById('wordDocPage');
                     if (page) {
-                        page.innerHTML = data.parsed.html;
+                        let cleanHtml = data.parsed.html;
+                        cleanHtml = cleanHtml.replace(/&amp;(amp|lt|gt|quot|#39|nbsp);/g, '&$1;');
+                        cleanHtml = cleanHtml.replace(/&amp;/g, '&');
+                        page.innerHTML = cleanHtml;
                         this.updateWordCount();
                     }
                 } else if (this.category === 'excel' && data.parsed.sheets) {
                     this.excelData = { sheets: data.parsed.sheets, activeSheetIdx: 0 };
+                    if (this.sheetsEngine) {
+                        this.sheetsEngine.initData();
+                    }
                     this.renderExcelGrid();
                 } else if (this.category === 'pptx' && data.parsed.slides) {
                     this.pptxData = { slides: data.parsed.slides, activeSlideIdx: 0 };
@@ -424,8 +487,12 @@ class FrankOfficeWorkspace {
     mountWordEditor(toolbar, canvas) {
         toolbar.innerHTML = `
             <div class="toolbar-group">
-                <button type="button" class="tool-btn" id="wordUndoBtn" title="Undo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg></button>
-                <button type="button" class="tool-btn" id="wordRedoBtn" title="Redo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path></svg></button>
+                <button type="button" class="tool-btn icon-only" id="wordUndoBtn" title="Undo (Ctrl+Z)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+                </button>
+                <button type="button" class="tool-btn icon-only" id="wordRedoBtn" title="Redo (Ctrl+Y)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path></svg>
+                </button>
             </div>
             <div class="toolbar-group">
                 <select class="tool-select" id="wordStyleSelect" title="Text Style">
@@ -449,35 +516,61 @@ class FrankOfficeWorkspace {
                 </select>
             </div>
             <div class="toolbar-group">
-                <button type="button" class="tool-btn" id="wordBoldBtn" title="Bold"><strong>B</strong></button>
-                <button type="button" class="tool-btn" id="wordItalicBtn" title="Italic"><em>I</em></button>
-                <button type="button" class="tool-btn" id="wordUnderlineBtn" title="Underline"><u>U</u></button>
-                <button type="button" class="tool-btn" id="wordStrikeBtn" title="Strikethrough"><s>S</s></button>
+                <button type="button" class="tool-btn icon-only" id="wordBoldBtn" title="Bold"><strong>B</strong></button>
+                <button type="button" class="tool-btn icon-only" id="wordItalicBtn" title="Italic"><em>I</em></button>
+                <button type="button" class="tool-btn icon-only" id="wordUnderlineBtn" title="Underline"><u>U</u></button>
+                <button type="button" class="tool-btn icon-only" id="wordStrikeBtn" title="Strikethrough"><s>S</s></button>
                 <div class="tool-color-wrap" title="Text Color">
-                    <button type="button" class="tool-btn" id="wordColorLabelBtn" style="color:#ef4444;font-weight:700;">A</button>
-                    <input type="color" class="tool-color-input" id="wordColorInput" value="#1e293b">
+                    <button type="button" class="tool-btn icon-only" id="wordColorLabelBtn" style="color:#B86B3D;font-weight:700;">A</button>
+                    <input type="color" class="tool-color-input" id="wordColorInput" value="#2D241D">
                 </div>
                 <div class="tool-color-wrap" title="Highlight Color">
-                    <button type="button" class="tool-btn" id="wordHighlightLabelBtn" style="background:#fef08a;border-radius:4px;padding:2px 4px;font-weight:700;font-size:11px;">🖍️</button>
+                    <button type="button" class="tool-btn icon-only" id="wordHighlightLabelBtn" style="background:#fef08a;border-radius:4px;font-weight:700;font-size:12px;">🖍️</button>
                     <input type="color" class="tool-color-input" id="wordHighlightInput" value="#fef08a">
                 </div>
             </div>
             <div class="toolbar-group">
-                <button type="button" class="tool-btn" id="wordAlignLeft" title="Align Left">←</button>
-                <button type="button" class="tool-btn" id="wordAlignCenter" title="Center">↔</button>
-                <button type="button" class="tool-btn" id="wordAlignRight" title="Align Right">→</button>
-                <button type="button" class="tool-btn" id="wordAlignJustify" title="Justify">≡</button>
-                <button type="button" class="tool-btn" id="wordBulletList" title="Bullet List">•≡</button>
-                <button type="button" class="tool-btn" id="wordNumList" title="Numbered List">1≡</button>
-                <button type="button" class="tool-btn" id="wordOutdentBtn" title="Decrease Indent">⇤</button>
-                <button type="button" class="tool-btn" id="wordIndentBtn" title="Increase Indent">⇥</button>
+                <button type="button" class="tool-btn icon-only" id="wordAlignLeft" title="Align Left">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="17" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>
+                </button>
+                <button type="button" class="tool-btn icon-only" id="wordAlignCenter" title="Center">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="10" x2="6" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="18" y1="18" x2="6" y2="18"></line></svg>
+                </button>
+                <button type="button" class="tool-btn icon-only" id="wordAlignRight" title="Align Right">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="21" y1="10" x2="7" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="7" y2="18"></line></svg>
+                </button>
+                <button type="button" class="tool-btn icon-only" id="wordAlignJustify" title="Justify">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+                </button>
+                <button type="button" class="tool-btn icon-only" id="wordBulletList" title="Bullet List">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                </button>
+                <button type="button" class="tool-btn icon-only" id="wordNumList" title="Numbered List">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="10" y1="6" x2="21" y2="6"></line><line x1="10" y1="12" x2="21" y2="12"></line><line x1="10" y1="18" x2="21" y2="18"></line><path d="M4 6h1v4"></path><path d="M4 10h2"></path><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path></svg>
+                </button>
+                <button type="button" class="tool-btn icon-only" id="wordOutdentBtn" title="Decrease Indent">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="7 8 3 12 7 16"></polyline><line x1="21" y1="12" x2="11" y2="12"></line><line x1="21" y1="6" x2="11" y2="6"></line><line x1="21" y1="18" x2="11" y2="18"></line></svg>
+                </button>
+                <button type="button" class="tool-btn icon-only" id="wordIndentBtn" title="Increase Indent">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="13 8 17 12 13 16"></polyline><line x1="3" y1="12" x2="13" y2="12"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+                </button>
             </div>
             <div class="toolbar-group">
-                <button type="button" class="tool-btn" id="wordInsertTable" title="Insert Table">⊞ Table</button>
-                <button type="button" class="tool-btn" id="wordInsertLink" title="Insert Link">🔗 Link</button>
-                <button type="button" class="tool-btn" id="wordInsertLine" title="Horizontal Rule">—</button>
+                <button type="button" class="tool-btn btn-labeled" id="wordInsertTable" title="Insert Table" data-i18n-title="office.table">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="12" y1="3" x2="12" y2="21"></line></svg>
+                    <span data-i18n="office.table">Table</span>
+                </button>
+                <button type="button" class="tool-btn btn-labeled" id="wordInsertLink" title="Insert Link" data-i18n-title="office.link">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    <span data-i18n="office.link">Link</span>
+                </button>
+                <button type="button" class="tool-btn icon-only" id="wordInsertLine" title="Horizontal Rule">―</button>
             </div>
         `;
+
+        if (window.i18n && typeof window.i18n.applyTranslations === 'function') {
+            window.i18n.applyTranslations(toolbar);
+        }
 
         canvas.innerHTML = `
             <div class="word-editor-stage">
@@ -529,23 +622,28 @@ class FrankOfficeWorkspace {
 
         // Insert Table
         document.getElementById('wordInsertTable').onclick = () => {
+            const page = document.getElementById('wordDocPage');
+            if (page) page.focus();
             const tableHtml = `
                 <table class="office-table" style="width:100%;border-collapse:collapse;margin:14px 0;">
                     <thead>
                         <tr style="background:rgba(0,0,0,0.04);">
-                            <th style="border:1px solid #cbd5e1;padding:8px 12px;text-align:left;">Header 1</th>
-                            <th style="border:1px solid #cbd5e1;padding:8px 12px;text-align:left;">Header 2</th>
+                            <th style="border:1px solid var(--theme-border, #D8C5AA);padding:8px 12px;text-align:left;">Header 1</th>
+                            <th style="border:1px solid var(--theme-border, #D8C5AA);padding:8px 12px;text-align:left;">Header 2</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td style="border:1px solid #cbd5e1;padding:8px 12px;">Cell 1</td>
-                            <td style="border:1px solid #cbd5e1;padding:8px 12px;">Cell 2</td>
+                            <td style="border:1px solid var(--theme-border, #D8C5AA);padding:8px 12px;">Cell 1</td>
+                            <td style="border:1px solid var(--theme-border, #D8C5AA);padding:8px 12px;">Cell 2</td>
                         </tr>
                     </tbody>
                 </table>
             `;
-            document.execCommand('insertHTML', false, tableHtml);
+            const inserted = document.execCommand('insertHTML', false, tableHtml);
+            if (!inserted && page) {
+                page.insertAdjacentHTML('beforeend', tableHtml);
+            }
             this.markDirty();
         };
 
@@ -578,429 +676,73 @@ class FrankOfficeWorkspace {
     // editing, Grid navigation, Save, Download.
     // =========================================================================
     mountExcelEditor(toolbar, canvas) {
-        toolbar.innerHTML = `
-            <div class="toolbar-group">
-                <button type="button" class="tool-btn" id="xlBoldBtn" title="Bold"><strong>B</strong></button>
-                <button type="button" class="tool-btn" id="xlItalicBtn" title="Italic"><em>I</em></button>
-                <div class="tool-color-wrap" title="Text Color">
-                    <button type="button" class="tool-btn" id="xlColorLabelBtn" style="color:#ef4444;font-weight:700;">A</button>
-                    <input type="color" class="tool-color-input" id="xlColorInput" value="#1e293b">
-                </div>
-            </div>
-            <div class="toolbar-group">
-                <button type="button" class="tool-btn" id="xlAlignLeft" title="Align Left">←</button>
-                <button type="button" class="tool-btn" id="xlAlignCenter" title="Center">↔</button>
-                <button type="button" class="tool-btn" id="xlAlignRight" title="Align Right">→</button>
-            </div>
-            <div class="toolbar-group">
-                <button type="button" class="tool-btn" id="xlInsertRowBtn" title="Insert Row Above">+Row</button>
-                <button type="button" class="tool-btn" id="xlDeleteRowBtn" title="Delete Row">-Row</button>
-                <button type="button" class="tool-btn" id="xlInsertColBtn" title="Insert Column Left">+Col</button>
-                <button type="button" class="tool-btn" id="xlDeleteColBtn" title="Delete Column">-Col</button>
-            </div>
-            <div class="toolbar-group">
-                <button type="button" class="tool-btn" id="xlFormulaSum" title="Sum Range">=SUM</button>
-                <button type="button" class="tool-btn" id="xlFormulaAvg" title="Average Range">=AVERAGE</button>
-                <button type="button" class="tool-btn" id="xlFormulaMin" title="Minimum">=MIN</button>
-                <button type="button" class="tool-btn" id="xlFormulaMax" title="Maximum">=MAX</button>
-            </div>
-        `;
+        if (!this.sheetsEngine) {
+            this.sheetsEngine = new FrankSheetsEngine(this);
+        }
+        this.sheetsEngine.mount(toolbar, canvas);
+    }
 
-        canvas.innerHTML = `
-            <div class="excel-editor-stage">
-                <div class="formula-bar-container">
-                    <span class="active-cell-badge" id="activeCellLabel">A1</span>
-                    <span class="formula-fx-label">fx</span>
-                    <input type="text" class="formula-input-field" id="formulaInputField" placeholder="Formula or Value (e.g. =SUM(A1:A5))">
-                    <button type="button" class="workspace-btn" id="applyFormulaBtn" style="height:28px;padding:0 8px;">✓ Apply</button>
-                </div>
-                <div class="spreadsheet-grid-wrapper" id="spreadsheetGridWrapper">
-                    <table class="spreadsheet-table" id="spreadsheetTable"></table>
-                </div>
-                <div class="spreadsheet-sheet-tabs" id="spreadsheetSheetTabs">
-                    <!-- Sheet tabs rendered here -->
-                </div>
-            </div>
-        `;
-
-        this.renderExcelGrid();
-        this.renderSheetTabs();
-
-        // Formula bar bindings
-        const formulaInput = document.getElementById('formulaInputField');
-        document.getElementById('applyFormulaBtn').onclick = () => this.applyCellFormula(formulaInput.value);
-        formulaInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                this.applyCellFormula(formulaInput.value);
-                const table = document.getElementById('spreadsheetTable');
-                const nextCell = table?.querySelector(`.sheet-cell[data-r="${this.activeCell.r + 1}"][data-c="${this.activeCell.c}"]`);
-                if (nextCell) nextCell.focus();
-            }
-        });
-
-        // Formatting
-        document.getElementById('xlBoldBtn').onclick = () => this.toggleCellFormat('bold');
-        document.getElementById('xlItalicBtn').onclick = () => this.toggleCellFormat('italic');
-        document.getElementById('xlColorInput').onchange = (e) => this.setCellFormat('color', e.target.value);
-        document.getElementById('xlAlignLeft').onclick = () => this.setCellFormat('align', 'left');
-        document.getElementById('xlAlignCenter').onclick = () => this.setCellFormat('align', 'center');
-        document.getElementById('xlAlignRight').onclick = () => this.setCellFormat('align', 'right');
-
-        // Row / Column Operations
-        document.getElementById('xlInsertRowBtn').onclick = () => this.excelInsertRow();
-        document.getElementById('xlDeleteRowBtn').onclick = () => this.excelDeleteRow();
-        document.getElementById('xlInsertColBtn').onclick = () => this.excelInsertCol();
-        document.getElementById('xlDeleteColBtn').onclick = () => this.excelDeleteCol();
-
-        // Quick Formula Shortcuts
-        document.getElementById('xlFormulaSum').onclick = () => {
-            const defaultRange = `A1:${this.activeCell.coord}`;
-            formulaInput.value = `=SUM(${defaultRange})`;
-            this.applyCellFormula(formulaInput.value);
-        };
-        document.getElementById('xlFormulaAvg').onclick = () => {
-            const defaultRange = `A1:${this.activeCell.coord}`;
-            formulaInput.value = `=AVERAGE(${defaultRange})`;
-            this.applyCellFormula(formulaInput.value);
-        };
-        document.getElementById('xlFormulaMin').onclick = () => {
-            const defaultRange = `A1:${this.activeCell.coord}`;
-            formulaInput.value = `=MIN(${defaultRange})`;
-            this.applyCellFormula(formulaInput.value);
-        };
-        document.getElementById('xlFormulaMax').onclick = () => {
-            const defaultRange = `A1:${this.activeCell.coord}`;
-            formulaInput.value = `=MAX(${defaultRange})`;
-            this.applyCellFormula(formulaInput.value);
-        };
+    renderExcelGrid(keepScroll = false) {
+        if (!this.sheetsEngine) this.sheetsEngine = new FrankSheetsEngine(this);
+        this.sheetsEngine.renderGrid(keepScroll);
+        this.sheetsEngine.renderSheetTabs();
+        this.sheetsEngine.syncFormulaBar();
+        this.sheetsEngine.updateStatusBar();
     }
 
     renderSheetTabs() {
-        const tabsWrap = document.getElementById('spreadsheetSheetTabs');
-        if (!tabsWrap) return;
-        tabsWrap.innerHTML = '';
-
-        this.excelData.sheets.forEach((sh, idx) => {
-            const tab = document.createElement('span');
-            tab.className = `sheet-tab-item ${idx === this.excelData.activeSheetIdx ? 'active' : ''}`;
-            tab.textContent = sh.name || `Sheet${idx + 1}`;
-            tab.onclick = () => {
-                this.excelData.activeSheetIdx = idx;
-                this.renderExcelGrid();
-                this.renderSheetTabs();
-            };
-            tabsWrap.appendChild(tab);
-        });
-
-        const addBtn = document.createElement('button');
-        addBtn.type = 'button';
-        addBtn.className = 'sheet-tab-add-btn';
-        addBtn.id = 'addSheetBtn';
-        addBtn.title = 'Add Sheet';
-        addBtn.textContent = '+';
-        addBtn.onclick = () => this.excelAddSheet();
-        tabsWrap.appendChild(addBtn);
-    }
-
-    renderExcelGrid() {
-        const table = document.getElementById('spreadsheetTable');
-        if (!table) return;
-
-        const currentSheet = this.excelData.sheets[this.excelData.activeSheetIdx] || { data: [['']], formulas: {}, styles: {} };
-        if (!currentSheet.data || currentSheet.data.length === 0) {
-            currentSheet.data = Array.from({ length: 30 }, () => Array(15).fill(''));
-        }
-        if (!currentSheet.styles) currentSheet.styles = {};
-        if (!currentSheet.formulas) currentSheet.formulas = {};
-
-        const grid = currentSheet.data;
-        const numRows = Math.max(grid.length, 25);
-        const numCols = Math.max(grid[0] ? grid[0].length : 8, 10);
-
-        let html = '<thead><tr><th class="corner-header"></th>';
-        for (let c = 0; c < numCols; c++) {
-            const letter = this.colIdxToLetter(c);
-            html += `<th>${letter}</th>`;
-        }
-        html += '</tr></thead><tbody>';
-
-        for (let r = 0; r < numRows; r++) {
-            html += `<tr><td class="row-header">${r + 1}</td>`;
-            const rowData = grid[r] || [];
-            for (let c = 0; c < numCols; c++) {
-                const letter = this.colIdxToLetter(c);
-                const coord = `${letter}${r + 1}`;
-                const val = rowData[c] !== undefined ? rowData[c] : '';
-                const formula = currentSheet.formulas[coord] || (String(val).startsWith('=') ? String(val) : '');
-
-                let displayVal = val;
-                if (formula && String(formula).startsWith('=')) {
-                    displayVal = this.evalRealFormula(formula, currentSheet);
-                }
-
-                // Cell styles
-                const st = currentSheet.styles[coord] || {};
-                let styleAttr = '';
-                if (st.bold) styleAttr += 'font-weight:bold;';
-                if (st.italic) styleAttr += 'font-style:italic;';
-                if (st.color) styleAttr += `color:${st.color};`;
-                if (st.align) styleAttr += `text-align:${st.align};`;
-
-                const isSelected = this.activeCell && this.activeCell.r === r && this.activeCell.c === c;
-                html += `<td class="sheet-cell ${isSelected ? 'selected' : ''}" style="${styleAttr}" contenteditable="true" data-coord="${coord}" data-r="${r}" data-c="${c}">${messagesModule.escapeHTML(String(displayVal))}</td>`;
-            }
-            html += '</tr>';
-        }
-        html += '</tbody>';
-        table.innerHTML = html;
-
-        // Cell selection & keyboard navigation
-        table.querySelectorAll('.sheet-cell').forEach(td => {
-            td.addEventListener('focus', () => {
-                table.querySelectorAll('.sheet-cell.selected').forEach(s => s.classList.remove('selected'));
-                td.classList.add('selected');
-                const coord = td.dataset.coord;
-                const r = parseInt(td.dataset.r, 10);
-                const c = parseInt(td.dataset.c, 10);
-                this.activeCell = { coord, r, c };
-
-                const activeLabel = document.getElementById('activeCellLabel');
-                if (activeLabel) activeLabel.textContent = coord;
-
-                const formula = currentSheet.formulas[coord] || td.innerText;
-                const fInput = document.getElementById('formulaInputField');
-                if (fInput) fInput.value = formula;
-            });
-
-            td.addEventListener('input', () => {
-                this.markDirty();
-                const r = parseInt(td.dataset.r, 10);
-                const c = parseInt(td.dataset.c, 10);
-                while (grid.length <= r) grid.push([]);
-                while (grid[r].length <= c) grid[r].push('');
-                grid[r][c] = td.innerText;
-                if (currentSheet.formulas[td.dataset.coord]) {
-                    delete currentSheet.formulas[td.dataset.coord];
-                }
-            });
-
-            td.addEventListener('keydown', (e) => {
-                const r = parseInt(td.dataset.r, 10);
-                const c = parseInt(td.dataset.c, 10);
-
-                if (e.key === 'ArrowUp' && r > 0) {
-                    e.preventDefault();
-                    table.querySelector(`.sheet-cell[data-r="${r - 1}"][data-c="${c}"]`)?.focus();
-                } else if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    table.querySelector(`.sheet-cell[data-r="${r + 1}"][data-c="${c}"]`)?.focus();
-                } else if (e.key === 'ArrowLeft' && c > 0) {
-                    e.preventDefault();
-                    table.querySelector(`.sheet-cell[data-r="${r}"][data-c="${c - 1}"]`)?.focus();
-                } else if (e.key === 'ArrowRight') {
-                    e.preventDefault();
-                    table.querySelector(`.sheet-cell[data-r="${r}"][data-c="${c + 1}"]`)?.focus();
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    table.querySelector(`.sheet-cell[data-r="${r + 1}"][data-c="${c}"]`)?.focus();
-                } else if (e.key === 'Tab') {
-                    e.preventDefault();
-                    const targetC = e.shiftKey ? Math.max(0, c - 1) : c + 1;
-                    table.querySelector(`.sheet-cell[data-r="${r}"][data-c="${targetC}"]`)?.focus();
-                }
-            });
-        });
-
-        const statusLeft = document.getElementById('statusBarLeft');
-        if (statusLeft) {
-            statusLeft.textContent = `${currentSheet.name || 'Sheet1'} • ${grid.length} rows × ${grid[0] ? grid[0].length : 8} cols • Spreadsheet Editor`;
-        }
+        if (!this.sheetsEngine) this.sheetsEngine = new FrankSheetsEngine(this);
+        this.sheetsEngine.renderSheetTabs();
     }
 
     applyCellFormula(val) {
-        if (!this.activeCell) return;
-        const currentSheet = this.excelData.sheets[this.excelData.activeSheetIdx];
-        const { coord, r, c } = this.activeCell;
-        while (currentSheet.data.length <= r) currentSheet.data.push([]);
-        while (currentSheet.data[r].length <= c) currentSheet.data[r].push('');
-
-        if (String(val).startsWith('=')) {
-            if (!currentSheet.formulas) currentSheet.formulas = {};
-            currentSheet.formulas[coord] = val;
-            currentSheet.data[r][c] = val;
-        } else {
-            if (currentSheet.formulas) delete currentSheet.formulas[coord];
-            currentSheet.data[r][c] = val;
-        }
-        this.markDirty();
-        this.renderExcelGrid();
+        if (!this.sheetsEngine) this.sheetsEngine = new FrankSheetsEngine(this);
+        this.sheetsEngine.applyCellFormula(val);
     }
 
-    // Working formula engine: =SUM(A1:A5), =AVERAGE(A1:A5), =MIN, =MAX, =COUNT, =A1+B1
     evalRealFormula(formula, sheet) {
-        try {
-            const raw = String(formula).trim();
-            if (!raw.startsWith('=')) return raw;
-
-            const grid = sheet.data || [];
-            const expr = raw.substring(1).trim().toUpperCase();
-
-            // Extract ranges e.g. A1:B5
-            const getRangeValues = (rangeStr) => {
-                const parts = rangeStr.split(':');
-                if (parts.length === 1) {
-                    const { r, c } = this.coordToIndices(parts[0].trim());
-                    const v = (grid[r] && grid[r][c] !== undefined) ? grid[r][c] : '';
-                    const n = parseFloat(v);
-                    return isNaN(n) ? [] : [n];
-                }
-                const start = this.coordToIndices(parts[0].trim());
-                const end = this.coordToIndices(parts[1].trim());
-                const minR = Math.min(start.r, end.r);
-                const maxR = Math.max(start.r, end.r);
-                const minC = Math.min(start.c, end.c);
-                const maxC = Math.max(start.c, end.c);
-
-                const vals = [];
-                for (let r = minR; r <= maxR; r++) {
-                    for (let c = minC; c <= maxC; c++) {
-                        const cellVal = (grid[r] && grid[r][c] !== undefined) ? grid[r][c] : '';
-                        const n = parseFloat(cellVal);
-                        if (!isNaN(n)) vals.push(n);
-                    }
-                }
-                return vals;
-            };
-
-            const funcMatch = expr.match(/^([A-Z]+)\(([^)]+)\)$/);
-            if (funcMatch) {
-                const fnName = funcMatch[1];
-                const argsStr = funcMatch[2];
-                const numbers = [];
-                argsStr.split(',').forEach(arg => {
-                    const rVals = getRangeValues(arg.trim());
-                    numbers.push(...rVals);
-                });
-
-                if (numbers.length === 0) return '0';
-
-                if (fnName === 'SUM') {
-                    const sum = numbers.reduce((a, b) => a + b, 0);
-                    return Number.isInteger(sum) ? String(sum) : sum.toFixed(2);
-                } else if (fnName === 'AVERAGE' || fnName === 'AVG') {
-                    const avg = numbers.reduce((a, b) => a + b, 0) / numbers.length;
-                    return Number.isInteger(avg) ? String(avg) : avg.toFixed(2);
-                } else if (fnName === 'MIN') {
-                    return String(Math.min(...numbers));
-                } else if (fnName === 'MAX') {
-                    return String(Math.max(...numbers));
-                } else if (fnName === 'COUNT') {
-                    return String(numbers.length);
-                }
-            }
-
-            // Cell math e.g. =A1+B1
-            let mathExpr = expr;
-            mathExpr = mathExpr.replace(/([A-Z]+[0-9]+)/g, (match) => {
-                const { r, c } = this.coordToIndices(match);
-                const cellVal = (grid[r] && grid[r][c] !== undefined) ? grid[r][c] : '0';
-                const n = parseFloat(cellVal);
-                return isNaN(n) ? '0' : String(n);
-            });
-
-            if (/^[0-9+\-*/().\s]+$/.test(mathExpr)) {
-                // Safe arithmetic evaluation
-                const res = Function(`"use strict"; return (${mathExpr})`)();
-                return Number.isInteger(res) ? String(res) : Number(res).toFixed(2);
-            }
-
-            return formula;
-        } catch (e) {
-            return '#VALUE!';
-        }
+        if (!this.sheetsEngine) this.sheetsEngine = new FrankSheetsEngine(this);
+        return this.sheetsEngine.evalRealFormula(formula, sheet);
     }
 
     coordToIndices(coord) {
-        const match = String(coord).trim().toUpperCase().match(/^([A-Z]+)([0-9]+)$/);
-        if (!match) return { r: 0, c: 0 };
-        const colStr = match[1];
-        const rowStr = match[2];
-        let c = 0;
-        for (let i = 0; i < colStr.length; i++) {
-            c = c * 26 + (colStr.charCodeAt(i) - 64);
-        }
-        return { r: parseInt(rowStr, 10) - 1, c: c - 1 };
+        if (!this.sheetsEngine) this.sheetsEngine = new FrankSheetsEngine(this);
+        return this.sheetsEngine.coordToIndices(coord);
     }
 
     toggleCellFormat(prop) {
-        if (!this.activeCell) return;
-        const currentSheet = this.excelData.sheets[this.excelData.activeSheetIdx];
-        if (!currentSheet.styles) currentSheet.styles = {};
-        const coord = this.activeCell.coord;
-        if (!currentSheet.styles[coord]) currentSheet.styles[coord] = {};
-        currentSheet.styles[coord][prop] = !currentSheet.styles[coord][prop];
-        this.markDirty();
-        this.renderExcelGrid();
+        if (!this.sheetsEngine) this.sheetsEngine = new FrankSheetsEngine(this);
+        this.sheetsEngine.toggleCellFormat(prop);
     }
 
     setCellFormat(prop, val) {
-        if (!this.activeCell) return;
-        const currentSheet = this.excelData.sheets[this.excelData.activeSheetIdx];
-        if (!currentSheet.styles) currentSheet.styles = {};
-        const coord = this.activeCell.coord;
-        if (!currentSheet.styles[coord]) currentSheet.styles[coord] = {};
-        currentSheet.styles[coord][prop] = val;
-        this.markDirty();
-        this.renderExcelGrid();
+        if (!this.sheetsEngine) this.sheetsEngine = new FrankSheetsEngine(this);
+        this.sheetsEngine.setCellFormat(prop, val);
     }
 
     excelInsertRow() {
-        const sheet = this.excelData.sheets[this.excelData.activeSheetIdx];
-        const numCols = sheet.data[0] ? sheet.data[0].length : 8;
-        sheet.data.splice(this.activeCell.r || 0, 0, new Array(numCols).fill(''));
-        this.markDirty();
-        this.renderExcelGrid();
+        if (!this.sheetsEngine) this.sheetsEngine = new FrankSheetsEngine(this);
+        this.sheetsEngine.excelInsertRow();
     }
 
     excelDeleteRow() {
-        const sheet = this.excelData.sheets[this.excelData.activeSheetIdx];
-        if (sheet.data.length > 1) {
-            sheet.data.splice(this.activeCell.r || 0, 1);
-            this.markDirty();
-            this.renderExcelGrid();
-        }
+        if (!this.sheetsEngine) this.sheetsEngine = new FrankSheetsEngine(this);
+        this.sheetsEngine.excelDeleteRow();
     }
 
     excelInsertCol() {
-        const sheet = this.excelData.sheets[this.excelData.activeSheetIdx];
-        const colIdx = this.activeCell.c || 0;
-        sheet.data.forEach(row => row.splice(colIdx, 0, ''));
-        this.markDirty();
-        this.renderExcelGrid();
+        if (!this.sheetsEngine) this.sheetsEngine = new FrankSheetsEngine(this);
+        this.sheetsEngine.excelInsertCol();
     }
 
     excelDeleteCol() {
-        const sheet = this.excelData.sheets[this.excelData.activeSheetIdx];
-        const colIdx = this.activeCell.c || 0;
-        sheet.data.forEach(row => row.splice(colIdx, 1));
-        this.markDirty();
-        this.renderExcelGrid();
+        if (!this.sheetsEngine) this.sheetsEngine = new FrankSheetsEngine(this);
+        this.sheetsEngine.excelDeleteCol();
     }
 
     excelAddSheet() {
-        const newIdx = this.excelData.sheets.length + 1;
-        const newSheetName = `Sheet${newIdx}`;
-        this.excelData.sheets.push({
-            name: newSheetName,
-            data: Array.from({ length: 25 }, () => Array(8).fill('')),
-            formulas: {},
-            styles: {}
-        });
-        this.excelData.activeSheetIdx = this.excelData.sheets.length - 1;
-        this.markDirty();
-        this.renderExcelGrid();
-        this.renderSheetTabs();
-        showToast(`Added ${newSheetName}`, 'success');
+        if (!this.sheetsEngine) this.sheetsEngine = new FrankSheetsEngine(this);
+        this.sheetsEngine.excelAddSheet();
     }
 
     colIdxToLetter(idx) {
@@ -1023,16 +765,30 @@ class FrankOfficeWorkspace {
     mountPptxEditor(toolbar, canvas) {
         toolbar.innerHTML = `
             <div class="toolbar-group">
-                <button type="button" class="tool-btn" id="pptxAddSlide" title="New Slide">+ Slide</button>
-                <button type="button" class="tool-btn" id="pptxDupSlide" title="Duplicate Slide">Duplicate</button>
-                <button type="button" class="tool-btn" id="pptxDelSlide" title="Delete Slide">Delete</button>
+                <button type="button" class="tool-btn btn-labeled" id="pptxAddSlide" title="New Slide" data-i18n-title="office.addSlide">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span data-i18n="office.addSlide">Add Slide</span>
+                </button>
+                <button type="button" class="tool-btn btn-labeled" id="pptxDupSlide" title="Duplicate Slide" data-i18n-title="office.duplicate">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <span data-i18n="office.duplicate">Duplicate</span>
+                </button>
+                <button type="button" class="tool-btn btn-labeled" id="pptxDelSlide" title="Delete Slide" style="color:var(--danger, #ef4444);" data-i18n-title="office.delete">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span data-i18n="office.delete">Delete</span>
+                </button>
             </div>
             <div class="toolbar-group">
-                <button type="button" class="workspace-btn workspace-btn-primary" id="startPresentationBtn" style="height:32px;">
-                    ▶ Present
+                <button type="button" class="workspace-btn workspace-btn-primary" id="startPresentationBtn" style="height:32px;padding:0 14px;" data-i18n-title="office.present">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <span data-i18n="office.present">Present</span>
                 </button>
             </div>
         `;
+
+        if (window.i18n && typeof window.i18n.applyTranslations === 'function') {
+            window.i18n.applyTranslations(toolbar);
+        }
 
         canvas.innerHTML = `
             <div class="pptx-editor-stage">
@@ -1186,19 +942,28 @@ class FrankOfficeWorkspace {
     mountPdfWorkspace(toolbar, canvas) {
         toolbar.innerHTML = `
             <div class="toolbar-group">
-                <button type="button" class="tool-btn" id="pdfPrevPage" title="Previous Page">◀</button>
-                <span class="workspace-type-badge" id="pdfPageIndicator" style="font-weight:700;">Page 1</span>
-                <button type="button" class="tool-btn" id="pdfNextPage" title="Next Page">▶</button>
+                <button type="button" class="tool-btn icon-only" id="pdfPrevPage" title="Previous Page">◀</button>
+                <span class="workspace-page-indicator" id="pdfPageIndicator">Page 1</span>
+                <button type="button" class="tool-btn icon-only" id="pdfNextPage" title="Next Page">▶</button>
             </div>
             <div class="toolbar-group">
-                <button type="button" class="tool-btn" id="pdfZoomOut" title="Zoom Out">-</button>
-                <span id="pdfZoomLabel" style="font-size:12px;font-weight:700;min-width:44px;text-align:center;">100%</span>
-                <button type="button" class="tool-btn" id="pdfZoomIn" title="Zoom In">+</button>
-                <button type="button" class="tool-btn" id="pdfFitWidth" title="Fit Width">Fit Width</button>
+                <button type="button" class="tool-btn icon-only" id="pdfZoomOut" title="Zoom Out">−</button>
+                <span id="pdfZoomLabel" class="pdf-zoom-label">100%</span>
+                <button type="button" class="tool-btn icon-only" id="pdfZoomIn" title="Zoom In">+</button>
+                <button type="button" class="tool-btn btn-labeled" id="pdfFitWidth" title="Fit to Width">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                    <span>Fit Width</span>
+                </button>
             </div>
             <div class="toolbar-group">
-                <button type="button" class="tool-btn" id="pdfPrintBtn" title="Print Document">🖨️ Print</button>
-                <button type="button" class="tool-btn" id="pdfDownloadBtn" title="Download Document">💾 Download</button>
+                <button type="button" class="tool-btn btn-labeled" id="pdfPrintBtn" title="Print Document">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>Print</span>
+                </button>
+                <button type="button" class="tool-btn btn-labeled" id="pdfDownloadBtn" title="Download Document">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Download</span>
+                </button>
             </div>
         `;
 
@@ -1872,12 +1637,25 @@ class FrankOfficeWorkspace {
         `;
     }
 
+    commitPendingEdits() {
+        if (this.category === 'excel' && this.sheetsEngine && typeof this.sheetsEngine.commitPendingEdits === 'function') {
+            this.sheetsEngine.commitPendingEdits();
+        } else if (this.category === 'word') {
+            if (document.activeElement && document.activeElement.isContentEditable) {
+                document.activeElement.blur();
+            }
+        }
+    }
+
     // ---------------- SAVE DOCUMENT ----------------
     async saveDocument() {
         if (!this.currentDoc || !this.currentDoc.id) {
             showToast('Cannot save file without backend ID', 'error');
             return false;
         }
+
+        // Commit all pending edits before serialization
+        this.commitPendingEdits();
 
         this.setSaveStatus('saving');
         let payload = {
@@ -1930,46 +1708,38 @@ class FrankOfficeWorkspace {
 
     // ---------------- SEND UPDATED FILE TO CHAT ----------------
     async sendUpdatedFile() {
-        if (this.isDirty) {
-            const saved = await this.saveDocument();
-            if (!saved) return;
-        }
-
-        const chat = window.chatController;
-        if (chat && chat.activeId) {
-            try {
-                const payload = {
-                    recipient_id: chat.activeType === 'direct' ? chat.activeId : null,
-                    group_id: chat.activeType === 'group' ? chat.activeId : null,
-                    comment: `Updated: ${this.currentDoc.filename} (v${this.currentDoc.current_version_number || 1})`
-                };
-                const res = await api.sendDocumentToConversation(this.currentDoc.id, payload);
-                if (res && res.status === 'sent') {
-                    showToast('Updated document sent to conversation!', 'success');
-                    this.closeWorkspace();
-                    return;
-                }
-            } catch (err) {
-                console.error('Send failed:', err);
-                showToast('Unable to send file to chat', 'error');
-                return;
-            }
-        }
-
-        if (window.documentBrowserController && typeof window.documentBrowserController.openSendToChatModal === 'function' && this.currentDoc && this.currentDoc.id) {
-            window.documentBrowserController.openSendToChatModal(this.currentDoc.id, this.currentDoc.filename);
-            return;
-        }
+        if (this.isOpeningSendDialog) return;
+        this.isOpeningSendDialog = true;
 
         try {
-            const res = await api.sendDocumentToConversation(this.currentDoc.id);
-            if (res && res.status === 'sent') {
-                showToast('Document sent to conversation!', 'success');
-                this.closeWorkspace();
+            // 1. Commit all pending edits immediately
+            this.commitPendingEdits();
+
+            // 2. Always ensure the latest workbook state is saved to backend before sharing!
+            this.setSaveStatus('saving');
+            const saved = await this.saveDocument();
+            if (!saved) {
+                showToast('Please save your changes before sending to chat.', 'error');
+                return;
             }
-        } catch (err) {
-            console.error('Send failed:', err);
-            showToast('Unable to send file to chat', 'error');
+
+            // 3. Ensure document metadata and ID are available
+            if (!this.currentDoc || !this.currentDoc.id) {
+                showToast('Document metadata not loaded. Please wait.', 'error');
+                return;
+            }
+
+            // 4. Always open the Send Document to Chat dialog to select recipient
+            if (window.documentBrowserController && typeof window.documentBrowserController.openSendToChatModal === 'function') {
+                await window.documentBrowserController.openSendToChatModal(this.currentDoc.id, this.currentDoc.filename, this.currentDoc);
+            } else if (typeof DocumentBrowserController === 'function') {
+                window.documentBrowserController = new DocumentBrowserController();
+                await window.documentBrowserController.openSendToChatModal(this.currentDoc.id, this.currentDoc.filename, this.currentDoc);
+            } else {
+                showToast('Unable to open Send to Chat dialog', 'error');
+            }
+        } finally {
+            this.isOpeningSendDialog = false;
         }
     }
 
@@ -2046,6 +1816,10 @@ class FrankOfficeWorkspace {
     // ---------------- DOWNLOAD DOCUMENT ----------------
     async downloadDocument() {
         if (!this.currentDoc) return;
+        if (this.category === 'excel' && this.sheetsEngine) {
+            this.sheetsEngine.fileExportXlsx();
+            return;
+        }
         const url = this.currentDoc.downloadUrl || this.currentDoc.viewUrl;
         if (!url) return;
 
@@ -2109,6 +1883,9 @@ class FrankOfficeWorkspace {
     }
 
     closeWorkspace() {
+        if (this.sheetsEngine) {
+            this.sheetsEngine.cleanup();
+        }
         const ws = document.getElementById('frankDocumentWorkspace');
         if (ws) {
             ws.classList.remove('active');

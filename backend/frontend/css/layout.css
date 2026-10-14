@@ -89,11 +89,70 @@ body.dark .landing-header {
     max-width: 520px;
 }
 
-.hero-actions {
+.hero-actions,
+.hero-actions-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: var(--space-4);
+}
+
+.hero-primary-btns {
     display: flex;
     align-items: center;
-    gap: var(--space-4);
-    margin-top: var(--space-2);
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.hero-primary-btns .btn {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-start-btn {
+    box-shadow: 0 4px 14px var(--primary-glow, rgba(184, 107, 61, 0.25));
+}
+
+.hero-login-btn {
+    background: var(--surface-elevated, #FFFDF8);
+    color: var(--text, #2D241D) !important;
+    border: 1.5px solid var(--border-strong, #CDB796);
+    font-weight: 700;
+    transition: all var(--transition-fast, 0.15s ease);
+}
+
+.hero-login-btn:hover {
+    background: var(--surface-hover, #EFE1CE);
+    border-color: var(--primary, #B86B3D);
+    color: var(--primary, #B86B3D) !important;
+    box-shadow: 0 2px 8px rgba(184, 107, 61, 0.15);
+}
+
+.hero-secondary-btns {
+    display: flex;
+    align-items: center;
+    margin-top: 2px;
+}
+
+.hero-explore-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary, #67584A);
+    padding: 8px 14px;
+    border-radius: var(--radius-md, 8px);
+    transition: all var(--transition-fast, 0.15s ease);
+    text-decoration: none;
+}
+
+.hero-explore-btn:hover {
+    color: var(--primary, #B86B3D);
+    background: var(--surface-elevated, rgba(184, 107, 61, 0.08));
 }
 
 .hero-stats {
@@ -507,8 +566,54 @@ body.dark .landing-header {
 }
 
 @media (max-width: 480px) {
-    .header-actions #langSelector {
-        display: none;
+    .landing-header {
+        padding: 8px 12px;
+    }
+
+    .header-actions {
+        gap: 6px;
+    }
+
+    #langSelector .lang-btn {
+        padding: 6px 8px;
+        font-size: 13px;
+        gap: 5px;
+        min-height: 36px;
+    }
+
+    #langSelector .lang-icon {
+        width: 14px;
+        height: 14px;
+    }
+
+    #langSelector .chevron-icon {
+        width: 10px;
+        height: 10px;
+    }
+}
+
+@media (max-width: 360px) {
+    .landing-header {
+        padding: 6px 8px;
+    }
+
+    .brand-link span {
+        font-size: 15px;
+    }
+
+    .brand-link img {
+        width: 26px;
+        height: 26px;
+    }
+
+    .header-actions {
+        gap: 4px;
+    }
+
+    #langSelector .lang-btn {
+        padding: 5px 6px;
+        font-size: 12px;
+        gap: 4px;
     }
 }
 

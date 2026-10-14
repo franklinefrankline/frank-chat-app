@@ -23,7 +23,12 @@ class AppController {
 
         this.setupMobileTabs();
         this.setupMobileDrawer();
+        this.setupTopHeaderSearch();
+        this.setupNotificationsBtn();
         this.setupFiltersAndSearch();
+        this.setupChatsFilterPopover();
+        this.setupChatsHeaderEditDocBtn();
+        this.setupCrossTabStorageSync();
         this.setupNavigation();
 
         document.getElementById('sidebarLogoutBtn')?.addEventListener('click', () => {
@@ -66,15 +71,18 @@ class AppController {
                     this.currentUser = freshUser;
                     auth.setUser(freshUser);
                     this.updateSidebarUser(freshUser);
+                } else if (!this.currentUser) {
+                    this.showProfileLoadError(new Error('Profile data unavailable'));
                 }
             } catch (userErr) {
                 // If API call fails but we have a cached user, continue with cached data
-                // This prevents auto-logout on transient network/auth issues
                 if (this.currentUser) {
                     console.warn('[FRANK] Could not refresh user from backend, using cached user:', userErr.message || userErr);
                 } else if (!auth.isAuthenticated()) {
                     window.location.href = 'login.html';
                     return;
+                } else {
+                    this.showProfileLoadError(userErr);
                 }
             }
 
@@ -102,7 +110,8 @@ class AppController {
     setupDesktopProfileDropdown() {
         const profileBtn = document.getElementById('desktopProfileBtn');
         const dropdown = document.getElementById('desktopProfileDropdown');
-        const openBtn = document.getElementById('openSidebarBtn');
+        const topHeader = document.getElementById('appTopHeader');
+        const wrap = document.getElementById('desktopProfileBtnWrap');
         if (!dropdown) return;
 
         const closeDropdown = () => {
@@ -110,24 +119,48 @@ class AppController {
             dropdown.style.display = 'none';
             dropdown.style.visibility = '';
             profileBtn?.setAttribute('aria-expanded', 'false');
+            topHeader?.classList.remove('has-open-menu');
+            wrap?.classList.remove('has-open-menu');
             if (window.ui && window.ui.activeAnchoredDropdown === dropdown) {
                 window.ui.activeAnchoredDropdown = null;
                 window.ui.activeAnchoredTrigger = null;
             }
         };
 
+        const getPositionFn = () => {
+            if (window.ui && typeof window.ui.positionAnchoredMenu === 'function') {
+                return window.ui.positionAnchoredMenu.bind(window.ui);
+            }
+            if (window.uiModule && typeof window.uiModule.positionAnchoredMenu === 'function') {
+                return window.uiModule.positionAnchoredMenu.bind(window.uiModule);
+            }
+            return null;
+        };
+
         const openDropdown = (trigger = profileBtn) => {
             if (window.ui && typeof window.ui.closeAllDropdowns === 'function') {
                 window.ui.closeAllDropdowns();
+            } else if (window.uiModule && typeof window.uiModule.closeAllDropdowns === 'function') {
+                window.uiModule.closeAllDropdowns();
             }
             dropdown.classList.add('open', 'show');
             profileBtn?.setAttribute('aria-expanded', 'true');
-            if (window.ui && typeof window.ui.positionAnchoredMenu === 'function') {
-                window.ui.positionAnchoredMenu(dropdown, trigger || profileBtn);
-                window.ui.activeAnchoredDropdown = dropdown;
-                window.ui.activeAnchoredTrigger = trigger || profileBtn;
+            topHeader?.classList.add('has-open-menu');
+            wrap?.classList.add('has-open-menu');
+
+            const posFn = getPositionFn();
+            if (posFn) {
+                posFn(dropdown, trigger || profileBtn);
+                if (window.ui) {
+                    window.ui.activeAnchoredDropdown = dropdown;
+                    window.ui.activeAnchoredTrigger = trigger || profileBtn;
+                }
             } else {
                 dropdown.style.display = 'block';
+                dropdown.style.position = 'fixed';
+                dropdown.style.top = '54px';
+                dropdown.style.right = '8px';
+                dropdown.style.zIndex = '1200';
             }
         };
 
@@ -141,14 +174,7 @@ class AppController {
         };
 
         profileBtn?.addEventListener('click', (e) => toggleDropdown(e, profileBtn));
-        openBtn?.addEventListener('click', (e) => {
-            if (window.innerWidth > 768) {
-                toggleDropdown(e, openBtn);
-            }
-        });
-
-
-
+        
         // Auto-close on link/modal click (do not close prematurely on copy or theme toggle)
         dropdown.querySelectorAll('a, [data-open-modal], .danger').forEach(el => {
             el.addEventListener('click', () => {
@@ -158,7 +184,7 @@ class AppController {
 
         // Close when clicking outside
         document.addEventListener('click', (e) => {
-            if (e.target.closest('#desktopProfileBtn') || e.target.closest('#desktopProfileDropdown') || (window.innerWidth > 768 && e.target.closest('#openSidebarBtn'))) {
+            if (e.target.closest('#desktopProfileBtn') || e.target.closest('#desktopProfileDropdown')) {
                 return;
             }
             closeDropdown();
@@ -169,6 +195,14 @@ class AppController {
             if (e.key === 'Escape' && (dropdown.classList.contains('show') || dropdown.classList.contains('open') || dropdown.style.display === 'block')) {
                 closeDropdown();
                 profileBtn?.focus();
+            }
+        });
+
+        // Reposition on window resize if open
+        window.addEventListener('resize', () => {
+            if (dropdown.classList.contains('open') || dropdown.classList.contains('show')) {
+                const posFn = getPositionFn();
+                if (posFn) posFn(dropdown, profileBtn);
             }
         });
     }
@@ -198,19 +232,45 @@ class AppController {
 
     updateSidebarUser(user) {
         if (!user) return;
-        const name = user.full_name || user.username || '??';
-        const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        const name = user.full_name || user.name || user.username || 'User';
+        const initials = name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
+        const isOnline = (window.wsClient && window.wsClient.isConnected) || navigator.onLine;
 
-        // Update sidebar (mobile drawer) elements
+        // Helper to populate avatar containers with image or initials fallback
+        const renderAvatarContent = (containerEl, initialsId, extraClass = '') => {
+            if (!containerEl) return;
+            if (user.avatar_url) {
+                containerEl.innerHTML = `
+                    <img src="${user.avatar_url}" alt="${messagesModule ? messagesModule.escapeHTML(name) : name}" style="width:100%; height:100%; object-fit:cover; border-radius:50%; display:block;" onerror="this.onerror=null; this.parentElement.innerHTML='<span id=\\'${initialsId}\\'>${initials}</span>';">
+                `;
+            } else {
+                containerEl.innerHTML = `<span id="${initialsId}">${initials}</span>`;
+            }
+        };
+
+        // 1. Sidebar (Mobile Drawer) User Card
+        const sidebarAvatarEl = document.getElementById('sidebarUserAvatar');
+        if (sidebarAvatarEl) {
+            if (user.avatar_url) {
+                sidebarAvatarEl.innerHTML = `
+                    <img src="${user.avatar_url}" alt="${messagesModule ? messagesModule.escapeHTML(name) : name}" style="width:100%; height:100%; object-fit:cover; border-radius:50%; display:block;" onerror="this.onerror=null; this.parentElement.innerHTML='<span id=\\'sidebarUserInitials\\'>${initials}</span><span class=\\'avatar-status ${isOnline ? 'online' : 'offline'}\\' id=\\'sidebarUserPresence\\'></span>';">
+                    <span class="avatar-status ${isOnline ? 'online' : 'offline'}" id="sidebarUserPresence"></span>
+                `;
+            } else {
+                sidebarAvatarEl.innerHTML = `
+                    <span id="sidebarUserInitials">${initials}</span>
+                    <span class="avatar-status ${isOnline ? 'online' : 'offline'}" id="sidebarUserPresence"></span>
+                `;
+            }
+        }
+
         const nameEl = document.getElementById('sidebarUserName');
-        const initialsEl = document.getElementById('sidebarUserInitials');
         const frankIdEl = document.getElementById('sidebarUserFrankId');
         const menuFrankIdEl = document.getElementById('menuUserFrankId');
         const copySidebarBtn = document.getElementById('copySidebarFrankIdBtn');
         const copyMenuBtn = document.getElementById('copyMenuFrankIdBtn');
 
         if (nameEl) nameEl.textContent = name;
-        if (initialsEl) initialsEl.textContent = initials;
         if (user.frank_id) {
             if (frankIdEl) {
                 frankIdEl.textContent = user.frank_id;
@@ -221,28 +281,104 @@ class AppController {
             if (copyMenuBtn) copyMenuBtn.dataset.frankId = user.frank_id;
         }
 
-        // Update sidebar menu elements
-        const sidebarMenuInitials = document.getElementById('sidebarMenuInitials');
+        // 2. Sidebar Menu Elements
+        renderAvatarContent(document.getElementById('sidebarMenuAvatar'), 'sidebarMenuInitials');
         const sidebarMenuUserName = document.getElementById('sidebarMenuUserName');
-        if (sidebarMenuInitials) sidebarMenuInitials.textContent = initials;
         if (sidebarMenuUserName) sidebarMenuUserName.textContent = name;
 
-        // Update desktop header profile elements
-        const desktopInitialsEl = document.getElementById('desktopHeaderInitials');
-        const desktopDropdownInitials = document.getElementById('desktopDropdownInitials');
+        // 3. Desktop Header Profile Trigger & Dropdown Menu
+        renderAvatarContent(document.getElementById('desktopHeaderAvatar'), 'desktopHeaderInitials');
+        renderAvatarContent(document.getElementById('desktopDropdownAvatar'), 'desktopDropdownInitials');
+
+        const topHeaderUserName = document.getElementById('topHeaderUserName');
         const desktopNameEl = document.getElementById('desktopDropdownName');
         const desktopFrankIdEl = document.getElementById('desktopDropdownFrankId');
         const copyDesktopBtn = document.getElementById('copyDesktopMenuFrankIdBtn');
-        if (desktopInitialsEl) desktopInitialsEl.textContent = initials;
-        if (desktopDropdownInitials) desktopDropdownInitials.textContent = initials;
+
+        if (topHeaderUserName) topHeaderUserName.textContent = name;
         if (desktopNameEl) desktopNameEl.textContent = name;
         if (desktopFrankIdEl && user.frank_id) desktopFrankIdEl.textContent = user.frank_id;
         if (copyDesktopBtn && user.frank_id) copyDesktopBtn.dataset.frankId = user.frank_id;
 
         if (typeof updateSidebarPresence === 'function') {
-            const isWsConnected = window.wsClient && window.wsClient.isConnected;
-            updateSidebarPresence(isWsConnected || navigator.onLine);
+            updateSidebarPresence(isOnline);
         }
+    }
+
+    showProfileLoadError(err) {
+        console.warn('[FRANK] Profile fetch notice:', err?.message || err);
+        const topHeaderUserName = document.getElementById('topHeaderUserName');
+        const desktopNameEl = document.getElementById('desktopDropdownName');
+        const sidebarUserName = document.getElementById('sidebarUserName');
+        const sidebarMenuUserName = document.getElementById('sidebarMenuUserName');
+
+        // Ensure we never leave "Loading..." stuck in the UI
+        if (topHeaderUserName && (topHeaderUserName.textContent === 'Loading...' || topHeaderUserName.textContent.trim() === '')) {
+            topHeaderUserName.innerHTML = `User <button type="button" class="btn btn-ghost btn-xs" id="retryProfileBtn" title="Retry loading profile" style="padding:0 4px;font-size:11px;margin-left:4px;color:var(--primary);cursor:pointer;background:transparent;border:none;">↻</button>`;
+            document.getElementById('retryProfileBtn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.retryLoadProfile();
+            });
+        }
+        if (desktopNameEl && (desktopNameEl.textContent === 'Loading...' || desktopNameEl.textContent.trim() === '')) {
+            desktopNameEl.textContent = 'User (Tap to refresh)';
+        }
+        if (sidebarUserName && (sidebarUserName.textContent === 'Loading...' || sidebarUserName.textContent.trim() === '')) {
+            sidebarUserName.textContent = 'User';
+        }
+        if (sidebarMenuUserName && (sidebarMenuUserName.textContent === 'Loading...' || sidebarMenuUserName.textContent.trim() === '')) {
+            sidebarMenuUserName.textContent = 'User';
+        }
+    }
+
+    async retryLoadProfile() {
+        const topHeaderUserName = document.getElementById('topHeaderUserName');
+        if (topHeaderUserName) topHeaderUserName.textContent = 'Loading...';
+        try {
+            const freshUser = await api.getCurrentUser();
+            if (freshUser && freshUser.id) {
+                this.currentUser = freshUser;
+                auth.setUser(freshUser);
+                this.updateSidebarUser(freshUser);
+                if (typeof showToast === 'function') showToast('Profile refreshed successfully', 'success');
+            } else {
+                this.showProfileLoadError(new Error('Profile unavailable'));
+            }
+        } catch (err) {
+            this.showProfileLoadError(err);
+            if (typeof showToast === 'function') showToast('Unable to refresh profile', 'error');
+        }
+    }
+
+    setupChatsHeaderEditDocBtn() {
+        const editDocBtn = document.getElementById('chatsHeaderEditDocBtn');
+        if (!editDocBtn) return;
+        editDocBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (window.documentBrowserController) {
+                window.documentBrowserController.openBrowser();
+            } else if (typeof DocumentBrowserController !== 'undefined') {
+                window.documentBrowserController = new DocumentBrowserController();
+                window.documentBrowserController.openBrowser();
+            }
+        });
+    }
+
+    setupCrossTabStorageSync() {
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'chatapp_user' && e.newValue) {
+                try {
+                    const updatedUser = JSON.parse(e.newValue);
+                    if (updatedUser) {
+                        this.currentUser = updatedUser;
+                        this.updateSidebarUser(updatedUser);
+                    }
+                } catch (_) {}
+            } else if (e.key === 'chatapp_token' && !e.newValue) {
+                window.location.href = 'login.html';
+            }
+        });
     }
 
     async loadConversations(autoSelectFirst = false) {
@@ -319,15 +455,32 @@ class AppController {
         let filtered = this.conversations.filter(c => {
             if (this.currentFilter === 'unread' && (!c.unread_count || c.unread_count === 0)) return false;
             if (this.currentFilter === 'groups' && c.type !== 'group') return false;
+            if (this.currentFilter === 'direct' && c.type === 'group') return false;
+            if (this.currentFilter === 'favorites' && !c.is_favorite) return false;
+            if (this.currentFilter === 'attachments') {
+                const hasAttach = Boolean(
+                    c.has_attachments ||
+                    (c.last_message && (
+                        c.last_message.message_type === 'document' ||
+                        c.last_message.message_type === 'image' ||
+                        c.last_message.message_type === 'voice' ||
+                        c.last_message.attachment_id ||
+                        (c.last_message.content && (c.last_message.content.includes('📎') || c.last_message.content.includes('.pdf') || c.last_message.content.includes('.docx') || c.last_message.content.includes('.xlsx') || c.last_message.content.includes('.pptx')))
+                    ))
+                );
+                if (!hasAttach) return false;
+            }
             if (this.currentFilter === 'archived' && !this.archivedIds.has(c.id)) return false;
             if (this.currentFilter !== 'archived' && this.archivedIds.has(c.id)) return false;
 
             if (this.searchQuery) {
-                const q = this.searchQuery.toLowerCase();
+                const q = this.searchQuery.toLowerCase().trim();
                 const name = (c.name || '').toLowerCase();
                 const username = (c.username || '').toLowerCase();
+                const currentUser = auth.getUser();
+                const frankId = (c.frank_id || (currentUser && Number(c.id) === Number(currentUser.id) ? currentUser.frank_id : '') || '').toLowerCase();
                 const lastMsg = (c.last_message ? c.last_message.content : '').toLowerCase();
-                return name.includes(q) || username.includes(q) || lastMsg.includes(q);
+                return name.includes(q) || username.includes(q) || frankId.includes(q) || lastMsg.includes(q);
             }
             return true;
         });
@@ -353,6 +506,7 @@ class AppController {
             const timeStr = conv.last_message ? messagesModule.formatRelativeTime(conv.last_message.created_at) : '';
             const currentUser = auth.getUser();
             const isSelf = !isGroup && currentUser && Number(conv.id) === Number(currentUser.id);
+            const frankId = conv.frank_id || (isSelf && currentUser ? currentUser.frank_id : '');
             
             let previewText = 'No messages yet';
             if (isSelf && !conv.last_message) {
@@ -387,6 +541,12 @@ class AppController {
                         </span>
                         <span class="conversation-time">${timeStr}</span>
                     </div>
+                    ${!isGroup && frankId ? `
+                    <div class="conversation-row conversation-frank-id-row">
+                        <span class="conversation-frank-id-badge" title="FRANK ID: ${messagesModule.escapeHTML(frankId)}">
+                            <span class="frank-id-label">FRANK ID:</span> <span class="frank-id-code">${messagesModule.escapeHTML(frankId)}</span>
+                        </span>
+                    </div>` : ''}
                     <div class="conversation-row">
                         <p class="conversation-snippet">${previewText}</p>
                         ${conv.unread_count > 0 ? `<span class="unread-badge">${conv.unread_count}</span>` : ''}
@@ -646,22 +806,118 @@ class AppController {
         });
     }
 
+    setupChatsFilterPopover() {
+        const filterBtn = document.getElementById('chatsHeaderFilterBtn');
+        const popover = document.getElementById('chatsFilterPopover');
+        const wrap = document.getElementById('chatsFilterBtnWrap');
+        const clearBtn = document.getElementById('clearChatsFilterBtn');
+        const dot = document.getElementById('filterActiveDot');
+        if (!filterBtn || !popover) return;
+
+        const closePopover = () => {
+            popover.style.display = 'none';
+            filterBtn.setAttribute('aria-expanded', 'false');
+            filterBtn.classList.remove('has-open-popover');
+        };
+
+        const openPopover = () => {
+            popover.style.display = 'flex';
+            filterBtn.setAttribute('aria-expanded', 'true');
+            filterBtn.classList.add('has-open-popover');
+        };
+
+        filterBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (popover.style.display === 'flex' || popover.style.display === 'block') {
+                closePopover();
+            } else {
+                openPopover();
+            }
+        });
+
+        // Filter Option Click
+        popover.querySelectorAll('.filter-popover-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const filterVal = btn.dataset.filter || 'all';
+                this.setChatsFilter(filterVal);
+                closePopover();
+            });
+        });
+
+        // Reset Button Click
+        clearBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.setChatsFilter('all');
+            closePopover();
+        });
+
+        // Click outside
+        document.addEventListener('click', (e) => {
+            if (!wrap?.contains(e.target) && !popover.contains(e.target)) {
+                closePopover();
+            }
+        });
+
+        // Escape Key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && (popover.style.display === 'flex' || popover.style.display === 'block')) {
+                closePopover();
+                filterBtn.focus();
+            }
+        });
+    }
+
+    setChatsFilter(filterVal) {
+        this.currentFilter = filterVal;
+        this.currentView = 'conversations';
+
+        // Update active checkmarks on popover options
+        const popover = document.getElementById('chatsFilterPopover');
+        popover?.querySelectorAll('.filter-popover-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.filter === filterVal);
+        });
+
+        // Update active dot and filter button highlight
+        const filterBtn = document.getElementById('chatsHeaderFilterBtn');
+        const dot = document.getElementById('filterActiveDot');
+        const isFiltered = filterVal !== 'all';
+        if (dot) dot.style.display = isFiltered ? 'block' : 'none';
+        if (filterBtn) filterBtn.classList.toggle('is-filtered', isFiltered);
+
+        // Sync with desktop filter chips if present
+        document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.classList.toggle('active', chip.dataset.filter === filterVal);
+        });
+
+        this.renderConversationList();
+    }
+
     setupMobileDrawer() {
         const sidebar = document.getElementById('sidebar');
         const openBtn = document.getElementById('openSidebarBtn');
         const overlay = document.getElementById('mobileOverlay');
+        const closeBtn = document.getElementById('sidebarCloseBtn');
 
         const closeSidebar = () => {
             sidebar?.classList.remove('open');
             overlay?.classList.remove('show');
         };
 
-        openBtn?.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768) {
-                e.stopPropagation();
+        const toggleSidebar = (e) => {
+            if (e) e.stopPropagation();
+            if (sidebar?.classList.contains('open')) {
+                closeSidebar();
+            } else {
                 sidebar?.classList.add('open');
                 overlay?.classList.add('show');
             }
+        };
+
+        openBtn?.addEventListener('click', toggleSidebar);
+        closeBtn?.addEventListener('click', (e) => {
+            if (e) e.stopPropagation();
+            closeSidebar();
         });
 
         overlay?.addEventListener('click', closeSidebar);
@@ -693,13 +949,63 @@ class AppController {
             }
         }, { passive: true });
 
-        // Auto-close mobile drawer when tapping any link or button inside it (except copy button and user card)
-        sidebar?.querySelectorAll('button, a').forEach(el => {
+        // Auto-close drawer on narrow viewports when selecting a nav section
+        sidebar?.querySelectorAll('.sidebar-nav a, .sidebar-nav button').forEach(el => {
             el.addEventListener('click', () => {
-                if (window.innerWidth <= 768 && !el.classList.contains('sidebar-user') && !el.closest('.btn-copy-frank-id') && !el.closest('.dropdown-user-header')) {
+                if (window.innerWidth <= 1024) {
                     closeSidebar();
                 }
             });
+        });
+    }
+
+    setupTopHeaderSearch() {
+        const topInput = document.getElementById('topHeaderSearchInput');
+        const clearBtn = document.getElementById('topHeaderClearSearchBtn');
+        const convInput = document.getElementById('conversationSearchInput');
+        if (!topInput) return;
+
+        topInput.addEventListener('input', () => {
+            const val = topInput.value;
+            if (clearBtn) clearBtn.style.display = val.length > 0 ? 'inline-block' : 'none';
+            if (convInput && convInput.value !== val) {
+                convInput.value = val;
+                convInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        });
+
+        clearBtn?.addEventListener('click', () => {
+            topInput.value = '';
+            clearBtn.style.display = 'none';
+            if (convInput) {
+                convInput.value = '';
+                convInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            topInput.focus();
+        });
+
+        if (convInput) {
+            convInput.addEventListener('input', () => {
+                if (topInput.value !== convInput.value) {
+                    topInput.value = convInput.value;
+                    if (clearBtn) clearBtn.style.display = topInput.value.length > 0 ? 'inline-block' : 'none';
+                }
+            });
+        }
+    }
+
+    setupNotificationsBtn() {
+        const notifBtn = document.getElementById('topHeaderNotificationBtn');
+        notifBtn?.addEventListener('click', () => {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(`Notifications: ${permission}`, 'info');
+                    }
+                });
+            } else {
+                window.location.href = 'settings.html?tab=notifications';
+            }
         });
     }
 

@@ -37,12 +37,16 @@ backend/.env.*
 
 # Local SQLite databases & uploads
 *.db
+*.db.bak
+*.bak
 *.sqlite
 *.sqlite3
 backend/chatapp.db
 backend/uploads/
 uploads/
 backups/
+scratch/
+scratch_*
 
 # OS / IDE
 .DS_Store
@@ -62,10 +66,12 @@ yarn-error.log*
 # Test artifacts
 test-results/
 tests/*.png
+tests/**/*.png
+tests/*screenshots*/
+tests/fixtures/
 tests/test_doc_*.docx
 playwright-report/
 coverage/
-
 
 .vercel
 .env*

@@ -25,18 +25,51 @@ class GeminiProvider:
     """
 
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = (api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
-        self.model = "gemini-3.5-flash-lite"
+        self._api_key = api_key
+
+    @property
+    def api_key(self) -> str:
+        return (self._api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
+
+    @property
+    def model(self) -> str:
+        return (os.getenv("GEMINI_MODEL") or "gemini-3.6-flash").strip()
 
     @property
     def is_configured(self) -> bool:
         return bool(self.api_key)
 
+    def _extract_json(self, raw_text: str) -> Optional[Dict[str, Any]]:
+        text = raw_text.strip()
+        if text.startswith("```"):
+            lines = text.splitlines()
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].strip().startswith("```"):
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+        try:
+            return json.loads(text)
+        except Exception as e:
+            logger.warning(f"Failed to parse JSON directly ({e}), searching for outermost braces")
+            start = text.find("{")
+            end = text.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                try:
+                    return json.loads(text[start:end+1])
+                except Exception as inner_e:
+                    logger.error(f"Failed to parse extracted JSON slice: {inner_e}")
+            return None
+
     async def _call_gemini(self, system_instruction: str, user_content: str, timeout: float = 25.0) -> Optional[Dict[str, Any]]:
         if not self.is_configured:
             return None
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+        # Build prioritized list of models starting with configured model
+        configured_model = self.model
+        fallback_models = ["gemini-3.6-flash", "gemini-flash-lite-latest", "gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.8-flash"]
+        models_to_try = [configured_model] + [m for m in fallback_models if m != configured_model]
+
         payload = {
             "system_instruction": {
                 "parts": [{"text": system_instruction}]
@@ -52,36 +85,48 @@ class GeminiProvider:
             }
         }
 
-        try:
-            if HAS_HTTPX:
-                async with httpx.AsyncClient(timeout=timeout) as client:
-                    resp = await client.post(url, json=payload)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        raw_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                        return json.loads(raw_text)
-                    else:
-                        logger.warning(f"Gemini API returned status {resp.status_code}: {resp.text[:200]}")
-                        return None
-            else:
-                def _urllib_call():
-                    payload_bytes = json.dumps(payload).encode("utf-8")
-                    req = urllib.request.Request(
-                        url,
-                        data=payload_bytes,
-                        headers={"Content-Type": "application/json"},
-                        method="POST"
-                    )
-                    with urllib.request.urlopen(req, timeout=timeout) as response:
-                        if response.status == 200:
-                            data = json.loads(response.read().decode("utf-8"))
+        for model_name in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
+            try:
+                if HAS_HTTPX:
+                    async with httpx.AsyncClient(timeout=timeout) as client:
+                        resp = await client.post(url, json=payload)
+                        if resp.status_code == 200:
+                            data = resp.json()
                             raw_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                            return json.loads(raw_text)
-                        return None
-                return await asyncio.to_thread(_urllib_call)
-        except Exception as e:
-            logger.error(f"Error calling Gemini API: {e}")
-            return None
+                            parsed = self._extract_json(raw_text)
+                            if parsed is not None:
+                                return parsed
+                        elif resp.status_code in (429, 503, 404):
+                            logger.warning(f"Gemini model {model_name} returned {resp.status_code}, trying fallback model...")
+                            continue
+                        else:
+                            logger.warning(f"Gemini API ({model_name}) returned status {resp.status_code}: {resp.text[:200]}")
+                            continue
+                else:
+                    def _urllib_call():
+                        payload_bytes = json.dumps(payload).encode("utf-8")
+                        req = urllib.request.Request(
+                            url,
+                            data=payload_bytes,
+                            headers={"Content-Type": "application/json"},
+                            method="POST"
+                        )
+                        with urllib.request.urlopen(req, timeout=timeout) as response:
+                            if response.status == 200:
+                                data = json.loads(response.read().decode("utf-8"))
+                                raw_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                                return self._extract_json(raw_text)
+                            return None
+                    result = await asyncio.to_thread(_urllib_call)
+                    if result is not None:
+                        return result
+            except Exception as e:
+                logger.error(f"Error calling Gemini API with {model_name}: {e}")
+                continue
+
+        logger.error("All candidate Gemini models failed or exhausted quota.")
+        return None
 
     async def analyze_message_or_document(
         self,
