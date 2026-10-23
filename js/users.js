@@ -52,16 +52,30 @@ const usersModule = {
             frankIdInput?.focus();
         });
 
-        modalBtn?.addEventListener('click', () => {
-            openModal('newChatModal');
-            this.resetModal();
-            this.searchUsers('');
+        // Connect all opening triggers
+        const openTriggers = [
+            modalBtn,
+            emptyStateBtn,
+            document.getElementById('chatsHeaderNewBtn'),
+            document.getElementById('desktopDropdownNewChatBtn'),
+            document.getElementById('sidebarDropdownNewChatBtn'),
+            document.getElementById('navFindPeopleBtn')
+        ].filter(Boolean);
+
+        openTriggers.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (typeof openModal === 'function') openModal('newChatModal');
+                this.resetModal();
+                this.searchUsers('');
+            });
         });
 
-        emptyStateBtn?.addEventListener('click', () => {
-            openModal('newChatModal');
-            this.resetModal();
-            this.searchUsers('');
+        // X Close button handler
+        const closeBtn = document.getElementById('closeNewChatModalBtn') || document.querySelector('#newChatModal .modal-close');
+        closeBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.closeModal();
         });
 
         searchInput?.addEventListener('input', () => {
@@ -97,6 +111,20 @@ const usersModule = {
             if (!this.searchedUser) return;
             await this.initiateConversation(this.searchedUser);
         });
+    },
+
+    closeModal() {
+        if (typeof window.closeModal === 'function') {
+            window.closeModal('newChatModal');
+        } else {
+            const modal = document.getElementById('newChatModal');
+            if (modal) {
+                modal.classList.remove('open', 'active', 'show');
+                if (!document.querySelector('.modal-backdrop.open, .modal-backdrop.active, .modal-backdrop.show')) {
+                    document.body.style.overflow = '';
+                }
+            }
+        }
     },
 
     resetModal() {

@@ -1253,6 +1253,27 @@ const api = {
         });
     },
 
+    async createNewDocument(data = {}) {
+        return this.request('/api/files/new-document', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async renameDocument(fileId, filename) {
+        return this.request(`/api/files/${fileId}/rename`, {
+            method: 'PUT',
+            body: JSON.stringify({ filename })
+        });
+    },
+
+    async saveAsDocument(fileId, data = {}) {
+        return this.request(`/api/files/${fileId}/save-as`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
     async getConversationPreferences() {
         return this.request('/api/users/conversations/preferences');
     },

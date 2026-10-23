@@ -1292,3 +1292,200 @@ async def send_updated_file_to_conversation(
         "message_id": msg.id,
         "document": doc_data
     }
+
+
+@router.post("/new-document", response_model=schemas.DocumentResponse)
+def create_new_document(
+    req: schemas.DocumentCreateRequest = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Creates a new editable document inside FRANK Think with genuine version persistence."""
+    from services.office_service import office_service
+
+    title = (req.title if req and req.title else "Untitled Document").strip()
+    if not title.lower().endswith(".docx"):
+        title += ".docx"
+    clean_title = sanitize_filename(title)
+
+    # Initial document content based on template
+    initial_html = "<h1>Untitled Document</h1><p>Start typing your document directly inside FRANK Think...</p>"
+    if req and req.content:
+        initial_html = req.content
+    elif req and req.template == "report":
+        initial_html = (
+            "<h1>Project Status Report</h1>"
+            "<h2>Executive Summary</h2>"
+            "<p>This report outlines recent milestones, objectives, and upcoming deliverables.</p>"
+            '<table class="office-table" border="1" style="width:100%;border-collapse:collapse;margin:16px 0;">'
+            "<thead><tr>"
+            '<th style="padding:8px 12px;border:1px solid #D8C5AA;background:rgba(0,0,0,0.04);">Objective</th>'
+            '<th style="padding:8px 12px;border:1px solid #D8C5AA;background:rgba(0,0,0,0.04);">Status</th>'
+            '<th style="padding:8px 12px;border:1px solid #D8C5AA;background:rgba(0,0,0,0.04);">Owner</th>'
+            "</tr></thead>"
+            "<tbody>"
+            '<tr><td style="padding:8px 12px;border:1px solid #D8C5AA;">System Architecture Review</td><td style="padding:8px 12px;border:1px solid #D8C5AA;">Completed</td><td style="padding:8px 12px;border:1px solid #D8C5AA;">Frankline</td></tr>'
+            '<tr><td style="padding:8px 12px;border:1px solid #D8C5AA;">Word Document Engine</td><td style="padding:8px 12px;border:1px solid #D8C5AA;">Active</td><td style="padding:8px 12px;border:1px solid #D8C5AA;">Engineering</td></tr>'
+            "</tbody></table>"
+            "<h2>Next Steps</h2>"
+            "<p>Continue full verification and export validation.</p>"
+        )
+    elif req and req.template == "letter":
+        initial_html = (
+            '<p style="text-align: right;"><strong>Date:</strong> October 21, 2026</p>'
+            "<p><strong>To:</strong> Recipient Name<br>Organization<br>Address</p>"
+            "<p>Dear Colleague,</p>"
+            "<p>We are pleased to introduce the updated document collaboration workspace inside FRANK Think. This environment offers complete typography, paragraph alignment, page layout formatting, and real-time document sharing.</p>"
+            "<p>Sincerely,<br><strong>FRANK Think Team</strong></p>"
+        )
+
+    docx_bytes = office_service.build_docx(initial_html)
+    new_unique = f"{uuid.uuid4().hex}.docx"
+    file_path = UPLOAD_DIR / new_unique
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_bytes(docx_bytes)
+
+    file_size = len(docx_bytes)
+    b64_data = base64.b64encode(docx_bytes).decode("ascii")
+
+    doc = models.Document(
+        uploader_id=current_user.id,
+        original_filename=clean_title,
+        stored_filename=new_unique,
+        file_size=file_size,
+        file_data=b64_data,
+        mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        file_type="word",
+        current_version_number=1,
+        created_at=datetime.now(timezone.utc)
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+
+    v1 = models.DocumentVersion(
+        document_id=doc.id,
+        version_number=1,
+        stored_filename=new_unique,
+        file_size=file_size,
+        file_data=b64_data,
+        created_by_id=current_user.id,
+        change_summary="Initial document creation",
+        created_at=doc.created_at
+    )
+    db.add(v1)
+    db.commit()
+
+    return doc
+
+
+@router.put("/{file_id}/rename")
+def rename_document(
+    file_id: int,
+    req: schemas.DocumentRenameRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Renames an authorized document, validating file extension and ownership."""
+    doc = db.query(models.Document).filter(models.Document.id == file_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+    if not verify_document_access(doc, current_user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this document.")
+
+    raw_new_name = req.filename.strip()
+    ext = Path(doc.original_filename).suffix.lower()
+    if not raw_new_name.lower().endswith(ext):
+        raw_new_name += ext
+
+    clean_name = sanitize_filename(raw_new_name)
+    doc.original_filename = clean_name
+    db.commit()
+
+    return {
+        "status": "renamed",
+        "id": doc.id,
+        "original_filename": doc.original_filename
+    }
+
+
+@router.post("/{file_id}/save-as", response_model=schemas.DocumentResponse)
+def save_document_as(
+    file_id: int,
+    req: schemas.DocumentSaveAsRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Creates an explicit new copy of the current document with unique ID and versioning."""
+    from services.office_service import office_service
+
+    doc = db.query(models.Document).filter(models.Document.id == file_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+    if not verify_document_access(doc, current_user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this document.")
+
+    category = office_service.get_category_from_filename(doc.original_filename)
+    new_bytes = None
+
+    if req.structured_data:
+        if category == "word" or "html" in req.structured_data:
+            new_bytes = office_service.build_docx(req.structured_data.get("html", req.content or ""))
+    elif req.content is not None:
+        if category == "word":
+            new_bytes = office_service.build_docx(req.content)
+        else:
+            new_bytes = req.content.encode("utf-8")
+
+    if new_bytes is None:
+        src_path = UPLOAD_DIR / doc.stored_filename
+        if src_path.exists():
+            new_bytes = src_path.read_bytes()
+        elif getattr(doc, "file_data", None):
+            new_bytes = base64.b64decode(doc.file_data)
+        else:
+            new_bytes = b""
+
+    ext = Path(doc.original_filename).suffix.lower()
+    raw_name = req.filename.strip()
+    if not raw_name.lower().endswith(ext):
+        raw_name += ext
+    clean_name = sanitize_filename(raw_name)
+
+    new_unique = f"{uuid.uuid4().hex}{ext}"
+    new_path = UPLOAD_DIR / new_unique
+    new_path.parent.mkdir(parents=True, exist_ok=True)
+    new_path.write_bytes(new_bytes)
+
+    file_size = len(new_bytes)
+    b64_data = base64.b64encode(new_bytes).decode("ascii")
+
+    new_doc = models.Document(
+        uploader_id=current_user.id,
+        original_filename=clean_name,
+        stored_filename=new_unique,
+        file_size=file_size,
+        file_data=b64_data,
+        mime_type=doc.mime_type,
+        file_type=doc.file_type,
+        current_version_number=1,
+        created_at=datetime.now(timezone.utc)
+    )
+    db.add(new_doc)
+    db.commit()
+    db.refresh(new_doc)
+
+    v1 = models.DocumentVersion(
+        document_id=new_doc.id,
+        version_number=1,
+        stored_filename=new_unique,
+        file_size=file_size,
+        file_data=b64_data,
+        created_by_id=current_user.id,
+        change_summary=f"Created via Save As from {doc.original_filename}",
+        created_at=new_doc.created_at
+    )
+    db.add(v1)
+    db.commit()
+
+    return new_doc

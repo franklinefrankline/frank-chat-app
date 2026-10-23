@@ -10,6 +10,8 @@ class FrankOfficeWorkspace {
         this.currentDoc = null;
         this.category = 'unsupported';
         this.isDirty = false;
+        this.wordEngine = null;
+        this.sheetsEngine = null;
         this.activeCell = { coord: 'A1', r: 0, c: 0 };
         this.excelData = {
             sheets: [{ name: 'Sheet1', data: Array.from({ length: 30 }, () => Array(15).fill('')), formulas: {}, styles: {} }],
@@ -53,9 +55,21 @@ class FrankOfficeWorkspace {
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                         <span data-i18n="office.back">Back</span>
                     </button>
+                    <!-- Quick Access Toolbar: Undo / Redo -->
+                    <div class="workspace-quick-access" id="workspaceQuickAccess">
+                        <button type="button" class="workspace-btn workspace-btn-icon" id="workspaceTopUndoBtn" title="Undo (Ctrl+Z)" aria-label="Undo">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+                        </button>
+                        <button type="button" class="workspace-btn workspace-btn-icon" id="workspaceTopRedoBtn" title="Redo (Ctrl+Y)" aria-label="Redo">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path></svg>
+                        </button>
+                    </div>
                     <div class="workspace-file-identity">
                         <span class="workspace-file-icon" id="workspaceDocIcon">📄</span>
-                        <span class="workspace-file-title" id="workspaceDocTitle" title="Document">Document</span>
+                        <span class="workspace-file-title" id="workspaceDocTitle" title="Click to rename document">Document</span>
+                        <button type="button" class="doc-rename-btn" id="workspaceRenameBtn" title="Rename document" aria-label="Rename document">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
                         <span class="workspace-type-badge" id="workspaceTypeBadge">DOCX</span>
                     </div>
                     <div class="workspace-save-status saved" id="workspaceSaveStatus">
@@ -66,6 +80,12 @@ class FrankOfficeWorkspace {
                         <span id="workspaceVersionLabel">v1</span>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
+                </div>
+                <!-- Search Commands Box (Tell me what you want to do...) -->
+                <div class="workspace-search-bar" id="workspaceSearchBar" title="Search commands">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="workspaceCommandSearchInput" placeholder="Tell me what you want to do..." aria-label="Search Word commands">
+                    <div class="workspace-command-dropdown" id="workspaceCommandDropdown" style="display:none;"></div>
                 </div>
                 <div class="workspace-top-actions">
                     <button type="button" class="workspace-btn workspace-btn-primary" id="workspaceSaveBtn" title="Save document (Ctrl+S)" data-i18n-title="office.save">
@@ -185,6 +205,127 @@ class FrankOfficeWorkspace {
 
         const fsBtn = document.getElementById('workspaceFullscreenBtn');
         fsBtn?.addEventListener('click', () => this.toggleFullscreen());
+
+        // Quick Access Undo & Redo
+        document.getElementById('workspaceTopUndoBtn')?.addEventListener('click', () => {
+            document.execCommand('undo');
+            this.markDirty();
+            if (this.category === 'word' && this.wordEngine) {
+                this.wordEngine.syncActiveFormattingStates();
+                this.wordEngine.updateWordCount();
+            }
+        });
+        document.getElementById('workspaceTopRedoBtn')?.addEventListener('click', () => {
+            document.execCommand('redo');
+            this.markDirty();
+            if (this.category === 'word' && this.wordEngine) {
+                this.wordEngine.syncActiveFormattingStates();
+                this.wordEngine.updateWordCount();
+            }
+        });
+
+        // Rename document trigger
+        const renameDocHandler = () => {
+            if (this.category === 'word' && this.wordEngine) {
+                this.wordEngine.promptRenameDocument();
+            } else if (this.currentDoc) {
+                const curName = this.currentDoc.filename || 'Document';
+                const newName = window.prompt('Rename document:', curName);
+                if (newName && newName.trim() && newName.trim() !== curName) {
+                    api.renameDocument(this.currentDoc.id, newName.trim()).then(res => {
+                        if (res && res.original_filename) {
+                            this.currentDoc.filename = res.original_filename;
+                            this.updateHeaderUI();
+                            showToast(`Renamed to ${res.original_filename}`, 'success');
+                        }
+                    }).catch(() => showToast('Unable to rename document', 'error'));
+                }
+            }
+        };
+        document.getElementById('workspaceRenameBtn')?.addEventListener('click', renameDocHandler);
+        document.getElementById('workspaceDocTitle')?.addEventListener('click', renameDocHandler);
+
+        // Command Search Bar (Tell me what you want to do...)
+        const cmdInput = document.getElementById('workspaceCommandSearchInput');
+        const cmdDropdown = document.getElementById('workspaceCommandDropdown');
+        if (cmdInput && cmdDropdown) {
+            const commands = [
+                { name: 'Bold', hint: 'Ctrl+B', icon: 'B', action: () => document.execCommand('bold') },
+                { name: 'Italic', hint: 'Ctrl+I', icon: 'I', action: () => document.execCommand('italic') },
+                { name: 'Underline', hint: 'Ctrl+U', icon: 'U', action: () => document.execCommand('underline') },
+                { name: 'Strikethrough', hint: '', icon: 'S', action: () => document.execCommand('strikeThrough') },
+                { name: 'Find and Replace', hint: 'Ctrl+F / Ctrl+H', icon: '🔍', action: () => this.wordEngine?.openRightDrawer('find') },
+                { name: 'Word Count & Statistics', hint: '', icon: '📊', action: () => this.wordEngine?.openWordCountDialog() },
+                { name: 'Clear All Formatting', hint: '', icon: '⌫', action: () => this.wordEngine?.clearAllFormatting() },
+                { name: 'Align Left', hint: 'Ctrl+L', icon: '⬅', action: () => document.execCommand('justifyLeft') },
+                { name: 'Center', hint: 'Ctrl+E', icon: '⬛', action: () => document.execCommand('justifyCenter') },
+                { name: 'Align Right', hint: 'Ctrl+R', icon: '➡', action: () => document.execCommand('justifyRight') },
+                { name: 'Justify', hint: 'Ctrl+J', icon: '☰', action: () => document.execCommand('justifyFull') },
+                { name: 'Bulleted List', hint: '', icon: '•', action: () => document.execCommand('insertUnorderedList') },
+                { name: 'Numbered List', hint: '', icon: '1.', action: () => document.execCommand('insertOrderedList') },
+                { name: 'Heading 1', hint: '', icon: 'H1', action: () => this.wordEngine?.applyNamedStyle('Heading 1') },
+                { name: 'Heading 2', hint: '', icon: 'H2', action: () => this.wordEngine?.applyNamedStyle('Heading 2') },
+                { name: 'Title', hint: '', icon: 'T', action: () => this.wordEngine?.applyNamedStyle('Title') },
+                { name: 'Font Settings Dialog', hint: '', icon: '🔤', action: () => this.wordEngine?.openFontDialog() },
+                { name: 'Paragraph Settings Dialog', hint: '', icon: '¶', action: () => this.wordEngine?.openParagraphDialog() },
+                { name: 'Insert Table', hint: '', icon: '田', action: () => this.wordEngine?.openInsertTableDialog() },
+                { name: 'Insert Page Break', hint: '', icon: '📄', action: () => this.wordEngine?.insertPageBreak() },
+                { name: 'Save Document', hint: 'Ctrl+S', icon: '💾', action: () => this.saveDocument() },
+                { name: 'Print Document', hint: 'Ctrl+P', icon: '🖨️', action: () => this.printDocument() },
+                { name: 'Download .docx', hint: '', icon: '📥', action: () => this.downloadDocument() },
+                { name: 'Send to Chat', hint: '', icon: '💬', action: () => this.sendUpdatedFile() }
+            ];
+
+            const renderCommands = (query) => {
+                const q = query.toLowerCase().trim();
+                const filtered = commands.filter(c => c.name.toLowerCase().includes(q) || c.hint.toLowerCase().includes(q));
+                if (filtered.length === 0) {
+                    cmdDropdown.innerHTML = '<div style="padding:10px 14px;color:var(--theme-text-muted);font-size:12px;">No matching commands found.</div>';
+                } else {
+                    cmdDropdown.innerHTML = filtered.map((c, i) => `
+                        <div class="workspace-command-item" data-idx="${i}">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span style="font-size:13px;width:16px;text-align:center;">${c.icon}</span>
+                                <span style="font-weight:600;">${c.name}</span>
+                            </div>
+                            <span class="cmd-hint">${c.hint}</span>
+                        </div>
+                    `).join('');
+
+                    cmdDropdown.querySelectorAll('.workspace-command-item').forEach((item, idx) => {
+                        item.onclick = () => {
+                            const cmd = filtered[idx];
+                            if (cmd && typeof cmd.action === 'function') {
+                                cmd.action();
+                                this.markDirty();
+                            }
+                            cmdDropdown.style.display = 'none';
+                            cmdInput.value = '';
+                        };
+                    });
+                }
+                cmdDropdown.style.display = 'block';
+            };
+
+            cmdInput.addEventListener('input', (e) => {
+                const val = e.target.value;
+                if (!val || !val.trim()) {
+                    cmdDropdown.style.display = 'none';
+                } else {
+                    renderCommands(val);
+                }
+            });
+
+            cmdInput.addEventListener('focus', () => {
+                if (cmdInput.value.trim()) renderCommands(cmdInput.value);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!cmdInput.contains(e.target) && !cmdDropdown.contains(e.target)) {
+                    cmdDropdown.style.display = 'none';
+                }
+            });
+        }
 
         // Unsaved modal buttons
         document.getElementById('unsavedStayBtn')?.addEventListener('click', () => {
@@ -329,7 +470,7 @@ class FrankOfficeWorkspace {
 
         // Fetch server workspace details and versions
         if (validFileId) {
-            this.loadServerWorkspace(validFileId);
+            return await this.loadServerWorkspace(validFileId);
         }
     }
 
@@ -408,13 +549,17 @@ class FrankOfficeWorkspace {
             // Populate parsed data into active workspace
             if (data && data.parsed) {
                 if (this.category === 'word' && data.parsed.html) {
-                    const page = document.getElementById('wordDocPage');
-                    if (page) {
-                        let cleanHtml = data.parsed.html;
-                        cleanHtml = cleanHtml.replace(/&amp;(amp|lt|gt|quot|#39|nbsp);/g, '&$1;');
-                        cleanHtml = cleanHtml.replace(/&amp;/g, '&');
-                        page.innerHTML = cleanHtml;
-                        this.updateWordCount();
+                    let cleanHtml = data.parsed.html;
+                    cleanHtml = cleanHtml.replace(/&amp;(amp|lt|gt|quot|#39|nbsp);/g, '&$1;');
+                    cleanHtml = cleanHtml.replace(/&amp;/g, '&');
+                    if (this.wordEngine && typeof this.wordEngine.setContent === 'function') {
+                        this.wordEngine.setContent(cleanHtml);
+                    } else {
+                        const page = document.getElementById('wordDocPage');
+                        if (page) {
+                            page.innerHTML = cleanHtml;
+                            this.updateWordCount();
+                        }
                     }
                 } else if (this.category === 'excel' && data.parsed.sheets) {
                     this.excelData = { sheets: data.parsed.sheets, activeSheetIdx: 0 };
@@ -449,8 +594,13 @@ class FrankOfficeWorkspace {
     renderCategoryWorkspace() {
         const toolbar = document.getElementById('workspaceToolbar');
         const canvas = document.getElementById('workspaceCanvasBody');
+        const menuBar = document.getElementById('workspaceMenuBar');
         toolbar.innerHTML = '';
         canvas.innerHTML = '';
+
+        if (menuBar) {
+            menuBar.style.display = (this.category === 'word') ? 'none' : 'flex';
+        }
 
         if (this.category === 'word') {
             this.mountWordEditor(toolbar, canvas);
@@ -485,181 +635,19 @@ class FrankOfficeWorkspace {
     // Save, Version History.
     // =========================================================================
     mountWordEditor(toolbar, canvas) {
-        toolbar.innerHTML = `
-            <div class="toolbar-group">
-                <button type="button" class="tool-btn icon-only" id="wordUndoBtn" title="Undo (Ctrl+Z)">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
-                </button>
-                <button type="button" class="tool-btn icon-only" id="wordRedoBtn" title="Redo (Ctrl+Y)">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path></svg>
-                </button>
-            </div>
-            <div class="toolbar-group">
-                <select class="tool-select" id="wordStyleSelect" title="Text Style">
-                    <option value="p">Normal Text</option>
-                    <option value="h1">Heading 1</option>
-                    <option value="h2">Heading 2</option>
-                    <option value="h3">Heading 3</option>
-                </select>
-                <select class="tool-select" id="wordFontFamily" title="Font Family">
-                    <option value="Inter, sans-serif">Inter</option>
-                    <option value="Arial, sans-serif">Arial</option>
-                    <option value="Georgia, serif">Georgia</option>
-                    <option value="monospace">Courier</option>
-                    <option value="'Times New Roman', serif">Times New Roman</option>
-                </select>
-                <select class="tool-select" id="wordFontSize" title="Font Size">
-                    <option value="3">12pt</option>
-                    <option value="4" selected>14pt</option>
-                    <option value="5">18pt</option>
-                    <option value="6">24pt</option>
-                </select>
-            </div>
-            <div class="toolbar-group">
-                <button type="button" class="tool-btn icon-only" id="wordBoldBtn" title="Bold"><strong>B</strong></button>
-                <button type="button" class="tool-btn icon-only" id="wordItalicBtn" title="Italic"><em>I</em></button>
-                <button type="button" class="tool-btn icon-only" id="wordUnderlineBtn" title="Underline"><u>U</u></button>
-                <button type="button" class="tool-btn icon-only" id="wordStrikeBtn" title="Strikethrough"><s>S</s></button>
-                <div class="tool-color-wrap" title="Text Color">
-                    <button type="button" class="tool-btn icon-only" id="wordColorLabelBtn" style="color:#B86B3D;font-weight:700;">A</button>
-                    <input type="color" class="tool-color-input" id="wordColorInput" value="#2D241D">
-                </div>
-                <div class="tool-color-wrap" title="Highlight Color">
-                    <button type="button" class="tool-btn icon-only" id="wordHighlightLabelBtn" style="background:#fef08a;border-radius:4px;font-weight:700;font-size:12px;">🖍️</button>
-                    <input type="color" class="tool-color-input" id="wordHighlightInput" value="#fef08a">
-                </div>
-            </div>
-            <div class="toolbar-group">
-                <button type="button" class="tool-btn icon-only" id="wordAlignLeft" title="Align Left">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="17" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>
-                </button>
-                <button type="button" class="tool-btn icon-only" id="wordAlignCenter" title="Center">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="10" x2="6" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="18" y1="18" x2="6" y2="18"></line></svg>
-                </button>
-                <button type="button" class="tool-btn icon-only" id="wordAlignRight" title="Align Right">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="21" y1="10" x2="7" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="7" y2="18"></line></svg>
-                </button>
-                <button type="button" class="tool-btn icon-only" id="wordAlignJustify" title="Justify">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
-                </button>
-                <button type="button" class="tool-btn icon-only" id="wordBulletList" title="Bullet List">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-                </button>
-                <button type="button" class="tool-btn icon-only" id="wordNumList" title="Numbered List">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="10" y1="6" x2="21" y2="6"></line><line x1="10" y1="12" x2="21" y2="12"></line><line x1="10" y1="18" x2="21" y2="18"></line><path d="M4 6h1v4"></path><path d="M4 10h2"></path><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path></svg>
-                </button>
-                <button type="button" class="tool-btn icon-only" id="wordOutdentBtn" title="Decrease Indent">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="7 8 3 12 7 16"></polyline><line x1="21" y1="12" x2="11" y2="12"></line><line x1="21" y1="6" x2="11" y2="6"></line><line x1="21" y1="18" x2="11" y2="18"></line></svg>
-                </button>
-                <button type="button" class="tool-btn icon-only" id="wordIndentBtn" title="Increase Indent">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="13 8 17 12 13 16"></polyline><line x1="3" y1="12" x2="13" y2="12"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
-                </button>
-            </div>
-            <div class="toolbar-group">
-                <button type="button" class="tool-btn btn-labeled" id="wordInsertTable" title="Insert Table" data-i18n-title="office.table">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="12" y1="3" x2="12" y2="21"></line></svg>
-                    <span data-i18n="office.table">Table</span>
-                </button>
-                <button type="button" class="tool-btn btn-labeled" id="wordInsertLink" title="Insert Link" data-i18n-title="office.link">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                    <span data-i18n="office.link">Link</span>
-                </button>
-                <button type="button" class="tool-btn icon-only" id="wordInsertLine" title="Horizontal Rule">―</button>
-            </div>
-        `;
-
-        if (window.i18n && typeof window.i18n.applyTranslations === 'function') {
-            window.i18n.applyTranslations(toolbar);
+        if (!this.wordEngine && typeof FrankWordEditorEngine === 'function') {
+            this.wordEngine = new FrankWordEditorEngine(this);
         }
-
-        canvas.innerHTML = `
-            <div class="word-editor-stage">
-                <div class="word-document-page" id="wordDocPage" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true">
-                    <h1>${messagesModule.escapeHTML(this.currentDoc.filename.replace(/\.[^/.]+$/, ''))}</h1>
-                    <p>Start editing this document directly inside FRANK. Format text, insert tables, and save new versions.</p>
-                </div>
-            </div>
-        `;
-
-        const page = document.getElementById('wordDocPage');
-        page.addEventListener('input', () => {
-            this.markDirty();
-            this.updateWordCount();
-        });
-
-        // Bind formatting operations
-        document.getElementById('wordUndoBtn').onclick = () => document.execCommand('undo');
-        document.getElementById('wordRedoBtn').onclick = () => document.execCommand('redo');
-        document.getElementById('wordBoldBtn').onclick = () => document.execCommand('bold');
-        document.getElementById('wordItalicBtn').onclick = () => document.execCommand('italic');
-        document.getElementById('wordUnderlineBtn').onclick = () => document.execCommand('underline');
-        document.getElementById('wordStrikeBtn').onclick = () => document.execCommand('strikeThrough');
-        document.getElementById('wordAlignLeft').onclick = () => document.execCommand('justifyLeft');
-        document.getElementById('wordAlignCenter').onclick = () => document.execCommand('justifyCenter');
-        document.getElementById('wordAlignRight').onclick = () => document.execCommand('justifyRight');
-        document.getElementById('wordAlignJustify').onclick = () => document.execCommand('justifyFull');
-        document.getElementById('wordBulletList').onclick = () => document.execCommand('insertUnorderedList');
-        document.getElementById('wordNumList').onclick = () => document.execCommand('insertOrderedList');
-        document.getElementById('wordOutdentBtn').onclick = () => document.execCommand('outdent');
-        document.getElementById('wordIndentBtn').onclick = () => document.execCommand('indent');
-        document.getElementById('wordInsertLine').onclick = () => document.execCommand('insertHorizontalRule');
-
-        document.getElementById('wordStyleSelect').onchange = (e) => {
-            document.execCommand('formatBlock', false, e.target.value);
-        };
-        document.getElementById('wordFontFamily').onchange = (e) => {
-            document.execCommand('fontName', false, e.target.value);
-        };
-        document.getElementById('wordFontSize').onchange = (e) => {
-            document.execCommand('fontSize', false, e.target.value);
-        };
-        document.getElementById('wordColorInput').onchange = (e) => {
-            document.execCommand('foreColor', false, e.target.value);
-        };
-        document.getElementById('wordHighlightInput').onchange = (e) => {
-            document.execCommand('hiliteColor', false, e.target.value);
-        };
-
-        // Insert Table
-        document.getElementById('wordInsertTable').onclick = () => {
-            const page = document.getElementById('wordDocPage');
-            if (page) page.focus();
-            const tableHtml = `
-                <table class="office-table" style="width:100%;border-collapse:collapse;margin:14px 0;">
-                    <thead>
-                        <tr style="background:rgba(0,0,0,0.04);">
-                            <th style="border:1px solid var(--theme-border, #D8C5AA);padding:8px 12px;text-align:left;">Header 1</th>
-                            <th style="border:1px solid var(--theme-border, #D8C5AA);padding:8px 12px;text-align:left;">Header 2</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="border:1px solid var(--theme-border, #D8C5AA);padding:8px 12px;">Cell 1</td>
-                            <td style="border:1px solid var(--theme-border, #D8C5AA);padding:8px 12px;">Cell 2</td>
-                        </tr>
-                    </tbody>
-                </table>
-            `;
-            const inserted = document.execCommand('insertHTML', false, tableHtml);
-            if (!inserted && page) {
-                page.insertAdjacentHTML('beforeend', tableHtml);
-            }
-            this.markDirty();
-        };
-
-        // Insert Link
-        document.getElementById('wordInsertLink').onclick = () => {
-            const url = window.prompt('Enter URL to insert link:', 'https://');
-            if (url) {
-                document.execCommand('createLink', false, url);
-                this.markDirty();
-            }
-        };
-
-        this.updateWordCount();
+        if (this.wordEngine) {
+            this.wordEngine.mount(toolbar, canvas);
+        }
     }
 
     updateWordCount() {
+        if (this.wordEngine && typeof this.wordEngine.updateWordCount === 'function') {
+            this.wordEngine.updateWordCount();
+            return;
+        }
         const page = document.getElementById('wordDocPage');
         if (!page) return;
         const text = page.innerText || '';
@@ -1664,8 +1652,14 @@ class FrankOfficeWorkspace {
         };
 
         if (this.category === 'word') {
-            const page = document.getElementById('wordDocPage');
-            payload.structured_data = { html: page ? page.innerHTML : '' };
+            let htmlContent = '';
+            if (this.wordEngine && typeof this.wordEngine.getContent === 'function') {
+                htmlContent = this.wordEngine.getContent();
+            } else {
+                const page = document.getElementById('wordDocPage');
+                htmlContent = page ? page.innerHTML : '';
+            }
+            payload.structured_data = { html: htmlContent };
         } else if (this.category === 'excel') {
             payload.structured_data = { sheets: this.excelData.sheets };
         } else if (this.category === 'pptx') {
@@ -1820,6 +1814,10 @@ class FrankOfficeWorkspace {
             this.sheetsEngine.fileExportXlsx();
             return;
         }
+        if (this.category === 'word' && this.wordEngine && typeof this.wordEngine.downloadDocx === 'function') {
+            await this.wordEngine.downloadDocx();
+            return;
+        }
         const url = this.currentDoc.downloadUrl || this.currentDoc.viewUrl;
         if (!url) return;
 
@@ -1853,6 +1851,10 @@ class FrankOfficeWorkspace {
     }
 
     printDocument() {
+        if (this.category === 'word' && this.wordEngine && typeof this.wordEngine.printDocument === 'function') {
+            this.wordEngine.printDocument();
+            return;
+        }
         if (this.category === 'pdf') {
             const frame = document.getElementById('pdfViewFrame');
             if (frame && frame.contentWindow) {
@@ -1890,6 +1892,10 @@ class FrankOfficeWorkspace {
         if (ws) {
             ws.classList.remove('active');
             ws.style.display = 'none';
+        }
+        const menuBar = document.getElementById('workspaceMenuBar');
+        if (menuBar) {
+            menuBar.style.display = 'flex';
         }
 
         // If Document Browser was active before opening workspace, restore it

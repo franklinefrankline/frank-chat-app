@@ -21,14 +21,14 @@ function closeModal(modalId) {
     const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
     if (!modal) return;
 
-    modal.classList.remove('open');
-    if (!document.querySelector('.modal-backdrop.open')) {
+    modal.classList.remove('open', 'active', 'show');
+    if (!document.querySelector('.modal-backdrop.open, .modal-backdrop.active, .modal-backdrop.show')) {
         document.body.style.overflow = '';
     }
 }
 
 function closeAllModals() {
-    document.querySelectorAll('.modal-backdrop.open').forEach(m => m.classList.remove('open'));
+    document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('open', 'active', 'show'));
     document.body.style.overflow = '';
 }
 
@@ -45,6 +45,8 @@ document.addEventListener('click', (e) => {
     // Close trigger
     const closeTrigger = e.target.closest('[data-close-modal]');
     if (closeTrigger) {
+        e.preventDefault();
+        e.stopPropagation();
         const id = closeTrigger.dataset.closeModal;
         closeModal(id);
         return;
@@ -59,7 +61,7 @@ document.addEventListener('click', (e) => {
 // Escape key listener
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        const openBackdrops = document.querySelectorAll('.modal-backdrop.open');
+        const openBackdrops = document.querySelectorAll('.modal-backdrop.open, .modal-backdrop.active, .modal-backdrop.show');
         if (openBackdrops.length > 0) {
             closeModal(openBackdrops[openBackdrops.length - 1]);
         }

@@ -37,6 +37,7 @@ backend/.env.*
 
 # Local SQLite databases & uploads
 *.db
+*.db-journal
 *.db.bak
 *.bak
 *.sqlite

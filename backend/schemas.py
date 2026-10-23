@@ -250,6 +250,23 @@ class DocumentSaveRequest(BaseModel):
     structured_data: Optional[dict] = None
 
 
+class DocumentCreateRequest(BaseModel):
+    title: Optional[str] = "Untitled Document"
+    format: Optional[str] = "docx"
+    template: Optional[str] = "blank"
+    content: Optional[str] = None
+
+
+class DocumentRenameRequest(BaseModel):
+    filename: str = Field(..., min_length=1, max_length=255)
+
+
+class DocumentSaveAsRequest(BaseModel):
+    filename: str = Field(..., min_length=1, max_length=255)
+    content: Optional[str] = None
+    structured_data: Optional[dict] = None
+
+
 class SendUpdatedFileRequest(BaseModel):
     conversation_id: Optional[int] = None
     recipient_id: Optional[int] = None

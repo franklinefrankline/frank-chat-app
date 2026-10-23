@@ -14,6 +14,8 @@
     { "source": "/api/health", "destination": "/api/index.py" },
     { "source": "/api/(.*)", "destination": "/api/index.py" },
     { "source": "/api", "destination": "/api/index.py" },
+    { "source": "/robots.txt", "destination": "/api/index.py" },
+    { "source": "/sitemap.xml", "destination": "/api/index.py" },
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/chat", "destination": "/dashboard.html" },
     { "source": "/groups", "destination": "/dashboard.html" },
@@ -27,6 +29,20 @@
     { "source": "/reset-password", "destination": "/reset-password.html" }
   ],
   "headers": [
+    {
+      "source": "/robots.txt",
+      "headers": [
+        { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        { "key": "Content-Type", "value": "application/xml; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [

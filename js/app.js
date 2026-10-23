@@ -215,15 +215,23 @@ class AppController {
                 welcomeModal.classList.add('active');
 
                 document.getElementById('onboardingFindPeopleBtn')?.addEventListener('click', () => {
-                    welcomeModal.classList.remove('active');
+                    welcomeModal.classList.remove('active', 'open', 'show');
                     localStorage.setItem('frank_onboarded', 'true');
-                    const newChatModal = document.getElementById('newChatModal');
-                    if (newChatModal) newChatModal.classList.add('active');
+                    if (typeof openModal === 'function') {
+                        openModal('newChatModal');
+                    } else {
+                        const newChatModal = document.getElementById('newChatModal');
+                        if (newChatModal) newChatModal.classList.add('open');
+                    }
+                    if (window.usersModule && typeof window.usersModule.resetModal === 'function') {
+                        window.usersModule.resetModal();
+                        window.usersModule.searchUsers('');
+                    }
                     document.getElementById('userSearchQuery')?.focus();
                 });
 
                 document.getElementById('onboardingSkipBtn')?.addEventListener('click', () => {
-                    welcomeModal.classList.remove('active');
+                    welcomeModal.classList.remove('active', 'open', 'show');
                     localStorage.setItem('frank_onboarded', 'true');
                 });
             }

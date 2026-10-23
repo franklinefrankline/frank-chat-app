@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /assets/
+Allow: /css/
+Allow: /js/
+
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /profile
+Disallow: /settings
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /ws/
+
+Sitemap: https://fnk.vercel.app/sitemap.xml

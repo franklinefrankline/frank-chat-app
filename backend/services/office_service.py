@@ -49,7 +49,10 @@ class OfficeService:
 
     # ---------------- DOCX PARSING & BUILDING ----------------
     def parse_docx(self, docx_bytes: bytes) -> Dict[str, Any]:
-        """Parses a DOCX file into structured HTML, paragraphs, and tables."""
+        """
+        Parses a DOCX file into structured HTML, paragraphs, and tables,
+        preserving headings, formatting runs, alignments, lists, page breaks, tables, and media.
+        """
         paragraphs = []
         html_parts = []
         try:
@@ -57,66 +60,181 @@ class OfficeService:
                 if "word/document.xml" not in z.namelist():
                     return {"html": "<p>Empty document</p>", "paragraphs": []}
 
+                # 1. Parse media relationships if present
+                image_rels = {}
+                if "word/_rels/document.xml.rels" in z.namelist():
+                    try:
+                        rels_root = ET.fromstring(z.read("word/_rels/document.xml.rels"))
+                        for rel in rels_root.findall(f"{{{self.R_NS}}}Relationship") or rels_root.findall(".//Relationship"):
+                            r_id = rel.attrib.get("Id")
+                            r_type = rel.attrib.get("Type", "")
+                            r_target = rel.attrib.get("Target", "")
+                            if "image" in r_type.lower() or r_target.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg')):
+                                target_path = "word/" + r_target.lstrip("/")
+                                if target_path in z.namelist():
+                                    img_bytes = z.read(target_path)
+                                    ext = Path(target_path).suffix.lstrip(".").lower()
+                                    if ext == "jpg":
+                                        ext = "jpeg"
+                                    mime = f"image/{ext}"
+                                    b64 = base64.b64encode(img_bytes).decode("ascii")
+                                    image_rels[r_id] = f"data:{mime};base64,{b64}"
+                    except Exception as e:
+                        print(f"Docx rels parse note: {e}")
+
                 xml_content = z.read("word/document.xml")
                 root = ET.fromstring(xml_content)
 
-                # Iterate through body elements (paragraphs and tables)
                 body = root.find(f"{{{self.W_NS}}}body")
                 if body is None:
                     return {"html": "<p></p>", "paragraphs": []}
 
+                def parse_run(run_elem) -> str:
+                    # Check for image drawing inside run
+                    if image_rels:
+                        blip = run_elem.find(f".//{{{self.A_NS}}}blip")
+                        if blip is not None:
+                            embed_id = blip.attrib.get(f"{{{self.R_NS}}}embed")
+                            if embed_id and embed_id in image_rels:
+                                return f'<img src="{image_rels[embed_id]}" alt="Document Image" style="max-width:100%;height:auto;margin:12px 0;border-radius:6px;display:block;" />'
+
+                    r_text = "".join(t.text or "" for t in run_elem.findall(f"{{{self.W_NS}}}t"))
+                    if not r_text:
+                        # Check for break
+                        br_elem = run_elem.find(f"{{{self.W_NS}}}br")
+                        if br_elem is not None:
+                            if br_elem.attrib.get(f"{{{self.W_NS}}}type") == "page":
+                                return '<div class="word-page-break"><span class="word-page-break-tag">Page Break</span></div>'
+                            return "<br>"
+                        return ""
+
+                    para_text_builder.append(r_text)
+                    rPr = run_elem.find(f"{{{self.W_NS}}}rPr")
+                    escaped = self._escape_html(r_text)
+
+                    if rPr is not None:
+                        if rPr.find(f"{{{self.W_NS}}}b") is not None:
+                            escaped = f"<strong>{escaped}</strong>"
+                        if rPr.find(f"{{{self.W_NS}}}i") is not None:
+                            escaped = f"<em>{escaped}</em>"
+                        if rPr.find(f"{{{self.W_NS}}}u") is not None:
+                            escaped = f"<u>{escaped}</u>"
+                        if rPr.find(f"{{{self.W_NS}}}strike") is not None:
+                            escaped = f"<s>{escaped}</s>"
+                        
+                        sz = rPr.find(f"{{{self.W_NS}}}sz")
+                        if sz is not None:
+                            sz_val = sz.attrib.get(f"{{{self.W_NS}}}val")
+                            if sz_val and sz_val.isdigit():
+                                pt = int(sz_val) // 2
+                                escaped = f'<span style="font-size:{pt}pt;">{escaped}</span>'
+
+                        rFonts = rPr.find(f"{{{self.W_NS}}}rFonts")
+                        if rFonts is not None:
+                            font_ascii = rFonts.attrib.get(f"{{{self.W_NS}}}ascii")
+                            if font_ascii:
+                                escaped = f'<span style="font-family:{font_ascii};">{escaped}</span>'
+
+                        vert = rPr.find(f"{{{self.W_NS}}}vertAlign")
+                        if vert is not None:
+                            val = vert.attrib.get(f"{{{self.W_NS}}}val")
+                            if val == "superscript":
+                                escaped = f"<sup>{escaped}</sup>"
+                            elif val == "subscript":
+                                escaped = f"<sub>{escaped}</sub>"
+
+                        col = rPr.find(f"{{{self.W_NS}}}color")
+                        if col is not None:
+                            hex_col = col.attrib.get(f"{{{self.W_NS}}}val")
+                            if hex_col and hex_col != "auto":
+                                escaped = f'<span style="color:#{hex_col};">{escaped}</span>'
+
+                        hl = rPr.find(f"{{{self.W_NS}}}highlight")
+                        if hl is not None:
+                            hl_val = hl.attrib.get(f"{{{self.W_NS}}}val")
+                            if hl_val:
+                                escaped = f'<mark style="background-color:{hl_val};padding:0 2px;">{escaped}</mark>'
+
+                    return escaped
+
                 for elem in body:
                     tag = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
                     if tag == "p":
-                        para_text = ""
+                        # Check for page break in paragraph
+                        br_page = elem.find(f".//{{{self.W_NS}}}br[@{{{self.W_NS}}}type='page']")
+                        if br_page is not None:
+                            html_parts.append('<div class="word-page-break"><span class="word-page-break-tag">Page Break</span></div>')
+                            continue
+
+                        para_text_builder = []
                         p_style = ""
-                        # Check style
+                        align = None
+
                         pPr = elem.find(f"{{{self.W_NS}}}pPr")
                         if pPr is not None:
                             style_elem = pPr.find(f"{{{self.W_NS}}}pStyle")
                             if style_elem is not None:
                                 p_style = style_elem.attrib.get(f"{{{self.W_NS}}}val", "")
+                            jc_elem = pPr.find(f"{{{self.W_NS}}}jc")
+                            if jc_elem is not None:
+                                align = jc_elem.attrib.get(f"{{{self.W_NS}}}val", "")
+                                if align == "both":
+                                    align = "justify"
 
                         runs_html = []
-                        for run in elem.findall(f"{{{self.W_NS}}}r"):
-                            r_text = "".join(t.text or "" for t in run.findall(f"{{{self.W_NS}}}t"))
-                            if not r_text:
-                                continue
-                            para_text += r_text
-                            # Format run
-                            rPr = run.find(f"{{{self.W_NS}}}rPr")
-                            is_bold = rPr is not None and rPr.find(f"{{{self.W_NS}}}b") is not None
-                            is_italic = rPr is not None and rPr.find(f"{{{self.W_NS}}}i") is not None
-                            is_u = rPr is not None and rPr.find(f"{{{self.W_NS}}}u") is not None
-
-                            escaped = self._escape_html(r_text)
-                            if is_bold:
-                                escaped = f"<strong>{escaped}</strong>"
-                            if is_italic:
-                                escaped = f"<em>{escaped}</em>"
-                            if is_u:
-                                escaped = f"<u>{escaped}</u>"
-                            runs_html.append(escaped)
+                        for child in elem:
+                            ctag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
+                            if ctag == "r":
+                                runs_html.append(parse_run(child))
+                            elif ctag == "hyperlink":
+                                link_runs = []
+                                for r in child.findall(f"{{{self.W_NS}}}r"):
+                                    link_runs.append(parse_run(r))
+                                runs_html.append(f'<a href="#">{"".join(link_runs)}</a>')
 
                         para_content = "".join(runs_html) or "&nbsp;"
-                        if p_style in ["Heading1", "heading 1", "Title"]:
-                            html_parts.append(f"<h1>{para_content}</h1>")
+                        para_text = "".join(para_text_builder)
+
+                        style_attr = f' style="text-align:{align};"' if align else ""
+                        if p_style in ["Title", "title"]:
+                            html_parts.append(f'<p class="doc-title"{style_attr}>{para_content}</p>')
+                        elif p_style in ["Subtitle", "subtitle"]:
+                            html_parts.append(f'<p class="doc-subtitle"{style_attr}>{para_content}</p>')
+                        elif p_style in ["Quote", "quote", "IntenseQuote"]:
+                            html_parts.append(f'<blockquote class="doc-quote"{style_attr}>{para_content}</blockquote>')
+                        elif p_style in ["Heading1", "heading 1"]:
+                            html_parts.append(f"<h1{style_attr}>{para_content}</h1>")
                         elif p_style in ["Heading2", "heading 2"]:
-                            html_parts.append(f"<h2>{para_content}</h2>")
+                            html_parts.append(f"<h2{style_attr}>{para_content}</h2>")
                         elif p_style in ["Heading3", "heading 3"]:
-                            html_parts.append(f"<h3>{para_content}</h3>")
+                            html_parts.append(f"<h3{style_attr}>{para_content}</h3>")
+                        elif p_style in ["Heading4", "heading 4"]:
+                            html_parts.append(f"<h4{style_attr}>{para_content}</h4>")
+                        elif p_style in ["Heading5", "heading 5"]:
+                            html_parts.append(f"<h5{style_attr}>{para_content}</h5>")
+                        elif p_style in ["Heading6", "heading 6"]:
+                            html_parts.append(f"<h6{style_attr}>{para_content}</h6>")
+                        elif p_style in ["ListBullet", "ListBullet2", "ListBullet3"] or elem.find(f"{{{self.W_NS}}}pPr/{{{self.W_NS}}}numPr") is not None:
+                            html_parts.append(f'<p class="word-list-bullet"{style_attr}>• {para_content}</p>')
                         else:
-                            html_parts.append(f"<p>{para_content}</p>")
+                            html_parts.append(f"<p{style_attr}>{para_content}</p>")
 
                         paragraphs.append(para_text)
 
                     elif tag == "tbl":
-                        table_html = ['<table class="office-table" border="1" style="border-collapse:collapse;width:100%;">']
+                        table_html = ['<table class="office-table" border="1" style="border-collapse:collapse;width:100%;margin:16px 0;">']
                         for tr in elem.findall(f"{{{self.W_NS}}}tr"):
                             table_html.append("<tr>")
                             for tc in tr.findall(f"{{{self.W_NS}}}tc"):
-                                cell_text = "".join("".join(t.text or "" for t in tc.iter(f"{{{self.W_NS}}}t")))
-                                table_html.append(f'<td style="padding:6px 10px;border:1px solid #ccc;">{self._escape_html(cell_text)}</td>')
+                                cell_paras = []
+                                for p in tc.findall(f"{{{self.W_NS}}}p"):
+                                    runs_h = []
+                                    para_text_builder = []
+                                    for r in p.findall(f"{{{self.W_NS}}}r"):
+                                        runs_h.append(parse_run(r))
+                                    cell_paras.append("".join(runs_h) or "&nbsp;")
+                                cell_content = "<br>".join(cell_paras) if cell_paras else "&nbsp;"
+                                table_html.append(f'<td style="padding:8px 12px;border:1px solid #D8C5AA;">{cell_content}</td>')
                             table_html.append("</tr>")
                         table_html.append("</table>")
                         html_parts.append("".join(table_html))
@@ -132,69 +250,418 @@ class OfficeService:
                 pass
             return {"html": "<p>Start editing this document directly inside FRANK.</p>", "paragraphs": []}
 
-    def build_docx(self, html_or_text: str) -> bytes:
-        """Builds a compliant DOCX archive from HTML/text content."""
-        # Convert simple HTML tags to OpenXML elements
-        paragraphs_data = self._html_to_docx_paragraphs(html_or_text)
+    def build_docx(self, html_or_text: str, page_options: Optional[Dict[str, Any]] = None) -> bytes:
+        """
+        Builds a compliant DOCX archive from HTML/text content,
+        preserving headings, formatting runs, alignments, tables, images, and page breaks.
+        """
+        from html.parser import HTMLParser
 
-        doc_xml_parts = [
-            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
-            f'<w:document xmlns:w="{self.W_NS}" xmlns:r="{self.R_NS}">',
-            '<w:body>'
+        class _DocxHTMLParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.blocks = []
+                self.current_block = None
+                self.active_styles = {
+                    "bold": 0, "italic": 0, "underline": 0, "strike": 0,
+                    "sub": 0, "sup": 0, "link": None, "color": None, "bg": None
+                }
+                self.current_table = None
+                self.current_row = None
+                self.current_cell = None
+                self.list_stack = []
+                self.skip_depth = 0
+                self.span_style_stack = []
+                self.font_style_stack = []
+
+            def handle_starttag(self, tag, attrs):
+                attrs_dict = dict(attrs)
+                tag_lower = tag.lower()
+                style_attr = attrs_dict.get("style", "")
+                align = None
+                if "text-align" in style_attr:
+                    m = re.search(r'text-align\s*:\s*([a-zA-Z]+)', style_attr)
+                    if m:
+                        align = m.group(1).lower()
+
+                if self.skip_depth > 0:
+                    self.skip_depth += 1
+                    return
+
+                is_page_break = (
+                    "word-page-break" in attrs_dict.get("class", "")
+                    or "page-break-after" in style_attr
+                    or "page-break-before" in style_attr
+                )
+                if is_page_break:
+                    self._close_block()
+                    self.blocks.append({"type": "page_break"})
+                    self.skip_depth = 1
+                    return
+
+                cls = attrs_dict.get("class", "")
+                if tag_lower in ["h1", "h2", "h3", "h4", "h5", "h6"]:
+                    self._close_block()
+                    h_num = int(tag_lower[1])
+                    self.current_block = {"type": "heading", "level": h_num, "align": align, "runs": []}
+                elif tag_lower == "blockquote" or "doc-quote" in cls or "doc-intense-quote" in cls:
+                    self._close_block()
+                    self.current_block = {"type": "quote", "align": align, "runs": []}
+                elif "doc-title" in cls:
+                    self._close_block()
+                    self.current_block = {"type": "title", "align": align, "runs": []}
+                elif "doc-subtitle" in cls:
+                    self._close_block()
+                    self.current_block = {"type": "subtitle", "align": align, "runs": []}
+                elif tag_lower in ["p", "div"]:
+                    self._close_block()
+                    self.current_block = {"type": "paragraph", "align": align, "runs": []}
+                elif tag_lower == "hr":
+                    self._close_block()
+                    self.blocks.append({"type": "page_break" if "page-break" in style_attr else "horizontal_rule"})
+                elif tag_lower in ["ul", "ol"]:
+                    self.list_stack.append(tag_lower)
+                elif tag_lower == "li":
+                    self._close_block()
+                    list_type = self.list_stack[-1] if self.list_stack else "ul"
+                    self.current_block = {"type": "list_item", "list_type": list_type, "align": align, "runs": []}
+                elif tag_lower == "table":
+                    self._close_block()
+                    self.current_table = {"type": "table", "rows": []}
+                    self.blocks.append(self.current_table)
+                elif tag_lower == "tr":
+                    if self.current_table is not None:
+                        self.current_row = []
+                        self.current_table["rows"].append(self.current_row)
+                elif tag_lower in ["td", "th"]:
+                    if self.current_row is not None:
+                        self.current_cell = {"is_header": tag_lower == "th", "blocks": []}
+                        self.current_row.append(self.current_cell)
+                elif tag_lower in ["strong", "b"]:
+                    self.active_styles["bold"] += 1
+                elif tag_lower in ["em", "i"]:
+                    self.active_styles["italic"] += 1
+                elif tag_lower == "u":
+                    self.active_styles["underline"] += 1
+                elif tag_lower in ["s", "strike", "del"]:
+                    self.active_styles["strike"] += 1
+                elif tag_lower == "sub":
+                    self.active_styles["sub"] += 1
+                elif tag_lower == "sup":
+                    self.active_styles["sup"] += 1
+                elif tag_lower == "a":
+                    self.active_styles["link"] = attrs_dict.get("href", "")
+                elif tag_lower == "span":
+                    span_style = {}
+                    if "font-size" in style_attr:
+                        m_sz = re.search(r'font-size\s*:\s*(\d+)pt', style_attr)
+                        if m_sz:
+                            span_style["size"] = int(m_sz.group(1))
+                    if "color" in style_attr:
+                        m_col = re.search(r'color\s*:\s*#?([0-9a-fA-F]{3,6})', style_attr)
+                        if m_col:
+                            span_style["color"] = m_col.group(1)
+                    if "font-family" in style_attr:
+                        m_f = re.search(r'font-family\s*:\s*([^;]+)', style_attr)
+                        if m_f:
+                            span_style["font"] = m_f.group(1).strip().strip("'\"")
+                    if "font-weight" in style_attr and ("bold" in style_attr or "700" in style_attr):
+                        self.active_styles["bold"] += 1
+                        span_style["bold_added"] = True
+                    self.span_style_stack.append(span_style)
+                elif tag_lower == "font":
+                    font_style = {}
+                    if "color" in attrs_dict:
+                        font_style["color"] = attrs_dict["color"].replace("#", "")
+                    if "face" in attrs_dict:
+                        font_style["font"] = attrs_dict["face"].strip()
+                    self.font_style_stack.append(font_style)
+                elif tag_lower == "img":
+                    src = attrs_dict.get("src", "")
+                    if src:
+                        if self.current_block is None:
+                            self.current_block = {"type": "paragraph", "align": align, "runs": []}
+                        self.current_block["runs"].append({
+                            "type": "image",
+                            "src": src,
+                            "alt": attrs_dict.get("alt", "Image")
+                        })
+
+            def handle_endtag(self, tag):
+                tag_lower = tag.lower()
+                if self.skip_depth > 0:
+                    self.skip_depth -= 1
+                    return
+
+                if tag_lower in ["h1", "h2", "h3", "h4", "h5", "h6", "p", "div", "li", "blockquote"]:
+                    self._close_block()
+                elif tag_lower in ["ul", "ol"]:
+                    if self.list_stack:
+                        self.list_stack.pop()
+                elif tag_lower == "table":
+                    self.current_table = None
+                elif tag_lower == "tr":
+                    self.current_row = None
+                elif tag_lower in ["td", "th"]:
+                    self._close_block()
+                    self.current_cell = None
+                elif tag_lower in ["strong", "b"]:
+                    self.active_styles["bold"] = max(0, self.active_styles["bold"] - 1)
+                elif tag_lower in ["em", "i"]:
+                    self.active_styles["italic"] = max(0, self.active_styles["italic"] - 1)
+                elif tag_lower == "u":
+                    self.active_styles["underline"] = max(0, self.active_styles["underline"] - 1)
+                elif tag_lower in ["s", "strike", "del"]:
+                    self.active_styles["strike"] = max(0, self.active_styles["strike"] - 1)
+                elif tag_lower == "sub":
+                    self.active_styles["sub"] = max(0, self.active_styles["sub"] - 1)
+                elif tag_lower == "sup":
+                    self.active_styles["sup"] = max(0, self.active_styles["sup"] - 1)
+                elif tag_lower == "a":
+                    self.active_styles["link"] = None
+                elif tag_lower == "span":
+                    if self.span_style_stack:
+                        popped = self.span_style_stack.pop()
+                        if popped.get("bold_added"):
+                            self.active_styles["bold"] = max(0, self.active_styles["bold"] - 1)
+                elif tag_lower == "font":
+                    if self.font_style_stack:
+                        self.font_style_stack.pop()
+
+            def handle_data(self, data):
+                if self.skip_depth > 0 or not data:
+                    return
+                if self.current_block is None:
+                    if not data.strip():
+                        return
+                    self.current_block = {"type": "paragraph", "align": None, "runs": []}
+
+                cur_color = None
+                cur_size = None
+                cur_font = None
+                for s in self.span_style_stack:
+                    if "color" in s: cur_color = s["color"]
+                    if "size" in s: cur_size = s["size"]
+                    if "font" in s: cur_font = s["font"]
+                for f in self.font_style_stack:
+                    if "color" in f: cur_color = f["color"]
+                    if "font" in f: cur_font = f["font"]
+
+                run = {
+                    "type": "text",
+                    "text": data,
+                    "bold": self.active_styles["bold"] > 0,
+                    "italic": self.active_styles["italic"] > 0,
+                    "underline": self.active_styles["underline"] > 0,
+                    "strike": self.active_styles["strike"] > 0,
+                    "sub": self.active_styles["sub"] > 0,
+                    "sup": self.active_styles["sup"] > 0,
+                    "link": self.active_styles["link"],
+                    "color": cur_color,
+                    "size": cur_size,
+                    "font": cur_font
+                }
+                self.current_block["runs"].append(run)
+
+            def _close_block(self):
+                if self.current_block is not None:
+                    if self.current_cell is not None:
+                        self.current_cell["blocks"].append(self.current_block)
+                    else:
+                        self.blocks.append(self.current_block)
+                    self.current_block = None
+
+        parser = _DocxHTMLParser()
+        parser.feed(html_or_text or "<p></p>")
+        parser._close_block()
+        blocks = parser.blocks or [{"type": "paragraph", "align": None, "runs": [{"type": "text", "text": " "}]}]
+
+        # Prepare images and relationships
+        images_to_pack = {} # filename -> bytes
+        rels_list = [
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
         ]
+        doc_rels = []
 
-        for p in paragraphs_data:
-            style_xml = ""
-            if p.get("heading") == 1:
-                style_xml = '<w:pPr><w:pStyle w:val="Heading1"/></w:pPr>'
-            elif p.get("heading") == 2:
-                style_xml = '<w:pPr><w:pStyle w:val="Heading2"/></w:pPr>'
-            elif p.get("heading") == 3:
-                style_xml = '<w:pPr><w:pStyle w:val="Heading3"/></w:pPr>'
+        def render_runs(runs: List[Dict[str, Any]]) -> str:
+            rx = []
+            for r in runs:
+                if r.get("type") == "image":
+                    src = r.get("src", "")
+                    if src.startswith("data:image/") and ";base64," in src:
+                        try:
+                            meta_part, b64_part = src.split(";base64,", 1)
+                            mime = meta_part.split(":")[1]
+                            ext = mime.split("/")[1].lower()
+                            if ext == "jpeg":
+                                ext = "jpg"
+                            img_idx = len(images_to_pack) + 1
+                            img_name = f"image{img_idx}.{ext}"
+                            img_bytes = base64.b64decode(b64_part)
+                            images_to_pack[f"word/media/{img_name}"] = img_bytes
 
-            runs_xml = []
-            for run in p.get("runs", []):
-                rPr_parts = []
-                if run.get("bold"):
-                    rPr_parts.append("<w:b/>")
-                if run.get("italic"):
-                    rPr_parts.append("<w:i/>")
-                if run.get("underline"):
-                    rPr_parts.append('<w:u w:val="single"/>')
+                            rid = f"rIdImg{img_idx}"
+                            doc_rels.append(f'<Relationship Id="{rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/{img_name}"/>')
 
-                rPr_xml = f"<w:rPr>{''.join(rPr_parts)}</w:rPr>" if rPr_parts else ""
-                escaped_text = self._escape_xml(run.get("text", ""))
-                runs_xml.append(f"<w:r>{rPr_xml}<w:t xml:space=\"preserve\">{escaped_text}</w:t></w:r>")
+                            # Drawing XML for image
+                            drawing_xml = (
+                                f'<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">'
+                                f'<wp:extent cx="5400000" cy="3600000"/>'
+                                f'<wp:docPr id="{img_idx}" name="{img_name}"/>'
+                                f'<a:graphic xmlns:a="{self.A_NS}">'
+                                f'<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+                                f'<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+                                f'<pic:nvPicPr><pic:cNvPr id="{img_idx}" name="{img_name}"/><pic:cNvPicPr/></pic:nvPicPr>'
+                                f'<pic:blipFill><a:blip r:embed="{rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+                                f'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="5400000" cy="3600000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
+                                f'</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>'
+                            )
+                            rx.append(f"<w:r>{drawing_xml}</w:r>")
+                            continue
+                        except Exception as e:
+                            print(f"Image packing error: {e}")
 
-            doc_xml_parts.append(f"<w:p>{style_xml}{''.join(runs_xml)}</w:p>")
+                rPr = []
+                if r.get("bold"): rPr.append("<w:b/>")
+                if r.get("italic"): rPr.append("<w:i/>")
+                if r.get("underline"): rPr.append('<w:u w:val="single"/>')
+                if r.get("strike"): rPr.append('<w:strike/>')
+                if r.get("sub"): rPr.append('<w:vertAlign w:val="subscript"/>')
+                if r.get("sup"): rPr.append('<w:vertAlign w:val="superscript"/>')
+                if r.get("size"):
+                    half_pts = int(r["size"]) * 2
+                    rPr.append(f'<w:sz w:val="{half_pts}"/>')
+                if r.get("color"):
+                    clean_hex = r["color"].replace("#", "")
+                    if len(clean_hex) in (3, 6):
+                        if len(clean_hex) == 3:
+                            clean_hex = "".join(c * 2 for c in clean_hex)
+                        rPr.append(f'<w:color w:val="{clean_hex.upper()}"/>')
+                if r.get("font"):
+                    clean_font = r["font"].strip().strip("'\"")
+                    rPr.append(f'<w:rFonts w:ascii="{clean_font}" w:hAnsi="{clean_font}"/>')
+                rPr_xml = f"<w:rPr>{''.join(rPr)}</w:rPr>" if rPr else ""
+                t_xml = self._escape_xml(r.get("text", ""))
+                rx.append(f'<w:r>{rPr_xml}<w:t xml:space="preserve">{t_xml}</w:t></w:r>')
+            return "".join(rx)
 
-        doc_xml_parts.append('<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>')
-        doc_xml_parts.append('</w:body></w:document>')
-        doc_xml = "".join(doc_xml_parts)
+        def render_block(b: Dict[str, Any]) -> str:
+            btype = b.get("type")
+            if btype == "page_break":
+                return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
+            elif btype == "horizontal_rule":
+                return '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="D8C5AA"/></w:pBdr></w:pPr></w:p>'
+            elif btype in ["paragraph", "heading", "list_item", "title", "subtitle", "quote"]:
+                pPr_items = []
+                if btype == "heading":
+                    lvl = b.get("level", 1)
+                    pPr_items.append(f'<w:pStyle w:val="Heading{lvl}"/>')
+                elif btype == "title":
+                    pPr_items.append('<w:pStyle w:val="Title"/>')
+                elif btype == "subtitle":
+                    pPr_items.append('<w:pStyle w:val="Subtitle"/>')
+                elif btype == "quote":
+                    pPr_items.append('<w:pStyle w:val="Quote"/>')
+                elif btype == "list_item":
+                    pPr_items.append('<w:pStyle w:val="ListBullet"/>')
 
-        # Content types
-        content_types = (
+                align = b.get("align")
+                if align in ["center", "right"]:
+                    pPr_items.append(f'<w:jc w:val="{align}"/>')
+                elif align in ["justify", "both"]:
+                    pPr_items.append('<w:jc w:val="both"/>')
+
+                pPr_xml = f"<w:pPr>{''.join(pPr_items)}</w:pPr>" if pPr_items else ""
+                runs_xml = render_runs(b.get("runs", []))
+                return f"<w:p>{pPr_xml}{runs_xml}</w:p>"
+            elif btype == "table":
+                tbl_xml = [
+                    '<w:tbl>',
+                    '<w:tblPr>',
+                    '<w:tblW w:w="5000" w:type="pct"/>',
+                    '<w:tblBorders>',
+                    '<w:top w:val="single" w:sz="4" w:space="0" w:color="D8C5AA"/>',
+                    '<w:left w:val="single" w:sz="4" w:space="0" w:color="D8C5AA"/>',
+                    '<w:bottom w:val="single" w:sz="4" w:space="0" w:color="D8C5AA"/>',
+                    '<w:right w:val="single" w:sz="4" w:space="0" w:color="D8C5AA"/>',
+                    '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="D8C5AA"/>',
+                    '<w:insideV w:val="single" w:sz="4" w:space="0" w:color="D8C5AA"/>',
+                    '</w:tblBorders>',
+                    '</w:tblPr>'
+                ]
+                for row in b.get("rows", []):
+                    tbl_xml.append('<w:tr>')
+                    for cell in row:
+                        tbl_xml.append('<w:tc><w:tcPr><w:tcMar><w:top w:w="120" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/><w:left w:w="160" w:type="dxa"/><w:right w:w="160" w:type="dxa"/></w:tcMar></w:tcPr>')
+                        if cell.get("blocks"):
+                            for cb in cell["blocks"]:
+                                tbl_xml.append(render_block(cb))
+                        else:
+                            tbl_xml.append('<w:p/>')
+                        tbl_xml.append('</w:tc>')
+                    tbl_xml.append('</w:tr>')
+                tbl_xml.append('</w:tbl>')
+                return "".join(tbl_xml)
+            return ""
+
+        body_elements = []
+        for b in blocks:
+            body_elements.append(render_block(b))
+
+        # Page options (A4 default: 11906 x 16838 dxa)
+        pg_w = "11906"
+        pg_h = "16838"
+        orient = "portrait"
+        if page_options:
+            if page_options.get("pageSize") == "letter":
+                pg_w, pg_h = "12240", "15840"
+            if page_options.get("orientation") == "landscape":
+                pg_w, pg_h = pg_h, pg_w
+                orient = "landscape"
+
+        orient_attr = ' w:orient="landscape"' if orient == "landscape" else ""
+        sect_pr = f'<w:sectPr><w:pgSz w:w="{pg_w}" w:h="{pg_h}"{orient_attr}/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>'
+
+        doc_xml = (
             '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
-            '<Default Extension="xml" ContentType="application/xml"/>'
-            '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
-            '</Types>'
+            f'<w:document xmlns:w="{self.W_NS}" xmlns:r="{self.R_NS}" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="{self.A_NS}" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+            f'<w:body>{"".join(body_elements)}{sect_pr}</w:body></w:document>'
         )
 
-        # Relationships
-        rels_xml = (
+        content_types = [
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">',
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>',
+            '<Default Extension="xml" ContentType="application/xml"/>',
+            '<Default Extension="png" ContentType="image/png"/>',
+            '<Default Extension="jpg" ContentType="image/jpeg"/>',
+            '<Default Extension="jpeg" ContentType="image/jpeg"/>',
+            '<Default Extension="gif" ContentType="image/gif"/>',
+            '<Default Extension="webp" ContentType="image/webp"/>',
+            '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>',
+            '</Types>'
+        ]
+
+        doc_rels_xml = (
             '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
-            '</Relationships>'
+            f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">{"".join(doc_rels)}</Relationships>'
+        )
+
+        package_rels = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">{"".join(rels_list)}</Relationships>'
         )
 
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
-            z.writestr("[Content_Types].xml", content_types)
-            z.writestr("_rels/.rels", rels_xml)
+            z.writestr("[Content_Types].xml", "".join(content_types))
+            z.writestr("_rels/.rels", package_rels)
             z.writestr("word/document.xml", doc_xml)
+            if doc_rels:
+                z.writestr("word/_rels/document.xml.rels", doc_rels_xml)
+            for img_path, img_data in images_to_pack.items():
+                z.writestr(img_path, img_data)
+
         return buf.getvalue()
 
     # ---------------- XLSX PARSING & BUILDING ----------------

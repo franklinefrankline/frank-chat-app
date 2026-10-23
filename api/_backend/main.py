@@ -19,7 +19,7 @@ except Exception:
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from database import engine, Base, SessionLocal
@@ -128,6 +128,8 @@ app = FastAPI(
 
 # CORS configuration
 default_origins = [
+    "https://fnk.vercel.app",
+    "https://fnk.vercel.app/",
     "https://frank-chat-app.vercel.app",
     "https://frank-chat-vercel.app",
     "https://frank-chat-vercel.vercel.app",
@@ -168,7 +170,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 async def ensure_api_prefix(request: Request, call_next):
     path = request.url.path
     # Never rewrite static frontend assets or HTML pages
-    if not any(path.endswith(ext) for ext in [".html", ".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".webp", ".woff", ".woff2", ".ttf"]):
+    if not any(path.endswith(ext) for ext in [".html", ".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".webp", ".woff", ".woff2", ".ttf", ".txt", ".xml"]):
         for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health", "/admin", "/conversations", "/smart", "/contact"]:
             if (path == pfx and pfx != "/admin") or path.startswith(pfx + "/"):
                 request.scope["path"] = "/api" + path
@@ -318,6 +320,50 @@ if frontend_dir and frontend_dir.exists():
     @app.get("/reset-password")
     def serve_reset_password():
         return FileResponse(frontend_dir / "reset-password.html")
+
+    @app.get("/robots.txt")
+    def serve_robots_txt():
+        target = (frontend_dir / "robots.txt") if frontend_dir else None
+        if not target or not target.exists():
+            target = root_dir / "robots.txt"
+        if target and target.exists():
+            return FileResponse(target, media_type="text/plain; charset=utf-8")
+        return Response(
+            content="User-agent: *\nAllow: /\nAllow: /login\nAllow: /register\nAllow: /assets/\nAllow: /css/\nAllow: /js/\n\nDisallow: /dashboard\nDisallow: /admin\nDisallow: /profile\nDisallow: /settings\nDisallow: /forgot-password\nDisallow: /reset-password\nDisallow: /api/\nDisallow: /uploads/\nDisallow: /ws/\n\nSitemap: https://fnk.vercel.app/sitemap.xml\n",
+            media_type="text/plain; charset=utf-8"
+        )
+
+    @app.get("/sitemap.xml")
+    def serve_sitemap_xml():
+        target = (frontend_dir / "sitemap.xml") if frontend_dir else None
+        if not target or not target.exists():
+            target = root_dir / "sitemap.xml"
+        if target and target.exists():
+            return FileResponse(target, media_type="application/xml; charset=utf-8")
+        sitemap_content = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            '  <url>\n'
+            '    <loc>https://fnk.vercel.app/</loc>\n'
+            '    <lastmod>2026-10-23</lastmod>\n'
+            '    <changefreq>weekly</changefreq>\n'
+            '    <priority>1.0</priority>\n'
+            '  </url>\n'
+            '  <url>\n'
+            '    <loc>https://fnk.vercel.app/login</loc>\n'
+            '    <lastmod>2026-10-23</lastmod>\n'
+            '    <changefreq>monthly</changefreq>\n'
+            '    <priority>0.8</priority>\n'
+            '  </url>\n'
+            '  <url>\n'
+            '    <loc>https://fnk.vercel.app/register</loc>\n'
+            '    <lastmod>2026-10-23</lastmod>\n'
+            '    <changefreq>monthly</changefreq>\n'
+            '    <priority>0.8</priority>\n'
+            '  </url>\n'
+            '</urlset>\n'
+        )
+        return Response(content=sitemap_content, media_type="application/xml; charset=utf-8")
 
     @app.get("/{filename}.html")
     def serve_html_page(filename: str):
