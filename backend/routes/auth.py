@@ -294,6 +294,57 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
         db.add(user)
         db.commit()
         db.refresh(user)
+
+        # DPDP Act 2023: Record notice acceptance and default consent entries
+        initial_consents = [
+            models.ConsentRecord(
+                user_id=user.id,
+                purpose_key="core_messaging",
+                purpose_description="Core messaging, account delivery, and security verification.",
+                status="granted",
+                legal_basis="contractual_necessity",
+                notice_version="2026.1",
+                granted_at=now_dt
+            ),
+            models.ConsentRecord(
+                user_id=user.id,
+                purpose_key="ai_processing",
+                purpose_description="Smart Conversation AI processing via Google Gemini.",
+                status="granted",
+                legal_basis="consent",
+                notice_version="2026.1",
+                granted_at=now_dt
+            ),
+            models.ConsentRecord(
+                user_id=user.id,
+                purpose_key="activity_presence",
+                purpose_description="Real-time online presence and typing indicators.",
+                status="granted",
+                legal_basis="consent",
+                notice_version="2026.1",
+                granted_at=now_dt
+            ),
+            models.ConsentRecord(
+                user_id=user.id,
+                purpose_key="read_receipts",
+                purpose_description="Double checkmark message read receipts.",
+                status="granted",
+                legal_basis="consent",
+                notice_version="2026.1",
+                granted_at=now_dt
+            ),
+            models.ConsentRecord(
+                user_id=user.id,
+                purpose_key="product_communications",
+                purpose_description="Non-transactional feature updates and security advisories.",
+                status="withdrawn",
+                legal_basis="consent",
+                notice_version="2026.1",
+                withdrawn_at=now_dt
+            )
+        ]
+        db.add_all(initial_consents)
+        db.commit()
     except Exception as e:
         db.rollback()
         raise HTTPException(

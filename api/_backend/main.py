@@ -25,7 +25,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from database import engine, Base, SessionLocal
 import models
 from security import hash_password
-from routes import auth, users, messages, groups, files, admin, smart, conversations, contact
+from routes import auth, users, messages, groups, files, admin, smart, conversations, contact, privacy
 from websocket.chat import handle_websocket_connection
 from services.smart_service import smart_service
 
@@ -116,7 +116,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             response.headers["Content-Security-Policy"] = "frame-ancestors 'self' http://localhost:* http://127.0.0.1:* https://*.vercel.app *"
         else:
             response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Prevent search engine crawlers from indexing private paths, APIs, uploads, or accounts
+        if (
+            path.startswith("/api/")
+            or path.startswith("/uploads/")
+            or "/files/" in path
+            or path.startswith("/dashboard")
+            or path.startswith("/settings")
+            or path.startswith("/profile")
+            or path.startswith("/admin")
+            or path.startswith("/privacy-dashboard")
+        ):
+            response.headers["X-Robots-Tag"] = "noindex, nofollow"
+
         return response
 
 
@@ -171,15 +183,15 @@ async def ensure_api_prefix(request: Request, call_next):
     path = request.url.path
     # Never rewrite static frontend assets or HTML pages
     if not any(path.endswith(ext) for ext in [".html", ".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".webp", ".woff", ".woff2", ".ttf", ".txt", ".xml"]):
-        for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health", "/admin", "/conversations", "/smart", "/contact"]:
-            if (path == pfx and pfx != "/admin") or path.startswith(pfx + "/"):
+        for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health", "/admin", "/conversations", "/smart", "/contact", "/privacy"]:
+            if (path == pfx and pfx not in ["/admin", "/privacy"]) or path.startswith(pfx + "/"):
                 request.scope["path"] = "/api" + path
                 break
     response = await call_next(request)
     return response
 
 # Include Routers with both /api prefix and root prefix
-for r in [auth.router, users.router, messages.router, groups.router, files.router, admin.router, smart.router, conversations.router, contact.router]:
+for r in [auth.router, users.router, messages.router, groups.router, files.router, admin.router, smart.router, conversations.router, contact.router, privacy.router]:
     app.include_router(r, prefix="/api")
     app.include_router(r)
 
@@ -321,6 +333,21 @@ if frontend_dir and frontend_dir.exists():
     def serve_reset_password():
         return FileResponse(frontend_dir / "reset-password.html")
 
+    @app.get("/privacy")
+    def serve_privacy():
+        return FileResponse(frontend_dir / "privacy.html")
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    def serve_favicon():
+        target = (frontend_dir / "favicon.ico") if frontend_dir else None
+        if not target or not target.exists():
+            target = root_dir / "favicon.ico"
+        if not target or not target.exists():
+            target = root_dir / "assets" / "brand" / "favicon.ico"
+        if target and target.exists():
+            return FileResponse(target, media_type="image/x-icon")
+        return FileResponse(root_dir / "assets" / "brand" / "frank-icon.png", media_type="image/png")
+
     @app.get("/robots.txt")
     def serve_robots_txt():
         target = (frontend_dir / "robots.txt") if frontend_dir else None
@@ -329,7 +356,7 @@ if frontend_dir and frontend_dir.exists():
         if target and target.exists():
             return FileResponse(target, media_type="text/plain; charset=utf-8")
         return Response(
-            content="User-agent: *\nAllow: /\nAllow: /login\nAllow: /register\nAllow: /assets/\nAllow: /css/\nAllow: /js/\n\nDisallow: /dashboard\nDisallow: /admin\nDisallow: /profile\nDisallow: /settings\nDisallow: /forgot-password\nDisallow: /reset-password\nDisallow: /api/\nDisallow: /uploads/\nDisallow: /ws/\n\nSitemap: https://fnk.vercel.app/sitemap.xml\n",
+            content="User-agent: *\nAllow: /\nAllow: /login\nAllow: /register\nAllow: /privacy\nAllow: /assets/\nAllow: /css/\nAllow: /js/\n\nDisallow: /dashboard*\nDisallow: /admin*\nDisallow: /profile*\nDisallow: /settings*\nDisallow: /forgot-password*\nDisallow: /reset-password*\nDisallow: /privacy-dashboard*\nDisallow: /api/\nDisallow: /uploads/\nDisallow: /ws/\n\nSitemap: https://fnk.vercel.app/sitemap.xml\n",
             media_type="text/plain; charset=utf-8"
         )
 
@@ -345,21 +372,27 @@ if frontend_dir and frontend_dir.exists():
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
             '  <url>\n'
             '    <loc>https://fnk.vercel.app/</loc>\n'
-            '    <lastmod>2026-10-23</lastmod>\n'
+            '    <lastmod>2026-10-24</lastmod>\n'
             '    <changefreq>weekly</changefreq>\n'
             '    <priority>1.0</priority>\n'
             '  </url>\n'
             '  <url>\n'
             '    <loc>https://fnk.vercel.app/login</loc>\n'
-            '    <lastmod>2026-10-23</lastmod>\n'
+            '    <lastmod>2026-10-24</lastmod>\n'
             '    <changefreq>monthly</changefreq>\n'
             '    <priority>0.8</priority>\n'
             '  </url>\n'
             '  <url>\n'
             '    <loc>https://fnk.vercel.app/register</loc>\n'
-            '    <lastmod>2026-10-23</lastmod>\n'
+            '    <lastmod>2026-10-24</lastmod>\n'
             '    <changefreq>monthly</changefreq>\n'
             '    <priority>0.8</priority>\n'
+            '  </url>\n'
+            '  <url>\n'
+            '    <loc>https://fnk.vercel.app/privacy</loc>\n'
+            '    <lastmod>2026-10-24</lastmod>\n'
+            '    <changefreq>monthly</changefreq>\n'
+            '    <priority>0.7</priority>\n'
             '  </url>\n'
             '</urlset>\n'
         )

@@ -43,6 +43,8 @@ class User(Base):
     reactions = relationship("Reaction", back_populates="user")
     uploaded_documents = relationship("Document", back_populates="uploader")
     audit_logs = relationship("AuditLog", back_populates="admin", foreign_keys="AuditLog.admin_id")
+    consent_records = relationship("ConsentRecord", back_populates="user", cascade="all, delete-orphan")
+    privacy_requests = relationship("PrivacyDataRequest", foreign_keys="PrivacyDataRequest.user_id", back_populates="user")
 
 
 class Message(Base):
@@ -332,5 +334,101 @@ class AccountAccessRequest(Base):
     admin_notes = Column(Text, nullable=True)
     source = Column(String(50), default="disabled_account", nullable=False)  # "disabled_account", "landing_page"
     created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+
+# ==============================================================================
+# INDIA DPDP ACT, 2023 & DPDP RULES, 2025 COMPLIANCE MODELS
+# ==============================================================================
+
+class ConsentRecord(Base):
+    __tablename__ = "consent_records"
+    __table_args__ = (
+        UniqueConstraint("user_id", "purpose_key", name="uq_user_consent_purpose"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    purpose_key = Column(String(50), nullable=False, index=True)  # e.g. "ai_processing", "product_communications", "activity_presence", "read_receipts"
+    purpose_description = Column(Text, nullable=False)
+    status = Column(String(20), default="granted", nullable=False)  # "granted", "withdrawn"
+    legal_basis = Column(String(50), default="consent", nullable=False)  # "consent", "contractual_necessity", "legitimate_uses"
+    notice_version = Column(String(20), default="v1.0", nullable=False)
+    ip_address = Column(String(64), nullable=True)
+    user_agent = Column(String(255), nullable=True)
+    granted_at = Column(DateTime(timezone=True), default=get_utc_now)
+    withdrawn_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+    user = relationship("User", back_populates="consent_records")
+
+
+class PrivacyDataRequest(Base):
+    __tablename__ = "privacy_data_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    request_reference = Column(String(50), unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    request_type = Column(String(50), nullable=False, index=True)  # "access_data", "correct_data", "erase_data", "withdraw_consent", "grievance"
+    status = Column(String(30), default="Submitted", index=True, nullable=False)  # "Submitted", "Under Review", "Action Required", "Completed", "Rejected"
+    subject = Column(String(255), nullable=False)
+    details = Column(Text, nullable=False)
+    correction_payload = Column(Text, nullable=True)  # JSON formatted corrections if any
+    admin_notes = Column(Text, nullable=True)
+    decision_reason = Column(Text, nullable=True)
+    assigned_to_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    deadline_at = Column(DateTime(timezone=True), nullable=True)  # 30-day statutory response deadline under DPDP Act
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+    user = relationship("User", foreign_keys=[user_id], back_populates="privacy_requests")
+    assigned_to = relationship("User", foreign_keys=[assigned_to_id])
+
+
+class DataBreachIncident(Base):
+    __tablename__ = "data_breach_incidents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    incident_reference = Column(String(50), unique=True, index=True, nullable=False)
+    title = Column(String(255), nullable=False)
+    severity = Column(String(20), default="low", nullable=False)  # "low", "medium", "high", "critical"
+    status = Column(String(30), default="Identified", nullable=False)  # "Identified", "Investigating", "Contained", "Remediated", "Closed"
+    affected_systems = Column(String(255), nullable=False)
+    nature_of_breach = Column(Text, nullable=False)
+    impact_assessment = Column(Text, nullable=True)
+    containment_steps = Column(Text, nullable=True)
+    remediation_steps = Column(Text, nullable=True)
+    impacted_users_count = Column(Integer, default=0, nullable=False)
+    reported_to_dpa = Column(Boolean, default=False, nullable=False)
+    dpa_reported_at = Column(DateTime(timezone=True), nullable=True)
+    affected_users_notified = Column(Boolean, default=False, nullable=False)
+    users_notified_at = Column(DateTime(timezone=True), nullable=True)
+    assigned_investigator = Column(String(100), nullable=True)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+    created_by = relationship("User")
+
+
+class DataRetentionRule(Base):
+    __tablename__ = "data_retention_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    data_category = Column(String(100), unique=True, index=True, nullable=False)  # e.g. "chat_messages", "uploaded_documents", "inactive_accounts", "security_audit_logs", "ai_transients", "privacy_requests"
+    category_label = Column(String(150), nullable=False)
+    purpose = Column(Text, nullable=False)
+    retention_period_days = Column(Integer, nullable=False)  # in days (-1 for indefinite until account closure)
+    is_active = Column(Boolean, default=True, nullable=False)
+    deletion_method = Column(String(50), default="anonymize", nullable=False)  # "soft_deactivate", "anonymize", "purge_file"
+    legal_exception = Column(Text, nullable=True)
+    automated_expiration_supported = Column(Boolean, default=False, nullable=True)
+    requires_manual_review = Column(Boolean, default=True, nullable=True)
+    responsible_workflow = Column(String(100), default="DPO Staged Review", nullable=True)
+    required_audit_metadata = Column(String(255), default="operation_ref,actor_id,target_id,timestamp,result", nullable=True)
+    last_reviewed_at = Column(DateTime(timezone=True), default=get_utc_now)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
     updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
 

@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Privacy Policy &amp; Data Protection Notice — FRANK Think</title>
+    <meta name="description" content="FRANK Think Privacy Policy aligned with India's Digital Personal Data Protection Act, 2023 (DPDP Act) and DPDP Rules, 2025. Understand how your personal data, messages, and files are protected.">
+    <link rel="canonical" href="https://fnk.vercel.app/privacy">
+
+    <!-- Favicon & Brand Icons -->
+    <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="assets/brand/frank-icon.png">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="apple-touch-icon" sizes="96x96" href="assets/brand/frank-icon.png">
+
+    <!-- Open Graph Metadata -->
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="FRANK Think">
+    <meta property="og:title" content="Privacy Policy &amp; Data Protection — FRANK Think">
+    <meta property="og:description" content="Official Data Protection Notice and Privacy Policy under India's DPDP Act, 2023.">
+    <meta property="og:url" content="https://fnk.vercel.app/privacy">
+    <meta property="og:image" content="https://fnk.vercel.app/assets/brand/frank-logo.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="FRANK Think Logo">
+    <meta name="theme-color" content="#2563eb">
+
+    <!-- Twitter / X Card Metadata -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Privacy Policy &amp; Data Protection Notice — FRANK Think">
+    <meta name="twitter:description" content="Official Privacy Policy and Data Principal Notice under the Digital Personal Data Protection Act, 2023.">
+    <meta name="twitter:image" content="https://fnk.vercel.app/assets/brand/frank-logo.png">
+    <meta name="twitter:image:alt" content="FRANK Think Logo">
+
+    <!-- JSON-LD WebPage Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Privacy Policy & Data Protection Notice — FRANK Think",
+      "url": "https://fnk.vercel.app/privacy",
+      "description": "Official Privacy Policy and Data Principal Notice under the Digital Personal Data Protection Act, 2023.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "FRANK Think",
+        "url": "https://fnk.vercel.app/"
+      }
+    }
+    </script>
+
+    <!-- Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/cookie_consent.css">
+
+    <style>
+        .privacy-page-wrapper {
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .privacy-header {
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+            padding: 16px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(12px);
+        }
+
+        .privacy-header-content {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .privacy-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text);
+        }
+
+        .privacy-brand-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+        }
+
+        .privacy-brand-name {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .privacy-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .privacy-hero {
+            background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 48px 24px 36px;
+            text-align: center;
+        }
+
+        .privacy-hero-inner {
+            max-width: 840px;
+            margin: 0 auto;
+        }
+
+        .compliance-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .compliance-pill .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+        }
+
+        .privacy-title {
+            font-size: 34px;
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .privacy-subtitle {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .privacy-meta-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .privacy-main-layout {
+            max-width: 1280px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .privacy-main-layout {
+                grid-template-columns: 1fr;
+                gap: 24px;
+                padding: 24px 16px 60px;
+            }
+        }
+
+        /* Sidebar Navigation */
+        .privacy-toc-sidebar {
+            position: sticky;
+            top: 96px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        @media (max-width: 900px) {
+            .privacy-toc-sidebar {
+                position: static;
+                top: auto;
+            }
+        }
+
+        .toc-title {
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .toc-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .toc-link {
+            display: block;
+            padding: 7px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all var(--transition-fast);
+            line-height: 1.4;
+        }
+
+        .toc-link:hover, .toc-link.active {
+            background: rgba(37, 99, 235, 0.08);
+            color: var(--accent);
+            font-weight: 600;
+            transform: translateX(3px);
+        }
+
+        /* Content Article */
+        .privacy-content-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 36px 40px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        @media (max-width: 640px) {
+            .privacy-content-card {
+                padding: 24px 18px;
+            }
+        }
+
+        .policy-section {
+            padding-bottom: 32px;
+            margin-bottom: 32px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .policy-section:last-child {
+            padding-bottom: 0;
+            margin-bottom: 0;
+            border-bottom: none;
+        }
+
+        .policy-heading {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .policy-heading-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .policy-p {
+            font-size: 14.5px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 14px;
+        }
+
+        .policy-callout {
+            border-left: 3px solid var(--accent);
+            background: rgba(37, 99, 235, 0.05);
+            padding: 16px 20px;
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            margin: 18px 0;
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: var(--text);
+        }
+
+        .policy-table-wrap {
+            overflow-x: auto;
+            margin: 18px 0;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+
+        .policy-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13.5px;
+        }
+
+        .policy-table th {
+            background: var(--surface-secondary, rgba(0,0,0,0.02));
+            padding: 12px 16px;
+            font-weight: 700;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .policy-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .policy-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .fiduciary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+            margin: 18px 0;
+        }
+
+        .fiduciary-card {
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--surface-secondary, rgba(0,0,0,0.02));
+        }
+
+        .fiduciary-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            letter-spacing: 0.04em;
+        }
+
+        .fiduciary-val {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .rights-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 14px;
+            margin: 16px 0;
+        }
+
+        .right-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            background: var(--surface);
+            transition: border-color var(--transition-fast);
+        }
+
+        .right-card:hover {
+            border-color: var(--accent);
+        }
+
+        .right-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .right-desc {
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .interactive-box {
+            margin-top: 24px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(37,99,235,0.08) 0%, rgba(16,185,129,0.08) 100%);
+            border: 1px solid rgba(37,99,235,0.2);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body class="privacy-page-wrapper">
+
+    <!-- Top Navigation Header -->
+    <header class="privacy-header">
+        <div class="privacy-header-content">
+            <a href="index.html" class="privacy-brand">
+                <img src="assets/brand/frank-icon.svg" alt="FRANK Icon" width="32" height="32" class="privacy-brand-logo" decoding="async">
+                <span class="privacy-brand-name">FRANK Think</span>
+            </a>
+
+            <div class="privacy-header-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="privacyThemeBtn" title="Toggle Theme" aria-label="Toggle Theme">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    <span>Theme</span>
+                </button>
+                <a href="login.html" class="btn btn-outline btn-sm">Sign In</a>
+                <a href="register.html" class="btn btn-primary btn-sm">Create Account</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Title Banner -->
+    <section class="privacy-hero">
+        <div class="privacy-hero-inner">
+            <div class="compliance-pill">
+                <span class="dot"></span>
+                <span>DPDP Act, 2023 &amp; DPDP Rules, 2025 Aligned</span>
+            </div>
+            <h1 class="privacy-title">Privacy Policy &amp; Data Protection Notice</h1>
+            <p class="privacy-subtitle">
+                Comprehensive, transparent information regarding how FRANK Think collects, processes, protects, retains, and erases your personal data, and how you can exercise your statutory rights as a Data Principal.
+            </p>
+            <div class="privacy-meta-bar">
+                <span><strong>Policy Version:</strong> 2026.1</span>
+                <span>&bull;</span>
+                <span><strong>Effective Date:</strong> October 24, 2026</span>
+                <span>&bull;</span>
+                <span><strong>Jurisdiction:</strong> Republic of India</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content Grid -->
+    <main class="privacy-main-layout">
+        <!-- Table of Contents Sidebar -->
+        <nav class="privacy-toc-sidebar" aria-label="Privacy Policy Sections">
+            <div class="toc-title">Table of Contents</div>
+            <ul class="toc-list">
+                <li><a href="#sec-statutory" class="toc-link">1. Statutory Framework</a></li>
+                <li><a href="#sec-fiduciary" class="toc-link">2. Data Fiduciary &amp; Grievance Officer</a></li>
+                <li><a href="#sec-data-collected" class="toc-link">3. Personal Data Collected</a></li>
+                <li><a href="#sec-purposes" class="toc-link">4. Purposes &amp; Legal Bases</a></li>
+                <li><a href="#sec-storage" class="toc-link">5. Storage, Retention &amp; Erasure</a></li>
+                <li><a href="#sec-ai-third-parties" class="toc-link">6. AI Processing &amp; Third Parties</a></li>
+                <li><a href="#sec-security" class="toc-link">7. Security &amp; Encryption</a></li>
+                <li><a href="#sec-cookies" class="toc-link">7B. Cookies &amp; Storage</a></li>
+                <li><a href="#sec-rights" class="toc-link">8. Data Principal Rights</a></li>
+                <li><a href="#sec-children" class="toc-link">9. Age Verification &amp; Children</a></li>
+                <li><a href="#sec-breaches" class="toc-link">10. Breach Management</a></li>
+                <li><a href="#sec-timeline" class="toc-link">11. Legal Timeline &amp; Phasing</a></li>
+            </ul>
+
+            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+                <a href="settings.html?tab=privacy" class="btn btn-secondary btn-full btn-sm" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span>My Privacy Dashboard</span>
+                </a>
+                <button type="button" class="btn btn-outline btn-full btn-sm open-cookie-settings" style="margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg>
+                    <span>Cookie Settings</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Privacy Content Article -->
+        <article class="privacy-content-card">
+
+            <!-- 1. Statutory Framework -->
+            <section id="sec-statutory" class="policy-section">
+                <h2 class="policy-heading">
+                    <span class="policy-heading-num">1</span>
+                    Statutory Framework &amp; Scope
+                </h2>
+                <p class="policy-p">
+                    This Privacy Policy and Data-Use Notice governs the processing of digital personal data by <strong>FRANK Think</strong> (hereinafter "FRANK Think", "we", "us", or "the Platform"). This policy is formulated in direct compliance with the <strong>Digital Personal Data Protection Act, 2023 (DPDP Act)</strong> and the <strong>Digital Personal Data Protection Rules, 2025 (DPDP Rules)</strong> enacted by the Parliament of India.
+                </p>
+                <p class="policy-p">
+                    Under the DPDP Act, you are recognized as a <strong>Data Principal</strong> — the individual to whom the personal data relates — and FRANK Think operates as the <strong>Data Fiduciary</strong> determining the purpose and means of processing your digital personal data.
+                </p>
+                <div class="policy-callout">
+                    <strong>Core Commitment:</strong> FRANK Think practices data minimization, purpose limitation, storage limitation, and uncompromising integrity. We never sell, rent, or trade your personal data, nor do we perform behavioral tracking for third-party commercial advertisements.
+                </div>
+            </section>
+
+            <!-- 2. Data Fiduciary & Grievance Redressal -->
+            <section id="sec-fiduciary" class="policy-section">
+                <h2 class="policy-heading">
+                    <span class="policy-heading-num">2</span>
+                    Data Fiduciary &amp; Grievance Redressal Officer
+                </h2>
+                <p class="policy-p">
+                    Pursuant to Section 8(9) and Section 13 of the DPDP Act, 2023, FRANK Think has designated an official Grievance Redressal Officer and Data Protection Office for addressing inquiries, rights requests, and privacy grievances:
+                </p>
+
+                <div class="fiduciary-grid">
+                    <div class="fiduciary-card">
+                        <div class="fiduciary-label">Data Fiduciary / Platform</div>
+                        <div class="fiduciary-val">FRANK Think &bull; <span style="font-size: 12px; color: var(--text-muted);">[LEGAL_ENTITY_NAME: To be supplied by owner]</span></div>
+                    </div>
+                    <div class="fiduciary-card">
+                        <div class="fiduciary-label">Registered Office Address</div>
+                        <div class="fiduciary-val"><span style="font-size: 13px; color: var(--text-secondary);">[REGISTERED_OFFICE_ADDRESS: To be supplied by owner]</span></div>
+                    </div>
+                    <div class="fiduciary-card">
+                        <div class="fiduciary-label">Grievance Redressal Officer</div>
+                        <div class="fiduciary-val">Data Protection Officer (DPO)</div>
+                    </div>
+                    <div class="fiduciary-card">
+                        <div class="fiduciary-label">Official Grievance Email</div>
+                        <div class="fiduciary-val"><a href="mailto:frankthink12@gmail.com" style="color: var(--accent); text-decoration: none;">frankthink12@gmail.com</a></div>
+                    </div>
+                    <div class="fiduciary-card">
+                        <div class="fiduciary-label">Statutory Resolution Timeline</div>
+                        <div class="fiduciary-val">Within 30 Calendar Days (DPDP § 13)</div>
+                    </div>
+                    <div class="fiduciary-card">
+                        <div class="fiduciary-label">Appellate Authority</div>
+                        <div class="fiduciary-val">Data Protection Board of India (DPBI)</div>
+                    </div>
+                </div>
+
+                <p class="policy-p">
+                    If you are unsatisfied with the resolution provided by our Grievance Redressal Officer, you possess the statutory right under Section 13(3) of the DPDP Act to submit an appeal to the <strong>Data Protection Board of India (DPBI)</strong>.
+                </p>
+            </section>
+
+            <!-- 3. Categories of Personal Data Collected -->
+            <section id="sec-data-collected" class="policy-section">
+                <h2 class="policy-heading">
+                    <span class="policy-heading-num">3</span>
+                    Categories of Personal Data Collected
+                </h2>
+                <p class="policy-p">
+                    Based on the actual operational architecture of FRANK Think, we collect and process only the minimum digital personal data strictly required to deliver real-time communication services:
+                </p>
+
+                <div class="policy-table-wrap">
+                    <table class="policy-table">
+                        <thead>
+                            <tr>
+                                <th>Data Category</th>
+                                <th>Specific Data Elements Collected</th>
+                                <th>Collection Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Account &amp; Identity Data</strong></td>
+                                <td>Full name, chosen username, verified email address, 6-character permanent alphanumeric FRANK ID, profile bio, avatar image, salted PBKDF2 password hash.</td>
+                                <td>Provided directly by user upon registration and profile update.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Communication Content</strong></td>
+                                <td>Direct chat messages, group chat messages, message reactions (emojis), file attachments (PDFs, Office documents, images, audio, video), message read/delivery statuses.</td>
+                                <td>Generated during interactive platform communication.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Technical &amp; Session Data</strong></td>
+                                <td>IP address (for rate limiting and security logs), browser User-Agent, WebSocket connection state, theme preference, interface language (English, Tamil, Hindi).</td>
+                                <td>Collected automatically via standard HTTP/WebSocket protocols.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Consent &amp; Rights Audit</strong></td>
+                                <td>Granular consent states, consent timestamps, notice versions, privacy access requests, correction requests, erasure logs, and grievances.</td>
+                                <td>Recorded during user interaction with privacy dashboard.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 4. Purposes & Legal Bases -->
+            <section id="sec-purposes" class="policy-section">
+                <h2 class="policy-heading">
+                    <span class="policy-heading-num">4</span>
+                    Purposes of Processing &amp; Legal Bases
+                </h2>
+                <p class="policy-p">
+                    In accordance with Chapter II of the DPDP Act, personal data is processed under distinct, legally grounded bases. We distinguish strictly between core contractual processing and optional consent-based activities:
+                </p>
+
+                <div class="policy-table-wrap">
+                    <table class="policy-table">
+                        <thead>
+                            <tr>
+                                <th>Processing Purpose</th>
+                                <th>Legal Basis (DPDP Act)</th>
+                                <th>Voluntary / Optional?</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Account authentication, credential verification, and user management</strong></td>
+                                <td>Contractual Necessity (Section 4)</td>
+                                <td>Mandatory for platform access</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Transmitting, delivering, and storing direct and group chat messages</strong></td>
+                                <td>Contractual Necessity / Legitimate Uses (Section 4 &amp; 7)</td>
+                                <td>Mandatory for chat functionality</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Smart Conversation AI intelligence (summarization, action item extraction via Gemini API)</strong></td>
+                                <td>Consent (Section 6)</td>
+                                <td><strong>Fully Optional</strong> (Opt-out available at any time)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Live active presence and typing indicator broadcasting</strong></td>
+                                <td>Consent (Section 6)</td>
+                                <td><strong>Fully Optional</strong> (Toggle in settings)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Double checkmark message read receipts</strong></td>
+                                <td>Consent (Section 6)</td>
+                                <td><strong>Fully Optional</strong> (Toggle in settings)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Security monitoring, rate-limiting, and fraud prevention</strong></td>
+                                <td>Legal Obligation / Legitimate Uses (Section 7 &amp; 8)</td>
+                                <td>Mandatory for platform security</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 5. Storage, Retention & Erasure -->
+            <section id="sec-storage" class="policy-section">
+                <h2 class="policy-heading">
+                    <span class="policy-heading-num">5</span>
+                    Storage, Retention &amp; Staged Account Erasure
+                </h2>
+                <p class="policy-p">
+                    Your personal data is securely stored within our production relational database (PostgreSQL) hosted in secure cloud infrastructure. Uploaded media and documents are stored in protected server storage with strict access authorization filters.
+                </p>
+                <p class="policy-p">
+                    <strong>Retention Schedule:</strong> Personal data is maintained only for as long as your account remains active, or as required by statutory retention exceptions under Section 8(7) of the DPDP Act (such as compliance with legal obligations or dispute defense).
+                </p>
+                <div class="policy-callout">
+                    <strong>Staged Account Deletion Workflow:</strong>
+                    When you initiate self-service account deletion from your Privacy Dashboard:
+                    <ol style="margin: 8px 0 0 20px; padding: 0;">
+                        <li>Your identity is verified via mandatory password confirmation.</li>
+                        <li>Active WebSocket sessions are terminated immediately.</li>
+                        <li>Personal identifiers (name, username, email, avatar, bio) are permanently anonymized.</li>
+                        <li>To protect conversation partners from arbitrary loss of context, message content in shared threads remains preserved under an anonymized author label ("Deleted User").</li>
+                        <li>Group channels created by the user are reassigned to system administrators to preserve group availability for other participating members.</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- 6. AI Processing & Third Parties -->
+            <section id="sec-ai-third-parties" class="policy-section">
+                <h2 class="policy-heading">
+                    <span class="policy-heading-num">6</span>
+                    AI Model Processing &amp; Third-Party Disclosures
+                </h2>
+                <p class="policy-p">
+                    FRANK Think integrates conversational intelligence capabilities through the <strong>Google Gemini API</strong> for users who actively utilize the "Smart Conversation" feature. In complete accordance with DPDP transparency mandates:
+                </p>
+                <ul class="policy-p" style="padding-left: 20px;">
+                    <li><strong>No Training on Your Conversations:</strong> Message content is transmitted strictly for real-time inference over TLS and is never used to train or fine-tune public foundation models.</li>
+                    <li><strong>Automated Data Minimization:</strong> Before transmission to the AI provider, text is sanitized to redact detected emails, phone numbers, and credentials.</li>
+                    <li><strong>Consent Withdrawal Protection:</strong> If you withdraw consent for AI processing in your Privacy Dashboard, the platform automatically halts AI transmissions and falls back to our local, on-premise deterministic NLP algorithms.</li>
+                </ul>
+
+                <p class="policy-p"><strong>Authorized Third-Party Service Providers:</strong></p>
+                <div class="policy-table-wrap">
+                    <table class="policy-table">
+                        <thead>
+                            <tr>
+                                <th>Provider</th>
+                                <th>Service Scope</th>
+                                <th>Location &amp; Security</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Google Gemini API (Google LLC)</strong></td>
+                                <td>On-demand conversational summarization &amp; action extraction</td>
+                                <td>Enterprise API with strict zero-training terms; TLS 1.3 encryption.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Neon Tech Inc.</strong></td>
+                                <td>Cloud PostgreSQL database infrastructure</td>
+                                <td>Encrypted storage (AES-256 at rest, TLS 1.3 in transit); automated daily backups.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Vercel Inc.</strong></td>
+                                <td>Edge routing and serverless application hosting</td>
+                                <td>SOC2 Type II certified; stateless serverless compute functions.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Google Gmail SMTP</strong></td>
+                                <td>Transactional email and OTP code delivery</td>
+                                <td>STARTTLS encrypted SMTP transport for authentication verification.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 7. Security & Encryption -->
+            <section id="sec-security" class="policy-section">
+                <h2 class="policy-heading">
+                    <span class="policy-heading-num">7</span>
+                    Security &amp; Encryption Architecture
+                </h2>
+                <p class="policy-p">
+                    FRANK Think implements rigorous technical and organizational security measures to protect personal data against unauthorized access, alteration, disclosure, or destruction:
+                </p>
+                <ul class="policy-p" style="padding-left: 20px;">
+                    <li><strong>Transport Encryption:</strong> 100% of network traffic, HTTP APIs, and WebSocket streams are encrypted using industry-standard TLS 1.3.</li>
+                    <li><strong>Cryptographic Password Hashing:</strong> Passwords are hashed using salted PBKDF2-HMAC-SHA256 with 100,000 rounds. Plaintext passwords are never recorded in logs or database tables.</li>
+                    <li><strong>Token Authentication:</strong> Sessions are secured through cryptographically signed HS256 JWT tokens with automatic expiration.</li>
+                    <li><strong>Authorization Controls &amp; Insecure Direct Object Reference (IDOR) Protections:</strong> Backend APIs enforce multi-tier participant verification on all chat threads and document downloads. Users cannot access unauthorized conversations or attachments.</li>
+                    <li><strong>Accurate Architectural Statement:</strong> In strict compliance with regulatory honesty, FRANK Think stores messages in its database to support multi-device synchronization and document collaboration; we do not make false claims of proprietary end-to-end encryption.</li>
+                </ul>
+            </section>
+
+            <!-- 7B. Cookies & Local Storage Governance -->
+            <section id="sec-cookies" class="policy-section">
+                <h2 class="policy-heading">
+                    <span class="policy-heading-num">7B</span>
+                    Cookies &amp; Local Storage Governance
+                </h2>
+                <p class="policy-p">
+                    FRANK Think utilizes browser local storage and cookies strictly in accordance with purpose limitation and transparency requirements under the DPDP Act, 2023:
+                </p>
+                <div class="policy-table-wrap">
+                    <table class="policy-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Active Items</th>
+                                <th>Purpose &amp; Technical Handling</th>
+                                <th>Consent Basis</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Strictly Necessary</strong></td>
+                                <td><code>frank_token</code>, <code>chatapp_user</code></td>
+                                <td>User authentication, secure WebSocket connection authorization, and session persistence.</td>
+                                <td>Mandatory (Contractual Necessity)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Preferences</strong></td>
+                                <td><code>chatapp_theme</code>, <code>frank_lang</code>, notification chimes</td>
+                                <td>Remembers UI theme (Monochrome/Sandstone) and language (EN/TA/HI) between sessions.</td>
+                                <td>Optional (User Consent)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Analytics &amp; Performance</strong></td>
+                                <td><em>None currently deployed</em></td>
+                                <td>FRANK Think does not use third-party analytics trackers (e.g. Google Analytics).</td>
+                                <td>Optional (Disabled by Default)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Marketing &amp; Advertising</strong></td>
+                                <td><em>None currently deployed</em></td>
+                                <td>FRANK Think does not deploy advertising tracking cookies or ad network pixels.</td>
+                                <td>Optional (Disabled by Default)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 16px;">
+                    <button type="button" class="btn btn-secondary btn-sm open-cookie-settings" style="display: inline-flex; align-items: center; gap: 6px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg>
+                        <span>Manage Cookie Preferences Now</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- 8. Data Principal Rights -->
+            <section id="sec-rights" class="policy-section">
+                <h2 class="policy-heading">
+                    <span class="policy-heading-num">8</span>
+                    Data Principal Rights &amp; How to Exercise Them
+                </h2>
+                <p class="policy-p">
+                    Under Chapter III of the DPDP Act, 2023, you enjoy statutory rights regarding your digital personal data. FRANK Think provides direct self-service tools inside your account settings to exercise these rights:
+                </p>
+
+                <div class="rights-list">
+                    <div class="right-card">
+                        <div class="right-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                            Right to Access &amp; Summary
+                        </div>
+                        <div class="right-desc">View all personal data processed and download a complete machine-readable JSON archive instantly via the "Export My Data" tool.</div>
+                    </div>
+
+                    <div class="right-card">
+                        <div class="right-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            Right to Correction &amp; Updating
+                        </div>
+                        <div class="right-desc">Correct inaccurate data directly in your Profile settings, or submit an official data correction request for administrative review.</div>
+                    </div>
+
+                    <div class="right-card">
+                        <div class="right-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            Right to Erasure &amp; Deletion
+                        </div>
+                        <div class="right-desc">Execute authenticated account erasure with identity anonymization directly from the Privacy Dashboard.</div>
+                    </div>
+
+                    <div class="right-card">
+                        <div class="right-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                            Right to Withdraw Consent
+                        </div>
+                        <div class="right-desc">Withdraw optional consents for AI analysis, read receipts, or presence broadcasting with immediate one-click toggles.</div>
+                    </div>
+
+                    <div class="right-card">
+                        <div class="right-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                            Right of Grievance Redressal
+                        </div>
+                        <div class="right-desc">Submit formal privacy grievances directly through the portal with tracked status updates and a statutory 30-day response deadline.</div>
+                    </div>
+
+                    <div class="right-card">
+                        <div class="right-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            Right to Nominate
+                        </div>
+                        <div class="right-desc">Designate a representative to exercise your data rights in the event of death or incapacity by filing a formal nomination request.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 9. Age Verification & Children -->
+            <section id="sec-children" class="policy-section">
+                <h2 class="policy-heading">
+                    <span class="policy-heading-num">9</span>
+                    Age Verification &amp; Protection of Children
+                </h2>
+                <p class="policy-p">
+                    Under Section 9 of the DPDP Act, 2023, Data Fiduciaries must observe strict duties before processing any personal data of children (defined as individuals under 18 years of age):
+                </p>
+                <ul class="policy-p" style="padding-left: 20px;">
+                    <li><strong>Service Intended for Adults:</strong> FRANK Think is designed for users aged 18 years and above. During registration, users are required to confirm their age.</li>
+                    <li><strong>Verifiable Parental Consent:</strong> If an individual under 18 registers, processing of their data requires verifiable parental consent pursuant to DPDP Rules.</li>
+                    <li><strong>No Detrimental Processing or Tracking:</strong> FRANK Think strictly prohibits behavioral tracking, targeted profiling, or any processing that could cause detrimental effects on the well-being of a child.</li>
+                    <li><strong>Privacy-Preserving Verification:</strong> In compliance with data minimization principles, FRANK Think does not collect government ID documents solely for general age verification without a demonstrated legal necessity.</li>
+                </ul>
+            </section>
+
+            <!-- 10. Breach Management -->
+            <section id="sec-breaches" class="policy-section">
+                <h2 class="policy-heading">
+                    <span class="policy-heading-num">10</span>
+                    Personal Data Breach Management &amp; Notification
+                </h2>
+                <p class="policy-p">
+                    Under Section 8(6) of the DPDP Act, in the event of a personal data breach impacting confidentiality, integrity, or availability:
+                </p>
+                <ol class="policy-p" style="padding-left: 20px;">
+                    <li><strong>Identification &amp; Containment:</strong> Incidents are immediately registered in our internal breach management register and assigned to the incident response team.</li>
+                    <li><strong>Impact Assessment:</strong> Forensic review determines the nature of the breach, affected systems, and number of potentially impacted Data Principals.</li>
+                    <li><strong>Statutory Notification to DPBI:</strong> Notice is provided to the Data Protection Board of India in accordance with the timelines and format prescribed under the DPDP Rules.</li>
+                    <li><strong>Notice to Affected Data Principals:</strong> Directly affected users are notified without unreasonable delay with clear remediation steps and recommended protective measures.</li>
+                </ol>
+            </section>
+
+            <!-- 11. Legal Phasing & Checklist -->
+            <section id="sec-timeline" class="policy-section">
+                <h2 class="policy-heading">
+                    <span class="policy-heading-num">11</span>
+                    Legal Phasing &amp; Commencement Schedule
+                </h2>
+                <p class="policy-p">
+                    The DPDP Act, 2023 was notified in August 2023, and the subordinate DPDP Rules, 2025 operate on a phased commencement schedule. FRANK Think continuously maintains compliance across:
+                </p>
+                <div class="policy-table-wrap">
+                    <table class="policy-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Implementation at FRANK Think</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Core Notice &amp; Consent</strong></td>
+                                <td>In Force</td>
+                                <td>Granular, unbundled consent recording with notice versions and withdrawal.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Data Principal Rights</strong></td>
+                                <td>In Force</td>
+                                <td>Self-service access export, staged erasure, and grievance redressal workflow.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Security Safeguards</strong></td>
+                                <td>In Force</td>
+                                <td>TLS 1.3 encryption, PBKDF2 hashing, IDOR authorization protections.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>DPBI Digital Registration</strong></td>
+                                <td>Phased Schedule</td>
+                                <td>System prepared for registration upon the operational activation of the Board portal.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Data Protection Impact Assessments</strong></td>
+                                <td>Scheduled Rule</td>
+                                <td>Internal data inventory and retention rules pre-configured and auditable.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Interactive Verification Box -->
+                <div class="interactive-box">
+                    <div>
+                        <div style="font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px;">Live Policy Verification API</div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">Query our backend endpoint for real-time policy metadata and DPDP parameters.</div>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm" id="verifyPolicyApiBtn" onclick="testPolicyApi()">
+                        Check API Status
+                    </button>
+                </div>
+                <div id="policyApiResult" style="display: none; margin-top: 14px; padding: 12px; background: var(--surface-secondary, rgba(0,0,0,0.03)); border-radius: var(--radius-sm); font-family: monospace; font-size: 12px; overflow-x: auto;"></div>
+            </section>
+
+        </article>
+    </main>
+
+    <!-- Footer -->
+    <footer style="border-top: 1px solid var(--border); padding: 24px; text-align: center; font-size: 13px; color: var(--text-muted); background: var(--surface);">
+        <p>&copy; 2026 FRANK Think. All rights reserved. Built in compliance with India's DPDP Act, 2023.</p>
+        <div style="margin-top: 8px; display: flex; gap: 16px; justify-content: center; align-items: center; flex-wrap: wrap;">
+            <a href="index.html" style="color: var(--text-secondary); text-decoration: none;">Home</a>
+            <a href="login.html" style="color: var(--text-secondary); text-decoration: none;">Sign In</a>
+            <a href="register.html" style="color: var(--text-secondary); text-decoration: none;">Register</a>
+            <a href="settings.html?tab=privacy" style="color: var(--text-secondary); text-decoration: none;">Privacy Settings</a>
+            <button type="button" class="open-cookie-settings" style="color: var(--text-secondary); background: none; border: none; cursor: pointer; text-decoration: underline; font-size: inherit; font-family: inherit; padding: 0;">Cookie Settings</button>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/theme.js"></script>
+    <script src="js/cookie_consent.js"></script>
+    <script>
+        async function testPolicyApi() {
+            const resultBox = document.getElementById('policyApiResult');
+            const btn = document.getElementById('verifyPolicyApiBtn');
+            btn.disabled = true;
+            btn.textContent = 'Verifying...';
+            try {
+                const res = await fetch('/api/privacy/policy');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = '<strong>Status: 200 OK</strong><br>Policy Version: ' + data.version + '<br>Last Updated: ' + data.last_updated + '<br>Fiduciary: ' + data.fiduciary.fiduciary_name + '<br>Statutory Turnaround: ' + data.fiduciary.statutory_turnaround_days + ' days';
+            } catch (err) {
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = '<span style="color: #ef4444;">API Connection Notice: ' + err.message + '</span>';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Check API Status';
+            }
+        }
+
+        // Active TOC scroll spy
+        window.addEventListener('DOMContentLoaded', () => {
+            const links = document.querySelectorAll('.toc-link');
+            const sections = document.querySelectorAll('.policy-section');
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(sec => {
+                    const top = sec.offsetTop;
+                    if (pageYOffset >= top - 150) {
+                        current = sec.getAttribute('id');
+                    }
+                });
+                links.forEach(l => {
+                    l.classList.remove('active');
+                    if (l.getAttribute('href') === '#' + current) {
+                        l.classList.add('active');
+                    }
+                });
+            });
+
+            // Theme toggle
+            const themeBtn = document.getElementById('privacyThemeBtn');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', () => {
+                    if (window.ThemeManager) {
+                        window.ThemeManager.toggleTheme();
+                    } else {
+                        const current = document.documentElement.getAttribute('data-theme') || 'sandstone';
+                        const next = current === 'dark' || current === 'monochrome' ? 'sandstone' : 'monochrome';
+                        document.documentElement.setAttribute('data-theme', next);
+                        localStorage.setItem('theme', next);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

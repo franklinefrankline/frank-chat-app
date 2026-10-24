@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/settings.css">
     <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/cookie_consent.css">
 </head>
 <body data-theme="monochrome">
 
@@ -497,44 +498,427 @@
                     </div>
                 </section>
 
-                <!-- 4. PRIVACY TAB -->
+                <!-- 4. PRIVACY TAB (DPDP USER PRIVACY & DATA RIGHTS MANAGEMENT DASHBOARD) -->
                 <section id="tabPrivacy" class="settings-tab-section" style="display:none;">
-                    <div class="settings-section-header">
-                        <h2 class="settings-title">Privacy Controls</h2>
-                        <p class="settings-desc">Control presence, indicators, and read receipts.</p>
+                    <!-- Dashboard Header -->
+                    <div class="settings-section-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <h2 class="settings-title" style="margin: 0;">Privacy Dashboard</h2>
+                                <span class="badge" style="background: rgba(16,185,129,0.15); color: #10b981; font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 9999px;">DPDP 2023 Aligned</span>
+                            </div>
+                            <p class="settings-desc">Manage your personal information, submit privacy requests, and track the status of your requests.</p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <a href="privacy.html" target="_blank" class="btn btn-secondary btn-sm" id="btnViewPrivacyPolicy" style="display: flex; align-items: center; gap: 6px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                <span>Official Policy</span>
+                            </a>
+                            <button type="button" class="btn btn-secondary btn-sm" id="btnRefreshPrivacySummary" title="Refresh personal data overview" style="display: flex; align-items: center; gap: 6px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                <span>Refresh</span>
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="setting-row">
-                        <div class="setting-info">
-                            <div class="setting-label">Read Receipts (Double Checkmarks)</div>
-                            <div class="setting-subtext">Let other members see when you have viewed their sent messages.</div>
+                    <!-- CARD 1: MY PERSONAL INFORMATION -->
+                    <div class="settings-card" id="cardMyPersonalInfo" style="margin-bottom: var(--space-6);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <h3 style="font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 2px;">My Personal Information</h3>
+                                <p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">Review personal identity and account data currently stored by FRANK Think for your authenticated profile.</p>
+                            </div>
                         </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="settingReadReceipts" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
+
+                        <!-- User Profile Identity Grid -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                            <div style="padding: 12px 14px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px;">Display Name</div>
+                                <div style="font-size: 14px; font-weight: 700; color: var(--text);" id="privacyInfoFullName">---</div>
+                            </div>
+                            <div style="padding: 12px 14px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px;">Registered Username</div>
+                                <div style="font-size: 14px; font-weight: 700; color: var(--text);" id="privacyInfoUsername">---</div>
+                            </div>
+                            <div style="padding: 12px 14px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px;">Registered Email</div>
+                                <div style="font-size: 14px; font-weight: 700; color: var(--text);" id="privacyInfoEmail">---</div>
+                            </div>
+                            <div style="padding: 12px 14px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px;">Permanent FRANK ID</div>
+                                <div style="font-size: 14px; font-weight: 800; color: var(--accent);" id="privacyInfoFrankId">------</div>
+                            </div>
+                            <div style="padding: 12px 14px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px;">Account Registered</div>
+                                <div style="font-size: 14px; font-weight: 600; color: var(--text);" id="privacyInfoCreatedDate">---</div>
+                            </div>
+                            <div style="padding: 12px 14px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px;">Account Role &amp; Status</div>
+                                <div style="font-size: 14px; font-weight: 600; color: var(--text);" id="privacyInfoRole">Standard Member (Active)</div>
+                            </div>
+                        </div>
+
+                        <!-- Data Processing Metrics Counters -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 14px;">
+                            <div style="padding: 10px 12px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                                <div style="font-size: 10.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 3px;">Sent Messages</div>
+                                <div style="font-size: 18px; font-weight: 800; color: var(--text);" id="privacySummarySentMsgs">0</div>
+                            </div>
+                            <div style="padding: 10px 12px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                                <div style="font-size: 10.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 3px;">Uploaded Files</div>
+                                <div style="font-size: 18px; font-weight: 800; color: var(--text);" id="privacySummaryDocs">0</div>
+                            </div>
+                            <div style="padding: 10px 12px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                                <div style="font-size: 10.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 3px;">Active Consents</div>
+                                <div style="font-size: 18px; font-weight: 800; color: #10b981;" id="privacySummaryConsents">0</div>
+                            </div>
+                            <div style="padding: 10px 12px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                                <div style="font-size: 10.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 3px;">Open Requests</div>
+                                <div style="font-size: 18px; font-weight: 800; color: #3b82f6;" id="privacySummaryRequests">0</div>
+                            </div>
+                        </div>
+
+                        <!-- Data Boundary & Confidentiality Notice -->
+                        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; padding: 10px 14px; background: rgba(0,0,0,0.02); border-left: 3px solid var(--accent); border-radius: var(--radius-sm);">
+                            <strong>Confidentiality Guarantee:</strong> Your personal information is retrieved strictly from your authenticated server session. Secret credentials, password hashes, and session tokens are never disclosed or accessible through this interface. Communications and files belonging to other users remain strictly isolated.
+                        </div>
                     </div>
 
-                    <div class="setting-row">
-                        <div class="setting-info">
-                            <div class="setting-label">Live Typing Indicator</div>
-                            <div class="setting-subtext">Display a typing indicator when you are actively composing text.</div>
+                    <!-- CARD 2: REQUEST MY DATA -->
+                    <div class="settings-card" id="cardRequestMyData" style="margin-bottom: var(--space-6);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
+                            <div style="max-width: 600px;">
+                                <h3 style="font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px;">Request My Data</h3>
+                                <p style="font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                                    Exercise your Right to Access under DPDP Section 11. You can immediately download a structured machine-readable JSON archive of your personal data or file a formal statutory access inquiry with the Data Protection Officer.
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-primary btn-sm" id="privacyExportDataBtn" style="display: flex; align-items: center; gap: 6px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    <span>Download Data Archive (JSON)</span>
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" id="privacyRequestAccessBtn" style="display: flex; align-items: center; gap: 6px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                    <span>Submit Data-Access Request</span>
+                                </button>
+                            </div>
                         </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="settingTyping" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
+                        <div style="font-size: 11.5px; color: var(--text-muted); background: var(--surface-elevated); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                            * Data archive includes: Account profile, active consents, sent message metadata, uploaded document index, and privacy request history. Passwords, cryptographic keys, and third-party contact communications are excluded for privacy protection.
+                        </div>
                     </div>
 
-                    <div class="setting-row">
-                        <div class="setting-info">
-                            <div class="setting-label">Real-Time Online Presence</div>
-                            <div class="setting-subtext">Broadcast your live connected state to your contacts.</div>
+                    <!-- CARD 3: CORRECT MY INFORMATION -->
+                    <div class="settings-card" id="cardCorrectMyInfo" style="margin-bottom: var(--space-6);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
+                            <div style="max-width: 600px;">
+                                <h3 style="font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px;">Correct My Information</h3>
+                                <p style="font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                                    Exercise your Right to Correction under DPDP Section 12 to update inaccurate, incomplete, or outdated personal data. For standard profile settings (display name, avatar, bio, theme), use the direct profile editor. For protected account attributes (such as verified registered email), submit a formal review request below.
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-secondary btn-sm" id="privacyGoToProfileBtn" style="display: flex; align-items: center; gap: 6px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                    <span>Edit Profile Fields</span>
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" id="privacyRequestCorrectionBtn" style="display: flex; align-items: center; gap: 6px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    <span>Submit Correction Request</span>
+                                </button>
+                            </div>
                         </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="settingOnlinePresence" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
+                        <div style="font-size: 11.5px; color: var(--text-muted); background: var(--surface-elevated); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                            * Correction requests are assigned to the compliance review team. Protected attributes are updated only after verification to prevent unauthorized account changes. Submitting a request does not immediately alter privileged records until approved.
+                        </div>
+                    </div>
+
+                    <!-- CARD 4: REQUEST DATA ERASURE -->
+                    <div class="settings-card" id="cardRequestDataErasure" style="border-color: rgba(239, 68, 68, 0.4); margin-bottom: var(--space-6);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
+                            <div style="max-width: 600px;">
+                                <h3 style="font-size: 15px; font-weight: 700; color: #ef4444; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    <span>Request Data Erasure</span>
+                                </h3>
+                                <p style="font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                                    Exercise your Right to Erasure under DPDP Section 12. Submitting an erasure request initiates a formal fiduciary review against statutory retention requirements (including 180-day security audit logging obligations under CERT-In directives). Submitting a request does <strong>not</strong> immediately destroy your account or communications.
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-secondary btn-sm" id="privacyRequestErasureBtn" style="display: flex; align-items: center; gap: 6px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                                    <span>Submit Erasure Request (Review)</span>
+                                </button>
+                                <button type="button" class="btn btn-sm" id="privacyEraseAccountBtn" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-weight: 700;">
+                                    Self-Service Closure
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Staged Lifecycle Process Visual Guide -->
+                        <div id="lifecycleFlowGuide" style="margin: 14px 0 12px 0;">
+                            <div style="font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">4-Stage Privacy Lifecycle Process</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
+                                <div style="background: var(--surface-elevated); padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 11px;">
+                                    <div style="font-weight: 700; color: var(--text); margin-bottom: 2px;">1. Submitted</div>
+                                    <div style="color: var(--text-muted); font-size: 10.5px;">Tracked PR reference assigned</div>
+                                </div>
+                                <div style="background: var(--surface-elevated); padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 11px;">
+                                    <div style="font-weight: 700; color: var(--text); margin-bottom: 2px;">2. Legal Review</div>
+                                    <div style="color: var(--text-muted); font-size: 10.5px;">CERT-In &amp; statutory hold checks</div>
+                                </div>
+                                <div style="background: var(--surface-elevated); padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 11px;">
+                                    <div style="font-weight: 700; color: var(--text); margin-bottom: 2px;">3. Processing</div>
+                                    <div style="color: var(--text-muted); font-size: 10.5px;">Staged de-identification</div>
+                                </div>
+                                <div style="background: var(--surface-elevated); padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 11px;">
+                                    <div style="font-weight: 700; color: #10b981; margin-bottom: 2px;">4. Completed</div>
+                                    <div style="color: var(--text-muted); font-size: 10.5px;">Audited &amp; confirmed</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="font-size: 11.5px; color: var(--text-muted); background: rgba(239, 68, 68, 0.04); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid rgba(239, 68, 68, 0.2);">
+                            * To maintain communication continuity for conversational partners, messages in group chats are preserved under "Deleted User" without personal attribution if an account is permanently erased.
+                        </div>
+                    </div>
+
+                    <!-- CARD 5: MY PRIVACY REQUESTS (REQUEST HISTORY) -->
+                    <div class="settings-card" id="cardMyPrivacyRequests" style="margin-bottom: var(--space-6);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <h3 style="font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 2px;">My Privacy Requests</h3>
+                                <p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">Review the real-time status and statutory response deadlines of your submitted data rights requests.</p>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-sm" id="privacyNewRequestBtn" style="display: flex; align-items: center; gap: 6px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                <span>New Request</span>
+                            </button>
+                        </div>
+
+                        <!-- Status Filter Tabs & Search -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="privacyStatusFilterGroup">
+                                <button type="button" class="btn btn-ghost btn-sm active" data-filter="all" style="font-size: 12px; padding: 4px 10px;">All</button>
+                                <button type="button" class="btn btn-ghost btn-sm" data-filter="submitted" style="font-size: 12px; padding: 4px 10px;">Submitted</button>
+                                <button type="button" class="btn btn-ghost btn-sm" data-filter="in_review" style="font-size: 12px; padding: 4px 10px;">Under Review</button>
+                                <button type="button" class="btn btn-ghost btn-sm" data-filter="action_required" style="font-size: 12px; padding: 4px 10px;">Action Required</button>
+                                <button type="button" class="btn btn-ghost btn-sm" data-filter="completed" style="font-size: 12px; padding: 4px 10px;">Completed</button>
+                                <button type="button" class="btn btn-ghost btn-sm" data-filter="rejected" style="font-size: 12px; padding: 4px 10px;">Rejected</button>
+                            </div>
+                            <input type="text" class="form-input" id="privacyRequestSearchInput" placeholder="Filter by subject or ref..." style="font-size: 12px; padding: 6px 10px; max-width: 200px;">
+                        </div>
+
+                        <!-- Requests Table -->
+                        <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md);">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                                <thead>
+                                    <tr style="background: var(--surface-elevated); border-bottom: 1px solid var(--border);">
+                                        <th style="padding: 10px 14px; font-weight: 700; color: var(--text);">Reference</th>
+                                        <th style="padding: 10px 14px; font-weight: 700; color: var(--text);">Type</th>
+                                        <th style="padding: 10px 14px; font-weight: 700; color: var(--text);">Subject</th>
+                                        <th style="padding: 10px 14px; font-weight: 700; color: var(--text);">Status</th>
+                                        <th style="padding: 10px 14px; font-weight: 700; color: var(--text);">Statutory Deadline</th>
+                                        <th style="padding: 10px 14px; font-weight: 700; color: var(--text); text-align: right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="privacyRequestsTableBody">
+                                    <tr>
+                                        <td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted);" id="privacyRequestsEmptyState">
+                                            No privacy requests filed yet. Use the buttons above to submit a request.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- CARD 6: PRIVACY COMPLAINTS & GRIEVANCES -->
+                    <div class="settings-card" id="cardPrivacyComplaints" style="margin-bottom: var(--space-6);">
+                        <div style="margin-bottom: 14px;">
+                            <h3 style="font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px;">Privacy Complaints &amp; Grievances</h3>
+                            <p style="font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                                Submit a formal privacy complaint or grievance regarding the handling of your personal data under DPDP Section 13. All complaints receive a tracked reference identifier and a statutory response within 30 days.
+                            </p>
+                        </div>
+
+                        <!-- Success Alert Container -->
+                        <div id="privacyGrievanceSuccessBanner" style="display: none; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #065f46; border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 16px; font-size: 13px;">
+                            <strong>Complaint Registered:</strong> Your grievance has been recorded under reference <span id="privacyGrievanceRefCode" style="font-family: monospace; font-weight: 700;">GR-XXXX</span>. The Data Protection Officer will review your submission within the statutory 30-day turnaround.
+                        </div>
+
+                        <form id="privacyGrievanceForm" style="display: grid; gap: 14px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                                <div>
+                                    <label class="form-label" for="privacyGrievanceCategory" style="font-size: 12.5px; font-weight: 600; margin-bottom: 4px;">Complaint Category *</label>
+                                    <select class="settings-select" id="privacyGrievanceCategory" required style="width: 100%;">
+                                        <option value="Unlawful Data Processing">Unlawful Data Processing</option>
+                                        <option value="Consent Violation / Non-Compliance">Consent Violation / Non-Compliance</option>
+                                        <option value="Unauthorized Third-Party Disclosure">Unauthorized Third-Party Disclosure</option>
+                                        <option value="Security / Data Breach Concern">Security / Data Breach Concern</option>
+                                        <option value="Failure to Respond to Privacy Request">Failure to Respond to Privacy Request</option>
+                                        <option value="Inaccurate / Misleading Personal Data">Inaccurate / Misleading Personal Data</option>
+                                        <option value="Other Data Protection Concern">Other Data Protection Concern</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="privacyGrievanceRef" style="font-size: 12.5px; font-weight: 600; margin-bottom: 4px;">Related Request Reference (Optional)</label>
+                                    <input type="text" class="form-input" id="privacyGrievanceRef" placeholder="e.g. PR-20261024-ABC123" maxlength="50">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="form-label" for="privacyGrievanceSubject" style="font-size: 12.5px; font-weight: 600; margin-bottom: 4px;">Subject *</label>
+                                <input type="text" class="form-input" id="privacyGrievanceSubject" placeholder="Summary of your grievance" required maxlength="200">
+                            </div>
+
+                            <div>
+                                <label class="form-label" for="privacyGrievanceDetails" style="font-size: 12.5px; font-weight: 600; margin-bottom: 4px;">Detailed Complaint Description *</label>
+                                <textarea class="form-input" id="privacyGrievanceDetails" rows="4" placeholder="Describe the specific facts, dates, and impact of the issue..." required minlength="15" maxlength="2000" style="resize: vertical;"></textarea>
+                            </div>
+
+                            <div style="display: flex; justify-content: flex-end;">
+                                <button type="submit" class="btn btn-primary btn-sm" id="privacySubmitGrievanceBtn" style="display: flex; align-items: center; gap: 6px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                    <span>Submit Privacy Complaint</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- CARD 7: PRIVACY POLICY AND CONSENT SETTINGS -->
+                    <div class="settings-card" id="cardPrivacyPolicyConsents" style="margin-bottom: var(--space-6);">
+                        <div style="margin-bottom: 16px;">
+                            <h3 style="font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 2px;">Privacy Policy and Consent Settings</h3>
+                            <p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">Review and withdraw consent for optional data processing activities. Withdrawing consent takes immediate effect and never restricts core messaging.</p>
+                        </div>
+
+                        <!-- AI Processing Consent -->
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="setting-label" style="display: flex; align-items: center; gap: 8px;">
+                                    <span>Smart Conversation AI Intelligence</span>
+                                    <span class="badge" style="font-size: 10px; background: rgba(37,99,235,0.1); color: var(--accent); padding: 1px 6px;">Google Gemini API</span>
+                                </div>
+                                <div class="setting-subtext">Processes message content to generate summaries, action items, and detect decisions upon user invocation. No conversation data is stored for model training.</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="consentToggleAi" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Live Presence Consent -->
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="setting-label">Real-Time Online Presence</div>
+                                <div class="setting-subtext">Broadcast your live connected state and active typing indicators to conversation contacts.</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="consentTogglePresence" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Read Receipts Consent -->
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="setting-label">Message Read Receipts (Double Checkmarks)</div>
+                                <div class="setting-subtext">Display double blue checkmark indicators when you have viewed messages from contacts.</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="consentToggleReceipts" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Product Announcements Consent -->
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="setting-label">Security &amp; Feature Bulletins</div>
+                                <div class="setting-subtext">Receive non-transactional system advisories, security updates, and new feature digests via email.</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="consentToggleComms">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Cookie Settings & Policy Links -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
+                            <div>
+                                <div style="font-size: 13px; font-weight: 700; color: var(--text);">Browser Storage &amp; Cookie Preferences</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Manage optional cookies, session storage, and analytics permissions.</div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn btn-secondary btn-sm open-cookie-settings" style="display: flex; align-items: center; gap: 6px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <path d="M12 2a10 10 0 0 1 10 10"></path>
+                                        <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"></circle>
+                                        <circle cx="15.5" cy="9.5" r="1.5" fill="currentColor"></circle>
+                                    </svg>
+                                    <span>Customize Cookie Settings</span>
+                                </button>
+                                <a href="privacy.html" target="_blank" class="btn btn-ghost btn-sm" style="display: flex; align-items: center; gap: 6px;">
+                                    <span>Read Full Policy &rarr;</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- DPO Contact Block -->
+                        <div style="margin-top: 16px; padding: 12px 14px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 12.5px; color: var(--text-secondary); line-height: 1.6;">
+                            <div><strong>Data Fiduciary:</strong> FRANK Think Communications Platform</div>
+                            <div><strong>Grievance Officer:</strong> Data Protection Officer, Bengaluru, Karnataka, India</div>
+                            <div><strong>Official Email:</strong> <a href="mailto:frankthink12@gmail.com" style="color: var(--accent); font-weight: 600;">frankthink12@gmail.com</a></div>
+                            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+                                Statutory turnaround is 30 days under the Digital Personal Data Protection Act, 2023. Unresolved grievances may be escalated to the Data Protection Board of India (DPBI).
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD 8: DATA RETENTION & LIFECYCLE SCHEDULE (DPDP PART 3) -->
+                    <div class="settings-card" id="cardDataRetentionSchedule" style="margin-bottom: var(--space-6);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <h3 style="font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 2px; display: flex; align-items: center; gap: 8px;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    <span>Data Retention &amp; Lifecycle Schedule</span>
+                                    <span class="badge" style="background: rgba(16,185,129,0.15); color: #10b981; font-weight: 700; font-size: 10.5px; padding: 1px 7px; border-radius: 9999px;">Part 3 Active</span>
+                                </h3>
+                                <p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">Configured statutory retention periods, review workflows, and disposal methods across platform data categories.</p>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-sm" id="btnRefreshRetentionSchedule" style="display: flex; align-items: center; gap: 6px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                <span>Refresh Schedule</span>
+                            </button>
+                        </div>
+
+                        <!-- Retention Categories Table -->
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 11px; text-transform: uppercase;">
+                                        <th style="padding: 8px 10px;">Category</th>
+                                        <th style="padding: 8px 10px;">Retention Threshold</th>
+                                        <th style="padding: 8px 10px;">Disposal Method</th>
+                                        <th style="padding: 8px 10px;">Review Workflow</th>
+                                        <th style="padding: 8px 10px;">Statutory Exception / Basis</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="privacyRetentionScheduleTableBody" class="tblRetentionScheduleBody">
+                                    <!-- Populated dynamically via JS -->
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">Loading retention schedule...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div style="margin-top: 14px; font-size: 11.5px; color: var(--text-muted); background: var(--surface-elevated); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); line-height: 1.5;">
+                            <strong>Data Safety Guarantee:</strong> No bulk deletion jobs run automatically against production data. Missing or inactive retention rules fail safely to prevent unauthorized data destruction. Automated expiration requires explicit DPO authorization and dry-run verification.
+                        </div>
                     </div>
                 </section>
 
@@ -661,6 +1045,201 @@
         </div>
     </main>
 
+    <!-- ============================================================================== -->
+    <!-- PRIVACY & DATA PROTECTION MODALS -->
+    <!-- ============================================================================== -->
+
+    <!-- 1. Submit Privacy Request / Grievance Modal -->
+    <div id="privacyRequestModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 16px;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); width: 100%; max-width: 540px; box-shadow: var(--shadow-lg); overflow: hidden; max-height: 90vh; display: flex; flex-direction: column;">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(37,99,235,0.1); color: var(--accent); display: flex; align-items: center; justify-content: center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    </div>
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text); margin: 0;" id="privacyRequestModalTitle">Submit Privacy Request</h3>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm btn-icon" id="privacyCloseRequestModalBtn" aria-label="Close modal">&times;</button>
+            </div>
+
+            <form id="privacyRequestForm" style="padding: 20px; overflow-y: auto;">
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label class="form-label" for="privacyRequestType" style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">Request Type *</label>
+                    <select class="settings-select" id="privacyRequestType" required style="width: 100%;">
+                        <option value="access_data">Personal Data Access &amp; Summary (DPDP Sec 11)</option>
+                        <option value="correct_data">Correction of Inaccurate Personal Information (DPDP Sec 12)</option>
+                        <option value="erase_data">Personal Data Erasure &amp; Anonymization (DPDP Sec 12)</option>
+                        <option value="grievance">Privacy Grievance / Formal Complaint (DPDP Sec 13)</option>
+                        <option value="withdraw_consent">Consent Revocation / Withdrawal (DPDP Sec 6)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label class="form-label" for="privacyRequestSubject" style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">Subject *</label>
+                    <input type="text" class="form-input" id="privacyRequestSubject" placeholder="Summary of your request or inquiry" required maxlength="255">
+                </div>
+
+                <!-- Dynamic Correction Fields -->
+                <div id="privacyCorrectionFieldsWrap" style="display: none; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 14px;">
+                    <div style="font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 8px;">Correction Specification:</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                        <div>
+                            <label class="form-label" for="privacyCorrName" style="font-size: 11px; margin-bottom: 2px;">Requested Full Name</label>
+                            <input type="text" class="form-input" id="privacyCorrName" placeholder="Accurate Full Name" style="font-size: 12px; padding: 6px 10px;">
+                        </div>
+                        <div>
+                            <label class="form-label" for="privacyCorrEmail" style="font-size: 11px; margin-bottom: 2px;">Requested Email</label>
+                            <input type="email" class="form-input" id="privacyCorrEmail" placeholder="Accurate Email" style="font-size: 12px; padding: 6px 10px;">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label" for="privacyCorrCategory" style="font-size: 11px; margin-bottom: 2px;">Information Category</label>
+                        <select class="settings-select" id="privacyCorrCategory" style="width: 100%; font-size: 12px; padding: 6px 10px;">
+                            <option value="Profile Identity">Profile Identity (Name / Email)</option>
+                            <option value="Account Settings">Account Settings &amp; Preferences</option>
+                            <option value="Historical Records">Historical Processing Records</option>
+                            <option value="Other">Other Personal Information</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Dynamic Erasure Notice & Confirmation Checkbox -->
+                <div id="privacyErasureNoticeWrap" style="display: none; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--radius-md); padding: 12px; margin-bottom: 14px;">
+                    <div style="font-size: 12px; font-weight: 700; color: #ef4444; margin-bottom: 4px;">Important Erasure Notice:</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px;">
+                        Submitting an erasure request enters a formal fiduciary review under DPDP Section 12. Your account and messages are <strong>not</strong> immediately deleted upon submission.
+                    </div>
+                    <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text); cursor: pointer;">
+                        <input type="checkbox" id="privacyErasureReviewConfirm" style="margin-top: 2px;">
+                        <span>I understand submitting this request initiates a formal legal review and does not immediately delete my data.</span>
+                    </label>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label class="form-label" for="privacyRequestDetails" style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">Detailed Explanation / Reason *</label>
+                    <textarea class="form-input" id="privacyRequestDetails" rows="4" placeholder="Please provide specific details regarding your request or grievance..." required minlength="10" maxlength="2000" style="resize: vertical;"></textarea>
+                </div>
+
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;">
+                    * All requests are logged with an immutable audit entry and assigned a unique reference code. The statutory response deadline is 30 days under the DPDP Act.
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="privacyCancelRequestBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="privacySubmitRequestBtn">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Request Details Modal (Read-Only Status Inspection) -->
+    <div id="privacyRequestDetailsModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 16px;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); width: 100%; max-width: 540px; box-shadow: var(--shadow-lg); overflow: hidden; max-height: 90vh; display: flex; flex-direction: column;">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--surface-elevated);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(59,130,246,0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 15px; font-weight: 700; color: var(--text); margin: 0;">Privacy Request Details</h3>
+                        <div style="font-size: 11px; font-family: monospace; color: var(--accent); font-weight: 700;" id="detailsRefCode">PR-XXXX</div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm btn-icon" id="privacyCloseDetailsModalBtn" aria-label="Close modal">&times;</button>
+            </div>
+
+            <div style="padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; font-size: 13px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: var(--surface-elevated); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Request Type</div>
+                        <div style="font-weight: 600; color: var(--text);" id="detailsReqType">---</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Current Status</div>
+                        <div id="detailsReqStatus">---</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Submission Date</div>
+                        <div style="color: var(--text);" id="detailsReqDate">---</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Statutory Deadline</div>
+                        <div style="color: var(--text);" id="detailsReqDeadline">30 Days</div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Subject</div>
+                    <div style="font-size: 14px; font-weight: 700; color: var(--text);" id="detailsReqSubject">---</div>
+                </div>
+
+                <div>
+                    <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Submitted Explanation &amp; Details</div>
+                    <div style="background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; color: var(--text); white-space: pre-wrap; font-size: 12.5px; line-height: 1.5;" id="detailsReqBody">---</div>
+                </div>
+
+                <div id="detailsCorrectionWrap" style="display: none;">
+                    <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Correction Requested</div>
+                    <div style="background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; color: var(--text); font-family: monospace; font-size: 12px;" id="detailsReqCorrection">---</div>
+                </div>
+
+                <div id="detailsDecisionWrap" style="display: none; background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.25); border-radius: var(--radius-md); padding: 12px;">
+                    <div style="font-size: 11.5px; font-weight: 700; color: #065f46; text-transform: uppercase; margin-bottom: 4px;">Fiduciary Decision / Resolution Notes</div>
+                    <div style="color: var(--text); line-height: 1.5; font-size: 12.5px;" id="detailsReqDecision">---</div>
+                </div>
+
+                <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.5; padding: 8px 10px; background: rgba(0,0,0,0.02); border-radius: var(--radius-sm);">
+                    Requests are reviewed by authorized compliance administrators under the Digital Personal Data Protection Act, 2023. Status is updated in real time upon fiduciary review.
+                </div>
+            </div>
+
+            <div style="padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary btn-sm" id="privacyDismissDetailsModalBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Account Erasure Confirmation Modal (Self-Service) -->
+    <div id="privacyEraseModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 16px;">
+        <div style="background: var(--surface); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: var(--radius-lg); width: 100%; max-width: 480px; box-shadow: var(--shadow-lg); overflow: hidden;">
+            <div style="padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(239, 68, 68, 0.05);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #ef4444; display: flex; align-items: center; justify-content: center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </div>
+                    <h3 style="font-size: 16px; font-weight: 700; color: #ef4444; margin: 0;">Self-Service Account Closure</h3>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm btn-icon" id="privacyCloseEraseModalBtn" aria-label="Close modal">&times;</button>
+            </div>
+
+            <form id="privacyEraseForm" style="padding: 20px 24px;">
+                <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--radius-md); padding: 12px 14px; font-size: 12.5px; color: var(--text); line-height: 1.5; margin-bottom: 16px;">
+                    <strong>Notice of Staged Anonymization:</strong>
+                    <ul style="margin: 6px 0 0 16px; padding: 0;">
+                        <li>Your account credentials and personal identifiers will be permanently anonymized.</li>
+                        <li>All optional consents will be revoked immediately.</li>
+                        <li>Chat messages in shared conversations remain available to conversation partners under the anonymized author name "Deleted User".</li>
+                    </ul>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label class="form-label" for="privacyErasePassword" style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">Enter Your Current Password *</label>
+                    <input type="password" class="form-input" id="privacyErasePassword" placeholder="Current account password" required autocomplete="current-password">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label class="form-label" for="privacyEraseConfirmText" style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">Type <strong>DELETE</strong> to confirm *</label>
+                    <input type="text" class="form-input" id="privacyEraseConfirmText" placeholder="DELETE" required autocomplete="off">
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="privacyCancelEraseBtn">Cancel</button>
+                    <button type="submit" class="btn btn-sm" id="privacyConfirmEraseSubmitBtn" style="background: #ef4444; color: #ffffff; font-weight: 700; border: none;">Permanently Delete Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/config.js"></script>
     <script src="js/i18n.js"></script>
@@ -670,5 +1249,6 @@
     <script src="js/auth.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/cookie_consent.js"></script>
 </body>
 </html>

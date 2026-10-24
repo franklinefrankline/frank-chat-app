@@ -100,7 +100,8 @@ def check_and_migrate_db():
     try:
         import secrets
         from sqlalchemy import inspect, text
-        # Ensure any new tables (like conversations) are created
+        import models
+        # Ensure any new tables (like conversations, consent_records, privacy_data_requests, etc.) are created
         Base.metadata.create_all(bind=engine)
 
         inspector = inspect(engine)
@@ -260,6 +261,71 @@ def check_and_migrate_db():
                 columns = [col["name"] for col in inspector.get_columns("smart_dates")]
                 if "context" not in columns:
                     conn.execute(text("ALTER TABLE smart_dates ADD COLUMN context VARCHAR(500) NULL"))
+
+        # Seed default retention rules if table is empty
+        try:
+            with SessionLocal() as s_db:
+                if s_db.query(models.DataRetentionRule).count() == 0:
+                    default_rules = [
+                        models.DataRetentionRule(
+                            data_category="chat_messages",
+                            category_label="Chat & Group Messages",
+                            purpose="Provision of real-time messaging, communication continuity, and lawful dispute resolution under contract.",
+                            retention_period_days=730,
+                            is_active=True,
+                            deletion_method="anonymize",
+                            legal_exception="Section 8(7) DPDP Act: Preserved during active account tenure and retained for lawful communication partner access."
+                        ),
+                        models.DataRetentionRule(
+                            data_category="uploaded_documents",
+                            category_label="Uploaded Documents & Attachments",
+                            purpose="File sharing, office document collaboration, and storage within active chats.",
+                            retention_period_days=730,
+                            is_active=True,
+                            deletion_method="purge_file",
+                            legal_exception="Shared files remain accessible to mutual group and conversation participants."
+                        ),
+                        models.DataRetentionRule(
+                            data_category="inactive_accounts",
+                            category_label="Deactivated / Inactive Accounts",
+                            purpose="Grace period for account recovery following deactivation request.",
+                            retention_period_days=180,
+                            is_active=True,
+                            deletion_method="anonymize",
+                            legal_exception="Permanent anonymization of personal credentials after grace period."
+                        ),
+                        models.DataRetentionRule(
+                            data_category="security_audit_logs",
+                            category_label="Security & Compliance Audit Logs",
+                            purpose="Security incident investigation, accountability, and fraud prevention.",
+                            retention_period_days=365,
+                            is_active=True,
+                            deletion_method="anonymize",
+                            legal_exception="Statutory compliance and security verification exception under DPDP Act."
+                        ),
+                        models.DataRetentionRule(
+                            data_category="ai_transients",
+                            category_label="Smart Conversation AI Transients",
+                            purpose="Action items, summaries, decisions, and dates generated upon user invocation.",
+                            retention_period_days=90,
+                            is_active=True,
+                            deletion_method="anonymize",
+                            legal_exception="Subject to immediate erasure upon user consent withdrawal or chat deletion."
+                        ),
+                        models.DataRetentionRule(
+                            data_category="privacy_requests",
+                            category_label="Privacy Requests & Grievance Logs",
+                            purpose="Proof of fulfillment of Data Principal rights under DPDP Act 2023.",
+                            retention_period_days=1095,
+                            is_active=True,
+                            deletion_method="anonymize",
+                            legal_exception="Legal evidentiary requirement for 3-year limitation period."
+                        )
+                    ]
+                    s_db.add_all(default_rules)
+                    s_db.commit()
+        except Exception as seed_ex:
+            print(f"Retention rules seed note: {seed_ex}")
     except Exception as e:
         print(f"Migration note: {e}")
 

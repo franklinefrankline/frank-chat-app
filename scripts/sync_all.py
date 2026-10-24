@@ -7,8 +7,8 @@ root_dir = Path(__file__).resolve().parent.parent
 html_files = [
     "index.html", "login.html", "register.html", "dashboard.html",
     "settings.html", "profile.html", "admin.html",
-    "forgot-password.html", "reset-password.html", "chat.html", "404.html",
-    "robots.txt", "sitemap.xml"
+    "forgot-password.html", "reset-password.html", "privacy.html", "privacy-dashboard.html", "chat.html", "404.html",
+    "robots.txt", "sitemap.xml", "favicon.ico"
 ]
 
 target_frontend_dirs = [

@@ -96,6 +96,14 @@
                     <span class="badge" id="navPendingAccessBadge" style="display: none; margin-left: auto; font-size: 11px; padding: 2px 7px; border-radius: 10px; background: #ef4444; color: #ffffff; font-weight: 700;">0</span>
                 </button>
 
+                <button type="button" class="nav-item" data-section="privacy" id="navPrivacyBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    <span data-i18n="admin.privacyManagement">Privacy &amp; DPDP</span>
+                    <span class="badge" id="navPendingPrivacyBadge" style="display: none; margin-left: auto; font-size: 11px; padding: 2px 7px; border-radius: 10px; background: #f59e0b; color: #ffffff; font-weight: 700;">0</span>
+                </button>
+
                 <div class="sidebar-section-title" data-i18n="settings.account">Account</div>
 
                 <button type="button" class="nav-item" data-section="profile" id="navProfileBtn">
@@ -625,6 +633,175 @@
                         </div>
                     </div>
                 </div>
+            <!-- SECTION: PRIVACY & DPDP COMPLIANCE -->
+            <section class="admin-section" id="sectionPrivacy">
+                <div class="section-header" style="flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h1 class="section-title">DPDP Privacy &amp; Data Protection Hub</h1>
+                        <p class="section-subtitle">Oversee India DPDP Act 2023 compliance, Data Principal requests, 30-day statutory deadlines, breach logs, and data retention rules.</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="adminPrivacyRefreshBtn" title="Refresh Privacy Data">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                            <span>Refresh</span>
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm" id="adminOpenLogBreachModalBtn" style="display: flex; align-items: center; gap: 6px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            <span>Log Breach Incident</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4 DPDP Metrics Cards -->
+                <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px;">
+                    <div class="metric-card">
+                        <div class="metric-icon-wrap" style="background: rgba(37, 99, 235, 0.12); color: #3b82f6;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        </div>
+                        <div class="metric-label">TOTAL PRIVACY REQUESTS</div>
+                        <div class="metric-value" id="metricTotalPrivacyReqs">0</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon-wrap" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        </div>
+                        <div class="metric-label">PENDING / ACTION REQUIRED</div>
+                        <div class="metric-value" id="metricPendingPrivacyReqs" style="color: #f59e0b;">0</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon-wrap" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        </div>
+                        <div class="metric-label">ACTIVE RETENTION POLICIES</div>
+                        <div class="metric-value" id="metricActiveRetentionRules" style="color: #10b981;">6</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon-wrap" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                        </div>
+                        <div class="metric-label">BREACH INCIDENTS RECORDED</div>
+                        <div class="metric-value" id="metricBreachIncidents" style="color: #ef4444;">0</div>
+                    </div>
+                </div>
+
+                <!-- Sub-nav Navigation for Privacy Hub -->
+                <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border); margin-bottom: 20px;">
+                    <button type="button" class="btn btn-ghost btn-sm active" id="adminPrivacyTabRequestsBtn" style="border-radius: 0; border-bottom: 2px solid var(--accent); font-weight: 700; color: var(--accent);">Data Principal Requests</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="adminPrivacyTabBreachesBtn" style="border-radius: 0; font-weight: 600; color: var(--text-muted);">Breach Incident Register</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="adminPrivacyTabRetentionBtn" style="border-radius: 0; font-weight: 600; color: var(--text-muted);">Data Retention Rules</button>
+                </div>
+
+                <!-- Tab 1: Privacy Requests Table Card -->
+                <div id="adminPrivacyPanelRequests" class="table-card">
+                    <div class="table-card-header" style="flex-wrap: wrap; gap: 12px;">
+                        <div class="search-wrap" style="flex: 1; min-width: 220px;">
+                            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="text" id="adminPrivacySearchInput" class="search-input" placeholder="Search by reference, subject, details...">
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <select id="adminPrivacyStatusFilter" class="form-input" style="padding: 7px 12px; font-size: 13px; min-width: 140px;">
+                                <option value="all">All Statuses</option>
+                                <option value="submitted">Submitted</option>
+                                <option value="in_review">In Review</option>
+                                <option value="action_required">Action Required</option>
+                                <option value="completed">Completed</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                            <select id="adminPrivacyTypeFilter" class="form-input" style="padding: 7px 12px; font-size: 13px; min-width: 140px;">
+                                <option value="all">All Request Types</option>
+                                <option value="access_data">Data Access</option>
+                                <option value="correct_data">Data Correction</option>
+                                <option value="erase_data">Data Erasure</option>
+                                <option value="withdraw_consent">Consent Revocation</option>
+                                <option value="grievance">Grievance</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table" id="adminPrivacyRequestsTable">
+                            <thead>
+                                <tr>
+                                    <th>Reference</th>
+                                    <th>User</th>
+                                    <th>Type</th>
+                                    <th>Subject &amp; Notes</th>
+                                    <th>Status</th>
+                                    <th>Statutory Deadline</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminPrivacyRequestsTbody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading privacy requests...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Breach Register Table Card -->
+                <div id="adminPrivacyPanelBreaches" class="table-card" style="display: none;">
+                    <div class="table-card-header" style="justify-content: space-between;">
+                        <h3 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text);">Statutory Breach Incident Log (DPDP Section 8(6))</h3>
+                        <span style="font-size: 12px; color: var(--text-muted);">Audited Incident Registry</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="adminBreachesTable">
+                            <thead>
+                                <tr>
+                                    <th>Reference</th>
+                                    <th>Incident Title</th>
+                                    <th>Severity</th>
+                                    <th>Status</th>
+                                    <th>Affected Systems</th>
+                                    <th>Reported At</th>
+                                    <th>Authority Notified</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminBreachesTbody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">No security or data breach incidents recorded.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Data Retention Rules Table Card -->
+                <div id="adminPrivacyPanelRetention" class="table-card" style="display: none;">
+                    <div class="table-card-header" style="justify-content: space-between;">
+                        <h3 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text);">Data Retention &amp; Disposal Policies</h3>
+                        <span style="font-size: 12px; color: var(--text-muted);">Active Fiduciary Retention Schedule</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="adminRetentionTable">
+                            <thead>
+                                <tr>
+                                    <th>Category Code</th>
+                                    <th>Display Name</th>
+                                    <th>Storage Location</th>
+                                    <th>Retention Period</th>
+                                    <th>Disposal Method</th>
+                                    <th>Legal Basis</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminRetentionTbody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading data retention schedule...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <!-- SECTION 5: ADMIN PROFILE -->
@@ -785,6 +962,135 @@
                     <span id="saveAccessRequestText" data-i18n="admin.saveChanges">Save Changes</span>
                 </button>
             </div>
+    <!-- Admin Privacy Request Review Modal -->
+    <div class="modal-backdrop" id="adminPrivacyRequestModal" role="dialog" aria-modal="true" aria-labelledby="modalPrivacyReqTitle" style="display: none;">
+        <div class="modal-card" style="max-width: 580px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalPrivacyReqTitle">Review Data Principal Request</h2>
+                <button type="button" class="modal-close" id="closeAdminPrivacyReqModalBtn" aria-label="Close modal">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                    <div class="detail-row">
+                        <span class="detail-label">Reference</span>
+                        <span class="detail-value" id="modalPrivRef" style="font-family: monospace; font-weight: 700; color: var(--accent);">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Requester</span>
+                        <span class="detail-value" id="modalPrivUser">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Type</span>
+                        <span class="detail-value" id="modalPrivType" style="font-weight: 600;">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Statutory Deadline</span>
+                        <span class="detail-value" id="modalPrivDeadline" style="color: #ef4444; font-weight: 700;">--</span>
+                    </div>
+                </div>
+
+                <div class="detail-row" style="flex-direction: column; align-items: flex-start; gap: 4px; margin-bottom: 12px;">
+                    <span class="detail-label">Subject</span>
+                    <span class="detail-value" id="modalPrivSubject" style="font-weight: 600; color: var(--text);">--</span>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <span class="detail-label" style="display: block; margin-bottom: 6px;">Request Details</span>
+                    <div id="modalPrivDetails" style="padding: 12px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 13px; line-height: 1.5; max-height: 120px; overflow-y: auto; white-space: pre-wrap; color: var(--text);">--</div>
+                </div>
+
+                <div id="modalPrivCorrectionWrap" style="display: none; margin-bottom: 14px; background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.2); border-radius: var(--radius-md); padding: 10px;">
+                    <span class="detail-label" style="color: var(--accent); font-weight: 700;">Requested Field Correction:</span>
+                    <div id="modalPrivCorrectionVal" style="font-size: 12px; margin-top: 4px; font-family: monospace;">--</div>
+                </div>
+
+                <div style="padding-top: 14px; border-top: 1px solid var(--border);">
+                    <div style="margin-bottom: 12px;">
+                        <label for="modalPrivStatusSelect" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Decision Status *</label>
+                        <select id="modalPrivStatusSelect" class="form-input" style="width: 100%; padding: 8px 12px;">
+                            <option value="submitted">Submitted</option>
+                            <option value="in_review">In Review</option>
+                            <option value="action_required">Action Required</option>
+                            <option value="completed">Completed</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label for="modalPrivDecisionNotes" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Audited Decision Notes &amp; Explanation *</label>
+                        <textarea id="modalPrivDecisionNotes" class="form-input" rows="3" placeholder="Explain the rationale for this status update or resolution (communicated to user under DPDP)..." style="width: 100%; resize: vertical; font-size: 13px;"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="modalPrivAssignedTo" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Assigned DPO / Officer</label>
+                        <input type="text" id="modalPrivAssignedTo" class="form-input" placeholder="e.g. Data Protection Officer" style="width: 100%; font-size: 13px;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancelAdminPrivacyReqModalBtn">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" id="saveAdminPrivacyReqModalBtn">Save Decision</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Log Breach Incident Modal -->
+    <div class="modal-backdrop" id="adminLogBreachModal" role="dialog" aria-modal="true" aria-labelledby="modalLogBreachTitle" style="display: none;">
+        <div class="modal-card" style="max-width: 580px;">
+            <div class="modal-header" style="background: rgba(239, 68, 68, 0.05);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #ef4444; display: flex; align-items: center; justify-content: center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                    </div>
+                    <h2 class="modal-title" id="modalLogBreachTitle" style="color: #ef4444;">Log Personal Data Breach (DPDP § 8(6))</h2>
+                </div>
+                <button type="button" class="modal-close" id="closeAdminLogBreachModalBtn" aria-label="Close modal">✕</button>
+            </div>
+            <form id="adminLogBreachForm">
+                <div class="modal-body" style="padding: 20px;">
+                    <div style="margin-bottom: 12px;">
+                        <label for="breachTitleInput" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Incident Title *</label>
+                        <input type="text" id="breachTitleInput" class="form-input" placeholder="e.g. Unauthorized access attempt on API endpoint" required style="width: 100%;">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <label for="breachSeveritySelect" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Severity *</label>
+                            <select id="breachSeveritySelect" class="form-input" style="width: 100%;">
+                                <option value="low">Low (Negligible risk)</option>
+                                <option value="medium" selected>Medium (Internal anomaly)</option>
+                                <option value="high">High (Potential exposure)</option>
+                                <option value="critical">Critical (Confirmed breach)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="breachSystemsInput" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Affected Systems *</label>
+                            <input type="text" id="breachSystemsInput" class="form-input" placeholder="e.g. Chat WebSocket, Storage" required style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label for="breachDataImpactedInput" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Personal Data Impacted</label>
+                        <input type="text" id="breachDataImpactedInput" class="form-input" placeholder="e.g. IP addresses, session tokens (passwords not exposed)" style="width: 100%;">
+                    </div>
+
+                    <div style="margin-bottom: 14px;">
+                        <label for="breachContainmentInput" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Containment &amp; Remediation Steps</label>
+                        <textarea id="breachContainmentInput" class="form-input" rows="3" placeholder="Actions taken to isolate, mitigate, and resolve the incident..." style="width: 100%; resize: vertical; font-size: 13px;"></textarea>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 8px; padding: 10px; background: var(--surface-elevated); border-radius: var(--radius-md); border: 1px solid var(--border);">
+                        <input type="checkbox" id="breachAuthorityNotifiedInput" style="cursor: pointer;">
+                        <label for="breachAuthorityNotifiedInput" style="font-size: 12.5px; color: var(--text); cursor: pointer; user-select: none;">
+                            <strong>Statutory Authority Notification Initiated:</strong> DPO has notified or scheduled notification to the Data Protection Board of India.
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="cancelAdminLogBreachModalBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="background: #ef4444; border: none;">Record Incident</button>
+                </div>
+            </form>
         </div>
     </div>
 

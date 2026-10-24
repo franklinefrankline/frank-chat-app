@@ -9,8 +9,9 @@
 
     <!-- Favicon & Brand Icons -->
     <link rel="icon" type="image/svg+xml" href="assets/brand/frank-icon.svg">
-    <link rel="alternate icon" type="image/png" href="assets/brand/frank-icon.png">
-    <link rel="apple-touch-icon" href="assets/brand/frank-icon.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="assets/brand/frank-icon.png">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="apple-touch-icon" sizes="96x96" href="assets/brand/frank-icon.png">
 
     <!-- Open Graph Metadata -->
     <meta property="og:type" content="website">
@@ -31,6 +32,23 @@
     <meta name="twitter:image" content="https://fnk.vercel.app/assets/brand/frank-logo.png">
     <meta name="twitter:image:alt" content="FRANK Think Logo">
 
+    <!-- JSON-LD WebPage Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Sign In — FRANK Think",
+      "url": "https://fnk.vercel.app/login",
+      "description": "Sign in to FRANK Think to access your messaging, group chats, file sharing, and document collaboration.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "FRANK Think",
+        "url": "https://fnk.vercel.app/"
+      }
+    }
+    </script>
+
     <!-- Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -43,6 +61,7 @@
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/cookie_consent.css">
 </head>
 <body class="auth-page">
 
@@ -57,7 +76,7 @@
 
             <div class="auth-showcase-header" style="position: relative; z-index: 2;">
                 <a href="index.html" class="brand-link">
-                    <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" style="width: 32px; height: 32px; border-radius: 8px;">
+                    <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="32" height="32" decoding="async" style="width: 32px; height: 32px; border-radius: 8px;">
                     <span>FRANK</span>
                 </a>
             </div>
@@ -67,13 +86,13 @@
                 <div class="frank-logo-anim-stage compact" style="margin-bottom: var(--space-4); align-items: flex-start;">
                     <div class="frank-anim-glow" aria-hidden="true"></div>
                     <div class="frank-anim-emblem auth-logo-frame">
-                        <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="60" height="60">
+                        <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="60" height="60" decoding="async">
                     </div>
                     <div class="auth-showcase-wordmark">FRANK</div>
                     <div class="auth-showcase-tagline" data-i18n="hero.badge">Think</div>
                 </div>
 
-                <h2 class="auth-showcase-title" data-i18n="auth.welcomeBack">Welcome to FRANK</h2>
+                <div class="auth-showcase-title" role="heading" aria-level="2" data-i18n="auth.welcomeBack">Welcome to FRANK</div>
                 <p class="auth-showcase-subtitle" data-i18n="hero.badge">Think</p>
 
                 <div class="auth-feature-list">
@@ -104,8 +123,8 @@
                 </div>
             </div>
 
-            <div class="auth-showcase-footer" data-i18n="footer.copyright">
-                &copy; 2026 FRANK. All rights reserved.
+            <div class="auth-showcase-footer">
+                &copy; 2026 FRANK. All rights reserved. &bull; <a href="privacy.html" style="color: inherit; text-decoration: underline;">Privacy Policy</a> &bull; <button type="button" class="open-cookie-settings" style="color: inherit; background: none; border: none; cursor: pointer; text-decoration: underline; font-size: inherit; font-family: inherit; padding: 0;">Cookie Settings</button>
             </div>
         </div>
 
@@ -113,13 +132,13 @@
         <div class="auth-form-container">
             <div class="auth-card">
                 <div class="auth-card-header">
-                    <div class="auth-card-logo">
+                    <a href="index.html" class="auth-card-logo" style="text-decoration:none; color:inherit; display:inline-flex; flex-direction:column; align-items:center;" aria-label="Back to FRANK Think Home">
                         <div class="auth-logo-frame" style="padding: 4px; border-radius: 14px; margin-bottom: 6px;">
-                            <img src="assets/brand/frank-icon.svg" alt="FRANK Icon" width="44" height="44" class="auth-logo-img">
+                            <img src="assets/brand/frank-icon.svg" alt="FRANK Think Icon" width="44" height="44" decoding="async" class="auth-logo-img">
                         </div>
                         <div class="auth-card-logo-name">FRANK</div>
                         <div class="auth-card-logo-tagline" data-i18n="hero.badge">Think</div>
-                    </div>
+                    </a>
                     <h1 class="auth-card-title" data-i18n="auth.signIn">Sign In</h1>
                     <p class="auth-card-subtitle" data-i18n="auth.welcomeBackSubtitle">Enter your credentials to access your FRANK account</p>
                 </div>
@@ -193,8 +212,13 @@
                 </form>
 
 
-                <div class="auth-card-footer">
+                <div class="auth-card-footer" style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
                     <a href="register.html" class="auth-link" data-i18n="auth.dontHaveAccount">Don't have an account? Create one</a>
+                    <div style="display: flex; gap: 12px; align-items: center; justify-content: center; font-size: 12px; color: var(--text-muted);">
+                        <a href="privacy.html" class="auth-link" style="color: var(--text-muted); text-decoration: none;">Privacy Policy</a>
+                        <span>&bull;</span>
+                        <button type="button" class="open-cookie-settings" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0; font-size: 12px; text-decoration: underline;">Cookie Settings</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -209,5 +233,6 @@
     <script src="js/contact_modal.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/cookie_consent.js"></script>
 </body>
 </html>

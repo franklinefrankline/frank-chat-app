@@ -739,4 +739,240 @@ class AccountAccessRequestListResponse(BaseModel):
     pending_count: int
 
 
+# ==============================================================================
+# DPDP PRIVACY & DATA PROTECTION SCHEMAS (INDIA DPDP ACT 2023 / RULES 2025)
+# ==============================================================================
+
+class ConsentItemResponse(BaseModel):
+    purpose_key: str
+    purpose_label: str
+    purpose_description: str
+    status: str  # "granted" or "withdrawn"
+    legal_basis: str  # "consent", "contractual_necessity", "legitimate_uses"
+    notice_version: str
+    is_optional: bool = True
+    granted_at: Optional[str] = None
+    withdrawn_at: Optional[str] = None
+
+
+class ConsentUpdate(BaseModel):
+    purpose_key: str
+    status: str = Field(..., pattern="^(granted|withdrawn)$")
+
+
+class ConsentBulkResponse(BaseModel):
+    success: bool = True
+    consents: List[ConsentItemResponse]
+    message: Optional[str] = None
+
+
+class PersonalDataSummaryResponse(BaseModel):
+    user_id: int
+    username: str
+    full_name: str
+    email: str
+    frank_id: str
+    role: str
+    account_status: str
+    theme: str
+    language: str
+    created_at: Optional[str] = None
+    sent_messages_count: int = 0
+    received_messages_count: int = 0
+    uploaded_documents_count: int = 0
+    groups_count: int = 0
+    active_consents_count: int = 0
+    open_privacy_requests_count: int = 0
+    ai_processing_active: bool = True
+
+
+class PersonalDataExportResponse(BaseModel):
+    export_date: str
+    dpdp_notice: str
+    account: Dict[str, Any]
+    consents: List[Dict[str, Any]]
+    conversations_metadata: List[Dict[str, Any]]
+    messages: List[Dict[str, Any]]
+    documents: List[Dict[str, Any]]
+    privacy_requests: List[Dict[str, Any]]
+
+
+class PrivacyDataRequestCreate(BaseModel):
+    request_type: str = Field(..., pattern="^(access_data|correct_data|erase_data|withdraw_consent|grievance)$")
+    subject: str = Field(..., min_length=3, max_length=255)
+    details: str = Field(..., min_length=10)
+    correction_payload: Optional[Dict[str, Any]] = None
+
+
+class PrivacyDataRequestUpdate(BaseModel):
+    status: Optional[str] = Field(None, pattern="^(Submitted|Under Review|Action Required|Completed|Rejected)$")
+    admin_notes: Optional[str] = None
+    decision_reason: Optional[str] = None
+    assigned_to_id: Optional[int] = None
+
+
+class PrivacyDataRequestResponse(BaseModel):
+    id: int
+    request_reference: str
+    user_id: Optional[int] = None
+    user_email: Optional[str] = None
+    user_name: Optional[str] = None
+    user_frank_id: Optional[str] = None
+    request_type: str
+    status: str
+    subject: str
+    details: str
+    correction_payload: Optional[str] = None
+    admin_notes: Optional[str] = None
+    decision_reason: Optional[str] = None
+    assigned_to_id: Optional[int] = None
+    assigned_to_name: Optional[str] = None
+    deadline_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_serializer("deadline_at", "completed_at", "created_at", "updated_at", check_fields=False)
+    def serialize_utc_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
+        return format_iso_utc(dt)
+
+    class Config:
+        from_attributes = True
+
+
+class PrivacyDataRequestListResponse(BaseModel):
+    items: List[PrivacyDataRequestResponse]
+    total: int
+    page: int
+    limit: int
+    pages: int
+    pending_count: int = 0
+
+
+class AccountErasureRequest(BaseModel):
+    password: str
+    reason: Optional[str] = None
+    confirm_text: str  # Must match "DELETE"
+
+
+class DataBreachCreate(BaseModel):
+    title: str = Field(..., min_length=5, max_length=255)
+    severity: str = Field("low", pattern="^(low|medium|high|critical)$")
+    affected_systems: str = Field(..., max_length=255)
+    nature_of_breach: str = Field(..., min_length=10)
+    impact_assessment: Optional[str] = None
+    containment_steps: Optional[str] = None
+    remediation_steps: Optional[str] = None
+    impacted_users_count: int = 0
+    assigned_investigator: Optional[str] = None
+
+
+class DataBreachUpdate(BaseModel):
+    title: Optional[str] = None
+    severity: Optional[str] = Field(None, pattern="^(low|medium|high|critical)$")
+    status: Optional[str] = Field(None, pattern="^(Identified|Investigating|Contained|Remediated|Closed)$")
+    affected_systems: Optional[str] = None
+    nature_of_breach: Optional[str] = None
+    impact_assessment: Optional[str] = None
+    containment_steps: Optional[str] = None
+    remediation_steps: Optional[str] = None
+    impacted_users_count: Optional[int] = None
+    reported_to_dpa: Optional[bool] = None
+    affected_users_notified: Optional[bool] = None
+    assigned_investigator: Optional[str] = None
+
+
+class DataBreachResponse(BaseModel):
+    id: int
+    incident_reference: str
+    title: str
+    severity: str
+    status: str
+    affected_systems: str
+    nature_of_breach: str
+    impact_assessment: Optional[str] = None
+    containment_steps: Optional[str] = None
+    remediation_steps: Optional[str] = None
+    impacted_users_count: int = 0
+    reported_to_dpa: bool = False
+    dpa_reported_at: Optional[datetime] = None
+    affected_users_notified: bool = False
+    users_notified_at: Optional[datetime] = None
+    assigned_investigator: Optional[str] = None
+    created_by_id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_serializer("dpa_reported_at", "users_notified_at", "created_at", "updated_at", check_fields=False)
+    def serialize_utc_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
+        return format_iso_utc(dt)
+
+    class Config:
+        from_attributes = True
+
+
+class DataBreachListResponse(BaseModel):
+    items: List[DataBreachResponse]
+    total: int
+
+
+class DataRetentionRuleUpdate(BaseModel):
+    retention_period_days: Optional[int] = None
+    is_active: Optional[bool] = None
+    deletion_method: Optional[str] = Field(None, pattern="^(soft_deactivate|anonymize|purge_file)$")
+    legal_exception: Optional[str] = None
+    automated_expiration_supported: Optional[bool] = None
+    requires_manual_review: Optional[bool] = None
+    responsible_workflow: Optional[str] = None
+    required_audit_metadata: Optional[str] = None
+
+
+class DataRetentionRuleResponse(BaseModel):
+    id: int
+    data_category: str
+    category_label: str
+    purpose: str
+    retention_period_days: int
+    is_active: bool
+    deletion_method: str
+    legal_exception: Optional[str] = None
+    automated_expiration_supported: Optional[bool] = False
+    requires_manual_review: Optional[bool] = True
+    responsible_workflow: Optional[str] = "DPO Staged Review"
+    required_audit_metadata: Optional[str] = "operation_ref,actor_id,target_id,timestamp,result"
+    last_reviewed_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_serializer("last_reviewed_at", "updated_at", check_fields=False)
+    def serialize_utc_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
+        return format_iso_utc(dt)
+
+    class Config:
+        from_attributes = True
+
+
+class DataRetentionRuleListResponse(BaseModel):
+    items: List[DataRetentionRuleResponse]
+    total: int
+
+
+class DataInventoryItemResponse(BaseModel):
+    category: str
+    label: str
+    purpose: str
+    storage_location: str
+    access_roles: str
+    third_parties: str
+    retention_policy: str
+    deletion_method: str
+    legal_basis: str
+
+
+class DataInventoryResponse(BaseModel):
+    version: str
+    last_updated: str
+    fiduciary_name: str
+    items: List[DataInventoryItemResponse]
+
+
 

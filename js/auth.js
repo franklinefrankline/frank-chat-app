@@ -330,6 +330,14 @@ if (registerForm) {
             document.getElementById('groupConfirmPassword').classList.remove('has-error');
         }
 
+        const ageConsentInput = document.getElementById('regAgeConsent');
+        if (ageConsentInput && !ageConsentInput.checked) {
+            ageConsentInput.closest('.form-group')?.classList.add('has-error');
+            hasError = true;
+        } else if (ageConsentInput) {
+            ageConsentInput.closest('.form-group')?.classList.remove('has-error');
+        }
+
         if (!terms) {
             termsInput.closest('.form-group').classList.add('has-error');
             hasError = true;

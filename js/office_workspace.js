@@ -51,12 +51,16 @@ class FrankOfficeWorkspace {
             <!-- Top Header -->
             <div class="workspace-top-bar" id="workspaceTopBar">
                 <div class="workspace-top-left">
-                    <button type="button" class="workspace-back-btn" id="workspaceBackBtn" aria-label="Back to conversation" title="Back to chat" data-i18n-aria-label="office.back" data-i18n-title="office.back">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                        <span data-i18n="office.back">Back</span>
+                    <button type="button" class="workspace-back-btn icon-only" id="workspaceBackBtn" aria-label="Back to conversation" title="Back to chat" data-i18n-aria-label="office.back" data-i18n-title="office.back">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                     </button>
-                    <!-- Quick Access Toolbar: Undo / Redo -->
-                    <div class="workspace-quick-access" id="workspaceQuickAccess">
+                    <!-- Brand Logo Badge -->
+                    <div class="workspace-brand-badge" id="workspaceBrandBadge">
+                        <img src="assets/brand/frank-icon.png" alt="FRANK" style="width:24px;height:24px;border-radius:6px;object-fit:cover;" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'24\\' height=\\'24\\' viewBox=\\'0 0 24 24\\'><rect width=\\'24\\' height=\\'24\\' rx=\\'6\\' fill=\\'%232563EB\\'/><text x=\\'50%\\' y=\\'55%\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\' fill=\\'white\\' font-family=\\'sans-serif\\' font-weight=\\'bold\\' font-size=\\'14\\'>F</text></svg>';">
+                        <span class="brand-text">FRANK <span class="brand-sub">Think</span></span>
+                    </div>
+                    <!-- Quick Access Toolbar (Hidden in Word mode, accessible via hotkeys) -->
+                    <div class="workspace-quick-access" id="workspaceQuickAccess" style="display:none;">
                         <button type="button" class="workspace-btn workspace-btn-icon" id="workspaceTopUndoBtn" title="Undo (Ctrl+Z)" aria-label="Undo">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
                         </button>
@@ -65,50 +69,60 @@ class FrankOfficeWorkspace {
                         </button>
                     </div>
                     <div class="workspace-file-identity">
-                        <span class="workspace-file-icon" id="workspaceDocIcon">📄</span>
+                        <span class="workspace-file-icon" id="workspaceDocIcon" style="display:none;">📄</span>
                         <span class="workspace-file-title" id="workspaceDocTitle" title="Click to rename document">Document</span>
                         <button type="button" class="doc-rename-btn" id="workspaceRenameBtn" title="Rename document" aria-label="Rename document">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         </button>
-                        <span class="workspace-type-badge" id="workspaceTypeBadge">DOCX</span>
+                        <span class="workspace-type-badge" id="workspaceTypeBadge" style="display:none;">DOCX</span>
                     </div>
                     <div class="workspace-save-status saved" id="workspaceSaveStatus">
-                        <span id="saveStatusDot">●</span>
+                        <svg class="save-cloud-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
                         <span id="saveStatusText" data-i18n="office.saved">Saved</span>
                     </div>
-                    <button type="button" class="workspace-version-pill" id="workspaceVersionPill" title="View Version History" data-i18n-title="office.versionHistory">
+                    <button type="button" class="workspace-version-pill" id="workspaceVersionPill" title="View Version History" data-i18n-title="office.versionHistory" style="display:none;">
                         <span id="workspaceVersionLabel">v1</span>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
                 </div>
                 <!-- Search Commands Box (Tell me what you want to do...) -->
-                <div class="workspace-search-bar" id="workspaceSearchBar" title="Search commands">
+                <div class="workspace-search-bar" id="workspaceSearchBar" title="Search commands" style="display:none;">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     <input type="text" id="workspaceCommandSearchInput" placeholder="Tell me what you want to do..." aria-label="Search Word commands">
                     <div class="workspace-command-dropdown" id="workspaceCommandDropdown" style="display:none;"></div>
                 </div>
                 <div class="workspace-top-actions">
-                    <button type="button" class="workspace-btn workspace-btn-primary" id="workspaceSaveBtn" title="Save document (Ctrl+S)" data-i18n-title="office.save">
+                    <!-- Save button (kept in DOM for test suite & Ctrl+S) -->
+                    <button type="button" class="workspace-btn workspace-btn-subtle" id="workspaceSaveBtn" title="Save document (Ctrl+S)" data-i18n-title="office.save" style="display:none;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                         <span class="btn-label" data-i18n="office.save">Save</span>
                     </button>
-                    <button type="button" class="workspace-btn workspace-btn-success" id="workspaceSendBtn" title="Send document to chat" data-i18n-title="office.sendToChat">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    <button type="button" class="workspace-btn workspace-topbar-action-btn" id="workspaceSendBtn" title="Send document to chat" data-i18n-title="office.sendToChat">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                         <span class="btn-label" data-i18n="office.sendToChat">Send to Chat</span>
                     </button>
-                    <button type="button" class="workspace-btn" id="workspaceDownloadBtn" title="Download Document" data-i18n-title="office.download">
+                    <button type="button" class="workspace-btn workspace-topbar-action-btn" id="workspaceDownloadBtn" title="Download Document" data-i18n-title="office.download">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         <span class="btn-label" data-i18n="office.download">Download</span>
                     </button>
-                    <button type="button" class="workspace-btn workspace-btn-icon" id="workspaceHistoryBtn" title="Version History" data-i18n-title="office.versionHistory" data-i18n-aria-label="office.versionHistory">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                    <button type="button" class="workspace-btn workspace-topbar-action-btn" id="workspacePrintBtn" title="Print Document" data-i18n-title="office.print" data-i18n-aria-label="office.print">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                        <span class="btn-label" data-i18n="office.print">Print</span>
                     </button>
-                    <button type="button" class="workspace-btn workspace-btn-icon" id="workspacePrintBtn" title="Print Document" data-i18n-title="office.print" data-i18n-aria-label="office.print">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <button type="button" class="workspace-btn workspace-topbar-action-btn" id="workspaceHistoryBtn" title="Version History" data-i18n-title="office.versionHistory" data-i18n-aria-label="office.versionHistory">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                        <span class="btn-label" data-i18n="office.versionHistory">Version History</span>
                     </button>
                     <button type="button" class="workspace-btn workspace-btn-icon" id="workspaceFullscreenBtn" title="Toggle Fullscreen" data-i18n-title="office.fullScreen" data-i18n-aria-label="office.fullScreen">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
                     </button>
+                    <!-- User Avatar & More Options -->
+                    <div class="workspace-user-profile" id="workspaceUserProfile">
+                        <div class="workspace-avatar-circle" id="workspaceUserAvatar">F</div>
+                        <button type="button" class="workspace-btn workspace-btn-icon" id="workspaceUserMenuBtn" title="More Options">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="12" cy="19" r="1.8"></circle></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -524,7 +538,7 @@ class FrankOfficeWorkspace {
         if (!pill || !textEl) return;
 
         pill.className = `workspace-save-status ${status}`;
-        if (status === 'saved') textEl.textContent = text || 'Saved ✓';
+        if (status === 'saved') textEl.textContent = text || 'Saved';
         else if (status === 'saving') textEl.textContent = 'Saving...';
         else if (status === 'dirty') textEl.textContent = 'Unsaved changes';
         else if (status === 'error') textEl.textContent = text || 'Save failed';

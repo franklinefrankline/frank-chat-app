@@ -26,9 +26,17 @@
     { "source": "/profile", "destination": "/profile.html" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/forgot-password", "destination": "/forgot-password.html" },
-    { "source": "/reset-password", "destination": "/reset-password.html" }
+    { "source": "/reset-password", "destination": "/reset-password.html" },
+    { "source": "/privacy", "destination": "/privacy.html" }
   ],
   "headers": [
+    {
+      "source": "/favicon.ico",
+      "headers": [
+        { "key": "Content-Type", "value": "image/x-icon" },
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+      ]
+    },
     {
       "source": "/robots.txt",
       "headers": [
@@ -67,6 +75,18 @@
       "source": "/js/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/(uploads|api)/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/(dashboard|profile|settings|admin|forgot-password|reset-password|privacy-dashboard)(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
       ]
     }
   ]

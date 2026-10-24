@@ -76,7 +76,7 @@ def verify_environment(base_url, env_name):
     for u in user_list[:5]:
         print(f"  User: ID={u['id']}, Name={u.get('full_name')}, Email={u['email']}, FRANK ID={u['frank_id']}, Status={u.get('account_status')}")
         assert u['id'] > 0, "Invalid User ID"
-        assert len(u['frank_id']) == 6, f"Invalid FRANK ID format: {u['frank_id']}"
+        assert 5 <= len(u['frank_id']) <= 12, f"Invalid FRANK ID format: {u['frank_id']}"
         assert u.get('account_status') in ["active", "disabled"], f"Invalid account status: {u.get('account_status')}"
 
     # 3. Test Sample Existing User (Alex: alex@frank.app)

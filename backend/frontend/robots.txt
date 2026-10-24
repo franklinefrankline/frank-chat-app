@@ -2,16 +2,18 @@ User-agent: *
 Allow: /
 Allow: /login
 Allow: /register
+Allow: /privacy
 Allow: /assets/
 Allow: /css/
 Allow: /js/
 
-Disallow: /dashboard
-Disallow: /admin
-Disallow: /profile
-Disallow: /settings
-Disallow: /forgot-password
-Disallow: /reset-password
+Disallow: /dashboard*
+Disallow: /admin*
+Disallow: /profile*
+Disallow: /settings*
+Disallow: /forgot-password*
+Disallow: /reset-password*
+Disallow: /privacy-dashboard*
 Disallow: /api/
 Disallow: /uploads/
 Disallow: /ws/

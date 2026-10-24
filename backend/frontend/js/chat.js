@@ -731,6 +731,10 @@ class ChatController {
         const isGroup = this.activeType === 'group';
         const isConsecutive = !isNewDay && !!lastMsg && (Number(lastMsg.sender_id) === Number(msg.sender_id));
 
+        const container = this.dom.messagesContainer;
+        const isSelf = currentUserId && Number(msg.sender_id) === Number(currentUserId);
+        const isNearBottom = container ? (container.scrollHeight - container.scrollTop - container.clientHeight < 160) : true;
+
         this.activeMessages.push(msg);
         try {
             const html = messagesModule.renderMessageRow(msg, currentUserId, { isGroup, isConsecutive });
@@ -738,7 +742,10 @@ class ChatController {
         } catch (renderErr) {
             console.error('Error rendering incoming message:', renderErr, msg);
         }
-        this.scrollToBottom();
+
+        if (isSelf || isNearBottom) {
+            this.scrollToBottom();
+        }
     }
 
     // ---------------- COMPOSER & KEYBOARD ----------------

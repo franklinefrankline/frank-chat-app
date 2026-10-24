@@ -803,9 +803,9 @@ html, body {
     /* Chat Header */
     .chat-header {
         height: 60px;
-        padding: 0 var(--space-3);
+        padding: 0 10px;
         flex-shrink: 0;
-        gap: var(--space-2);
+        gap: 6px;
         z-index: 210 !important;
         background: var(--chat-header-bg, var(--bg-surface)) !important;
         border-bottom: 1px solid var(--border) !important;
@@ -815,34 +815,49 @@ html, body {
         display: flex !important;
         align-items: center;
         justify-content: center;
-        min-width: 44px;
-        min-height: 44px;
-        margin-right: -4px;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
         color: var(--text);
         flex-shrink: 0;
+        padding: 0;
     }
 
     .chat-partner-info {
         flex: 1;
         min-width: 0;
-        gap: var(--space-2);
+        gap: 8px;
+    }
+
+    .chat-partner-meta {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .chat-partner-title-row {
+        gap: 6px;
+        flex-wrap: nowrap;
+        min-width: 0;
     }
 
     .chat-partner-name {
         font-size: 14px;
-        max-width: 140px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         color: var(--text) !important;
-    }
-
-    .chat-partner-title-row {
-        gap: 4px;
+        flex: 0 1 auto;
+        min-width: 50px;
     }
 
     .chat-header-frank-id-wrap {
-        padding: 1px 5px;
+        padding: 1px 4px;
+        flex-shrink: 0;
+    }
+
+    .header-fid-label {
+        display: none;
     }
 
     .header-fid-badge {
@@ -862,8 +877,10 @@ html, body {
     }
 
     .chat-header-actions .btn-icon {
-        min-width: 40px;
-        min-height: 40px;
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        min-height: 34px;
         display: flex;
         align-items: center;
         justify-content: center;

@@ -63,6 +63,12 @@
 
             // Modal confirm state
             this.confirmCallback = null;
+
+            // Privacy & DPDP state
+            this.privacyRequests = [];
+            this.breaches = [];
+            this.retentionRules = [];
+            this.selectedPrivacyReq = null;
         }
 
         async init() {
@@ -89,6 +95,7 @@
                 this.bindNavigationEvents();
                 this.bindSearchAndFilterEvents();
                 this.bindAccessRequestsEvents();
+                this.bindPrivacyEvents();
                 this.bindModalEvents();
                 this.bindActionEvents();
 
@@ -317,6 +324,7 @@
                 'groups': { el: document.getElementById('sectionGroups'), key: 'admin.groupsChats', title: 'Groups & Channels' },
                 'audit': { el: document.getElementById('sectionAudit'), key: 'admin.auditLogs', title: 'Audit Logs' },
                 'access-requests': { el: document.getElementById('sectionAccessRequests'), key: 'admin.accessRequests', title: 'Account Access Requests' },
+                'privacy': { el: document.getElementById('sectionPrivacy'), key: 'admin.privacyManagement', title: 'Privacy & DPDP Hub' },
                 'profile': { el: document.getElementById('sectionProfile'), key: 'admin.adminProfile', title: 'Admin Profile' }
             };
 
@@ -347,6 +355,8 @@
             // Trigger section-specific loads
             if (sectionId === 'access-requests') {
                 this.loadAccessRequests();
+            } else if (sectionId === 'privacy') {
+                this.loadPrivacyHub();
             }
         }
 
@@ -1727,6 +1737,455 @@
             // Keep max 20 items in live list
             while (list.children.length > 20) {
                 list.removeChild(list.lastChild);
+            }
+        }
+
+        /* -----------------------------------------------------------------
+           DPDP PRIVACY & DATA PROTECTION MODULE
+           ----------------------------------------------------------------- */
+        bindPrivacyEvents() {
+            // Subtab navigation
+            const tabReqs = document.getElementById('adminPrivacyTabRequestsBtn');
+            const tabBreaches = document.getElementById('adminPrivacyTabBreachesBtn');
+            const tabRetention = document.getElementById('adminPrivacyTabRetentionBtn');
+
+            const panelReqs = document.getElementById('adminPrivacyPanelRequests');
+            const panelBreaches = document.getElementById('adminPrivacyPanelBreaches');
+            const panelRetention = document.getElementById('adminPrivacyPanelRetention');
+
+            const setSubtab = (activeTab, activePanel) => {
+                [tabReqs, tabBreaches, tabRetention].forEach(t => {
+                    if (t) {
+                        t.classList.remove('active');
+                        t.style.borderBottom = 'none';
+                        t.style.fontWeight = '600';
+                        t.style.color = 'var(--text-muted)';
+                    }
+                });
+                [panelReqs, panelBreaches, panelRetention].forEach(p => {
+                    if (p) p.style.display = 'none';
+                });
+
+                if (activeTab) {
+                    activeTab.classList.add('active');
+                    activeTab.style.borderBottom = '2px solid var(--accent)';
+                    activeTab.style.fontWeight = '700';
+                    activeTab.style.color = 'var(--accent)';
+                }
+                if (activePanel) activePanel.style.display = 'block';
+            };
+
+            if (tabReqs) tabReqs.addEventListener('click', () => setSubtab(tabReqs, panelReqs));
+            if (tabBreaches) tabBreaches.addEventListener('click', () => {
+                setSubtab(tabBreaches, panelBreaches);
+                this.loadAdminBreaches();
+            });
+            if (tabRetention) tabRetention.addEventListener('click', () => {
+                setSubtab(tabRetention, panelRetention);
+                this.loadAdminRetentionRules();
+            });
+
+            // Filters & Search
+            const searchInput = document.getElementById('adminPrivacySearchInput');
+            const statusFilter = document.getElementById('adminPrivacyStatusFilter');
+            const typeFilter = document.getElementById('adminPrivacyTypeFilter');
+
+            const handleFilterChange = () => {
+                this.loadAdminPrivacyRequests();
+            };
+
+            if (searchInput) {
+                let debounce;
+                searchInput.addEventListener('input', () => {
+                    clearTimeout(debounce);
+                    debounce = setTimeout(() => handleFilterChange(), 300);
+                });
+            }
+            if (statusFilter) statusFilter.addEventListener('change', handleFilterChange);
+            if (typeFilter) typeFilter.addEventListener('change', handleFilterChange);
+
+            // Refresh Button
+            const refreshBtn = document.getElementById('adminPrivacyRefreshBtn');
+            if (refreshBtn) refreshBtn.addEventListener('click', () => this.loadPrivacyHub());
+
+            // Modal: Review Request
+            const reqModal = document.getElementById('adminPrivacyRequestModal');
+            const closeReqBtn = document.getElementById('closeAdminPrivacyReqModalBtn');
+            const cancelReqBtn = document.getElementById('cancelAdminPrivacyReqModalBtn');
+            const saveReqBtn = document.getElementById('saveAdminPrivacyReqModalBtn');
+
+            const closeReqModal = () => {
+                if (reqModal) reqModal.style.display = 'none';
+                this.selectedPrivacyReq = null;
+            };
+
+            if (closeReqBtn) closeReqBtn.addEventListener('click', closeReqModal);
+            if (cancelReqBtn) cancelReqBtn.addEventListener('click', closeReqModal);
+            if (saveReqBtn) saveReqBtn.addEventListener('click', () => this.savePrivacyRequestDecision());
+
+            // Modal: Log Breach
+            const breachModal = document.getElementById('adminLogBreachModal');
+            const openBreachBtn = document.getElementById('adminOpenLogBreachModalBtn');
+            const closeBreachBtn = document.getElementById('closeAdminLogBreachModalBtn');
+            const cancelBreachBtn = document.getElementById('cancelAdminLogBreachModalBtn');
+            const breachForm = document.getElementById('adminLogBreachForm');
+
+            const openBreach = () => {
+                if (breachModal) {
+                    breachModal.style.display = 'flex';
+                    if (breachForm) breachForm.reset();
+                }
+            };
+
+            const closeBreach = () => {
+                if (breachModal) breachModal.style.display = 'none';
+            };
+
+            if (openBreachBtn) openBreachBtn.addEventListener('click', openBreach);
+            if (closeBreachBtn) closeBreachBtn.addEventListener('click', closeBreach);
+            if (cancelBreachBtn) cancelBreachBtn.addEventListener('click', closeBreach);
+            if (breachForm) breachForm.addEventListener('submit', (e) => this.submitLogBreach(e));
+
+            // Escape key & backdrop click for privacy modals
+            [reqModal, breachModal].forEach(m => {
+                if (m) {
+                    m.addEventListener('click', (e) => {
+                        if (e.target === m) m.style.display = 'none';
+                    });
+                }
+            });
+        }
+
+        async loadPrivacyHub() {
+            try {
+                await Promise.all([
+                    this.loadPrivacyMetrics(),
+                    this.loadAdminPrivacyRequests(),
+                    this.loadAdminBreaches(),
+                    this.loadAdminRetentionRules()
+                ]);
+            } catch (err) {
+                console.error('Failed to load Privacy Hub:', err);
+            }
+        }
+
+        async loadPrivacyMetrics() {
+            if (!window.api || !window.api.privacy) return;
+            try {
+                const [reqs, breaches, rules] = await Promise.all([
+                    window.api.privacy.getAdminRequests().catch(() => []),
+                    window.api.privacy.getBreaches().catch(() => []),
+                    window.api.privacy.getRetentionRules().catch(() => [])
+                ]);
+
+                const totalReqs = reqs.length;
+                const pendingReqs = reqs.filter(r => r.status === 'submitted' || r.status === 'in_review' || r.status === 'action_required').length;
+                const totalBreaches = breaches.length;
+                const totalRules = rules.length;
+
+                const mTotalReq = document.getElementById('metricTotalPrivacyReqs');
+                const mPendingReq = document.getElementById('metricPendingPrivacyReqs');
+                const mRules = document.getElementById('metricActiveRetentionRules');
+                const mBreaches = document.getElementById('metricBreachIncidents');
+                const badge = document.getElementById('navPendingPrivacyBadge');
+
+                if (mTotalReq) mTotalReq.textContent = totalReqs;
+                if (mPendingReq) mPendingReq.textContent = pendingReqs;
+                if (mRules) mRules.textContent = totalRules;
+                if (mBreaches) mBreaches.textContent = totalBreaches;
+
+                if (badge) {
+                    if (pendingReqs > 0) {
+                        badge.style.display = 'inline-block';
+                        badge.textContent = pendingReqs;
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            } catch (err) {
+                console.warn('Failed to load privacy metrics:', err);
+            }
+        }
+
+        async loadAdminPrivacyRequests() {
+            const tbody = document.getElementById('adminPrivacyRequestsTbody');
+            if (!tbody || !window.api || !window.api.privacy) return;
+
+            const q = document.getElementById('adminPrivacySearchInput')?.value.trim() || '';
+            const status = document.getElementById('adminPrivacyStatusFilter')?.value || 'all';
+            const reqType = document.getElementById('adminPrivacyTypeFilter')?.value || 'all';
+
+            try {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading requests...</td></tr>`;
+                const params = {};
+                if (status !== 'all') params.status = status;
+                if (reqType !== 'all') params.request_type = reqType;
+                if (q) params.q = q;
+
+                const requests = await window.api.privacy.getAdminRequests(params);
+                this.privacyRequests = requests;
+
+                if (!requests || requests.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">No matching privacy requests found.</td></tr>`;
+                    return;
+                }
+
+                const getStatusBadge = (s) => {
+                    const map = {
+                        submitted: { bg: 'rgba(234, 179, 8, 0.15)', text: '#eab308', label: 'Submitted' },
+                        in_review: { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6', label: 'In Review' },
+                        action_required: { bg: 'rgba(168, 85, 247, 0.15)', text: '#a855f7', label: 'Action Required' },
+                        completed: { bg: 'rgba(34, 197, 94, 0.15)', text: '#22c55e', label: 'Completed' },
+                        rejected: { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', label: 'Rejected' }
+                    };
+                    const item = map[s] || { bg: 'var(--surface-muted)', text: 'var(--text-muted)', label: s };
+                    return `<span style="display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: ${item.bg}; color: ${item.text};">${item.label}</span>`;
+                };
+
+                const getTypeLabel = (t) => {
+                    const map = {
+                        access_data: 'Data Access',
+                        correct_data: 'Correction',
+                        erase_data: 'Erasure',
+                        withdraw_consent: 'Revocation',
+                        grievance: 'Grievance'
+                    };
+                    return map[t] || t;
+                };
+
+                tbody.innerHTML = requests.map(r => {
+                    const deadline = r.deadline_at ? new Date(r.deadline_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '30 days';
+                    const userDisplay = r.user ? `${this.escapeHtml(r.user.full_name || r.user.username)} <span style="font-family: monospace; font-size: 11px; color: var(--accent);">(${r.user.frank_id})</span>` : `User #${r.user_id}`;
+                    return `
+                        <tr>
+                            <td style="font-family: monospace; font-weight: 700; color: var(--accent);">${r.reference_code}</td>
+                            <td>${userDisplay}</td>
+                            <td style="font-weight: 600;">${getTypeLabel(r.request_type)}</td>
+                            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${this.escapeHtml(r.subject || '')}">
+                                ${this.escapeHtml(r.subject || '—')}
+                                ${r.decision_notes ? `<div style="font-size: 11px; color: var(--text-muted);">Note: ${this.escapeHtml(r.decision_notes)}</div>` : ''}
+                            </td>
+                            <td>${getStatusBadge(r.status)}</td>
+                            <td style="font-size: 12px; color: var(--text-muted);">${deadline}</td>
+                            <td>
+                                <button type="button" class="btn btn-secondary btn-sm btn-priv-review" data-ref="${r.reference_code}" style="padding: 4px 10px; font-size: 12px;">
+                                    Review
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Bind review buttons
+                tbody.querySelectorAll('.btn-priv-review').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const ref = btn.getAttribute('data-ref');
+                        const req = this.privacyRequests.find(item => item.reference_code === ref);
+                        if (req) this.openPrivacyRequestModal(req);
+                    });
+                });
+            } catch (err) {
+                console.error('Failed to load admin privacy requests:', err);
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #ef4444;">Failed to load requests.</td></tr>`;
+            }
+        }
+
+        openPrivacyRequestModal(req) {
+            this.selectedPrivacyReq = req;
+            const modal = document.getElementById('adminPrivacyRequestModal');
+            if (!modal) return;
+
+            document.getElementById('modalPrivRef').textContent = req.reference_code;
+            document.getElementById('modalPrivUser').innerHTML = req.user ? `${this.escapeHtml(req.user.full_name || req.user.username)} (${req.user.frank_id})` : `User #${req.user_id}`;
+            document.getElementById('modalPrivType').textContent = req.request_type.replace('_', ' ').toUpperCase();
+            document.getElementById('modalPrivDeadline').textContent = req.deadline_at ? new Date(req.deadline_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '30 days';
+            document.getElementById('modalPrivSubject').textContent = req.subject || '—';
+            document.getElementById('modalPrivDetails').textContent = req.details || '—';
+
+            const corrWrap = document.getElementById('modalPrivCorrectionWrap');
+            const corrVal = document.getElementById('modalPrivCorrectionVal');
+            if (req.request_type === 'correct_data' && req.corrected_value) {
+                corrWrap.style.display = 'block';
+                corrVal.textContent = req.corrected_value;
+            } else {
+                corrWrap.style.display = 'none';
+            }
+
+            const statusSelect = document.getElementById('modalPrivStatusSelect');
+            if (statusSelect) statusSelect.value = req.status || 'submitted';
+
+            const notesText = document.getElementById('modalPrivDecisionNotes');
+            if (notesText) notesText.value = req.decision_notes || '';
+
+            const assignedInput = document.getElementById('modalPrivAssignedTo');
+            if (assignedInput) assignedInput.value = req.assigned_to || '';
+
+            modal.style.display = 'flex';
+        }
+
+        async savePrivacyRequestDecision() {
+            if (!this.selectedPrivacyReq || !window.api || !window.api.privacy) return;
+
+            const status = document.getElementById('modalPrivStatusSelect')?.value || 'submitted';
+            const notes = document.getElementById('modalPrivDecisionNotes')?.value.trim() || '';
+            const assignedTo = document.getElementById('modalPrivAssignedTo')?.value.trim() || '';
+
+            if ((status === 'completed' || status === 'rejected') && !notes) {
+                toast.warning('DPDP compliance requires decision notes explaining the rationale.');
+                return;
+            }
+
+            try {
+                const saveBtn = document.getElementById('saveAdminPrivacyReqModalBtn');
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.textContent = 'Saving...';
+                }
+
+                await window.api.privacy.updateAdminRequest(this.selectedPrivacyReq.reference_code, {
+                    status: status,
+                    decision_notes: notes,
+                    assigned_to: assignedTo
+                });
+
+                toast.success(`Request ${this.selectedPrivacyReq.reference_code} updated`);
+                const modal = document.getElementById('adminPrivacyRequestModal');
+                if (modal) modal.style.display = 'none';
+                this.selectedPrivacyReq = null;
+
+                await Promise.all([
+                    this.loadAdminPrivacyRequests(),
+                    this.loadPrivacyMetrics()
+                ]);
+            } catch (err) {
+                console.error('Failed to update privacy request:', err);
+                toast.error(err.message || 'Error updating privacy request');
+            } finally {
+                const saveBtn = document.getElementById('saveAdminPrivacyReqModalBtn');
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save Decision';
+                }
+            }
+        }
+
+        async loadAdminBreaches() {
+            const tbody = document.getElementById('adminBreachesTbody');
+            if (!tbody || !window.api || !window.api.privacy) return;
+
+            try {
+                const breaches = await window.api.privacy.getBreaches();
+                this.breaches = breaches;
+
+                if (!breaches || breaches.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">No security or data breach incidents recorded.</td></tr>`;
+                    return;
+                }
+
+                const getSeverityBadge = (sev) => {
+                    const map = {
+                        low: { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6', label: 'Low' },
+                        medium: { bg: 'rgba(234, 179, 8, 0.15)', text: '#eab308', label: 'Medium' },
+                        high: { bg: 'rgba(249, 115, 22, 0.15)', text: '#f97316', label: 'High' },
+                        critical: { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', label: 'Critical' }
+                    };
+                    const item = map[sev] || { bg: 'var(--surface-muted)', text: 'var(--text-muted)', label: sev };
+                    return `<span style="display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: ${item.bg}; color: ${item.text};">${item.label}</span>`;
+                };
+
+                tbody.innerHTML = breaches.map(b => {
+                    const reported = new Date(b.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                    const notified = b.authorities_notified ? `<span style="color: #22c55e; font-weight: 700;">Yes (DPBI)</span>` : `<span style="color: var(--text-muted);">Not Required</span>`;
+                    return `
+                        <tr>
+                            <td style="font-family: monospace; font-weight: 700; color: #ef4444;">${b.incident_reference}</td>
+                            <td style="font-weight: 600;">${this.escapeHtml(b.title)}</td>
+                            <td>${getSeverityBadge(b.severity)}</td>
+                            <td><span style="font-size: 12px; font-weight: 700; text-transform: uppercase;">${b.status}</span></td>
+                            <td style="font-size: 12px;">${this.escapeHtml(b.affected_systems || '—')}</td>
+                            <td style="font-size: 12px; color: var(--text-muted);">${reported}</td>
+                            <td style="font-size: 12px;">${notified}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.warn('Failed to load breaches:', err);
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #ef4444;">Failed to load breach log.</td></tr>`;
+            }
+        }
+
+        async submitLogBreach(e) {
+            e.preventDefault();
+            if (!window.api || !window.api.privacy) return;
+
+            const title = document.getElementById('breachTitleInput')?.value.trim();
+            const severity = document.getElementById('breachSeveritySelect')?.value || 'medium';
+            const systems = document.getElementById('breachSystemsInput')?.value.trim();
+            const dataImpacted = document.getElementById('breachDataImpactedInput')?.value.trim();
+            const containment = document.getElementById('breachContainmentInput')?.value.trim();
+            const authorityNotified = document.getElementById('breachAuthorityNotifiedInput')?.checked || false;
+
+            if (!title || !systems) {
+                toast.warning('Please provide incident title and affected systems.');
+                return;
+            }
+
+            try {
+                await window.api.privacy.createBreach({
+                    title: title,
+                    severity: severity,
+                    affected_systems: systems,
+                    personal_data_categories: dataImpacted,
+                    containment_steps: containment,
+                    authorities_notified: authorityNotified
+                });
+
+                toast.success('Breach incident logged to audit registry');
+                const modal = document.getElementById('adminLogBreachModal');
+                if (modal) modal.style.display = 'none';
+
+                await Promise.all([
+                    this.loadAdminBreaches(),
+                    this.loadPrivacyMetrics()
+                ]);
+            } catch (err) {
+                console.error('Failed to log breach incident:', err);
+                toast.error(err.message || 'Failed to log breach incident');
+            }
+        }
+
+        async loadAdminRetentionRules() {
+            const tbody = document.getElementById('adminRetentionTbody');
+            if (!tbody || !window.api || !window.api.privacy) return;
+
+            try {
+                const rules = await window.api.privacy.getRetentionRules();
+                this.retentionRules = rules;
+
+                if (!rules || rules.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">No retention rules configured.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = rules.map(rule => {
+                    const days = rule.retention_period_days === 0 ? 'Indefinite (Active Account)' : `${rule.retention_period_days} Days`;
+                    return `
+                        <tr>
+                            <td style="font-family: monospace; font-size: 12px; font-weight: 700; color: var(--accent);">${rule.category_code}</td>
+                            <td style="font-weight: 600;">${this.escapeHtml(rule.display_name)}</td>
+                            <td style="font-family: monospace; font-size: 11px;">${this.escapeHtml(rule.table_name)}</td>
+                            <td style="font-weight: 700;">${days}</td>
+                            <td style="font-size: 12px; text-transform: capitalize;">${rule.disposal_method}</td>
+                            <td style="font-size: 11.5px; color: var(--text-muted); max-width: 180px;">${this.escapeHtml(rule.legal_basis)}</td>
+                            <td>
+                                <span style="display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: rgba(34, 197, 94, 0.15); color: #22c55e;">Active</span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.warn('Failed to load retention rules:', err);
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #ef4444;">Failed to load retention rules.</td></tr>`;
             }
         }
     }

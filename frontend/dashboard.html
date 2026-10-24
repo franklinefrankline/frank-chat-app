@@ -28,6 +28,7 @@
     <link rel="stylesheet" href="css/office_workspace.css">
     <link rel="stylesheet" href="css/doc_viewer.css">
     <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/cookie_consent.css">
 </head>
 <body data-theme="sandstone">
     <!-- Custom Desktop Cursor (Miniature FRANK F) -->
@@ -99,7 +100,7 @@
             <div class="top-header-right">
                 <!-- Language Selector Dropdown -->
                 <div class="lang-selector-container" id="dashLangSelector">
-                    <button type="button" class="btn btn-ghost lang-btn" id="dashLangDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language" style="padding: 5px 10px; font-size: 13px; min-height: 32px;">
+                    <button type="button" class="btn btn-ghost lang-btn" id="dashLangDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language">
                         <svg class="lang-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <circle cx="12" cy="12" r="10"></circle>
                             <line x1="2" y1="12" x2="22" y2="12"></line>
@@ -117,18 +118,34 @@
                     </div>
                 </div>
 
-                <!-- Notification Bell Button -->
-                <button type="button" class="btn btn-ghost btn-icon top-header-notification-btn" id="topHeaderNotificationBtn" aria-label="Notifications" title="Notifications">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                    </svg>
-                </button>
+                <!-- Notification Bell Button & Popover -->
+                <div class="top-header-notif-wrap" id="topHeaderNotifWrap" style="position: relative;">
+                    <button type="button" class="btn btn-ghost btn-icon top-header-notification-btn" id="topHeaderNotificationBtn" aria-label="Notifications" title="Notifications" aria-haspopup="true" aria-expanded="false">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                        </svg>
+                    </button>
+                    <div class="dropdown-menu top-header-notif-dropdown" id="topHeaderNotifDropdown" role="menu" aria-label="Notifications Menu">
+                        <div class="dropdown-user-header" style="padding: 10px 14px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Notifications</span>
+                            <span class="status-dot-sm online" title="Active"></span>
+                        </div>
+                        <div style="padding: 14px; font-size: 12.5px; color: var(--text-muted); text-align: center;">
+                            No new unread alerts
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="settings.html?tab=notifications" class="dropdown-item" style="font-size: 12.5px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            <span>Notification Settings</span>
+                        </a>
+                    </div>
+                </div>
 
                 <!-- Desktop Profile Button with dropdown -->
                 <div class="desktop-profile-btn-wrap" id="desktopProfileBtnWrap" style="position: relative;">
                     <button type="button" class="btn btn-ghost desktop-profile-trigger" id="desktopProfileBtn" aria-label="Open user menu" title="User Profile" aria-haspopup="true" aria-expanded="false">
-                        <div class="avatar avatar-sm" id="desktopHeaderAvatar" style="width: 32px; height: 32px; font-size: 12px; font-weight: 700; cursor: pointer;">
+                        <div class="avatar avatar-sm" id="desktopHeaderAvatar">
                             <span id="desktopHeaderInitials">CU</span>
                         </div>
                         <div class="top-header-user-meta">
@@ -2006,6 +2023,7 @@
     <script src="js/smart.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/cookie_consent.js"></script>
 
     <!-- Guaranteed Instant Fade-out for App Loading Screen -->
     <script>

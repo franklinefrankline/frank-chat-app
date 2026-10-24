@@ -54,6 +54,34 @@ def sanitize_message_content(content: str) -> str:
     return sanitized.strip()
 
 
+# ---------------- DPDP CONSENT ENFORCEMENT ----------------
+def user_has_ai_consent(user_or_id: Any, db_session: Optional[Session] = None) -> bool:
+    """Verifies that the user has granted consent for external AI processing under DPDP Act."""
+    # Support polymorphic calling: (user, db) or (db, user_id)
+    if hasattr(user_or_id, "query") and not hasattr(db_session, "query"):
+        db = user_or_id
+        target = db_session
+    else:
+        db = db_session
+        target = user_or_id
+
+    if not target or not db:
+        return True
+
+    try:
+        db.expire_all()
+        user_id = target.id if hasattr(target, "id") else int(target)
+        rec = db.query(models.ConsentRecord).filter(
+            models.ConsentRecord.user_id == user_id,
+            models.ConsentRecord.purpose_key == "ai_processing"
+        ).first()
+        if rec and rec.status == "withdrawn":
+            return False
+    except Exception as e:
+        print(f"Error checking AI consent: {e}")
+    return True
+
+
 # ---------------- AI PROVIDER BASE & IMPLEMENTATIONS ----------------
 
 class AIProvider:
@@ -784,7 +812,7 @@ class SmartConversationService:
                     provider="cache"
                 )
 
-        gemini_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        gemini_api_key = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")) if user_has_ai_consent(current_user, db) else None
         ai_res = None
         if gemini_api_key:
             msgs_text = "\n".join(f"{m['sender_name']}: {m['content']}" for m in messages)
@@ -966,7 +994,7 @@ class SmartConversationService:
             conversation_id, conversation_type, current_user, db, limit=120, message_id=message_id
         )
 
-        gemini_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        gemini_api_key = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")) if user_has_ai_consent(current_user, db) else None
         items = []
 
         if gemini_api_key and messages:
@@ -1781,7 +1809,7 @@ class SmartConversationService:
         content = msg.content or ""
         clean_content = sanitize_message_content(content)
 
-        gemini_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        gemini_api_key = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")) if user_has_ai_consent(current_user, db) else None
         ai_analysis = None
         if gemini_api_key:
             ai_analysis = await self._call_gemini_message_analysis(clean_content, sender_name, gemini_api_key)
@@ -1880,7 +1908,7 @@ class SmartConversationService:
             except Exception as e:
                 logger.warning(f"Error extracting document text from db base64 payload: {e}")
 
-        gemini_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        gemini_api_key = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")) if user_has_ai_consent(current_user, db) else None
         analysis = None
         if gemini_api_key and extracted_text:
             analysis = await self._call_gemini_document_analysis(filename, extracted_text[:3000], gemini_api_key)
@@ -2095,15 +2123,18 @@ class SmartConversationService:
                     "timestamp": schemas.format_iso_utc(target_msg.created_at) or "",
                 }
 
-            # Call live Gemini AI provider
+            # Call live Gemini AI provider if user has granted AI consent
             ai_output = None
-            try:
-                ai_output = await gemini_provider.analyze_message_or_document(
-                    message=msg_payload,
-                    document=doc_payload
-                )
-            except Exception as e:
-                logger.error(f"Error calling gemini_provider in targeted analysis: {e}")
+            if user_has_ai_consent(current_user, db):
+                try:
+                    ai_output = await gemini_provider.analyze_message_or_document(
+                        message=msg_payload,
+                        document=doc_payload
+                    )
+                except Exception as e:
+                    logger.error(f"Error calling gemini_provider in targeted analysis: {e}")
+            else:
+                logger.info(f"User {current_user.id} has withdrawn AI consent. Falling back to built-in NLP engine.")
 
             # If Gemini succeeded, populate from AI
             if ai_output and isinstance(ai_output, dict):
@@ -2331,22 +2362,25 @@ class SmartConversationService:
             for f in docs_res.files
         ]
 
-        # Try live Gemini conversation analysis
+        # Try live Gemini conversation analysis if user has granted AI consent
         ai_output = None
-        try:
-            ai_output = await gemini_provider.analyze_conversation(
-                messages=[
-                    {
-                        "id": str(m["id"]),
-                        "sender_name": m["sender_name"],
-                        "content": m["content"],
-                        "timestamp": m.get("timestamp", "")
-                    }
-                    for m in messages
-                ]
-            )
-        except Exception as e:
-            logger.error(f"Error calling gemini_provider in full conversation analysis: {e}")
+        if user_has_ai_consent(current_user, db):
+            try:
+                ai_output = await gemini_provider.analyze_conversation(
+                    messages=[
+                        {
+                            "id": str(m["id"]),
+                            "sender_name": m["sender_name"],
+                            "content": m["content"],
+                            "timestamp": m.get("timestamp", "")
+                        }
+                        for m in messages
+                    ]
+                )
+            except Exception as e:
+                logger.error(f"Error calling gemini_provider in full conversation analysis: {e}")
+        else:
+            logger.info(f"User {current_user.id} has withdrawn AI consent. Falling back to built-in NLP engine.")
 
         if ai_output and isinstance(ai_output, dict):
             summary_data = ai_output.get("summary", {})

@@ -73,8 +73,19 @@ async function runTests() {
         }
     }
 
+    // --- TEST 0: Favicon Verification ---
+    console.log('0. Checking /favicon.ico:');
+    try {
+        const res = await fetchUrl('/favicon.ico');
+        assert('Returns HTTP 200', res.statusCode === 200, `Got ${res.statusCode}`);
+        assert('Content-Type is image/x-icon or icon', res.headers['content-type'] && (res.headers['content-type'].includes('image/x-icon') || res.headers['content-type'].includes('icon') || res.headers['content-type'].includes('image/png')), res.headers['content-type']);
+        assert('Favicon body is not empty', res.body && res.body.length > 0);
+    } catch (err) {
+        assert('Fetch /favicon.ico succeeded', false, err.message);
+    }
+
     // --- TEST 1: robots.txt ---
-    console.log('1. Checking /robots.txt:');
+    console.log('\n1. Checking /robots.txt:');
     try {
         const res = await fetchUrl('/robots.txt');
         assert('Returns HTTP 200', res.statusCode === 200, `Got ${res.statusCode}`);
@@ -84,10 +95,13 @@ async function runTests() {
         assert('Allows public root /', res.body.includes('Allow: /'));
         assert('Allows /login', res.body.includes('Allow: /login'));
         assert('Allows /register', res.body.includes('Allow: /register'));
+        assert('Allows /privacy', res.body.includes('Allow: /privacy'));
         assert('Allows assets and styling', res.body.includes('Allow: /assets/') && res.body.includes('Allow: /css/'));
-        assert('Disallows private dashboard', res.body.includes('Disallow: /dashboard'));
-        assert('Disallows admin', res.body.includes('Disallow: /admin'));
+        assert('Disallows private dashboard with wildcard', res.body.includes('Disallow: /dashboard*'));
+        assert('Disallows admin with wildcard', res.body.includes('Disallow: /admin*'));
+        assert('Disallows privacy dashboard with wildcard', res.body.includes('Disallow: /privacy-dashboard*'));
         assert('Disallows api', res.body.includes('Disallow: /api/'));
+        assert('Disallows uploads', res.body.includes('Disallow: /uploads/'));
     } catch (err) {
         assert('Fetch /robots.txt succeeded', false, err.message);
     }
@@ -102,6 +116,7 @@ async function runTests() {
         assert('Lists primary homepage: https://fnk.vercel.app/', res.body.includes('<loc>https://fnk.vercel.app/</loc>'));
         assert('Lists login page: https://fnk.vercel.app/login', res.body.includes('<loc>https://fnk.vercel.app/login</loc>'));
         assert('Lists register page: https://fnk.vercel.app/register', res.body.includes('<loc>https://fnk.vercel.app/register</loc>'));
+        assert('Lists privacy page: https://fnk.vercel.app/privacy', res.body.includes('<loc>https://fnk.vercel.app/privacy</loc>'));
         assert('Does not include private chat or dashboard URLs', !res.body.includes('/dashboard') && !res.body.includes('/chat') && !res.body.includes('/admin'));
     } catch (err) {
         assert('Fetch /sitemap.xml succeeded', false, err.message);
@@ -115,7 +130,6 @@ async function runTests() {
         
         const title = parseTitle(res.body);
         const expectedTitle = 'FRANK Think — Chat, Connect & Collaborate';
-        // Note: HTML entities might be unescaped or escaped
         const normalizedTitle = title ? title.replace(/&amp;/g, '&') : '';
         assert('Homepage Title matches specification', normalizedTitle === expectedTitle, `Got: "${title}"`);
 
@@ -131,10 +145,21 @@ async function runTests() {
         assert('Structured data JSON-LD exists and is valid JSON', jsonLd && !jsonLd.error, jsonLd ? jsonLd.error : 'Not found');
         if (jsonLd && !jsonLd.error) {
             assert('JSON-LD @context is https://schema.org', jsonLd['@context'] === 'https://schema.org');
-            assert('JSON-LD @type is WebSite', jsonLd['@type'] === 'WebSite');
-            assert('JSON-LD name is FRANK Think', jsonLd['name'] === 'FRANK Think');
-            assert('JSON-LD alternateName is FRANK', jsonLd['alternateName'] === 'FRANK');
-            assert('JSON-LD url is https://fnk.vercel.app/', jsonLd['url'] === 'https://fnk.vercel.app/');
+            const graph = jsonLd['@graph'] || [jsonLd];
+            const websiteNode = graph.find(n => n['@type'] === 'WebSite');
+            const appNode = graph.find(n => n['@type'] === 'SoftwareApplication');
+            const orgNode = graph.find(n => n['@type'] === 'Organization');
+            assert('JSON-LD contains WebSite schema', !!websiteNode);
+            assert('JSON-LD contains SoftwareApplication schema', !!appNode);
+            assert('JSON-LD contains Organization schema with logo', !!orgNode && !!orgNode.logo);
+            if (orgNode && orgNode.logo) {
+                const logoUrl = typeof orgNode.logo === 'string' ? orgNode.logo : orgNode.logo.url;
+                assert('Organization logo URL points to frank-logo.png', logoUrl.includes('frank-logo.png'));
+            }
+            if (websiteNode) {
+                assert('JSON-LD name is FRANK Think', websiteNode['name'] === 'FRANK Think');
+                assert('JSON-LD url is https://fnk.vercel.app/', websiteNode['url'] === 'https://fnk.vercel.app/');
+            }
         }
 
         // Open Graph
@@ -173,6 +198,18 @@ async function runTests() {
         assert('Description describes sign-in', desc && desc.includes('FRANK Think'), `Got: "${desc}"`);
         const robotsMeta = parseMeta(res.body, 'robots');
         assert('Login page is indexable (no noindex)', !robotsMeta || !robotsMeta.includes('noindex'));
+
+        // Structured Data
+        const jsonLd = parseJsonLd(res.body);
+        assert('Login JSON-LD exists and has WebPage schema', jsonLd && jsonLd['@type'] === 'WebPage');
+
+        // Heading hierarchy
+        const h1Matches = res.body.match(/<h1[^>]*>/gi);
+        assert('Login page has exactly one <h1> heading', h1Matches && h1Matches.length === 1);
+
+        // Back to home link & Favicon
+        assert('Login page contains back-to-home link', res.body.includes('href="index.html"'));
+        assert('Login page contains favicon.ico link', res.body.includes('href="favicon.ico"'));
     } catch (err) {
         assert('Fetch /login succeeded', false, err.message);
     }
@@ -190,12 +227,54 @@ async function runTests() {
         assert('Description describes account creation', desc && desc.includes('FRANK Think'), `Got: "${desc}"`);
         const robotsMeta = parseMeta(res.body, 'robots');
         assert('Register page is indexable (no noindex)', !robotsMeta || !robotsMeta.includes('noindex'));
+
+        // Structured Data
+        const jsonLd = parseJsonLd(res.body);
+        assert('Register JSON-LD exists and has WebPage schema', jsonLd && jsonLd['@type'] === 'WebPage');
+
+        // Heading hierarchy
+        const h1Matches = res.body.match(/<h1[^>]*>/gi);
+        assert('Register page has exactly one <h1> heading', h1Matches && h1Matches.length === 1);
+
+        // Back to home link & Favicon
+        assert('Register page contains back-to-home link', res.body.includes('href="index.html"'));
+        assert('Register page contains favicon.ico link', res.body.includes('href="favicon.ico"'));
     } catch (err) {
         assert('Fetch /register succeeded', false, err.message);
     }
 
-    // --- TEST 6: Protected Pages (noindex, nofollow) ---
-    console.log('\n6. Checking Protected Pages for noindex, nofollow:');
+    // --- TEST 6: Privacy Policy Page SEO (/privacy) ---
+    console.log('\n6. Checking Privacy Policy Page (/privacy):');
+    try {
+        const res = await fetchUrl('/privacy');
+        assert('Returns HTTP 200', res.statusCode === 200, `Got ${res.statusCode}`);
+        const title = parseTitle(res.body);
+        const normalizedTitle = title ? title.replace(/&amp;/g, '&') : '';
+        assert('Title is Privacy Policy & Data Protection Notice — FRANK Think', normalizedTitle.includes('Privacy Policy') && normalizedTitle.includes('FRANK Think'), `Got: "${title}"`);
+        const canonical = parseCanonical(res.body);
+        assert('Canonical is https://fnk.vercel.app/privacy', canonical === 'https://fnk.vercel.app/privacy', `Got: "${canonical}"`);
+        const desc = parseMeta(res.body, 'description');
+        assert('Description covers privacy rights', desc && desc.includes('FRANK Think'), `Got: "${desc}"`);
+        const robotsMeta = parseMeta(res.body, 'robots');
+        assert('Privacy Policy is indexable (no noindex)', !robotsMeta || !robotsMeta.includes('noindex'));
+
+        // Structured Data
+        const jsonLd = parseJsonLd(res.body);
+        assert('Privacy Policy JSON-LD exists and has WebPage schema', jsonLd && jsonLd['@type'] === 'WebPage');
+
+        // Open Graph & Twitter
+        assert('og:title is present on Privacy Policy', !!parseMeta(res.body, 'og:title'));
+        assert('twitter:card is present on Privacy Policy', !!parseMeta(res.body, 'twitter:card'));
+
+        // Heading hierarchy
+        const h1Matches = res.body.match(/<h1[^>]*>/gi);
+        assert('Privacy Policy has exactly one <h1> heading', h1Matches && h1Matches.length === 1);
+    } catch (err) {
+        assert('Fetch /privacy succeeded', false, err.message);
+    }
+
+    // --- TEST 7: Protected Pages & X-Robots-Tag Headers ---
+    console.log('\n7. Checking Protected Pages & X-Robots-Tag Headers:');
     const protectedPages = [
         { path: '/dashboard.html', name: 'Dashboard' },
         { path: '/profile.html', name: 'Profile' },
@@ -203,6 +282,7 @@ async function runTests() {
         { path: '/admin.html', name: 'Admin Console' },
         { path: '/forgot-password.html', name: 'Forgot Password' },
         { path: '/reset-password.html', name: 'Reset Password' },
+        { path: '/privacy-dashboard.html', name: 'Privacy Dashboard Redirect' },
         { path: '/404.html', name: '404 Page' }
     ];
 
@@ -210,7 +290,7 @@ async function runTests() {
         try {
             const res = await fetchUrl(p.path);
             const robots = parseMeta(res.body, 'robots');
-            assert(`${p.name} (${p.path}) has noindex, nofollow`, robots && robots.includes('noindex') && robots.includes('nofollow'), `Got: "${robots}"`);
+            assert(`${p.name} (${p.path}) HTML meta has noindex, nofollow`, robots && robots.includes('noindex') && robots.includes('nofollow'), `Got: "${robots}"`);
             const title = parseTitle(res.body);
             assert(`${p.name} has brand title mentioning FRANK Think`, title && title.includes('FRANK Think'), `Got: "${title}"`);
         } catch (err) {
@@ -218,22 +298,35 @@ async function runTests() {
         }
     }
 
-    // --- TEST 7: Mirror Consistency ---
-    console.log('\n7. Checking Mirror Files Consistency:');
+    // Test X-Robots-Tag on private endpoints
+    console.log('\n8. Checking X-Robots-Tag header on API & Private Routes:');
+    const apiAndPrivateRoutes = ['/api/health', '/dashboard', '/settings', '/profile', '/admin'];
+    for (const r of apiAndPrivateRoutes) {
+        try {
+            const res = await fetchUrl(r);
+            const xRobots = res.headers['x-robots-tag'];
+            assert(`${r} returns X-Robots-Tag: noindex, nofollow`, xRobots && xRobots.includes('noindex'), `Got: "${xRobots}"`);
+        } catch (err) {
+            assert(`Check X-Robots-Tag on ${r} succeeded`, false, err.message);
+        }
+    }
+
+    // --- TEST 9: Mirror Consistency ---
+    console.log('\n9. Checking Mirror Files Consistency:');
     const mirrors = [
         path.join(ROOT_DIR, 'frontend'),
         path.join(ROOT_DIR, 'backend', 'frontend'),
         path.join(ROOT_DIR, 'api', '_backend', 'frontend')
     ];
-    const testFiles = ['index.html', 'login.html', 'register.html', 'robots.txt', 'sitemap.xml'];
+    const testFiles = ['index.html', 'login.html', 'register.html', 'privacy.html', 'privacy-dashboard.html', 'robots.txt', 'sitemap.xml', 'favicon.ico'];
     for (const file of testFiles) {
-        const rootContent = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
+        const rootContent = fs.readFileSync(path.join(ROOT_DIR, file));
         for (const mirror of mirrors) {
             const mirrorFile = path.join(mirror, file);
             assert(`${path.relative(ROOT_DIR, mirrorFile)} exists`, fs.existsSync(mirrorFile));
             if (fs.existsSync(mirrorFile)) {
-                const mirrorContent = fs.readFileSync(mirrorFile, 'utf8');
-                assert(`${path.relative(ROOT_DIR, mirrorFile)} content matches root`, mirrorContent === rootContent);
+                const mirrorContent = fs.readFileSync(mirrorFile);
+                assert(`${path.relative(ROOT_DIR, mirrorFile)} content matches root`, mirrorContent.equals(rootContent));
             }
         }
     }

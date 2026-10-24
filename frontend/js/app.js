@@ -494,15 +494,36 @@ class AppController {
         });
 
         if (filtered.length === 0) {
+            const hasQuery = Boolean(this.searchQuery);
             listContainer.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon" style="width:48px; height:48px;">
+                <div class="empty-state" style="padding: 32px 16px; text-align: center;">
+                    <div class="empty-state-icon" style="width:48px; height:48px; margin: 0 auto 10px;">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </div>
-                    <div style="font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px;">No conversations found</div>
-                    <p class="empty-state-desc" style="font-size:12px;">Start a new chat using the button above.</p>
+                    <div style="font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px;">${hasQuery ? 'No matching conversations' : 'No conversations found'}</div>
+                    <p class="empty-state-desc" style="font-size:12px; margin-bottom:8px;">${hasQuery ? `No conversation matching "${messagesModule.escapeHTML(this.searchQuery)}"` : 'Start a new chat using the button above.'}</p>
+                    ${hasQuery ? `
+                    <button type="button" class="btn btn-primary btn-sm" id="searchUsersDirectBtn" style="margin-top:8px; display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <span>Search all users &amp; FRANK IDs</span>
+                    </button>
+                    ` : ''}
                 </div>
             `;
+            const searchAllBtn = listContainer.querySelector('#searchUsersDirectBtn');
+            if (searchAllBtn) {
+                searchAllBtn.addEventListener('click', () => {
+                    const modal = document.getElementById('newChatModal');
+                    if (modal) {
+                        modal.classList.add('show', 'active');
+                        const searchInput = modal.querySelector('input[type="text"], input[type="search"]');
+                        if (searchInput) {
+                            searchInput.value = this.searchQuery;
+                            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    }
+                });
+            }
             return;
         }
 
@@ -545,7 +566,7 @@ class AppController {
                     <div class="conversation-row">
                         <span class="conversation-name">
                             ${isGroup ? '<span class="group-prefix-badge">Group</span> ' : ''}${messagesModule.escapeHTML(conv.name)}
-                            ${isSelf ? '<span class="self-prefix-badge" style="background: rgba(37, 99, 235, 0.15); color: var(--primary); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">Notes</span>' : ''}
+                            ${isSelf ? '<span class="self-prefix-badge" style="background: var(--primary-soft, rgba(184, 107, 61, 0.15)); color: var(--primary, #B86B3D); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">Notes</span>' : ''}
                         </span>
                         <span class="conversation-time">${timeStr}</span>
                     </div>
@@ -1004,15 +1025,30 @@ class AppController {
 
     setupNotificationsBtn() {
         const notifBtn = document.getElementById('topHeaderNotificationBtn');
-        notifBtn?.addEventListener('click', () => {
-            if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission().then(permission => {
-                    if (typeof window.showToast === 'function') {
-                        window.showToast(`Notifications: ${permission}`, 'info');
-                    }
-                });
+        const notifDropdown = document.getElementById('topHeaderNotifDropdown');
+        if (!notifBtn || !notifDropdown) return;
+
+        notifBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = notifDropdown.classList.contains('show');
+            document.getElementById('desktopProfileDropdown')?.classList.remove('show', 'open');
+            document.getElementById('dashLangDropdownMenu')?.classList.remove('show');
+            if (isOpen) {
+                notifDropdown.classList.remove('show');
+                notifBtn.setAttribute('aria-expanded', 'false');
             } else {
-                window.location.href = 'settings.html?tab=notifications';
+                notifDropdown.classList.add('show');
+                notifBtn.setAttribute('aria-expanded', 'true');
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#topHeaderNotifWrap')) {
+                notifDropdown.classList.remove('show');
+                notifBtn.setAttribute('aria-expanded', 'false');
             }
         });
     }

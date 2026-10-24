@@ -1594,12 +1594,206 @@ const api = {
         return this.request(`/api/ai/status`);
     },
 
+    // -------------------------------------------------------------------------
+    // DPDP PRIVACY & DATA PROTECTION APIS
+    // -------------------------------------------------------------------------
+    async getPrivacyPolicy() {
+        return this.request('/api/privacy/policy');
+    },
+
+    async getConsents() {
+        return this.request('/api/privacy/consents');
+    },
+
+    async updateConsent(purpose_key, status) {
+        return this.request('/api/privacy/consents', {
+            method: 'POST',
+            body: JSON.stringify({ purpose_key, status })
+        });
+    },
+
+    async getPersonalDataSummary() {
+        return this.request('/api/privacy/me/summary');
+    },
+
+    async exportPersonalData() {
+        return this.request('/api/privacy/me/export');
+    },
+
+    async submitPrivacyRequest(data) {
+        return this.request('/api/privacy/requests', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async getPrivacyRequests(page = 1, limit = 20) {
+        return this.request(`/api/privacy/requests?page=${page}&limit=${limit}`);
+    },
+
+    async getPrivacyRequest(ref) {
+        return this.request(`/api/privacy/requests/${encodeURIComponent(ref)}`);
+    },
+
+    async eraseAccount(data) {
+        return this.request('/api/privacy/erase-account', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async getDataInventory() {
+        return this.request('/api/privacy/data-inventory');
+    },
+
+    // Admin Privacy APIs
+    async adminGetPrivacyRequests(params = {}) {
+        const qs = new URLSearchParams();
+        if (params.status) qs.append('status', params.status);
+        if (params.type) qs.append('type', params.type);
+        if (params.q) qs.append('q', params.q);
+        if (params.page) qs.append('page', params.page);
+        if (params.limit) qs.append('limit', params.limit);
+        const query = qs.toString() ? `?${qs.toString()}` : '';
+        return this.request(`/api/admin/privacy/requests${query}`);
+    },
+
+    async adminUpdatePrivacyRequest(id, data) {
+        return this.request(`/api/admin/privacy/requests/${id}/status`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async adminGetDataBreaches() {
+        return this.request('/api/admin/privacy/breaches');
+    },
+
+    async adminCreateDataBreach(data) {
+        return this.request('/api/admin/privacy/breaches', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async adminUpdateDataBreach(id, data) {
+        return this.request(`/api/admin/privacy/breaches/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async adminGetRetentionRules() {
+        return this.request('/api/admin/privacy/retention-rules');
+    },
+
+    async adminUpdateRetentionRule(id, data) {
+        return this.request(`/api/admin/privacy/retention-rules/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    },
 
     // Logout
     logout() {
         this.setToken(null);
         localStorage.removeItem('chatapp_user');
         window.location.href = 'login.html?logout=1';
+    }
+};
+
+// Data Protection & Privacy Rights API Client (DPDP Act 2023 / Rules 2025)
+api.privacy = {
+    getSummary() {
+        return api.request('/api/privacy/me/summary');
+    },
+    getConsents() {
+        return api.request('/api/privacy/consents');
+    },
+    updateConsents(data) {
+        return api.request('/api/privacy/consents', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+    exportData() {
+        return api.request('/api/privacy/me/export');
+    },
+    createRequest(payload) {
+        return api.request('/api/privacy/requests', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+    },
+    getMyRequests() {
+        return api.request('/api/privacy/requests');
+    },
+    getRequest(ref) {
+        return api.request(`/api/privacy/requests/${encodeURIComponent(ref)}`);
+    },
+    eraseAccount(payload) {
+        return api.request('/api/privacy/erase-account', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+    },
+    getPolicy() {
+        return api.request('/api/privacy/policy');
+    },
+    getDataInventory() {
+        return api.request('/api/privacy/data-inventory');
+    },
+    // Admin Privacy Operations
+    getAdminRequests(params = {}) {
+        const qs = new URLSearchParams();
+        if (params.status) qs.append('status', params.status);
+        if (params.request_type) qs.append('request_type', params.request_type);
+        if (params.type) qs.append('request_type', params.type);
+        if (params.q) qs.append('q', params.q);
+        const query = qs.toString() ? `?${qs.toString()}` : '';
+        return api.request(`/api/privacy/admin/requests${query}`);
+    },
+    updateAdminRequest(reference, data) {
+        return api.request(`/api/privacy/admin/requests/${encodeURIComponent(reference)}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    },
+    getBreaches() {
+        return api.request('/api/privacy/admin/breaches');
+    },
+    createBreach(data) {
+        return api.request('/api/privacy/admin/breaches', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+    getRetentionRules() {
+        return api.request('/api/privacy/admin/retention-rules');
+    },
+    updateRetentionRule(id, data) {
+        return api.request(`/api/privacy/admin/retention-rules/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    },
+    getRetentionSchedule() {
+        return api.request('/api/privacy/retention-schedule');
+    },
+    getLifecyclePreview(ref) {
+        return api.request(`/api/privacy/requests/${encodeURIComponent(ref)}/lifecycle-preview`);
+    },
+    executeErasureLifecycle(ref, payload = {}) {
+        return api.request(`/api/privacy/admin/requests/${encodeURIComponent(ref)}/execute-lifecycle`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+    },
+    evaluateRetention(payload = {}) {
+        return api.request('/api/privacy/admin/retention/evaluate', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
     }
 };
 
