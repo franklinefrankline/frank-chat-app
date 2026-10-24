@@ -432,3 +432,26 @@ class DataRetentionRule(Base):
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
     updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
 
+
+class ComplianceFinding(Base):
+    __tablename__ = "compliance_findings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    finding_reference = Column(String(50), unique=True, index=True, nullable=False)  # CF-YYYYMMDD-XXXXXX
+    title = Column(String(255), nullable=False)
+    category = Column(String(50), nullable=False, index=True)  # privacy_policy, consent_management, data_rights, data_retention, security_safeguards, ai_processing, third_party_transfers, audit_logging
+    severity = Column(String(20), default="medium", nullable=False)  # low, medium, high, critical
+    status = Column(String(30), default="Open", index=True, nullable=False)  # Open, In Progress, Under Review, Resolved, Accepted Risk
+    assigned_role_or_owner = Column(String(100), default="Data Protection Officer", nullable=False)
+    description = Column(Text, nullable=False)
+    recommended_remediation = Column(Text, nullable=True)
+    resolution_rationale = Column(Text, nullable=True)  # Mandatory for Resolved or Accepted Risk
+    review_notes = Column(Text, nullable=True)
+    assessment_date = Column(DateTime(timezone=True), default=get_utc_now)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+    created_by = relationship("User")
+
+

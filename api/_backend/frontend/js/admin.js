@@ -69,6 +69,8 @@
             this.breaches = [];
             this.retentionRules = [];
             this.selectedPrivacyReq = null;
+            this.complianceFindings = [];
+            this.selectedFinding = null;
         }
 
         async init() {
@@ -1744,48 +1746,67 @@
            DPDP PRIVACY & DATA PROTECTION MODULE
            ----------------------------------------------------------------- */
         bindPrivacyEvents() {
-            // Subtab navigation
+            // Subtab navigation (7 tabs)
             const tabReqs = document.getElementById('adminPrivacyTabRequestsBtn');
+            const tabCompliance = document.getElementById('adminPrivacyTabComplianceBtn');
+            const tabChecklist = document.getElementById('adminPrivacyTabChecklistBtn');
+            const tabFindings = document.getElementById('adminPrivacyTabFindingsBtn');
+            const tabEvidence = document.getElementById('adminPrivacyTabEvidenceBtn');
             const tabBreaches = document.getElementById('adminPrivacyTabBreachesBtn');
             const tabRetention = document.getElementById('adminPrivacyTabRetentionBtn');
 
             const panelReqs = document.getElementById('adminPrivacyPanelRequests');
+            const panelCompliance = document.getElementById('adminPrivacyPanelCompliance');
+            const panelChecklist = document.getElementById('adminPrivacyPanelChecklist');
+            const panelFindings = document.getElementById('adminPrivacyPanelFindings');
+            const panelEvidence = document.getElementById('adminPrivacyPanelEvidence');
             const panelBreaches = document.getElementById('adminPrivacyPanelBreaches');
             const panelRetention = document.getElementById('adminPrivacyPanelRetention');
 
-            const setSubtab = (activeTab, activePanel) => {
-                [tabReqs, tabBreaches, tabRetention].forEach(t => {
-                    if (t) {
-                        t.classList.remove('active');
-                        t.style.borderBottom = 'none';
-                        t.style.fontWeight = '600';
-                        t.style.color = 'var(--text-muted)';
+            const tabs = [
+                { btn: tabReqs, panel: panelReqs, onShow: () => this.loadAdminPrivacyRequests() },
+                { btn: tabCompliance, panel: panelCompliance, onShow: () => this.loadComplianceOverview() },
+                { btn: tabChecklist, panel: panelChecklist, onShow: () => this.loadComplianceChecklist() },
+                { btn: tabFindings, panel: panelFindings, onShow: () => this.loadComplianceFindings() },
+                { btn: tabEvidence, panel: panelEvidence, onShow: () => this.loadComplianceEvidence() },
+                { btn: tabBreaches, panel: panelBreaches, onShow: () => this.loadAdminBreaches() },
+                { btn: tabRetention, panel: panelRetention, onShow: () => this.loadAdminRetentionRules() }
+            ];
+
+            const setSubtab = (activeItem) => {
+                tabs.forEach(item => {
+                    if (item.btn) {
+                        item.btn.classList.remove('active');
+                        item.btn.style.borderBottom = 'none';
+                        item.btn.style.fontWeight = '600';
+                        item.btn.style.color = 'var(--text-muted)';
+                    }
+                    if (item.panel) {
+                        item.panel.style.display = 'none';
                     }
                 });
-                [panelReqs, panelBreaches, panelRetention].forEach(p => {
-                    if (p) p.style.display = 'none';
-                });
 
-                if (activeTab) {
-                    activeTab.classList.add('active');
-                    activeTab.style.borderBottom = '2px solid var(--accent)';
-                    activeTab.style.fontWeight = '700';
-                    activeTab.style.color = 'var(--accent)';
+                if (activeItem.btn) {
+                    activeItem.btn.classList.add('active');
+                    activeItem.btn.style.borderBottom = '2px solid var(--accent)';
+                    activeItem.btn.style.fontWeight = '700';
+                    activeItem.btn.style.color = 'var(--accent)';
                 }
-                if (activePanel) activePanel.style.display = 'block';
+                if (activeItem.panel) {
+                    activeItem.panel.style.display = 'block';
+                }
+                if (activeItem.onShow) {
+                    activeItem.onShow();
+                }
             };
 
-            if (tabReqs) tabReqs.addEventListener('click', () => setSubtab(tabReqs, panelReqs));
-            if (tabBreaches) tabBreaches.addEventListener('click', () => {
-                setSubtab(tabBreaches, panelBreaches);
-                this.loadAdminBreaches();
-            });
-            if (tabRetention) tabRetention.addEventListener('click', () => {
-                setSubtab(tabRetention, panelRetention);
-                this.loadAdminRetentionRules();
+            tabs.forEach(item => {
+                if (item.btn) {
+                    item.btn.addEventListener('click', () => setSubtab(item));
+                }
             });
 
-            // Filters & Search
+            // Filters & Search for Privacy Requests
             const searchInput = document.getElementById('adminPrivacySearchInput');
             const statusFilter = document.getElementById('adminPrivacyStatusFilter');
             const typeFilter = document.getElementById('adminPrivacyTypeFilter');
@@ -1804,9 +1825,21 @@
             if (statusFilter) statusFilter.addEventListener('change', handleFilterChange);
             if (typeFilter) typeFilter.addEventListener('change', handleFilterChange);
 
+            // Filters for Compliance Findings
+            const findStatus = document.getElementById('adminFindingsStatusFilter');
+            const findSev = document.getElementById('adminFindingsSeverityFilter');
+            const findCat = document.getElementById('adminFindingsCategoryFilter');
+            [findStatus, findSev, findCat].forEach(el => {
+                if (el) el.addEventListener('change', () => this.loadComplianceFindings());
+            });
+
             // Refresh Button
             const refreshBtn = document.getElementById('adminPrivacyRefreshBtn');
             if (refreshBtn) refreshBtn.addEventListener('click', () => this.loadPrivacyHub());
+
+            // Export Compliance Report
+            const exportBtn = document.getElementById('adminExportComplianceReportBtn');
+            if (exportBtn) exportBtn.addEventListener('click', () => this.exportComplianceReport());
 
             // Modal: Review Request
             const reqModal = document.getElementById('adminPrivacyRequestModal');
@@ -1846,8 +1879,56 @@
             if (cancelBreachBtn) cancelBreachBtn.addEventListener('click', closeBreach);
             if (breachForm) breachForm.addEventListener('submit', (e) => this.submitLogBreach(e));
 
+            // Modal: Log Finding
+            const logFindingModal = document.getElementById('adminLogFindingModal');
+            const openLogFindingBtn = document.getElementById('adminOpenLogFindingModalBtn');
+            const closeLogFindingBtn = document.getElementById('closeAdminLogFindingModalBtn');
+            const cancelLogFindingBtn = document.getElementById('cancelAdminLogFindingModalBtn');
+            const logFindingForm = document.getElementById('adminLogFindingForm');
+
+            const openLogFinding = () => {
+                if (logFindingModal) {
+                    logFindingModal.style.display = 'flex';
+                    if (logFindingForm) logFindingForm.reset();
+                }
+            };
+            const closeLogFinding = () => {
+                if (logFindingModal) logFindingModal.style.display = 'none';
+            };
+
+            if (openLogFindingBtn) openLogFindingBtn.addEventListener('click', openLogFinding);
+            if (closeLogFindingBtn) closeLogFindingBtn.addEventListener('click', closeLogFinding);
+            if (cancelLogFindingBtn) cancelLogFindingBtn.addEventListener('click', closeLogFinding);
+            if (logFindingForm) logFindingForm.addEventListener('submit', (e) => this.submitLogFinding(e));
+
+            // Modal: Resolve Finding
+            const resolveModal = document.getElementById('adminResolveFindingModal');
+            const closeResolveBtn = document.getElementById('closeAdminResolveFindingModalBtn');
+            const cancelResolveBtn = document.getElementById('cancelAdminResolveFindingModalBtn');
+            const resolveForm = document.getElementById('adminResolveFindingForm');
+            const resolveStatusSelect = document.getElementById('resolveFindingStatusSelect');
+            const rationaleStar = document.getElementById('rationaleRequiredStar');
+
+            if (resolveStatusSelect) {
+                resolveStatusSelect.addEventListener('change', () => {
+                    const st = resolveStatusSelect.value;
+                    if (rationaleStar) {
+                        rationaleStar.style.display = (st === 'Resolved' || st === 'Accepted Risk') ? 'inline' : 'none';
+                    }
+                });
+            }
+
+            const closeResolveModal = () => {
+                if (resolveModal) resolveModal.style.display = 'none';
+                this.selectedFinding = null;
+            };
+
+            if (closeResolveBtn) closeResolveBtn.addEventListener('click', closeResolveModal);
+            if (cancelResolveBtn) cancelResolveBtn.addEventListener('click', closeResolveModal);
+            if (resolveForm) resolveForm.addEventListener('submit', (e) => this.submitResolveFinding(e));
+
             // Escape key & backdrop click for privacy modals
-            [reqModal, breachModal].forEach(m => {
+            [reqModal, breachModal, logFindingModal, resolveModal].forEach(m => {
                 if (m) {
                     m.addEventListener('click', (e) => {
                         if (e.target === m) m.style.display = 'none';
@@ -2186,6 +2267,422 @@
             } catch (err) {
                 console.warn('Failed to load retention rules:', err);
                 tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #ef4444;">Failed to load retention rules.</td></tr>`;
+            }
+        }
+
+        async loadComplianceOverview() {
+            const tbody = document.getElementById('adminComplianceOverviewTbody');
+            const scoreBadge = document.getElementById('complianceScoreBadge');
+            if (!tbody || !window.api || !window.api.privacy) return;
+
+            try {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading compliance overview matrix...</td></tr>`;
+                const overview = await window.api.privacy.getComplianceOverview();
+
+                if (scoreBadge && overview.assessed_percentage !== undefined) {
+                    scoreBadge.textContent = `Audit Score: ${overview.assessed_percentage}% Implemented`;
+                }
+
+                if (!overview.domains || overview.domains.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">No domains recorded.</td></tr>`;
+                    return;
+                }
+
+                const getStatusBadge = (st) => {
+                    const map = {
+                        'Implemented': { bg: 'rgba(34, 197, 94, 0.15)', text: '#22c55e' },
+                        'Needs Review': { bg: 'rgba(234, 179, 8, 0.15)', text: '#eab308' },
+                        'Incomplete': { bg: 'rgba(249, 115, 22, 0.15)', text: '#f97316' },
+                        'Failed': { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444' },
+                        'Not Assessed': { bg: 'var(--surface-muted)', text: 'var(--text-muted)' },
+                        'Not Applicable': { bg: 'var(--surface-muted)', text: 'var(--text-muted)' }
+                    };
+                    const item = map[st] || { bg: 'var(--surface-muted)', text: 'var(--text-muted)' };
+                    return `<span style="display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: ${item.bg}; color: ${item.text};">${st}</span>`;
+                };
+
+                tbody.innerHTML = overview.domains.map(d => `
+                    <tr>
+                        <td style="font-weight: 700; color: var(--text);">
+                            ${this.escapeHtml(d.title)}
+                            <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 400; margin-top: 2px;">${this.escapeHtml(d.description)}</div>
+                        </td>
+                        <td style="font-family: monospace; font-size: 11.5px; color: var(--accent);">${this.escapeHtml(d.statutory_ref)}</td>
+                        <td>${getStatusBadge(d.status)}</td>
+                        <td style="font-size: 12px; color: var(--text);">${this.escapeHtml(d.verified_evidence)}</td>
+                        <td style="font-size: 11.5px; color: var(--text-muted);">${d.last_assessed}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Failed to load compliance overview:', err);
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 24px; color: #ef4444;">Failed to load compliance matrix.</td></tr>`;
+            }
+        }
+
+        async loadComplianceChecklist() {
+            const tbody = document.getElementById('adminComplianceChecklistTbody');
+            const passCount = document.getElementById('checklistPassCount');
+            const failCount = document.getElementById('checklistFailCount');
+            if (!tbody || !window.api || !window.api.privacy) return;
+
+            try {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading compliance checklist...</td></tr>`;
+                const checklist = await window.api.privacy.getComplianceChecklist();
+
+                if (passCount) passCount.textContent = `${checklist.passed_checks} Passed`;
+                if (failCount) failCount.textContent = `${checklist.failed_checks} Failed`;
+
+                if (!checklist.items || checklist.items.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">No checklist items found.</td></tr>`;
+                    return;
+                }
+
+                const getStatusBadge = (st) => {
+                    const map = {
+                        'PASS': { bg: 'rgba(34, 197, 94, 0.15)', text: '#22c55e' },
+                        'FAIL': { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444' },
+                        'NOT TESTED': { bg: 'rgba(234, 179, 8, 0.15)', text: '#eab308' },
+                        'NOT APPLICABLE': { bg: 'var(--surface-muted)', text: 'var(--text-muted)' }
+                    };
+                    const item = map[st] || { bg: 'var(--surface-muted)', text: 'var(--text-muted)' };
+                    return `<span style="display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: ${item.bg}; color: ${item.text};">${st}</span>`;
+                };
+
+                tbody.innerHTML = checklist.items.map(item => `
+                    <tr>
+                        <td style="font-family: monospace; font-size: 11px; font-weight: 700; color: var(--accent);">${item.id}</td>
+                        <td style="font-size: 12px; font-weight: 600;">${this.escapeHtml(item.part)}</td>
+                        <td>
+                            <strong style="color: var(--text);">${this.escapeHtml(item.title)}</strong>
+                            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">${this.escapeHtml(item.description)}</div>
+                        </td>
+                        <td style="font-family: monospace; font-size: 11px; color: var(--accent);">${this.escapeHtml(item.statutory_section)}</td>
+                        <td>${getStatusBadge(item.status)}</td>
+                        <td style="font-size: 11.5px; color: var(--text);">${this.escapeHtml(item.verification_evidence)}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Failed to load compliance checklist:', err);
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #ef4444;">Failed to load checklist.</td></tr>`;
+            }
+        }
+
+        async loadComplianceFindings() {
+            const tbody = document.getElementById('adminFindingsTbody');
+            if (!tbody || !window.api || !window.api.privacy) return;
+
+            const status = document.getElementById('adminFindingsStatusFilter')?.value || 'all';
+            const severity = document.getElementById('adminFindingsSeverityFilter')?.value || 'all';
+            const category = document.getElementById('adminFindingsCategoryFilter')?.value || 'all';
+
+            try {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading findings...</td></tr>`;
+                const params = {};
+                if (status !== 'all') params.status = status;
+                if (severity !== 'all') params.severity = severity;
+                if (category !== 'all') params.category = category;
+
+                const res = await window.api.privacy.getComplianceFindings(params);
+                this.complianceFindings = res.findings || [];
+
+                if (!this.complianceFindings || this.complianceFindings.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--text-muted);">No compliance findings matching current filter.</td></tr>`;
+                    return;
+                }
+
+                const getSeverityBadge = (sev) => {
+                    const map = {
+                        low: { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6', label: 'Low' },
+                        medium: { bg: 'rgba(234, 179, 8, 0.15)', text: '#eab308', label: 'Medium' },
+                        high: { bg: 'rgba(249, 115, 22, 0.15)', text: '#f97316', label: 'High' },
+                        critical: { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', label: 'Critical' }
+                    };
+                    const item = map[sev] || { bg: 'var(--surface-muted)', text: 'var(--text-muted)', label: sev };
+                    return `<span style="display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: ${item.bg}; color: ${item.text};">${item.label}</span>`;
+                };
+
+                const getStatusBadge = (st) => {
+                    const map = {
+                        'Open': { bg: 'rgba(249, 115, 22, 0.15)', text: '#f97316' },
+                        'In Progress': { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6' },
+                        'Under Review': { bg: 'rgba(168, 85, 247, 0.15)', text: '#a855f7' },
+                        'Resolved': { bg: 'rgba(34, 197, 94, 0.15)', text: '#22c55e' },
+                        'Accepted Risk': { bg: 'var(--surface-muted)', text: 'var(--text-muted)' }
+                    };
+                    const item = map[st] || { bg: 'var(--surface-muted)', text: 'var(--text-muted)' };
+                    return `<span style="display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: ${item.bg}; color: ${item.text};">${st}</span>`;
+                };
+
+                tbody.innerHTML = this.complianceFindings.map(f => {
+                    const dt = f.created_at ? new Date(f.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                    return `
+                        <tr>
+                            <td style="font-family: monospace; font-size: 11px; font-weight: 700; color: var(--accent);">${f.finding_reference}</td>
+                            <td>
+                                <strong style="color: var(--text);">${this.escapeHtml(f.title)}</strong>
+                                <div style="font-size: 11.5px; color: var(--text-muted); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${this.escapeHtml(f.description)}</div>
+                                ${f.resolution_rationale ? `<div style="font-size: 11px; color: #22c55e; margin-top: 2px;">Rationale: ${this.escapeHtml(f.resolution_rationale)}</div>` : ''}
+                            </td>
+                            <td style="font-size: 12px; text-transform: capitalize;">${this.escapeHtml(f.category.replace('_', ' '))}</td>
+                            <td>${getSeverityBadge(f.severity)}</td>
+                            <td>${getStatusBadge(f.status)}</td>
+                            <td style="font-size: 12px;">${this.escapeHtml(f.assigned_role_or_owner)}</td>
+                            <td style="font-size: 11.5px; color: var(--text-muted);">${dt}</td>
+                            <td>
+                                <button type="button" class="btn btn-secondary btn-sm btn-finding-resolve" data-id="${f.id}" style="padding: 3px 8px; font-size: 11.5px;">
+                                    Review
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                tbody.querySelectorAll('.btn-finding-resolve').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = parseInt(btn.getAttribute('data-id'), 10);
+                        const finding = this.complianceFindings.find(item => item.id === id);
+                        if (finding) this.openResolveFindingModal(finding);
+                    });
+                });
+            } catch (err) {
+                console.error('Failed to load compliance findings:', err);
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px; color: #ef4444;">Failed to load findings.</td></tr>`;
+            }
+        }
+
+        openResolveFindingModal(finding) {
+            this.selectedFinding = finding;
+            const modal = document.getElementById('adminResolveFindingModal');
+            if (!modal) return;
+
+            document.getElementById('resolveFindingIdInput').value = finding.id;
+            document.getElementById('resolveFindingRefDisplay').textContent = finding.finding_reference;
+            document.getElementById('resolveFindingTitleDisplay').textContent = finding.title;
+
+            const sevBadge = document.getElementById('resolveFindingSeverityBadge');
+            if (sevBadge) {
+                sevBadge.textContent = finding.severity.toUpperCase();
+                sevBadge.style.background = finding.severity === 'critical' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(234, 179, 8, 0.15)';
+                sevBadge.style.color = finding.severity === 'critical' ? '#ef4444' : '#eab308';
+            }
+
+            const statusSelect = document.getElementById('resolveFindingStatusSelect');
+            if (statusSelect) statusSelect.value = finding.status;
+
+            const ownerInput = document.getElementById('resolveFindingOwnerInput');
+            if (ownerInput) ownerInput.value = finding.assigned_role_or_owner || '';
+
+            const rationaleInput = document.getElementById('resolveFindingRationaleInput');
+            if (rationaleInput) rationaleInput.value = finding.resolution_rationale || '';
+
+            const notesInput = document.getElementById('resolveFindingNotesInput');
+            if (notesInput) notesInput.value = finding.review_notes || '';
+
+            const star = document.getElementById('rationaleRequiredStar');
+            if (star) {
+                star.style.display = (finding.status === 'Resolved' || finding.status === 'Accepted Risk') ? 'inline' : 'none';
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        async submitLogFinding(e) {
+            e.preventDefault();
+            if (!window.api || !window.api.privacy) return;
+
+            const title = document.getElementById('findingTitleInput')?.value.trim();
+            const category = document.getElementById('findingCategorySelect')?.value || 'other';
+            const severity = document.getElementById('findingSeveritySelect')?.value || 'medium';
+            const status = document.getElementById('findingStatusSelect')?.value || 'Open';
+            const owner = document.getElementById('findingOwnerInput')?.value.trim() || 'Data Protection Officer';
+            const description = document.getElementById('findingDescInput')?.value.trim();
+            const remediation = document.getElementById('findingRemediationInput')?.value.trim();
+            const notes = document.getElementById('findingNotesInput')?.value.trim();
+
+            if (!title || !description) {
+                toast.warning('Please provide title and description.');
+                return;
+            }
+
+            try {
+                await window.api.privacy.createComplianceFinding({
+                    title,
+                    category,
+                    severity,
+                    status,
+                    assigned_role_or_owner: owner,
+                    description,
+                    recommended_remediation: remediation,
+                    review_notes: notes
+                });
+
+                toast.success('Compliance finding logged');
+                const modal = document.getElementById('adminLogFindingModal');
+                if (modal) modal.style.display = 'none';
+
+                await this.loadComplianceFindings();
+            } catch (err) {
+                console.error('Failed to log finding:', err);
+                toast.error(err.message || 'Failed to log finding');
+            }
+        }
+
+        async submitResolveFinding(e) {
+            e.preventDefault();
+            if (!window.api || !window.api.privacy || !this.selectedFinding) return;
+
+            const id = parseInt(document.getElementById('resolveFindingIdInput')?.value, 10);
+            const status = document.getElementById('resolveFindingStatusSelect')?.value || 'Open';
+            const owner = document.getElementById('resolveFindingOwnerInput')?.value.trim();
+            const rationale = document.getElementById('resolveFindingRationaleInput')?.value.trim();
+            const notes = document.getElementById('resolveFindingNotesInput')?.value.trim();
+
+            if ((status === 'Resolved' || status === 'Accepted Risk') && !rationale) {
+                toast.warning('Resolution evidence & rationale is mandatory under DPDP audit rules.');
+                return;
+            }
+
+            try {
+                await window.api.privacy.updateComplianceFinding(id, {
+                    status,
+                    assigned_role_or_owner: owner,
+                    resolution_rationale: rationale,
+                    review_notes: notes
+                });
+
+                toast.success(`Finding ${this.selectedFinding.finding_reference} updated to ${status}`);
+                const modal = document.getElementById('adminResolveFindingModal');
+                if (modal) modal.style.display = 'none';
+                this.selectedFinding = null;
+
+                await this.loadComplianceFindings();
+            } catch (err) {
+                console.error('Failed to update finding:', err);
+                toast.error(err.message || 'Failed to update finding');
+            }
+        }
+
+        async loadComplianceEvidence() {
+            const container = document.getElementById('adminEvidenceContainer');
+            if (!container || !window.api || !window.api.privacy) return;
+
+            try {
+                container.innerHTML = `<div style="text-align: center; padding: 32px; color: var(--text-muted);"><div class="spinner" style="margin: 0 auto 12px;"></div><div>Loading evidence repository...</div></div>`;
+                const res = await window.api.privacy.getComplianceEvidence();
+                const ev = res.evidence || {};
+
+                // 1. Personal Data Inventory Table
+                const pdiRows = (ev.A_personal_data_inventory || []).map(row => `
+                    <tr>
+                        <td style="font-weight: 700; color: var(--text);">${this.escapeHtml(row.category)}</td>
+                        <td style="font-size: 12px;">${row.items.map(it => `<span style="display:inline-block; margin: 1px 3px 1px 0; padding: 1px 6px; border-radius: 4px; background: var(--surface-muted); font-size: 11px;">${this.escapeHtml(it)}</span>`).join('')}</td>
+                        <td style="font-size: 12px; color: var(--text-muted);">${this.escapeHtml(row.storage)}</td>
+                        <td style="font-size: 12px; font-weight: 600;">${this.escapeHtml(row.retention)}</td>
+                        <td style="font-size: 12px; color: var(--text-muted);">${this.escapeHtml(row.deletion_method)}</td>
+                    </tr>
+                `).join('');
+
+                // 2. Consent Purposes
+                const consentList = (ev.B_consent_governance?.granular_purposes || []).map(p => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--surface-elevated); border-radius: 6px; margin-bottom: 6px; border: 1px solid var(--border);">
+                        <div>
+                            <span style="font-family: monospace; font-weight: 700; color: var(--accent);">${p.key}</span>
+                            <div style="font-size: 11.5px; color: var(--text-muted);">${this.escapeHtml(p.basis)}</div>
+                        </div>
+                        <span style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: ${p.revocable ? 'rgba(34, 197, 94, 0.15)' : 'rgba(59, 130, 246, 0.15)'}; color: ${p.revocable ? '#22c55e' : '#3b82f6'};">
+                            ${p.revocable ? 'Revocable Consent' : 'Mandatory'}
+                        </span>
+                    </div>
+                `).join('');
+
+                // 3. Third-party processors
+                const tpCards = (ev.E_security_and_third_parties || []).map(tp => `
+                    <div style="padding: 14px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <strong style="color: var(--text); font-size: 14px;">${this.escapeHtml(tp.service_name)}</strong>
+                            <span style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(59, 130, 246, 0.15); color: #3b82f6; font-weight: 700;">${this.escapeHtml(tp.role)}</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;"><strong>Data Processed:</strong> ${this.escapeHtml(tp.data_involved)}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;"><strong>Location:</strong> ${this.escapeHtml(tp.data_location)}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;"><strong>Security Safeguards:</strong> ${this.escapeHtml(tp.security_safeguards)}</div>
+                        <div style="font-size: 11.5px; color: var(--accent); font-weight: 600;">Statutory Basis: ${this.escapeHtml(tp.dpdp_transfer_basis)}</div>
+                    </div>
+                `).join('');
+
+                container.innerHTML = `
+                    <!-- 1. Personal Data Inventory -->
+                    <div class="admin-card" style="padding: 16px;">
+                        <h4 style="font-size: 14px; font-weight: 700; margin: 0 0 12px 0; color: var(--text);">1. Personal Data Inventory &amp; Mapping</h4>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Data Elements</th>
+                                        <th>Storage Location</th>
+                                        <th>Retention Period</th>
+                                        <th>Disposal / Severing</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${pdiRows}</tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 2. Consent & Data Rights -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        <div class="admin-card" style="padding: 16px;">
+                            <h4 style="font-size: 14px; font-weight: 700; margin: 0 0 6px 0; color: var(--text);">2. Consent Governance</h4>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Active Notice Version: <strong>${ev.B_consent_governance?.notice_version}</strong> | Records: <strong>${ev.B_consent_governance?.active_consent_records_count}</strong></div>
+                            ${consentList}
+                        </div>
+                        <div class="admin-card" style="padding: 16px;">
+                            <h4 style="font-size: 14px; font-weight: 700; margin: 0 0 6px 0; color: var(--text);">3. Data Rights &amp; Retention Safeguards</h4>
+                            <div style="font-size: 12.5px; color: var(--text); line-height: 1.6; margin-bottom: 12px;">
+                                <div><strong>Statutory Turnaround Window:</strong> ${ev.C_data_rights_workflow?.statutory_deadline_window_days} Days</div>
+                                <div><strong>Active Retention Rules:</strong> ${ev.D_retention_and_disposal?.active_rules_count} configured</div>
+                                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted); background: var(--surface-elevated); padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+                                    <strong>Disaster Recovery Limitation:</strong> ${this.escapeHtml(ev.D_retention_and_disposal?.backup_limitation_disclosure)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Third-Party Sub-processor Registry -->
+                    <div class="admin-card" style="padding: 16px;">
+                        <h4 style="font-size: 14px; font-weight: 700; margin: 0 0 12px 0; color: var(--text);">4. Third-Party Sub-Processor &amp; Security Registry</h4>
+                        ${tpCards}
+                    </div>
+                `;
+            } catch (err) {
+                console.error('Failed to load compliance evidence:', err);
+                container.innerHTML = `<div style="text-align: center; padding: 24px; color: #ef4444;">Failed to load evidence repository.</div>`;
+            }
+        }
+
+        async exportComplianceReport() {
+            try {
+                toast.info('Generating Compliance Audit Report...');
+                const token = auth.getToken();
+                const res = await fetch('/api/privacy/admin/compliance/report?format=markdown', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('Failed to download report');
+                const text = await res.text();
+                const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const d = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                a.download = `FRANK_Think_DPDP_Compliance_Report_${d}.md`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                toast.success('Compliance report exported successfully');
+            } catch (err) {
+                console.error('Failed to export compliance report:', err);
+                toast.error(err.message || 'Export failed');
             }
         }
     }

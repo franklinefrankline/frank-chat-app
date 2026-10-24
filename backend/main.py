@@ -294,7 +294,9 @@ if frontend_dir and frontend_dir.exists():
         app.mount("/vendor", StaticFiles(directory=str(root_dir / "vendor")), name="vendor")
 
     @app.get("/")
-    def serve_landing():
+    @app.get("/index")
+    @app.get("/home")
+    def serve_landing(request: Request):
         return FileResponse(frontend_dir / "index.html")
 
     @app.get("/login")
@@ -398,12 +400,36 @@ if frontend_dir and frontend_dir.exists():
         )
         return Response(content=sitemap_content, media_type="application/xml; charset=utf-8")
 
+    @app.get("/404")
+    def serve_404_page():
+        target = (frontend_dir / "404.html") if frontend_dir else None
+        if not target or not target.exists():
+            target = root_dir / "404.html"
+        if target and target.exists():
+            return FileResponse(target, status_code=404)
+        return JSONResponse(status_code=404, content={"detail": "Not Found"})
+
     @app.get("/{filename}.html")
     def serve_html_page(filename: str):
         target = frontend_dir / f"{filename}.html"
         if target.exists():
             return FileResponse(target)
-        return FileResponse(frontend_dir / "404.html", status_code=404)
+        target_404 = frontend_dir / "404.html"
+        if target_404.exists():
+            return FileResponse(target_404, status_code=404)
+        return JSONResponse(status_code=404, content={"detail": "Not Found"})
+
+    @app.exception_handler(404)
+    async def custom_404_handler(request: Request, exc):
+        path = request.url.path
+        if path.startswith("/api/") or path.startswith("/ws/"):
+            return JSONResponse(status_code=404, content={"detail": "Not Found"})
+        target_404 = (frontend_dir / "404.html") if frontend_dir else None
+        if not target_404 or not target_404.exists():
+            target_404 = root_dir / "404.html"
+        if target_404 and target_404.exists():
+            return FileResponse(target_404, status_code=404)
+        return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
 
 if __name__ == "__main__":

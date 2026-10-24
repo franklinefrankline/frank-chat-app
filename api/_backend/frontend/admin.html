@@ -649,6 +649,14 @@
                             </svg>
                             <span>Refresh</span>
                         </button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="adminExportComplianceReportBtn" title="Export DPDP Compliance Audit Report" style="display: flex; align-items: center; gap: 6px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Export Report</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="adminOpenLogFindingModalBtn" style="display: flex; align-items: center; gap: 6px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            <span>Log Finding</span>
+                        </button>
                         <button type="button" class="btn btn-primary btn-sm" id="adminOpenLogBreachModalBtn" style="display: flex; align-items: center; gap: 6px;">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                             <span>Log Breach Incident</span>
@@ -692,10 +700,14 @@
                 </div>
 
                 <!-- Sub-nav Navigation for Privacy Hub -->
-                <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border); margin-bottom: 20px;">
-                    <button type="button" class="btn btn-ghost btn-sm active" id="adminPrivacyTabRequestsBtn" style="border-radius: 0; border-bottom: 2px solid var(--accent); font-weight: 700; color: var(--accent);">Data Principal Requests</button>
-                    <button type="button" class="btn btn-ghost btn-sm" id="adminPrivacyTabBreachesBtn" style="border-radius: 0; font-weight: 600; color: var(--text-muted);">Breach Incident Register</button>
-                    <button type="button" class="btn btn-ghost btn-sm" id="adminPrivacyTabRetentionBtn" style="border-radius: 0; font-weight: 600; color: var(--text-muted);">Data Retention Rules</button>
+                <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border); margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px;">
+                    <button type="button" class="btn btn-ghost btn-sm active" id="adminPrivacyTabRequestsBtn" style="border-radius: 0; border-bottom: 2px solid var(--accent); font-weight: 700; color: var(--accent); white-space: nowrap;">Data Principal Requests</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="adminPrivacyTabComplianceBtn" style="border-radius: 0; font-weight: 600; color: var(--text-muted); white-space: nowrap;">Compliance Overview</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="adminPrivacyTabChecklistBtn" style="border-radius: 0; font-weight: 600; color: var(--text-muted); white-space: nowrap;">Internal Checklist</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="adminPrivacyTabFindingsBtn" style="border-radius: 0; font-weight: 600; color: var(--text-muted); white-space: nowrap;">Review Findings</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="adminPrivacyTabEvidenceBtn" style="border-radius: 0; font-weight: 600; color: var(--text-muted); white-space: nowrap;">Evidence Repository</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="adminPrivacyTabBreachesBtn" style="border-radius: 0; font-weight: 600; color: var(--text-muted); white-space: nowrap;">Breach Register</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="adminPrivacyTabRetentionBtn" style="border-radius: 0; font-weight: 600; color: var(--text-muted); white-space: nowrap;">Data Retention</button>
                 </div>
 
                 <!-- Tab 1: Privacy Requests Table Card -->
@@ -800,6 +812,144 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Compliance Overview Matrix -->
+                <div id="adminPrivacyPanelCompliance" class="table-card" style="display: none;">
+                    <div class="table-card-header" style="justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h3 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text);">DPDP Statutory Compliance Matrix (10 Core Domains)</h3>
+                            <span style="font-size: 12px; color: var(--text-muted);" id="complianceOverviewSubtitle">Evaluated against the Digital Personal Data Protection Act, 2023 &amp; DPDP Rules 2025</span>
+                        </div>
+                        <div id="complianceScoreBadgeWrap">
+                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700; padding: 4px 10px; border-radius: 6px;" id="complianceScoreBadge">Assessment Score: --%</span>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="adminComplianceOverviewTable">
+                            <thead>
+                                <tr>
+                                    <th style="min-width: 180px;">Compliance Domain</th>
+                                    <th style="min-width: 140px;">Statutory Basis</th>
+                                    <th style="min-width: 130px;">Implementation Status</th>
+                                    <th>Verified Technical Evidence</th>
+                                    <th style="min-width: 120px;">Last Assessed</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminComplianceOverviewTbody">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading compliance overview matrix...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 5: Internal Statutory Checklist -->
+                <div id="adminPrivacyPanelChecklist" class="table-card" style="display: none;">
+                    <div class="table-card-header" style="justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h3 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text);">Internal DPDP Statutory Compliance Checklist (Parts 1–5)</h3>
+                            <span style="font-size: 12px; color: var(--text-muted);">Technical audit verification of all implemented controls</span>
+                        </div>
+                        <div id="complianceChecklistStatsBadge" style="display: flex; gap: 8px;">
+                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700; padding: 4px 8px; border-radius: 6px;" id="checklistPassCount">0 Passed</span>
+                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; font-weight: 700; padding: 4px 8px; border-radius: 6px;" id="checklistFailCount">0 Failed</span>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="adminComplianceChecklistTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">Item ID</th>
+                                    <th style="width: 90px;">Phase</th>
+                                    <th style="min-width: 180px;">Requirement Title</th>
+                                    <th style="min-width: 130px;">DPDP Section</th>
+                                    <th style="width: 110px;">Audit Status</th>
+                                    <th>Verification Evidence</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminComplianceChecklistTbody">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading compliance checklist...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 6: Compliance Review Findings -->
+                <div id="adminPrivacyPanelFindings" class="table-card" style="display: none;">
+                    <div class="table-card-header" style="flex-wrap: wrap; gap: 12px; justify-content: space-between;">
+                        <div>
+                            <h3 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text);">Compliance Review Findings &amp; Risk Register</h3>
+                            <span style="font-size: 12px; color: var(--text-muted);">Track identified audit findings, remediation actions, and verified resolutions</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <select id="adminFindingsStatusFilter" class="form-input" style="padding: 7px 12px; font-size: 13px; min-width: 130px;">
+                                <option value="all">All Statuses</option>
+                                <option value="Open">Open</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Under Review">Under Review</option>
+                                <option value="Resolved">Resolved</option>
+                                <option value="Accepted Risk">Accepted Risk</option>
+                            </select>
+                            <select id="adminFindingsSeverityFilter" class="form-input" style="padding: 7px 12px; font-size: 13px; min-width: 130px;">
+                                <option value="all">All Severities</option>
+                                <option value="critical">Critical</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                            <select id="adminFindingsCategoryFilter" class="form-input" style="padding: 7px 12px; font-size: 13px; min-width: 130px;">
+                                <option value="all">All Categories</option>
+                                <option value="consent">Consent</option>
+                                <option value="data_rights">Data Rights</option>
+                                <option value="retention">Retention</option>
+                                <option value="security">Security</option>
+                                <option value="ai_processing">AI Processing</option>
+                                <option value="third_party">Third Party</option>
+                                <option value="audit">Audit</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="adminFindingsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 140px;">Reference</th>
+                                    <th>Title &amp; Scope</th>
+                                    <th style="width: 110px;">Category</th>
+                                    <th style="width: 100px;">Severity</th>
+                                    <th style="width: 120px;">Status</th>
+                                    <th style="width: 140px;">Owner</th>
+                                    <th style="width: 120px;">Assessed</th>
+                                    <th style="width: 100px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminFindingsTbody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 24px; color: var(--text-muted);">No compliance findings recorded. System audit clean.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 7: Compliance Evidence Repository -->
+                <div id="adminPrivacyPanelEvidence" class="table-card" style="display: none; padding: 20px;">
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 4px 0; color: var(--text);">Compliance Evidence &amp; Documentation Repository</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Organized records of data inventories, consent notices, data rights workflows, retention rules, and third-party processors.</p>
+                    </div>
+
+                    <div id="adminEvidenceContainer" style="display: flex; flex-direction: column; gap: 20px;">
+                        <div style="text-align: center; padding: 32px; color: var(--text-muted);">
+                            <div class="spinner" style="margin: 0 auto 12px;"></div>
+                            <div>Loading compliance evidence repository...</div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -1089,6 +1239,146 @@
                 <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
                     <button type="button" class="btn btn-secondary btn-sm" id="cancelAdminLogBreachModalBtn">Cancel</button>
                     <button type="submit" class="btn btn-primary btn-sm" style="background: #ef4444; border: none;">Record Incident</button>
+                </div>
+            </form>
+    <!-- Admin Log Finding Modal -->
+    <div class="modal-backdrop" id="adminLogFindingModal" role="dialog" aria-modal="true" aria-labelledby="modalLogFindingTitle" style="display: none;">
+        <div class="modal-card" style="max-width: 580px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(59, 130, 246, 0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    </div>
+                    <h2 class="modal-title" id="modalLogFindingTitle">Log Compliance Audit Finding</h2>
+                </div>
+                <button type="button" class="modal-close" id="closeAdminLogFindingModalBtn" aria-label="Close modal">✕</button>
+            </div>
+            <form id="adminLogFindingForm">
+                <div class="modal-body" style="padding: 20px;">
+                    <div style="margin-bottom: 12px;">
+                        <label for="findingTitleInput" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Finding Title *</label>
+                        <input type="text" id="findingTitleInput" class="form-input" placeholder="e.g. Incomplete multi-language notice translation in Tamil" required style="width: 100%;">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <label for="findingCategorySelect" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Category *</label>
+                            <select id="findingCategorySelect" class="form-input" style="width: 100%;">
+                                <option value="consent">Consent &amp; Notice</option>
+                                <option value="data_rights">Data Rights &amp; Requests</option>
+                                <option value="retention">Retention &amp; Erasure</option>
+                                <option value="security">Security &amp; Storage</option>
+                                <option value="ai_processing">AI Processing &amp; Redaction</option>
+                                <option value="third_party">Third Party &amp; Sub-processors</option>
+                                <option value="audit">Audit &amp; Accountability</option>
+                                <option value="other">Other Governance</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="findingSeveritySelect" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Severity *</label>
+                            <select id="findingSeveritySelect" class="form-input" style="width: 100%;">
+                                <option value="low">Low (Minor refinement)</option>
+                                <option value="medium" selected>Medium (Process gap)</option>
+                                <option value="high">High (Compliance gap)</option>
+                                <option value="critical">Critical (Immediate breach/risk)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <label for="findingStatusSelect" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Status *</label>
+                            <select id="findingStatusSelect" class="form-input" style="width: 100%;">
+                                <option value="Open">Open</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Under Review">Under Review</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="findingOwnerInput" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Assigned Owner / Role</label>
+                            <input type="text" id="findingOwnerInput" class="form-input" placeholder="e.g. Data Protection Officer" value="Data Protection Officer" style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label for="findingDescInput" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Detailed Description *</label>
+                        <textarea id="findingDescInput" class="form-input" rows="3" placeholder="Describe the identified audit gap, scope, affected systems, or DPDP statutory context..." required style="width: 100%; resize: vertical; font-size: 13px;"></textarea>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label for="findingRemediationInput" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Recommended Remediation</label>
+                        <textarea id="findingRemediationInput" class="form-input" rows="2" placeholder="Recommended corrective actions, engineering patches, or policy updates..." style="width: 100%; resize: vertical; font-size: 13px;"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="findingNotesInput" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Assessment Notes</label>
+                        <textarea id="findingNotesInput" class="form-input" rows="2" placeholder="Internal auditor notes, evidence references, or verification steps..." style="width: 100%; resize: vertical; font-size: 13px;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="cancelAdminLogFindingModalBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Record Finding</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Update / Resolve Finding Modal -->
+    <div class="modal-backdrop" id="adminResolveFindingModal" role="dialog" aria-modal="true" aria-labelledby="modalResolveFindingTitle" style="display: none;">
+        <div class="modal-card" style="max-width: 580px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
+                    <h2 class="modal-title" id="modalResolveFindingTitle">Review / Resolve Finding</h2>
+                </div>
+                <button type="button" class="modal-close" id="closeAdminResolveFindingModalBtn" aria-label="Close modal">✕</button>
+            </div>
+            <form id="adminResolveFindingForm">
+                <input type="hidden" id="resolveFindingIdInput">
+                <div class="modal-body" style="padding: 20px;">
+                    <div style="background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span id="resolveFindingRefDisplay" style="font-family: monospace; font-weight: 700; color: var(--accent);">--</span>
+                            <span id="resolveFindingSeverityBadge" class="status-badge">--</span>
+                        </div>
+                        <div id="resolveFindingTitleDisplay" style="font-weight: 600; font-size: 14px; color: var(--text);">--</div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <label for="resolveFindingStatusSelect" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Audit Status *</label>
+                            <select id="resolveFindingStatusSelect" class="form-input" style="width: 100%;">
+                                <option value="Open">Open</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Under Review">Under Review</option>
+                                <option value="Resolved">Resolved</option>
+                                <option value="Accepted Risk">Accepted Risk</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="resolveFindingOwnerInput" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Assigned Owner</label>
+                            <input type="text" id="resolveFindingOwnerInput" class="form-input" style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label for="resolveFindingRationaleInput" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">
+                            Resolution Evidence &amp; Rationale <span id="rationaleRequiredStar" style="color: #ef4444; display: none;">*</span>
+                        </label>
+                        <textarea id="resolveFindingRationaleInput" class="form-input" rows="3" placeholder="Provide verified evidence of remediation, commit hashes, or rationale for risk acceptance..." style="width: 100%; resize: vertical; font-size: 13px;"></textarea>
+                        <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Mandatory under DPDP accountability standards when status is set to Resolved or Accepted Risk.</span>
+                    </div>
+
+                    <div>
+                        <label for="resolveFindingNotesInput" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Additional Review Notes</label>
+                        <textarea id="resolveFindingNotesInput" class="form-input" rows="2" placeholder="Notes for future audits..." style="width: 100%; resize: vertical; font-size: 13px;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="cancelAdminResolveFindingModalBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Save Update</button>
                 </div>
             </form>
         </div>

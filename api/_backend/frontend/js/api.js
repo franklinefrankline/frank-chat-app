@@ -1794,6 +1794,39 @@ api.privacy = {
             method: 'POST',
             body: JSON.stringify(payload)
         });
+    },
+    // DPDP Part 5: Compliance Audit & Accountability
+    getComplianceOverview() {
+        return api.request('/api/privacy/admin/compliance/overview');
+    },
+    getComplianceChecklist() {
+        return api.request('/api/privacy/admin/compliance/checklist');
+    },
+    getComplianceEvidence() {
+        return api.request('/api/privacy/admin/compliance/evidence');
+    },
+    getComplianceFindings(params = {}) {
+        const qs = new URLSearchParams();
+        if (params.status && params.status !== 'all') qs.append('status', params.status);
+        if (params.severity && params.severity !== 'all') qs.append('severity', params.severity);
+        if (params.category && params.category !== 'all') qs.append('category', params.category);
+        const query = qs.toString() ? `?${qs.toString()}` : '';
+        return api.request(`/api/privacy/admin/compliance/findings${query}`);
+    },
+    createComplianceFinding(data) {
+        return api.request('/api/privacy/admin/compliance/findings', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+    updateComplianceFinding(id, data) {
+        return api.request(`/api/privacy/admin/compliance/findings/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    },
+    exportComplianceReport(format = 'json') {
+        return api.request(`/api/privacy/admin/compliance/report?format=${encodeURIComponent(format)}`);
     }
 };
 

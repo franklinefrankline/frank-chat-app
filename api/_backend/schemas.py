@@ -975,4 +975,104 @@ class DataInventoryResponse(BaseModel):
     items: List[DataInventoryItemResponse]
 
 
+# ==============================================================================
+# DPDP PART 5: COMPLIANCE AUDIT, FINDINGS, AND EVIDENCE SCHEMAS
+# ==============================================================================
+
+class ComplianceFindingCreate(BaseModel):
+    title: str = Field(..., min_length=3, max_length=255)
+    category: str = Field(..., max_length=50)
+    severity: str = Field("medium", pattern="^(low|medium|high|critical)$")
+    status: str = Field("Open", pattern="^(Open|In Progress|Under Review|Resolved|Accepted Risk)$")
+    assigned_role_or_owner: str = Field("Data Protection Officer", max_length=100)
+    description: str = Field(..., min_length=5)
+    recommended_remediation: Optional[str] = None
+    review_notes: Optional[str] = None
+
+
+class ComplianceFindingUpdate(BaseModel):
+    title: Optional[str] = None
+    category: Optional[str] = None
+    severity: Optional[str] = None
+    status: Optional[str] = None
+    assigned_role_or_owner: Optional[str] = None
+    description: Optional[str] = None
+    recommended_remediation: Optional[str] = None
+    resolution_rationale: Optional[str] = None
+    review_notes: Optional[str] = None
+
+
+class ComplianceFindingResponse(BaseModel):
+    id: int
+    finding_reference: str
+    title: str
+    category: str
+    severity: str
+    status: str
+    assigned_role_or_owner: str
+    description: str
+    recommended_remediation: Optional[str] = None
+    resolution_rationale: Optional[str] = None
+    review_notes: Optional[str] = None
+    assessment_date: Optional[datetime] = None
+    created_by_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    @field_serializer("assessment_date", "created_at", "updated_at", check_fields=False)
+    def serialize_utc_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
+        return format_iso_utc(dt)
+
+    class Config:
+        from_attributes = True
+
+
+class ComplianceFindingListResponse(BaseModel):
+    findings: List[ComplianceFindingResponse]
+    total: int
+    open_count: int
+    resolved_count: int
+
+
+class ComplianceOverviewDomain(BaseModel):
+    domain_key: str
+    title: str
+    status: str  # Implemented, Needs Review, Incomplete, Failed, Not Assessed, Not Applicable
+    description: str
+    verified_evidence: str
+    statutory_ref: str
+    last_assessed: str
+
+
+class ComplianceOverviewResponse(BaseModel):
+    framework: str
+    statutory_act: str
+    fiduciary_name: str
+    last_assessment_date: str
+    assessed_percentage: float
+    status_summary: Dict[str, int]
+    domains: List[ComplianceOverviewDomain]
+    metrics: Dict[str, Any]
+
+
+class ComplianceChecklistItem(BaseModel):
+    id: str
+    part: str
+    title: str
+    description: str
+    statutory_section: str
+    status: str  # PASS, FAIL, NOT TESTED, NOT APPLICABLE
+    verification_evidence: str
+    tested_at: str
+
+
+class ComplianceChecklistResponse(BaseModel):
+    total_checks: int
+    passed_checks: int
+    failed_checks: int
+    not_applicable_checks: int
+    items: List[ComplianceChecklistItem]
+
+
+
 

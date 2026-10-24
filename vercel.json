@@ -6,7 +6,8 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 60,
-      "memory": 1024
+      "memory": 1024,
+      "excludeFiles": "{backups/**,uploads/**,backend/uploads/**,backend/*.db*,*.db*,*.bak,tests/**}"
     }
   },
   "rewrites": [
@@ -16,6 +17,9 @@
     { "source": "/api", "destination": "/api/index.py" },
     { "source": "/robots.txt", "destination": "/api/index.py" },
     { "source": "/sitemap.xml", "destination": "/api/index.py" },
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/index", "destination": "/index.html" },
+    { "source": "/home", "destination": "/index.html" },
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/chat", "destination": "/dashboard.html" },
     { "source": "/groups", "destination": "/dashboard.html" },
@@ -27,7 +31,8 @@
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/forgot-password", "destination": "/forgot-password.html" },
     { "source": "/reset-password", "destination": "/reset-password.html" },
-    { "source": "/privacy", "destination": "/privacy.html" }
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/404", "destination": "/404.html" }
   ],
   "headers": [
     {
