@@ -49,6 +49,7 @@
         "en": {
                 "nav": {
                         "features": "Features",
+                        "office": "Office Suite",
                         "security": "Security",
                         "experience": "Experience",
                         "about": "About",
@@ -60,7 +61,7 @@
                 "hero": {
                         "badge": "Think",
                         "title": "Communication, Reimagined.",
-                        "subtitle": "Chat, connect and collaborate with FRANK Think — the secure messaging platform featuring online productivity tools, in-chat document editing, and a smart AI assistant.",
+                        "subtitle": "Chat, connect and collaborate with FRANK Think — the secure real-time messaging app and all-in-one productivity platform featuring online productivity tools, in-chat document editing, an online document workspace, and a smart AI assistant online.",
                         "startChatting": "Start Chatting",
                         "login": "Login",
                         "exploreFeatures": "Explore Features",
@@ -110,6 +111,19 @@
                         "themeTitle": "Automatic Language Translation",
                         "themeDesc": "Communicate across languages. User A can send a message in English while User B receives it in Tamil. Each user sees messages in their preferred language, with the option to view the original message."
                 },
+                "office": {
+                        "sectionLabel": "Office Productivity Software",
+                        "title": "FRANK Think Office Suite — Online Document Workspace",
+                        "subtitle": "Experience web-based productivity tools built directly into your online messaging platform. Create, view, and edit documents in browser with zero extra downloads.",
+                        "wordTitle": "Online Word Editor",
+                        "wordDesc": "Online DOCX editor and word document editing tool to create documents online, edit Word documents online, and format rich text on a document editing platform.",
+                        "sheetsTitle": "Online Excel Editor",
+                        "sheetsDesc": "Full-featured spreadsheet editor online and spreadsheet management tool. Edit spreadsheets online, calculate formulas, and manage data with an online data table editor.",
+                        "slidesTitle": "Online PowerPoint Editor",
+                        "slidesDesc": "PPT presentation editor and online slide editor to create presentations online. Refine slides, structure slide decks, and present with a browser-based presentation editor.",
+                        "pdfTitle": "PDF Document Management",
+                        "pdfDesc": "Integrated PDF document management for fast in-browser preview, zoom, page navigation, and instant file sharing across your team communication tool."
+                },
                 "security": {
                         "sectionLabel": "ENTERPRISE ARCHITECTURE",
                         "title": "Private conversations. Protected by design.",
@@ -124,8 +138,8 @@
                         "protectedDesc": "Every request is authenticated through signed headers, preventing impersonation or unauthorized message snooping."
                 },
                 "cta": {
-                        "title": "Ready to experience seamless communication?",
-                        "subtitle": "Join thousands of modern communicators today on FRANK. Set up your account in 30 seconds with no credit card required.",
+                        "title": "Ready to experience seamless communication & online office tools?",
+                        "subtitle": "Join the FRANK Think online platform today. Access your real-time messaging app, online office suite, and document collaboration platform in 30 seconds.",
                         "button": "Get Started with FRANK →"
                 },
                 "footer": {
@@ -140,6 +154,9 @@
                         "cookieSettings": "Cookie Settings"
                 },
                 "auth": {
+                        "feature1": "Real-time messaging app and group chat platform",
+                        "feature2": "Online office suite and document editing platform with file sharing",
+                        "feature3": "Private chat application and online document workspace",
                         "signIn": "Sign In",
                         "welcomeBack": "Welcome Back",
                         "welcomeBackSubtitle": "Enter your credentials to access your FRANK account",
@@ -562,6 +579,7 @@
         "ta": {
                 "nav": {
                         "features": "அம்சங்கள்",
+                        "office": "அலுவலக தொகுப்பு",
                         "security": "பாதுகாப்பு",
                         "experience": "அனுபவம்",
                         "about": "எங்களை பற்றி",
@@ -623,6 +641,19 @@
                         "themeTitle": "தானியங்கி மொழிபெயர்ப்பு",
                         "themeDesc": "மொழிகளுக்கு இடையே உரையாடுங்கள். பயனர் A ஆங்கிலத்தில் அனுப்பும்போது பயனர் B தமிழில் பெறுவார். ஒவ்வொருவரும் தங்களுக்கு விருப்பமான மொழியில் செய்திகளைக் காணலாம், அசல் செய்தியையும் பார்க்கலாம்."
                 },
+                "office": {
+                        "sectionLabel": "அலுவலக உற்பத்தி மென்பொருள்",
+                        "title": "FRANK Think அலுவலக தொகுப்பு — இணைய ஆவண பணியிடம்",
+                        "subtitle": "உங்கள் ஆன்லைன் மெசேஜிங் தளத்தில் நேரடியாக உருவாக்கப்பட்ட இணைய அடிப்படையிலான உற்பத்தி கருவிகள். கூடுதல் பதிவிறக்கங்கள் இன்றி உலாவியில் ஆவணங்களை உருவாக்கி திருத்துங்கள்.",
+                        "wordTitle": "இணைய வேர்ட் எடிட்டர்",
+                        "wordDesc": "ஆன்லைன் DOCX எடிட்டர் மற்றும் சொல் ஆவண திருத்த கருவி மூலம் ஆவணங்களை உருவாக்கவும், உலாவியில் திருத்தவும் முடியும்.",
+                        "sheetsTitle": "இணைய எக்செல் எடிட்டர்",
+                        "sheetsDesc": "முழுமையான ஆன்லைன் விரிதாள் எடிட்டர் மற்றும் தரவு மேலாண்மை கருவி. சூத்திரங்களை கணக்கிட்டு அட்டவணைகளை நிர்வகியுங்கள்.",
+                        "slidesTitle": "இணைய பவர்பாயிண்ட் எடிட்டர்",
+                        "slidesDesc": "ஸ்லைடுகளை உருவாக்க மற்றும் வழங்க இணைய விளக்கக்காட்சி எடிட்டர் மற்றும் உலாவி அடிப்படையிலான ஸ்லைடு கருவி.",
+                        "pdfTitle": "PDF ஆவண மேலாண்மை",
+                        "pdfDesc": "வேகமான உலாவி முன்னோட்டம், ஜூம், பக்க வழிசெலுத்தல் மற்றும் உடனடி கோப்பு பகிர்வுக்கான ஒருங்கிணைந்த PDF ஆவண மேலாண்மை."
+                },
                 "security": {
                         "sectionLabel": "நிறுவன பாதுகாப்பு கட்டமைப்பு",
                         "title": "தனிப்பட்ட உரையாடல்கள். பாதுகாப்பான வடிவமைப்பு.",
@@ -653,6 +684,9 @@
                         "cookieSettings": "குக்கீ அமைப்புகள்"
                 },
                 "auth": {
+                        "feature1": "நிகழ்நேர செய்தி பயன்பாடு மற்றும் குழு அரட்டை தளம்",
+                        "feature2": "இணைய அலுவலக தொகுப்பு மற்றும் கோப்பு பகிர்வுடன் ஆவண திருத்த தளம்",
+                        "feature3": "தனிப்பட்ட அரட்டை பயன்பாடு மற்றும் ஆன்லைன் ஆவண பணியிடம்",
                         "signIn": "உள்நுழை",
                         "welcomeBack": "மீண்டும் வருக",
                         "welcomeBackSubtitle": "உங்கள் FRANK கணக்கில் உள்நுழைய விவரங்களை உள்ளிடவும்",
@@ -1075,6 +1109,7 @@
         "hi": {
                 "nav": {
                         "features": "विशेषताएँ",
+                        "office": "कार्यालय सुइट",
                         "security": "सुरक्षा",
                         "experience": "अनुभव",
                         "about": "हमारे बारे में",
@@ -1136,6 +1171,19 @@
                         "themeTitle": "स्वचालित भाषा अनुवाद",
                         "themeDesc": "विभिन्न भाषाओं में संवाद करें। उपयोगकर्ता A अंग्रेज़ी में संदेश भेज सकता है जबकि उपयोगकर्ता B इसे तमिल में प्राप्त करता है। प्रत्येक उपयोगकर्ता अपनी पसंदीदा भाषा में संदेश देखता है, मूल संदेश देखने के विकल्प के साथ।"
                 },
+                "office": {
+                        "sectionLabel": "कार्यालय उत्पादकता सॉफ्टवेयर",
+                        "title": "FRANK Think ऑफिस सुइट — ऑनलाइन दस्तावेज़ कार्यक्षेत्र",
+                        "subtitle": "अपने ऑनलाइन मैसेजिंग प्लेटफ़ॉर्म में सीधे निर्मित वेब-आधारित उत्पादकता टूल्स का अनुभव करें। बिना किसी अतिरिक्त डाउनलोड के ब्राउज़र में दस्तावेज़ बनाएं और संपादित करें।",
+                        "wordTitle": "ऑनलाइन वर्ड एडिटर",
+                        "wordDesc": "ऑनलाइन DOCX संपादक और वर्ड दस्तावेज़ संपादन टूल। ऑनलाइन दस्तावेज़ बनाएं, वर्ड फ़ाइलें संपादित करें और समृद्ध टेक्स्ट स्वरूपित करें।",
+                        "sheetsTitle": "ऑनलाइन एक्सेल एडिटर",
+                        "sheetsDesc": "सुविधा संपन्न ऑनलाइन स्प्रेडशीट संपादक और प्रबंधन टूल। फ़ार्मुलों की गणना करें और डेटा तालिकाओं को प्रबंधित करें।",
+                        "slidesTitle": "ऑनलाइन पावरपॉइंट एडिटर",
+                        "slidesDesc": "ऑनलाइन प्रस्तुतियाँ बनाने के लिए PPT प्रस्तुति संपादक और स्लाइड टूल। ब्राउज़र में सीधे प्रस्तुति तैयार करें।",
+                        "pdfTitle": "PDF दस्तावेज़ प्रबंधन",
+                        "pdfDesc": "त्वरित इन-ब्राउज़र पूर्वावलोकन, ज़ूम, पेज नेविगेशन और त्वरित फ़ाइल साझाकरण के लिए एकीकृत PDF दस्तावेज़ प्रबंधन।"
+                },
                 "security": {
                         "sectionLabel": "उद्यम वास्तुकला",
                         "title": "निजी बातचीत। डिज़ाइन द्वारा सुरक्षित।",
@@ -1166,6 +1214,9 @@
                         "cookieSettings": "कुकी सेटिंग्स"
                 },
                 "auth": {
+                        "feature1": "रीयल-टाइम मैसेजिंग ऐप और ग्रुप चैट प्लेटफ़ॉर्म",
+                        "feature2": "ऑनलाइन ऑफिस सुइट और फ़ाइल शेयरिंग के साथ दस्तावेज़ संपादन प्लेटफ़ॉर्म",
+                        "feature3": "प्राइवेट चैट एप्लिकेशन और ऑनलाइन दस्तावेज़ कार्यक्षेत्र",
                         "signIn": "साइन इन",
                         "welcomeBack": "वापसी पर स्वागत है",
                         "welcomeBackSubtitle": "अपने FRANK खाते तक पहुँचने के लिए अपनी साख दर्ज करें",

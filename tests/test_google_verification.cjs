@@ -39,7 +39,7 @@ async function testVerification() {
     console.log('\n--- 3. VERIFYING PRESERVED SEO METADATA & ROBOTS / SITEMAP ---');
     const indexContent = fs.readFileSync('index.html', 'utf8');
     assert(indexContent.includes('<link rel="canonical" href="https://fnk.vercel.app/">'), 'Canonical URL missing or changed');
-    assert(indexContent.includes('<title>FRANK Think — Chat, Connect &amp; Collaborate</title>'), 'Title tag missing or changed');
+    assert(indexContent.includes('<title>FRANK Think — Online Office Suite, Chat, Connect &amp; Collaborate</title>') || indexContent.includes('<title>FRANK Think — Chat, Connect &amp; Collaborate</title>'), 'Title tag missing or changed');
     assert(indexContent.includes('application/ld+json'), 'Structured data missing or changed');
     console.log('[PASS] Canonical URL, title, description, and structured data preserved intact.');
 

@@ -1,6 +1,7 @@
 {
   "nav": {
     "features": "Features",
+    "office": "Office Suite",
     "security": "Security",
     "experience": "Experience",
     "about": "About",
@@ -12,7 +13,7 @@
   "hero": {
     "badge": "Think",
     "title": "Communication, Reimagined.",
-    "subtitle": "Chat, connect and collaborate with people in a secure, beautifully designed messaging experience.",
+    "subtitle": "Chat, connect and collaborate with FRANK Think — the secure real-time messaging app and all-in-one productivity platform featuring online productivity tools, in-chat document editing, an online document workspace, and a smart AI assistant online.",
     "startChatting": "Start Chatting",
     "login": "Login",
     "exploreFeatures": "Explore Features",
@@ -62,6 +63,19 @@
     "themeTitle": "Automatic Language Translation",
     "themeDesc": "Communicate across languages. User A can send a message in English while User B receives it in Tamil. Each user sees messages in their preferred language, with the option to view the original message."
   },
+  "office": {
+    "sectionLabel": "Office Productivity Software",
+    "title": "FRANK Think Office Suite — Online Document Workspace",
+    "subtitle": "Experience web-based productivity tools built directly into your online messaging platform. Create, view, and edit documents in browser with zero extra downloads.",
+    "wordTitle": "Online Word Editor",
+    "wordDesc": "Online DOCX editor and word document editing tool to create documents online, edit Word documents online, and format rich text on a document editing platform.",
+    "sheetsTitle": "Online Excel Editor",
+    "sheetsDesc": "Full-featured spreadsheet editor online and spreadsheet management tool. Edit spreadsheets online, calculate formulas, and manage data with an online data table editor.",
+    "slidesTitle": "Online PowerPoint Editor",
+    "slidesDesc": "PPT presentation editor and online slide editor to create presentations online. Refine slides, structure slide decks, and present with a browser-based presentation editor.",
+    "pdfTitle": "PDF Document Management",
+    "pdfDesc": "Integrated PDF document management for fast in-browser preview, zoom, page navigation, and instant file sharing across your team communication tool."
+  },
   "security": {
     "sectionLabel": "ENTERPRISE ARCHITECTURE",
     "title": "Private conversations. Protected by design.",
@@ -76,8 +90,8 @@
     "protectedDesc": "Every request is authenticated through signed headers, preventing impersonation or unauthorized message snooping."
   },
   "cta": {
-    "title": "Ready to experience seamless communication?",
-    "subtitle": "Join thousands of modern communicators today on FRANK. Set up your account in 30 seconds with no credit card required.",
+    "title": "Ready to experience seamless communication & online office tools?",
+    "subtitle": "Join the FRANK Think online platform today. Access your real-time messaging app, online office suite, and document collaboration platform in 30 seconds.",
     "button": "Get Started with FRANK →"
   },
   "footer": {
@@ -88,6 +102,9 @@
     "contact": "Contact Support"
   },
   "auth": {
+    "feature1": "Real-time messaging app and group chat platform",
+    "feature2": "Online office suite and document editing platform with file sharing",
+    "feature3": "Private chat application and online document workspace",
     "signIn": "Sign In",
     "welcomeBack": "Welcome Back",
     "welcomeBackSubtitle": "Enter your credentials to access your FRANK account",

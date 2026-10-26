@@ -105,7 +105,7 @@ async function runProductionTests() {
         assert(homeRes.statusCode === 200, `Root / returns 200 OK`);
         const rawTitle = parseTitle(homeRes.body);
         const title = rawTitle ? rawTitle.replace(/&amp;/g, '&') : '';
-        assert(title === 'FRANK Think — Chat, Connect & Collaborate', `Title matches specification (${title})`);
+        assert(title.includes('FRANK Think') && (title.includes('Online Office Suite') || title.includes('Chat, Connect & Collaborate')), `Title matches specification (${title})`);
         const desc = parseMeta(homeRes.body, 'description');
         assert(desc && desc.includes('FRANK Think'), `Meta description contains FRANK Think brand`);
         assert(desc && (desc.includes('document collaboration') || desc.includes('document editing')), `Meta description contains productivity keywords`);

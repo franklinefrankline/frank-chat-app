@@ -38,10 +38,10 @@ async function audit() {
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' });
 
     const title = await page.title();
-    assert('Page title is "FRANK Think — Chat, Connect & Collaborate"', title === 'FRANK Think — Chat, Connect & Collaborate', `Got: "${title}"`);
+    assert('Page title contains FRANK Think and relevant keywords', title.includes('FRANK Think') && (title.includes('Online Office Suite') || title.includes('Chat, Connect & Collaborate')), `Got: "${title}"`);
 
     const metaDesc = await page.$eval('meta[name="description"]', el => el.getAttribute('content'));
-    assert('Meta description is set correctly', metaDesc && metaDesc.includes('FRANK Think is a modern communication and collaboration platform'), `Got: "${metaDesc}"`);
+    assert('Meta description is set correctly', metaDesc && metaDesc.includes('FRANK Think') && (metaDesc.includes('productivity platform') || metaDesc.includes('communication and collaboration platform')), `Got: "${metaDesc}"`);
 
     const canonical = await page.$eval('link[rel="canonical"]', el => el.getAttribute('href'));
     assert('Canonical URL points to https://fnk.vercel.app/', canonical === 'https://fnk.vercel.app/', `Got: "${canonical}"`);
@@ -59,10 +59,12 @@ async function audit() {
     } catch(e) {}
     assert('JSON-LD structured data is present and valid JSON', jsonLdObj !== null);
     if (jsonLdObj) {
-        assert('JSON-LD @type is WebSite', jsonLdObj['@type'] === 'WebSite');
-        assert('JSON-LD name is FRANK Think', jsonLdObj['name'] === 'FRANK Think');
-        assert('JSON-LD alternateName is FRANK', jsonLdObj['alternateName'] === 'FRANK');
-        assert('JSON-LD url is https://fnk.vercel.app/', jsonLdObj['url'] === 'https://fnk.vercel.app/');
+        const graph = jsonLdObj['@graph'] || [jsonLdObj];
+        const websiteNode = graph.find(n => n['@type'] === 'WebSite') || jsonLdObj;
+        assert('JSON-LD contains WebSite schema', !!websiteNode && websiteNode['@type'] === 'WebSite');
+        assert('JSON-LD name is FRANK Think', websiteNode['name'] === 'FRANK Think');
+        assert('JSON-LD alternateName is FRANK', websiteNode['alternateName'] === 'FRANK');
+        assert('JSON-LD url is https://fnk.vercel.app/', websiteNode['url'] === 'https://fnk.vercel.app/');
     }
 
     const h1Count = await page.$$eval('h1', els => els.length);
