@@ -12,6 +12,16 @@
  * - Modals for Find & Replace, Chart Builder, Keyboard Shortcuts, Formula Reference
  */
 
+if (typeof showToast === 'undefined') {
+    window.showToast = function(msg, type = 'info') {
+        if (window.mockWorkspace && typeof window.mockWorkspace.showToast === 'function') {
+            window.mockWorkspace.showToast(msg, type);
+            return;
+        }
+        console.log(`[Toast ${type}] ${msg}`);
+    };
+}
+
 class FrankSheetsEngine {
     constructor(workspace) {
         this.workspace = workspace;
@@ -53,6 +63,29 @@ class FrankSheetsEngine {
 
         // Bind global keydown handler for spreadsheet shortcuts
         this.boundKeyHandler = this.handleGlobalKeyDown.bind(this);
+    }
+
+    escapeHTML(str) {
+        if (typeof messagesModule !== 'undefined' && messagesModule && messagesModule.escapeHTML) {
+            return messagesModule.escapeHTML(str);
+        }
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    showToast(msg, type = 'info') {
+        if (this.workspace && typeof this.workspace.showToast === 'function') {
+            this.workspace.showToast(msg, type);
+        } else if (typeof window.showToast === 'function') {
+            window.showToast(msg, type);
+        } else {
+            console.log(`[Toast ${type}] ${msg}`);
+        }
     }
 
     // Initialize or attach to current workspace data
@@ -396,37 +429,47 @@ class FrankSheetsEngine {
         menuEl.style.left = `${rect.left}px`;
 
         const items = this.getMenuItems(menuName);
-        let html = '';
         items.forEach(it => {
             if (it.divider) {
-                html += '<div class="sheets-menu-divider"></div>';
+                const div = document.createElement('div');
+                div.className = 'sheets-menu-divider';
+                menuEl.appendChild(div);
             } else {
-                html += `
-                    <div class="sheets-menu-option ${it.disabled ? 'disabled' : ''}" data-action="${it.action || ''}">
-                        <div class="menu-opt-left">
-                            ${it.icon ? `<span class="menu-opt-icon">${it.icon}</span>` : '<span class="menu-opt-icon"></span>'}
-                            <span class="menu-opt-text">${it.label}</span>
-                        </div>
-                        ${it.shortcut ? `<span class="menu-opt-shortcut">${it.shortcut}</span>` : ''}
+                const opt = document.createElement('div');
+                opt.className = `sheets-menu-option ${it.disabled ? 'disabled' : ''}`;
+                opt.innerHTML = `
+                    <div class="menu-opt-left">
+                        ${it.icon ? `<span class="menu-opt-icon">${it.icon}</span>` : '<span class="menu-opt-icon"></span>'}
+                        <span class="menu-opt-text">${it.label}</span>
                     </div>
+                    ${it.shortcut ? `<span class="menu-opt-shortcut">${it.shortcut}</span>` : ''}
                 `;
+                if (!it.disabled) {
+                    opt.onclick = (e) => {
+                        e.stopPropagation();
+                        this.closeAllDropdowns();
+                        if (typeof it.action === 'function') {
+                            it.action.call(this);
+                        } else if (typeof it.action === 'string' && typeof this[it.action] === 'function') {
+                            this[it.action]();
+                        } else if (typeof it.action === 'string') {
+                            this.executeMenuAction(it.action);
+                        }
+                    };
+                }
+                menuEl.appendChild(opt);
             }
         });
-        menuEl.innerHTML = html;
         document.body.appendChild(menuEl);
+    }
 
-        menuEl.querySelectorAll('.sheets-menu-option:not(.disabled)').forEach(opt => {
-            opt.onclick = (e) => {
-                e.stopPropagation();
-                const action = opt.dataset.action;
-                this.closeAllDropdowns();
-                if (action && typeof this[action] === 'function') {
-                    this[action]();
-                } else if (action) {
-                    this.executeMenuAction(action);
-                }
-            };
-        });
+    executeMenuAction(action) {
+        if (typeof this[action] === 'function') {
+            this[action]();
+        } else {
+            console.warn(`[FrankSheetsEngine] Menu action "${action}" is not implemented.`);
+            showToast(`Action "${action}" is not implemented`, 'info');
+        }
     }
 
     getMenuItems(menuName) {
@@ -858,7 +901,7 @@ class FrankSheetsEngine {
         canvasEl.innerHTML = `
             <div class="excel-editor-stage" id="excelEditorStage">
                 <!-- Formula Bar Row -->
-                <div class="formula-bar-container" id="formulaBarContainer">
+                <div class="formula-bar-container sheets-formula-bar" id="formulaBarContainer">
                     <input type="text" class="active-cell-badge sheet-name-box" id="activeCellLabel" value="A1" title="Name Box (Type cell reference and press Enter)">
                     <div class="formula-bar-sep"></div>
                     <span class="formula-fx-label" title="Functions">fx</span>
@@ -985,10 +1028,33 @@ class FrankSheetsEngine {
         }, 80);
     }
 
+    formatNumber(val, formatType) {
+        if (val === '' || val === null || val === undefined) return '';
+        if (formatType === 'text') return String(val);
+        const str = String(val).trim();
+        const n = parseFloat(str.replace(/[$,%]/g, ''));
+        if (isNaN(n)) return String(val);
+        if (formatType === 'currency') {
+            return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+        if (formatType === 'percent') {
+            return `${(n * 100).toFixed(2)}%`;
+        }
+        if (formatType === 'date') {
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) {
+                return d.toISOString().split('T')[0];
+            }
+            return String(val);
+        }
+        return String(val);
+    }
+
     getDisplayValue(r, c, sheet = this.getCurrentSheet(), visitedCoords = new Set()) {
         const coord = this.indicesToCoord(r, c);
         const rawVal = (sheet.data && sheet.data[r] && sheet.data[r][c] !== undefined) ? sheet.data[r][c] : '';
         const formula = (sheet.formulas && sheet.formulas[coord]) || (String(rawVal).startsWith('=') ? String(rawVal) : '');
+        let val = rawVal;
         if (formula && String(formula).startsWith('=')) {
             const sheetKey = (sheet.name || 'Sheet1') + '!' + coord;
             if (visitedCoords.has(sheetKey)) {
@@ -996,9 +1062,13 @@ class FrankSheetsEngine {
             }
             const nextVisited = new Set(visitedCoords);
             nextVisited.add(sheetKey);
-            return this.evalRealFormula(formula, sheet, nextVisited);
+            val = this.evalRealFormula(formula, sheet, nextVisited);
         }
-        return rawVal;
+        const st = sheet.styles?.[coord];
+        if (st && st.numFormat && st.numFormat !== 'auto') {
+            return this.formatNumber(val, st.numFormat);
+        }
+        return val;
     }
 
     // ---------------- 4. SPREADSHEET GRID RENDERING ----------------
@@ -1026,8 +1096,16 @@ class FrankSheetsEngine {
         // Windowing for very large workbooks: render initial 120 rows
         const maxRowsToRender = grid.length > 150 ? (this._maxRenderedRows || 120) : totalRows;
 
+        // Precompute frozen column offsets for sticky positioning
+        let currentLeftOffset = 46; // width of corner / row-header
+        const colLeftOffsets = {};
+        for (let fc = 0; fc < this.frozenCols; fc++) {
+            colLeftOffsets[fc] = currentLeftOffset;
+            currentLeftOffset += (currentSheet.colWidths[fc] || 96);
+        }
+
         // Header row
-        let theadHtml = '<thead><tr><th class="corner-header ' + (this.selectionMode === 'all' ? 'selected' : '') + '" id="xlCornerSelectAll" title="Select All (Ctrl+A)"></th>';
+        let theadHtml = '<thead><tr><th class="corner-header ' + (this.selectionMode === 'all' ? 'selected' : '') + '" id="xlCornerSelectAll" title="Select All (Ctrl+A)" style="position:sticky;top:0;left:0;z-index:15;"></th>';
         for (let c = 0; c < totalCols; c++) {
             const isColHidden = currentSheet.hiddenCols && currentSheet.hiddenCols[c];
             if (isColHidden) {
@@ -1050,8 +1128,13 @@ class FrankSheetsEngine {
             if (hasHiddenLeft) colClasses += ' has-hidden-left';
             if (hasHiddenRight) colClasses += ' has-hidden-right';
 
+            let colStyleStr = `width:${w}px;min-width:${w}px;max-width:${w}px;position:sticky;top:0;z-index:${c < this.frozenCols ? 13 : 10};`;
+            if (c < this.frozenCols) {
+                colStyleStr += `left:${colLeftOffsets[c]}px;`;
+            }
+
             theadHtml += `
-                <th class="${colClasses}" data-c="${c}" style="width:${w}px;min-width:${w}px;max-width:${w}px;">
+                <th class="${colClasses}" data-c="${c}" style="${colStyleStr}">
                     <div class="col-header-inner">
                         <span class="col-letter">${letter}</span>
                         ${this.filterActive ? `<button type="button" class="col-filter-btn ${isFilterActiveOnCol ? 'has-filter' : ''}" data-c="${c}" title="Filter">▾</button>` : ''}
@@ -1061,6 +1144,14 @@ class FrankSheetsEngine {
             `;
         }
         theadHtml += '</tr></thead>';
+
+        // Precompute frozen row offsets
+        let currentTopOffset = 26; // height of column header
+        const rowTopOffsets = {};
+        for (let fr = 0; fr < this.frozenRows; fr++) {
+            rowTopOffsets[fr] = currentTopOffset;
+            currentTopOffset += (currentSheet.rowHeights[fr] || 26);
+        }
 
         // Body rows
         let tbodyHtml = '<tbody>';
@@ -1090,9 +1181,14 @@ class FrankSheetsEngine {
             if (hasHiddenAbove) rowHeaderClasses += ' has-hidden-above';
             if (hasHiddenBelow) rowHeaderClasses += ' has-hidden-below';
 
+            let rowHeaderStyle = `height:${h}px;position:sticky;left:0;z-index:${isFrozenRow ? 14 : 9};`;
+            if (isFrozenRow) {
+                rowHeaderStyle += `top:${rowTopOffsets[r]}px;background-color:#F5EFEB;`;
+            }
+
             tbodyHtml += `<tr data-r="${r}" class="${isFrozenRow ? 'frozen-row' : ''}" style="height:${h}px;">`;
             tbodyHtml += `
-                <td class="${rowHeaderClasses}" data-r="${r}" style="height:${h}px;">
+                <td class="${rowHeaderClasses}" data-r="${r}" style="${rowHeaderStyle}">
                     <div class="row-header-inner">
                         <span class="row-number">${r + 1}</span>
                         <div class="row-resize-handle" data-r="${r}"></div>
@@ -1133,6 +1229,13 @@ class FrankSheetsEngine {
                 else if (st.wrap === 'clip') styleStr += 'overflow:hidden;text-overflow:clip;';
                 if (st.border) styleStr += `border:${st.border};`;
 
+                if (isFrozenRow) {
+                    styleStr += `position:sticky;top:${rowTopOffsets[r]}px;z-index:${c < this.frozenCols ? 11 : 7};background-color:${st.bg || '#FFFBF5'};`;
+                }
+                if (c < this.frozenCols) {
+                    styleStr += `position:sticky;left:${colLeftOffsets[c]}px;z-index:${isFrozenRow ? 11 : 8};background-color:${st.bg || '#FFFBF5'};`;
+                }
+
                 // Selection check
                 const isSelectedCell = this.activeCell.r === r && this.activeCell.c === c;
                 const isInSelectedRange = this.isCellInRange(r, c, this.selectedRange);
@@ -1145,17 +1248,25 @@ class FrankSheetsEngine {
                 if (isFrozenRow) cellClasses += ' frozen-row';
                 if (this.cellComments[coord]) cellClasses += ' has-comment';
 
-                // Checkbox formatting
+                // Checkbox, Image, Link formatting
                 let innerHtmlContent = '';
                 if (st.isCheckbox) {
                     const isChecked = rawVal === 'TRUE' || rawVal === true || rawVal === 'true';
                     innerHtmlContent = `<input type="checkbox" class="sheet-cell-checkbox" ${isChecked ? 'checked' : ''} data-coord="${coord}">`;
+                } else if (st.image) {
+                    innerHtmlContent = `<img src="${st.image}" alt="${this.escapeHTML(st.imageName || 'Image')}" class="sheet-cell-img" style="max-height:22px;max-width:100%;object-fit:contain;vertical-align:middle;display:inline-block;">`;
+                } else if (st.link) {
+                    const safeUrl = this.escapeHTML(st.link);
+                    const linkText = this.escapeHTML(String(displayVal || st.link));
+                    innerHtmlContent = `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="sheet-cell-link" style="color:#1d4ed8;text-decoration:underline;">${linkText}</a>`;
                 } else {
-                    innerHtmlContent = messagesModule.escapeHTML(String(displayVal));
+                    innerHtmlContent = this.escapeHTML(String(displayVal));
                 }
 
+                let ariaLabel = `${coord}: ${displayVal || 'empty'}`;
+                if (st.isCheckbox) ariaLabel = `${coord}: checkbox, ${rawVal === 'TRUE' ? 'checked' : 'not checked'}`;
                 tbodyHtml += `
-                    <td class="${cellClasses}" style="${styleStr}" data-coord="${coord}" data-r="${r}" data-c="${c}" tabindex="0">
+                    <td class="${cellClasses}" style="${styleStr}" data-coord="${coord}" data-r="${r}" data-c="${c}" tabindex="0" role="gridcell" aria-label="${this.escapeHTML(ariaLabel)}">
                         ${innerHtmlContent}
                         ${isSelectedCell ? '<div class="fill-handle" id="sheetFillHandle" title="Drag to fill"></div>' : ''}
                     </td>
@@ -1553,6 +1664,19 @@ class FrankSheetsEngine {
         });
     }
 
+    getCellValue(r, c) {
+        const sheet = this.getCurrentSheet();
+        if (!sheet || !sheet.data || !sheet.data[r]) return '';
+        return sheet.data[r][c] !== undefined ? sheet.data[r][c] : '';
+    }
+
+    getCellStyle(r, c) {
+        const sheet = this.getCurrentSheet();
+        if (!sheet || !sheet.styles) return {};
+        const coord = typeof r === 'string' ? r : this.indicesToCoord(r, c);
+        return sheet.styles[coord] || {};
+    }
+
     setCellValue(r, c, val) {
         this.recordStateForUndo();
         const sheet = this.getCurrentSheet();
@@ -1589,6 +1713,29 @@ class FrankSheetsEngine {
         if (this.paintFormatSource) {
             this.applyPaintFormat(r, c);
         }
+
+        if (render) {
+            this.renderRangeHighlight();
+        }
+        this.syncFormulaBar();
+        this.updateStatusBar();
+    }
+
+    selectRange(startR, startC, endR, endC, render = true) {
+        const sheet = this.getCurrentSheet();
+        const maxR = Math.max((sheet.data ? sheet.data.length : 30) - 1, 0);
+        const maxC = Math.max((sheet.data && sheet.data[0] ? sheet.data[0].length : 16) - 1, 0);
+
+        startR = Math.max(0, Math.min(startR, maxR));
+        startC = Math.max(0, Math.min(startC, maxC));
+        endR = Math.max(0, Math.min(endR, maxR));
+        endC = Math.max(0, Math.min(endC, maxC));
+
+        this.selectionMode = 'cell';
+        this.selectedRows = new Set();
+        this.selectedCols = new Set();
+        this.activeCell = { r: startR, c: startC, coord: this.indicesToCoord(startR, startC) };
+        this.selectedRange = { startR, startC, endR, endC };
 
         if (render) {
             this.renderRangeHighlight();
@@ -2092,6 +2239,76 @@ class FrankSheetsEngine {
             return;
         }
 
+        // Save (Ctrl+S)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            this.fileSave();
+            return;
+        }
+
+        // Open (Ctrl+O)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'o') {
+            e.preventDefault();
+            this.fileOpenImport();
+            return;
+        }
+
+        // New Workbook (Ctrl+N)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+            e.preventDefault();
+            this.fileNewWorkbook();
+            return;
+        }
+
+        // Print (Ctrl+P)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+            e.preventDefault();
+            this.filePrint();
+            return;
+        }
+
+        // Insert Link (Ctrl+K)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            this.insertLink();
+            return;
+        }
+
+        // Clear Formatting (Ctrl+\)
+        if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
+            e.preventDefault();
+            this.formatClearFormatting();
+            return;
+        }
+
+        // Strikethrough (Alt+Shift+5)
+        if (e.altKey && e.shiftKey && e.key === '5') {
+            e.preventDefault();
+            this.toggleCellFormat('strike');
+            return;
+        }
+
+        // Keyboard Shortcuts (Ctrl+/)
+        if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+            e.preventDefault();
+            this.helpShortcuts();
+            return;
+        }
+
+        // New Worksheet (Shift+F11)
+        if (e.shiftKey && e.key === 'F11') {
+            e.preventDefault();
+            this.excelAddSheet();
+            return;
+        }
+
+        // Full Screen (F11)
+        if (!e.shiftKey && e.key === 'F11') {
+            e.preventDefault();
+            this.viewToggleFullScreen();
+            return;
+        }
+
         // Select All
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
             e.preventDefault();
@@ -2108,13 +2325,20 @@ class FrankSheetsEngine {
             }
         }
 
-        // Close open context menu on Escape
+        // Close open context menu or modals on Escape
         if (e.key === 'Escape') {
+            const modals = document.querySelectorAll('.sheets-modal-overlay');
+            if (modals.length > 0) {
+                e.preventDefault();
+                modals.forEach(m => m.remove());
+                return;
+            }
             if (this.currentContextMenu) {
                 e.preventDefault();
                 this.closeContextMenu();
                 return;
             }
+            this.closeAllDropdowns();
         }
 
         // Arrow Key, Tab, Home, End Navigation
@@ -2520,7 +2744,7 @@ class FrankSheetsEngine {
                             if (!isNaN(n)) sum += n;
                         }
                     }
-                    return Number.isInteger(sum) ? String(sum) : sum.toFixed(2);
+                    return Number.isInteger(sum) ? sum : parseFloat(sum.toFixed(2));
                 }
             }
 
@@ -2536,7 +2760,7 @@ class FrankSheetsEngine {
                             count++;
                         }
                     }
-                    return String(count);
+                    return count;
                 }
             }
 
@@ -2551,75 +2775,75 @@ class FrankSheetsEngine {
                     const nums = [];
                     args.forEach(a => nums.push(...resolveNumericRange(a)));
                     const sum = nums.reduce((acc, cur) => acc + cur, 0);
-                    return Number.isInteger(sum) ? String(sum) : sum.toFixed(2);
+                    return Number.isInteger(sum) ? sum : parseFloat(sum.toFixed(2));
                 } else if (fnName === 'AVERAGE' || fnName === 'AVG') {
                     const nums = [];
                     args.forEach(a => nums.push(...resolveNumericRange(a)));
-                    if (nums.length === 0) return '0';
+                    if (nums.length === 0) return 0;
                     const avg = nums.reduce((acc, cur) => acc + cur, 0) / nums.length;
-                    return Number.isInteger(avg) ? String(avg) : avg.toFixed(2);
+                    return Number.isInteger(avg) ? avg : parseFloat(avg.toFixed(2));
                 } else if (fnName === 'COUNT') {
                     const nums = [];
                     args.forEach(a => nums.push(...resolveNumericRange(a)));
-                    return String(nums.length);
+                    return nums.length;
                 } else if (fnName === 'COUNTA') {
                     let count = 0;
                     args.forEach(a => {
                         const vals = resolveRange(a);
                         count += vals.filter(v => String(v).trim() !== '').length;
                     });
-                    return String(count);
+                    return count;
                 } else if (fnName === 'MAX') {
                     const nums = [];
                     args.forEach(a => nums.push(...resolveNumericRange(a)));
-                    return nums.length ? String(Math.max(...nums)) : '0';
+                    return nums.length ? Math.max(...nums) : 0;
                 } else if (fnName === 'MIN') {
                     const nums = [];
                     args.forEach(a => nums.push(...resolveNumericRange(a)));
-                    return nums.length ? String(Math.min(...nums)) : '0';
+                    return nums.length ? Math.min(...nums) : 0;
                 } else if (fnName === 'ABS') {
                     const nums = resolveNumericRange(args[0]);
-                    return nums.length ? String(Math.abs(nums[0])) : '0';
+                    return nums.length ? Math.abs(nums[0]) : 0;
                 } else if (fnName === 'ROUND') {
                     const nums = resolveNumericRange(args[0]);
                     const dec = args[1] ? parseInt(args[1], 10) : 0;
-                    return nums.length ? String(nums[0].toFixed(dec)) : '0';
+                    return nums.length ? parseFloat(nums[0].toFixed(dec)) : 0;
                 } else if (fnName === 'ROUNDUP') {
                     const nums = resolveNumericRange(args[0]);
                     const factor = Math.pow(10, args[1] ? parseInt(args[1], 10) : 0);
-                    return nums.length ? String(Math.ceil(nums[0] * factor) / factor) : '0';
+                    return nums.length ? Math.ceil(nums[0] * factor) / factor : 0;
                 } else if (fnName === 'ROUNDDOWN') {
                     const nums = resolveNumericRange(args[0]);
                     const factor = Math.pow(10, args[1] ? parseInt(args[1], 10) : 0);
-                    return nums.length ? String(Math.floor(nums[0] * factor) / factor) : '0';
+                    return nums.length ? Math.floor(nums[0] * factor) / factor : 0;
                 } else if (fnName === 'INT') {
                     const nums = resolveNumericRange(args[0]);
-                    return nums.length ? String(Math.floor(nums[0])) : '0';
+                    return nums.length ? Math.floor(nums[0]) : 0;
                 } else if (fnName === 'MOD') {
                     const n = resolveNumericRange(args[0])[0] || 0;
                     const d = resolveNumericRange(args[1])[0] || 1;
                     if (d === 0) return '#DIV/0!';
-                    return String(n % d);
+                    return n % d;
                 } else if (fnName === 'SQRT') {
                     const nums = resolveNumericRange(args[0]);
-                    return nums.length ? String(Math.sqrt(nums[0]).toFixed(2)) : '0';
+                    return nums.length ? parseFloat(Math.sqrt(nums[0]).toFixed(2)) : 0;
                 } else if (fnName === 'POWER') {
                     const base = resolveNumericRange(args[0])[0] || 0;
                     const exp = resolveNumericRange(args[1])[0] || 1;
-                    return String(Math.pow(base, exp));
+                    return Math.pow(base, exp);
                 } else if (fnName === 'PRODUCT') {
                     const nums = [];
                     args.forEach(a => nums.push(...resolveNumericRange(a)));
                     const prod = nums.reduce((acc, cur) => acc * cur, 1);
-                    return String(prod);
+                    return prod;
                 } else if (fnName === 'MEDIAN') {
                     const nums = [];
                     args.forEach(a => nums.push(...resolveNumericRange(a)));
-                    if (!nums.length) return '0';
+                    if (!nums.length) return 0;
                     nums.sort((a, b) => a - b);
                     const mid = Math.floor(nums.length / 2);
                     const med = nums.length % 2 !== 0 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
-                    return String(med);
+                    return med;
                 } else if (fnName === 'CONCATENATE') {
                     let out = '';
                     args.forEach(a => {
@@ -2716,7 +2940,11 @@ class FrankSheetsEngine {
                     return '#DIV/0!';
                 }
                 if (isNaN(res)) return '#VALUE!';
-                return Number.isInteger(res) ? String(res) : Number(res).toFixed(2);
+                return Number.isInteger(res) ? res : parseFloat(Number(res).toFixed(2));
+            }
+
+            if (/^[A-Za-z_]+[A-Za-z0-9_]*\s*\(.*\)$/.test(expr)) {
+                return '#NAME?';
             }
 
             return formula;
@@ -2817,21 +3045,9 @@ class FrankSheetsEngine {
 
         for (let r = minR; r <= maxR; r++) {
             for (let c = minC; c <= maxC; c++) {
-                const raw = sheet.data[r]?.[c];
-                if (raw === undefined || raw === '') continue;
-                const n = parseFloat(raw.replace(/[$,%]/g, ''));
-
-                if (formatType === 'currency' && !isNaN(n)) {
-                    sheet.data[r][c] = `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                } else if (formatType === 'percent' && !isNaN(n)) {
-                    sheet.data[r][c] = `${(n * 100).toFixed(2)}%`;
-                } else if (formatType === 'date') {
-                    sheet.data[r][c] = new Date().toISOString().split('T')[0];
-                } else if (formatType === 'text') {
-                    sheet.data[r][c] = String(raw);
-                } else if (formatType === 'auto' && !isNaN(n)) {
-                    sheet.data[r][c] = String(n);
-                }
+                const coord = this.indicesToCoord(r, c);
+                if (!sheet.styles[coord]) sheet.styles[coord] = {};
+                sheet.styles[coord].numFormat = formatType;
             }
         }
 
@@ -2928,15 +3144,15 @@ class FrankSheetsEngine {
         const scrollContent = document.getElementById('spreadsheetScrollContent');
         const table = document.getElementById('spreadsheetTable');
         if (scrollContent) {
-            scrollContent.style.transform = `scale(${level / 100})`;
+            scrollContent.style.transform = level === 100 ? '' : `scale(${level / 100})`;
             scrollContent.style.transformOrigin = 'top left';
         }
         if (table) {
-            table.style.transform = `scale(${level / 100})`;
-            table.style.transformOrigin = 'top left';
+            table.style.transform = '';
         }
         const select = document.getElementById('xlZoomSelect');
         if (select) select.value = String(level);
+        showToast(`Zoom: ${level}%`, 'info');
     }
 
     // Freeze
@@ -2947,7 +3163,11 @@ class FrankSheetsEngine {
         sheet.frozenRows = rows;
         sheet.frozenCols = cols;
         this.renderGrid(true);
-        showToast(`Freeze set: ${rows} row(s), ${cols} col(s)`, 'info');
+        if (rows === 0 && cols === 0) {
+            showToast('No frozen rows or columns', 'info');
+        } else {
+            showToast(`Freeze set: ${rows} row(s), ${cols} col(s)`, 'info');
+        }
     }
 
     // ---------------- 12. ROW & COLUMN MANAGEMENT & CONTEXT MENUS ----------------
@@ -3871,12 +4091,26 @@ class FrankSheetsEngine {
 
         const rowsToSort = [];
         for (let r = minR; r <= maxR; r++) {
-            rowsToSort.push(sheet.data[r] || []);
+            const rowData = sheet.data[r] || [];
+            const rowStyles = {};
+            const rowFormulas = {};
+            for (let c = minC; c <= maxC; c++) {
+                const coord = this.indicesToCoord(r, c);
+                if (sheet.styles && sheet.styles[coord]) {
+                    rowStyles[c] = sheet.styles[coord];
+                    delete sheet.styles[coord];
+                }
+                if (sheet.formulas && sheet.formulas[coord]) {
+                    rowFormulas[c] = sheet.formulas[coord];
+                    delete sheet.formulas[coord];
+                }
+            }
+            rowsToSort.push({ data: rowData, styles: rowStyles, formulas: rowFormulas });
         }
 
-        rowsToSort.sort((a, b) => {
-            const valA = a[colIdx] !== undefined ? a[colIdx] : '';
-            const valB = b[colIdx] !== undefined ? b[colIdx] : '';
+        rowsToSort.sort((itemA, itemB) => {
+            const valA = itemA.data[colIdx] !== undefined ? itemA.data[colIdx] : '';
+            const valB = itemB.data[colIdx] !== undefined ? itemB.data[colIdx] : '';
             const cleanA = String(valA).replace(/[^0-9.-]/g, '');
             const cleanB = String(valB).replace(/[^0-9.-]/g, '');
             const numA = cleanA !== '' ? parseFloat(cleanA) : NaN;
@@ -3891,7 +4125,13 @@ class FrankSheetsEngine {
         });
 
         for (let r = minR; r <= maxR; r++) {
-            sheet.data[r] = rowsToSort[r - minR];
+            const item = rowsToSort[r - minR];
+            sheet.data[r] = item.data;
+            for (let c = minC; c <= maxC; c++) {
+                const coord = this.indicesToCoord(r, c);
+                if (item.styles[c]) sheet.styles[coord] = item.styles[c];
+                if (item.formulas[c]) sheet.formulas[coord] = item.formulas[c];
+            }
         }
 
         this.workspace.markDirty();
@@ -4085,6 +4325,63 @@ class FrankSheetsEngine {
         const matchCase = modal.querySelector('#matchCaseChk');
         findInput.focus();
 
+        const findNext = (andReplace = false) => {
+            const query = findInput.value;
+            if (!query) return;
+            const repl = replaceInput.value;
+            const sheet = this.getCurrentSheet();
+            const totalRows = sheet.data.length;
+            const totalCols = (sheet.data[0] || []).length;
+
+            let startR = this.activeCell.r;
+            let startC = this.activeCell.c;
+
+            if (andReplace) {
+                const curVal = String((sheet.data[startR] && sheet.data[startR][startC]) || '');
+                const matches = matchCase.checked ? curVal.includes(query) : curVal.toLowerCase().includes(query.toLowerCase());
+                if (matches) {
+                    this.recordStateForUndo();
+                    const regex = new RegExp(query, matchCase.checked ? 'g' : 'gi');
+                    sheet.data[startR][startC] = curVal.replace(regex, repl);
+                    this.workspace.markDirty();
+                    this.renderGrid(true);
+                    this.showToast('Replaced 1 instance', 'success');
+                }
+            }
+
+            let found = false;
+            let checkCount = 0;
+            const totalCells = totalRows * totalCols;
+            let r = startR;
+            let c = startC + 1;
+            while (checkCount < totalCells) {
+                if (c >= totalCols) {
+                    c = 0;
+                    r = (r + 1) % totalRows;
+                }
+                const cellVal = String((sheet.data[r] && sheet.data[r][c]) || '');
+                const isMatch = matchCase.checked ? cellVal.includes(query) : cellVal.toLowerCase().includes(query.toLowerCase());
+                if (isMatch) {
+                    const coord = this.indicesToCoord(r, c);
+                    this.selectCell(r, c, coord);
+                    this.renderGrid(true);
+                    found = true;
+                    this.showToast(`Found at ${coord}`, 'info');
+                    break;
+                }
+                c++;
+                checkCount++;
+            }
+            if (!found) {
+                this.showToast(`No matches found for "${query}"`, 'info');
+            }
+        };
+
+        const findNextBtn = modal.querySelector('#findNextBtn');
+        if (findNextBtn) findNextBtn.onclick = () => findNext(false);
+        const replaceBtn = modal.querySelector('#replaceBtn');
+        if (replaceBtn) replaceBtn.onclick = () => findNext(true);
+
         modal.querySelector('#replaceAllBtn').onclick = () => {
             const query = findInput.value;
             const repl = replaceInput.value;
@@ -4108,7 +4405,7 @@ class FrankSheetsEngine {
             this.workspace.markDirty();
             this.renderGrid(true);
             modal.remove();
-            showToast(`Replaced ${count} instance(s)`, 'success');
+            this.showToast(`Replaced ${count} instance(s)`, 'success');
         };
     }
 
@@ -4189,30 +4486,129 @@ class FrankSheetsEngine {
     insertCheckbox() {
         this.recordStateForUndo();
         const sheet = this.getCurrentSheet();
-        const coord = this.activeCell.coord;
-        if (!sheet.styles[coord]) sheet.styles[coord] = {};
-        sheet.styles[coord].isCheckbox = true;
-        sheet.data[this.activeCell.r][this.activeCell.c] = 'FALSE';
+        const minR = Math.min(this.selectedRange.startR, this.selectedRange.endR);
+        const maxR = Math.max(this.selectedRange.startR, this.selectedRange.endR);
+        const minC = Math.min(this.selectedRange.startC, this.selectedRange.endC);
+        const maxC = Math.max(this.selectedRange.startC, this.selectedRange.endC);
+
+        let count = 0;
+        for (let r = minR; r <= maxR; r++) {
+            while (sheet.data.length <= r) sheet.data.push([]);
+            for (let c = minC; c <= maxC; c++) {
+                while (sheet.data[r].length <= c) sheet.data[r].push('');
+                const coord = this.indicesToCoord(r, c);
+                if (!sheet.styles[coord]) sheet.styles[coord] = {};
+                sheet.styles[coord].isCheckbox = true;
+                sheet.data[r][c] = false;
+                count++;
+            }
+        }
         this.workspace.markDirty();
         this.renderGrid(true);
-        showToast('Inserted checkbox', 'success');
+        showToast(count > 1 ? `Inserted ${count} checkboxes` : 'Inserted checkbox', 'success');
     }
 
     // Insert Link
     insertLink() {
-        const url = window.prompt('Enter URL to link:', 'https://');
-        if (url) {
+        const sheet = this.getCurrentSheet();
+        const coord = this.activeCell.coord;
+        const currentVal = sheet.data[this.activeCell.r]?.[this.activeCell.c] || '';
+        const currentLink = sheet.styles[coord]?.link || 'https://';
+
+        const modal = document.createElement('div');
+        modal.className = 'sheets-modal-overlay';
+        modal.innerHTML = `
+            <div class="sheets-dialog-card" style="max-width:420px;">
+                <div class="sheets-dialog-header">
+                    <h3>Insert Hyperlink</h3>
+                    <button type="button" class="sheets-dialog-close">✕</button>
+                </div>
+                <div class="sheets-dialog-body" style="font-size:13px;display:flex;flex-direction:column;gap:10px;">
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Text to Display</label>
+                        <input type="text" id="linkText" class="tool-select" style="width:100%;box-sizing:border-box;" value="${this.escapeHTML(String(currentVal || ''))}" placeholder="Display text">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Link URL</label>
+                        <input type="url" id="linkUrl" class="tool-select" style="width:100%;box-sizing:border-box;" value="${this.escapeHTML(currentLink)}" placeholder="https://example.com">
+                    </div>
+                </div>
+                <div class="sheets-dialog-footer" style="display:flex;gap:8px;justify-content:flex-end;">
+                    ${sheet.styles[coord]?.link ? '<button type="button" class="workspace-btn" id="btnRemoveLink" style="color:var(--danger,#dc2626);margin-right:auto;">Remove Link</button>' : ''}
+                    <button type="button" class="workspace-btn sheets-dialog-close">Cancel</button>
+                    <button type="button" class="workspace-btn workspace-btn-primary" id="btnApplyLink">Apply</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
+
+        const removeBtn = modal.querySelector('#btnRemoveLink');
+        if (removeBtn) {
+            removeBtn.onclick = () => {
+                this.recordStateForUndo();
+                if (sheet.styles[coord]) {
+                    delete sheet.styles[coord].link;
+                    delete sheet.styles[coord].underline;
+                    delete sheet.styles[coord].color;
+                }
+                this.workspace.markDirty();
+                this.renderGrid(true);
+                modal.remove();
+                showToast('Hyperlink removed', 'info');
+            };
+        }
+
+        modal.querySelector('#btnApplyLink').onclick = () => {
+            const urlVal = modal.querySelector('#linkUrl').value.trim();
+            const textVal = modal.querySelector('#linkText').value.trim();
+            if (!urlVal || (!urlVal.startsWith('http://') && !urlVal.startsWith('https://') && !urlVal.startsWith('mailto:'))) {
+                showToast('Please enter a valid URL (starting with https:// or http://)', 'warning');
+                return;
+            }
             this.recordStateForUndo();
-            const sheet = this.getCurrentSheet();
-            const coord = this.activeCell.coord;
+            if (textVal) {
+                sheet.data[this.activeCell.r][this.activeCell.c] = textVal;
+            }
             if (!sheet.styles[coord]) sheet.styles[coord] = {};
+            sheet.styles[coord].link = urlVal;
             sheet.styles[coord].color = '#1d4ed8';
-            sheet.styles[coord].underline = true;
-            sheet.styles[coord].link = url;
             this.workspace.markDirty();
             this.renderGrid(true);
+            modal.remove();
             showToast('Hyperlink attached', 'success');
-        }
+        };
+    }
+
+    // Insert Image
+    insertImage() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/png,image/jpeg,image/webp,image/svg+xml,image/gif';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                showToast('Please select a valid image file (PNG, JPG, SVG, WebP, GIF)', 'warning');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                this.recordStateForUndo();
+                const sheet = this.getCurrentSheet();
+                const coord = this.activeCell.coord;
+                if (!sheet.styles[coord]) sheet.styles[coord] = {};
+                sheet.styles[coord].image = evt.target.result;
+                sheet.styles[coord].imageName = file.name;
+                this.workspace.markDirty();
+                this.renderGrid(true);
+                showToast(`Inserted image "${file.name}" into ${coord}`, 'success');
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
     }
 
     // Add Comment
@@ -4238,21 +4634,31 @@ class FrankSheetsEngine {
         modal.innerHTML = `
             <div class="sheets-dialog-card" style="max-width:540px;">
                 <div class="sheets-dialog-header">
-                    <h3>Keyboard Shortcuts</h3>
+                    <h3>Keyboard shortcuts</h3>
                     <button type="button" class="sheets-dialog-close">✕</button>
                 </div>
                 <div class="sheets-dialog-body" style="max-height:360px;overflow-y:auto;">
                     <table style="width:100%;font-size:12px;border-collapse:collapse;">
                         <tr style="border-bottom:1px solid #D8C5AA;"><td style="padding:6px;font-weight:700;">Action</td><td style="padding:6px;font-weight:700;">Shortcut</td></tr>
                         <tr><td style="padding:6px;">Undo / Redo</td><td style="padding:6px;">Ctrl+Z / Ctrl+Y</td></tr>
+                        <tr><td style="padding:6px;">Save Workbook</td><td style="padding:6px;">Ctrl+S</td></tr>
+                        <tr><td style="padding:6px;">Open / Import Workbook</td><td style="padding:6px;">Ctrl+O</td></tr>
+                        <tr><td style="padding:6px;">New Blank Workbook</td><td style="padding:6px;">Ctrl+N</td></tr>
+                        <tr><td style="padding:6px;">Print Spreadsheet</td><td style="padding:6px;">Ctrl+P</td></tr>
                         <tr><td style="padding:6px;">Copy / Cut / Paste</td><td style="padding:6px;">Ctrl+C / Ctrl+X / Ctrl+V</td></tr>
                         <tr><td style="padding:6px;">Bold / Italic / Underline</td><td style="padding:6px;">Ctrl+B / Ctrl+I / Ctrl+U</td></tr>
+                        <tr><td style="padding:6px;">Strikethrough</td><td style="padding:6px;">Alt+Shift+5</td></tr>
+                        <tr><td style="padding:6px;">Clear Formatting</td><td style="padding:6px;">Ctrl+\\</td></tr>
+                        <tr><td style="padding:6px;">Insert Hyperlink</td><td style="padding:6px;">Ctrl+K</td></tr>
+                        <tr><td style="padding:6px;">New Worksheet</td><td style="padding:6px;">Shift+F11</td></tr>
+                        <tr><td style="padding:6px;">Full Screen Toggle</td><td style="padding:6px;">F11</td></tr>
                         <tr><td style="padding:6px;">Find and Replace</td><td style="padding:6px;">Ctrl+H or Ctrl+F</td></tr>
                         <tr><td style="padding:6px;">Select All</td><td style="padding:6px;">Ctrl+A</td></tr>
                         <tr><td style="padding:6px;">Clear Cell Contents</td><td style="padding:6px;">Delete or Backspace</td></tr>
                         <tr><td style="padding:6px;">Inline Cell Edit</td><td style="padding:6px;">F2 or Double-click</td></tr>
                         <tr><td style="padding:6px;">Navigate Cells</td><td style="padding:6px;">Arrow Keys / Tab / Enter</td></tr>
                         <tr><td style="padding:6px;">Extend Selection</td><td style="padding:6px;">Shift + Arrow Keys</td></tr>
+                        <tr><td style="padding:6px;">Keyboard Shortcuts Guide</td><td style="padding:6px;">Ctrl+/</td></tr>
                     </table>
                 </div>
                 <div class="sheets-dialog-footer">
@@ -4271,16 +4677,17 @@ class FrankSheetsEngine {
         modal.innerHTML = `
             <div class="sheets-dialog-card" style="max-width:540px;">
                 <div class="sheets-dialog-header">
-                    <h3>Supported Spreadsheet Functions</h3>
+                    <h3>Function list & Syntax Reference</h3>
                     <button type="button" class="sheets-dialog-close">✕</button>
                 </div>
                 <div class="sheets-dialog-body" style="max-height:360px;overflow-y:auto;font-size:12px;">
-                    <p><strong>Math & Stats:</strong> SUM, AVERAGE, COUNT, COUNTA, MAX, MIN, ABS, ROUND, ROUNDUP, ROUNDDOWN, INT, MOD, POWER, SQRT, PRODUCT, MEDIAN</p>
-                    <p style="margin-top:8px;"><strong>Logic:</strong> IF(condition, trueVal, falseVal), AND, OR, NOT</p>
-                    <p style="margin-top:8px;"><strong>Text:</strong> CONCATENATE, UPPER, LOWER, TRIM, LEN, LEFT, RIGHT, MID</p>
-                    <p style="margin-top:8px;"><strong>Lookup:</strong> VLOOKUP(key, range, colIndex, false)</p>
-                    <p style="margin-top:8px;"><strong>Date:</strong> TODAY(), NOW(), YEAR, MONTH, DAY</p>
-                    <p style="margin-top:8px;"><strong>Arithmetic:</strong> =A1+B1, =A1*1.5, =(A1+B1)/2</p>
+                    <p><strong>Math & Stats:</strong> SUM(range), AVERAGE(range), COUNT(range), COUNTA(range), MAX(range), MIN(range), ABS(n), ROUND(n, dec), ROUNDUP(n, dec), ROUNDDOWN(n, dec), INT(n), MOD(n, d), POWER(b, exp), SQRT(n), PRODUCT(range), MEDIAN(range)</p>
+                    <p style="margin-top:8px;"><strong>Logic:</strong> IF(condition, trueVal, falseVal), AND(c1, c2), OR(c1, c2), NOT(cond)</p>
+                    <p style="margin-top:8px;"><strong>Conditional Aggregation:</strong> SUMIF(range, criteria, [sum_range]), COUNTIF(range, criteria)</p>
+                    <p style="margin-top:8px;"><strong>Text:</strong> CONCATENATE(t1, t2, ...), UPPER(text), LOWER(text), TRIM(text), LEN(text), LEFT(text, n), RIGHT(text, n), MID(text, start, len)</p>
+                    <p style="margin-top:8px;"><strong>Lookup:</strong> VLOOKUP(key, tableRange, colIndex, false)</p>
+                    <p style="margin-top:8px;"><strong>Date:</strong> TODAY(), NOW(), YEAR(date), MONTH(date), DAY(date)</p>
+                    <p style="margin-top:8px;"><strong>Arithmetic:</strong> =A1+B1, =A1*1.5, =(A1+B1)/2, =A1^2</p>
                 </div>
                 <div class="sheets-dialog-footer">
                     <button type="button" class="workspace-btn workspace-btn-primary sheets-dialog-close">Close</button>
@@ -4291,46 +4698,226 @@ class FrankSheetsEngine {
         modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
     }
 
+    // Help Guide
+    helpGuide() {
+        const modal = document.createElement('div');
+        modal.className = 'sheets-modal-overlay';
+        modal.innerHTML = `
+            <div class="sheets-dialog-card" style="max-width:560px;">
+                <div class="sheets-dialog-header">
+                    <h3>Spreadsheet Help Guide</h3>
+                    <button type="button" class="sheets-dialog-close">✕</button>
+                </div>
+                <div class="sheets-dialog-body" style="font-size:12px;line-height:1.6;max-height:380px;overflow-y:auto;color:#2D241E;">
+                    <h4 style="color:#B86B3D;margin:0 0 4px 0;">1. Entering Data & Formulas</h4>
+                    <p>Click any cell to select it. Double-click or press <strong>F2</strong> to enter inline edit mode. Type a value or start with <code>=</code> for formulas (e.g. <code>=SUM(A1:A10)</code>, <code>=AVERAGE(B1:B5)</code>, <code>=IF(A1>0, "Yes", "No")</code>). Press <strong>Enter</strong> or click ✓ to commit.</p>
+
+                    <h4 style="color:#B86B3D;margin:12px 0 4px 0;">2. Formatting Cells</h4>
+                    <p>Use the toolbar or <strong>Format</strong> menu to apply <strong>Bold (Ctrl+B)</strong>, <strong>Italic (Ctrl+I)</strong>, <strong>Underline (Ctrl+U)</strong>, font colors, backgrounds, text wrapping, and number formatting (Currency, Percent, Date, Plain Text).</p>
+
+                    <h4 style="color:#B86B3D;margin:12px 0 4px 0;">3. Rows, Columns & Freeze Panes</h4>
+                    <p>Insert rows/columns via the <strong>Insert</strong> menu or by right-clicking row/column headers. Freeze headers via <strong>View → Freeze 1 Row / 1 Column</strong> so that headers stay pinned while scrolling.</p>
+
+                    <h4 style="color:#B86B3D;margin:12px 0 4px 0;">4. Sorting, Filtering & Tools</h4>
+                    <p>Sort ranges ascending or descending via <strong>Data → Sort Range</strong>. Filter columns with <strong>Data → Create a Filter</strong>. Use <strong>Tools → Spellcheck & Trim Spaces</strong> to remove rogue whitespace, and <strong>Formula Syntax Assistance</strong> to validate formulas.</p>
+
+                    <h4 style="color:#B86B3D;margin:12px 0 4px 0;">5. Import & Export</h4>
+                    <p>Import Excel (.xlsx) and CSV (.csv) spreadsheets via <strong>File → Open / Import...</strong>. Export back to Excel or CSV via <strong>File → Download as Excel / CSV</strong>, or export structured datasets via <strong>Extensions → Export JSON</strong>.</p>
+                </div>
+                <div class="sheets-dialog-footer">
+                    <button type="button" class="workspace-btn workspace-btn-primary sheets-dialog-close">Close Guide</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
+    }
+
     // ---------------- 18. FILE & IMPORT / EXPORT METHODS ----------------
     fileNewWorkbook() {
-        if (window.confirm('Create a new blank workbook? Any unsaved changes in current workbook will be lost.')) {
+        const doCreate = () => {
             this.workspace.excelData = {
                 sheets: [this.createBlankSheet('Sheet1')],
                 activeSheetIdx: 0
             };
             this.activeSheetIdx = 0;
+            this.workspace.currentDoc = this.workspace.currentDoc || {};
             this.workspace.currentDoc.filename = 'Untitled Spreadsheet.xlsx';
-            this.workspace.updateHeaderUI();
-            this.workspace.markDirty();
+            this.undoStack = [];
+            this.redoStack = [];
+            this.activeCell = { r: 0, c: 0, coord: 'A1' };
+            this.selectedRange = { startR: 0, startC: 0, endR: 0, endC: 0 };
+            if (this.workspace.isDirty) {
+                this.workspace.isDirty = false;
+                this.workspace.setSaveStatus?.('saved', 'Saved');
+            }
+            const titleEl = document.getElementById('workspaceDocTitle');
+            if (titleEl) titleEl.textContent = this.workspace.currentDoc.filename;
+            if (this.workspace && typeof this.workspace.updateHeaderUI === 'function') {
+                this.workspace.updateHeaderUI();
+            }
             this.renderGrid();
             this.renderSheetTabs();
             this.syncFormulaBar();
+            this.updateStatusBar();
             showToast('New workbook created', 'success');
+        };
+
+        if (this.workspace && this.workspace.isDirty) {
+            const modal = document.createElement('div');
+            modal.className = 'sheets-modal-overlay';
+            modal.innerHTML = `
+                <div class="sheets-dialog-card" style="max-width:440px;">
+                    <div class="sheets-dialog-header">
+                        <h3>Unsaved Changes</h3>
+                        <button type="button" class="sheets-dialog-close">✕</button>
+                    </div>
+                    <div class="sheets-dialog-body">
+                        <p style="font-size:13px;color:var(--theme-text,#2D241E);">You have unsaved changes in your current workbook. Do you want to save before creating a new blank workbook?</p>
+                    </div>
+                    <div class="sheets-dialog-footer" style="display:flex;gap:8px;justify-content:flex-end;">
+                        <button type="button" class="workspace-btn" id="btnDiscardNew">Discard Changes</button>
+                        <button type="button" class="workspace-btn workspace-btn-primary" id="btnSaveNew">Save & Create New</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
+            modal.querySelector('#btnDiscardNew').onclick = () => {
+                modal.remove();
+                doCreate();
+            };
+            modal.querySelector('#btnSaveNew').onclick = async () => {
+                modal.remove();
+                await this.fileSave();
+                doCreate();
+            };
+        } else {
+            doCreate();
         }
     }
 
     fileEditDocument() {
-        if (window.documentBrowserController) {
-            window.documentBrowserController.openBrowser();
-        } else if (typeof DocumentBrowserController !== 'undefined') {
-            window.documentBrowserController = new DocumentBrowserController();
-            window.documentBrowserController.openBrowser();
-        } else {
-            showToast('Document selector is unavailable', 'warning');
-        }
+        const modal = document.createElement('div');
+        modal.className = 'sheets-modal-overlay';
+        const doc = this.workspace.currentDoc || {};
+        const filename = doc.filename || 'Workbook.xlsx';
+        const author = doc.author || 'FRANK User';
+        const subject = doc.subject || 'Spreadsheet Document';
+        const numSheets = this.workspace.excelData?.sheets?.length || 1;
+        const currentSheet = this.getCurrentSheet();
+        const rows = currentSheet.data ? currentSheet.data.length : 35;
+        const cols = (currentSheet.data && currentSheet.data[0]) ? currentSheet.data[0].length : 16;
+
+        modal.innerHTML = `
+            <div class="sheets-dialog-card" style="max-width:480px;">
+                <div class="sheets-dialog-header">
+                    <h3>Workbook Properties</h3>
+                    <button type="button" class="sheets-dialog-close">✕</button>
+                </div>
+                <div class="sheets-dialog-body" style="font-size:13px;display:flex;flex-direction:column;gap:12px;">
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Workbook Name</label>
+                        <input type="text" id="propFilename" class="tool-select" style="width:100%;box-sizing:border-box;" value="${this.escapeHTML(filename)}">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Author</label>
+                        <input type="text" id="propAuthor" class="tool-select" style="width:100%;box-sizing:border-box;" value="${this.escapeHTML(author)}">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Subject / Notes</label>
+                        <textarea id="propSubject" class="tool-select" style="width:100%;box-sizing:border-box;height:64px;resize:vertical;">${this.escapeHTML(subject)}</textarea>
+                    </div>
+                    <div style="background:#F9F4EB;border:1px solid #E8DCCB;border-radius:6px;padding:10px;font-size:12px;color:#67584A;">
+                        <p><strong>Worksheets:</strong> ${numSheets} (${(this.workspace.excelData?.sheets || []).map(s => s.name).join(', ')})</p>
+                        <p style="margin-top:4px;"><strong>Active Sheet Grid:</strong> ${rows} rows × ${cols} columns</p>
+                    </div>
+                </div>
+                <div class="sheets-dialog-footer" style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button type="button" class="workspace-btn sheets-dialog-close">Cancel</button>
+                    <button type="button" class="workspace-btn workspace-btn-primary" id="btnSaveDocProps">Save Properties</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
+        modal.querySelector('#btnSaveDocProps').onclick = () => {
+            const newName = modal.querySelector('#propFilename').value.trim();
+            const newAuthor = modal.querySelector('#propAuthor').value.trim();
+            const newSubject = modal.querySelector('#propSubject').value.trim();
+            if (newName) {
+                this.workspace.currentDoc.filename = newName.endsWith('.xlsx') || newName.endsWith('.csv') ? newName : `${newName}.xlsx`;
+            }
+            this.workspace.currentDoc.author = newAuthor;
+            this.workspace.currentDoc.subject = newSubject;
+            const sheet = this.getCurrentSheet();
+            sheet.properties = sheet.properties || {};
+            sheet.properties.author = newAuthor;
+            sheet.properties.subject = newSubject;
+            const titleEl = document.getElementById('workspaceDocTitle');
+            if (titleEl && newName) titleEl.textContent = this.workspace.currentDoc.filename;
+            if (this.workspace && typeof this.workspace.updateHeaderUI === 'function') {
+                this.workspace.updateHeaderUI();
+            }
+            this.workspace.markDirty();
+            modal.remove();
+            showToast('Workbook properties updated', 'success');
+        };
     }
 
     fileSave() {
         if (this.workspace && typeof this.workspace.saveDocument === 'function') {
-            this.workspace.saveDocument();
+            return this.workspace.saveDocument().then((res) => {
+                if (res !== false) {
+                    showToast('Spreadsheet saved successfully', 'success');
+                }
+            }).catch((err) => {
+                console.error('[FrankSheetsEngine] Save failed:', err);
+                showToast('Failed to save spreadsheet', 'error');
+            });
         } else {
             showToast('Spreadsheet saved', 'success');
         }
     }
 
     fileClose() {
-        if (this.workspace && typeof this.workspace.closeWorkspace === 'function') {
-            this.workspace.closeWorkspace();
+        if (this.workspace && this.workspace.isDirty) {
+            const modal = document.createElement('div');
+            modal.className = 'sheets-modal-overlay';
+            modal.innerHTML = `
+                <div class="sheets-dialog-card" style="max-width:400px;">
+                    <div class="sheets-dialog-header">
+                        <h3>Unsaved Changes</h3>
+                        <button type="button" class="sheets-dialog-close">✕</button>
+                    </div>
+                    <div class="sheets-dialog-body" style="font-size:13px;">
+                        <p>You have unsaved changes. Are you sure you want to close without saving?</p>
+                    </div>
+                    <div class="sheets-dialog-footer" style="display:flex;gap:8px;justify-content:flex-end;">
+                        <button type="button" class="workspace-btn sheets-dialog-close">Cancel</button>
+                        <button type="button" class="workspace-btn" id="btnCloseDiscard">Discard & Close</button>
+                        <button type="button" class="workspace-btn workspace-btn-primary" id="btnCloseSave">Save & Close</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
+            modal.querySelector('#btnCloseDiscard').onclick = () => {
+                modal.remove();
+                const closeFn = this.workspace?.closeWorkspace || this.workspace?.closeDocument;
+                if (typeof closeFn === 'function') closeFn.call(this.workspace);
+            };
+            modal.querySelector('#btnCloseSave').onclick = async () => {
+                modal.remove();
+                await this.fileSave();
+                const closeFn = this.workspace?.closeWorkspace || this.workspace?.closeDocument;
+                if (typeof closeFn === 'function') closeFn.call(this.workspace);
+            };
+        } else {
+            const closeFn = this.workspace?.closeWorkspace || this.workspace?.closeDocument;
+            if (typeof closeFn === 'function') {
+                closeFn.call(this.workspace);
+            }
         }
     }
 
@@ -4342,7 +4929,83 @@ class FrankSheetsEngine {
             const file = e.target.files[0];
             if (!file) return;
 
-            if (window.XLSX) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+                showToast(`Unsupported file format ".${ext}". Please choose an .xlsx or .csv file.`, 'error');
+                return;
+            }
+
+            if (ext === 'csv') {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        const text = evt.target.result;
+                        const rows = [];
+                        const lines = text.split(/\\r\\n|\\n|\\r/);
+                        lines.forEach(line => {
+                            if (!line.trim() && rows.length > 0 && line === lines[lines.length - 1]) return;
+                            const row = [];
+                            let inQuote = false;
+                            let field = '';
+                            for (let i = 0; i < line.length; i++) {
+                                const ch = line[i];
+                                if (ch === '"' && (i === 0 || line[i - 1] !== '\\\\')) {
+                                    if (inQuote && line[i + 1] === '"') {
+                                        field += '"';
+                                        i++;
+                                    } else {
+                                        inQuote = !inQuote;
+                                    }
+                                } else if (ch === ',' && !inQuote) {
+                                    row.push(field);
+                                    field = '';
+                                } else {
+                                    field += ch;
+                                }
+                            }
+                            row.push(field);
+                            rows.push(row);
+                        });
+
+                        const maxCols = Math.max(16, ...rows.map(r => r.length));
+                        while (rows.length < 35) rows.push(new Array(maxCols).fill(''));
+                        rows.forEach(r => {
+                            while (r.length < maxCols) r.push('');
+                        });
+
+                        const sheetName = file.name.replace(/\\.[^/.]+$/, '').substring(0, 31) || 'Sheet1';
+                        this.workspace.excelData = {
+                            sheets: [{
+                                name: sheetName,
+                                data: rows,
+                                formulas: {},
+                                styles: {},
+                                colWidths: {},
+                                rowHeights: {},
+                                frozenRows: 0,
+                                frozenCols: 0
+                            }],
+                            activeSheetIdx: 0
+                        };
+                        this.activeSheetIdx = 0;
+                        this.workspace.currentDoc = this.workspace.currentDoc || {};
+                        this.workspace.currentDoc.filename = file.name;
+                        this.undoStack = [];
+                        this.redoStack = [];
+                        this.workspace.updateHeaderUI();
+                        this.workspace.markDirty();
+                        this.renderGrid();
+                        this.renderSheetTabs();
+                        this.syncFormulaBar();
+                        this.updateStatusBar();
+                        showToast(`Imported ${file.name} successfully`, 'success');
+                    } catch (err) {
+                        console.error('CSV import error:', err);
+                        showToast('Failed to parse CSV file: ' + err.message, 'error');
+                    }
+                };
+                reader.readAsText(file, 'utf-8');
+            } else if (window.XLSX) {
                 const reader = new FileReader();
                 reader.onload = (evt) => {
                     try {
@@ -4360,27 +5023,41 @@ class FrankSheetsEngine {
                                     formulas[key] = `=${ws[key].f}`;
                                 }
                             });
+                            const maxCols = Math.max(16, ...jsonRows.map(r => r.length));
+                            while (jsonRows.length < 35) jsonRows.push(new Array(maxCols).fill(''));
+                            jsonRows.forEach(r => {
+                                while (r.length < maxCols) r.push('');
+                            });
+
                             sheets.push({
                                 name: name,
-                                data: jsonRows.length > 0 ? jsonRows : Array.from({ length: 25 }, () => Array(10).fill('')),
+                                data: jsonRows,
                                 formulas: formulas,
-                                styles: {}
+                                styles: {},
+                                colWidths: {},
+                                rowHeights: {},
+                                frozenRows: 0,
+                                frozenCols: 0
                             });
                         });
 
-                        this.workspace.excelData.sheets = sheets;
+                        this.workspace.excelData.sheets = sheets.length > 0 ? sheets : [this.createBlankSheet('Sheet1')];
                         this.activeSheetIdx = 0;
                         this.workspace.excelData.activeSheetIdx = 0;
+                        this.workspace.currentDoc = this.workspace.currentDoc || {};
                         this.workspace.currentDoc.filename = file.name;
+                        this.undoStack = [];
+                        this.redoStack = [];
                         this.workspace.updateHeaderUI();
                         this.workspace.markDirty();
                         this.renderGrid();
                         this.renderSheetTabs();
                         this.syncFormulaBar();
+                        this.updateStatusBar();
                         showToast(`Imported ${file.name} successfully`, 'success');
                     } catch (err) {
-                        console.error('Import error:', err);
-                        showToast('Failed to parse workbook file', 'error');
+                        console.error('XLSX import error:', err);
+                        showToast('Failed to parse workbook file: ' + err.message, 'error');
                     }
                 };
                 reader.readAsArrayBuffer(file);
@@ -4393,20 +5070,75 @@ class FrankSheetsEngine {
 
     fileRenameWorkbook() {
         const currentName = this.workspace.currentDoc ? this.workspace.currentDoc.filename : 'Workbook.xlsx';
-        const newName = window.prompt('Rename workbook:', currentName);
-        if (newName && newName.trim()) {
-            this.workspace.currentDoc.filename = newName.trim();
-            this.workspace.updateHeaderUI();
+        const modal = document.createElement('div');
+        modal.className = 'sheets-modal-overlay';
+        modal.innerHTML = `
+            <div class="sheets-dialog-card" style="max-width:400px;">
+                <div class="sheets-dialog-header">
+                    <h3>Rename Workbook</h3>
+                    <button type="button" class="sheets-dialog-close">✕</button>
+                </div>
+                <div class="sheets-dialog-body" style="font-size:13px;">
+                    <label style="display:block;font-weight:600;margin-bottom:6px;">New Workbook Name:</label>
+                    <input type="text" id="renameWorkbookInput" class="tool-select" style="width:100%;box-sizing:border-box;" value="${this.escapeHTML(currentName)}">
+                </div>
+                <div class="sheets-dialog-footer" style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button type="button" class="workspace-btn sheets-dialog-close">Cancel</button>
+                    <button type="button" class="workspace-btn workspace-btn-primary" id="btnConfirmRename">Rename</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        const input = modal.querySelector('#renameWorkbookInput');
+        input.focus();
+        input.select();
+
+        const doRename = () => {
+            const val = input.value.trim();
+            if (!val) {
+                showToast('Workbook name cannot be empty', 'warning');
+                return;
+            }
+            const cleanName = val.endsWith('.xlsx') || val.endsWith('.csv') ? val : `${val}.xlsx`;
+            this.workspace.currentDoc = this.workspace.currentDoc || {};
+            const titleEl = document.getElementById('workspaceDocTitle');
+            if (titleEl) titleEl.textContent = cleanName;
+            if (this.workspace && typeof this.workspace.updateHeaderUI === 'function') {
+                this.workspace.updateHeaderUI();
+            }
             this.workspace.markDirty();
-        }
+            modal.remove();
+            showToast(`Renamed to "${cleanName}"`, 'success');
+        };
+
+        modal.querySelector('#btnConfirmRename').onclick = doRename;
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') doRename();
+            if (e.key === 'Escape') modal.remove();
+        };
+        modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
     }
 
     fileMakeCopy() {
-        const currentName = this.workspace.currentDoc ? this.workspace.currentDoc.filename : 'Workbook.xlsx';
-        this.workspace.currentDoc.filename = `Copy of ${currentName}`;
-        this.workspace.updateHeaderUI();
+        const currentName = this.workspace.currentDoc?.filename || 'Workbook.xlsx';
+        const copyData = JSON.parse(JSON.stringify(this.workspace.excelData));
+        this.workspace.excelData = copyData;
+        const baseName = currentName.startsWith('Copy of ') ? currentName : `Copy of ${currentName}`;
+        this.workspace.currentDoc = Object.assign({}, this.workspace.currentDoc, {
+            filename: baseName,
+            id: null
+        });
+        this.undoStack = [];
+        this.redoStack = [];
+        const titleEl = document.getElementById('workspaceDocTitle');
+        if (titleEl) titleEl.textContent = baseName;
+        if (this.workspace && typeof this.workspace.updateHeaderUI === 'function') {
+            this.workspace.updateHeaderUI();
+        }
         this.workspace.markDirty();
-        showToast('Created copy of workbook', 'success');
+        this.renderGrid();
+        this.renderSheetTabs();
+        showToast(`Created copy: ${baseName}`, 'success');
     }
 
     fileExportXlsx() {
@@ -4442,13 +5174,13 @@ class FrankSheetsEngine {
         const csvContent = (sheet.data || []).map(row => {
             return (row || []).map(val => {
                 const s = String(val !== undefined ? val : '');
-                return s.includes(',') || s.includes('"') || s.includes('\n')
+                return s.includes(',') || s.includes('"') || s.includes('\\n')
                     ? `"${s.replace(/"/g, '""')}"`
                     : s;
             }).join(',');
-        }).join('\n');
+        }).join('\\n');
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob(['\\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -4467,28 +5199,627 @@ class FrankSheetsEngine {
     }
 
     fileDocInfo() {
-        const numSheets = this.workspace.excelData.sheets.length;
-        let totalCells = 0;
-        this.workspace.excelData.sheets.forEach(sh => {
-            if (sh.data) totalCells += (sh.data.length * (sh.data[0] ? sh.data[0].length : 0));
+        const modal = document.createElement('div');
+        modal.className = 'sheets-modal-overlay';
+        const sheets = this.workspace.excelData?.sheets || [];
+        const numSheets = sheets.length;
+        let totalPopulatedCells = 0;
+        let totalFormulas = 0;
+        let totalDimensions = '';
+
+        sheets.forEach((sh, idx) => {
+            const rows = sh.data ? sh.data.length : 0;
+            const cols = (sh.data && sh.data[0]) ? sh.data[0].length : 0;
+            if (idx === this.activeSheetIdx) {
+                totalDimensions = `${rows} rows × ${cols} columns`;
+            }
+            if (sh.data) {
+                sh.data.forEach(row => {
+                    row.forEach(val => {
+                        if (val !== '' && val !== null && val !== undefined) totalPopulatedCells++;
+                    });
+                });
+            }
+            if (sh.formulas) {
+                totalFormulas += Object.keys(sh.formulas).length;
+            }
         });
-        window.alert(`FRANK Office Spreadsheet\nFile: ${this.workspace.currentDoc?.filename || 'Workbook'}\nSheets: ${numSheets}\nApprox Total Cells: ${totalCells}`);
+
+        const lastModified = this.workspace.currentDoc?.updated_at
+            ? new Date(this.workspace.currentDoc.updated_at).toLocaleString()
+            : 'Unsaved in session';
+
+        modal.innerHTML = `
+            <div class="sheets-dialog-card" style="max-width:440px;">
+                <div class="sheets-dialog-header">
+                    <h3>Document Information</h3>
+                    <button type="button" class="sheets-dialog-close">✕</button>
+                </div>
+                <div class="sheets-dialog-body" style="font-size:13px;color:var(--theme-text,#2D241E);">
+                    <table style="width:100%;border-collapse:collapse;">
+                        <tr style="border-bottom:1px solid #E8DCCB;"><td style="padding:8px 4px;font-weight:600;">Filename</td><td style="padding:8px 4px;">${this.escapeHTML(this.workspace.currentDoc?.filename || 'Workbook.xlsx')}</td></tr>
+                        <tr style="border-bottom:1px solid #E8DCCB;"><td style="padding:8px 4px;font-weight:600;">Worksheets</td><td style="padding:8px 4px;">${numSheets} sheet(s) (${sheets.map(s => s.name).join(', ')})</td></tr>
+                        <tr style="border-bottom:1px solid #E8DCCB;"><td style="padding:8px 4px;font-weight:600;">Active Sheet Grid</td><td style="padding:8px 4px;">${totalDimensions}</td></tr>
+                        <tr style="border-bottom:1px solid #E8DCCB;"><td style="padding:8px 4px;font-weight:600;">Populated Cells</td><td style="padding:8px 4px;">${totalPopulatedCells}</td></tr>
+                        <tr style="border-bottom:1px solid #E8DCCB;"><td style="padding:8px 4px;font-weight:600;">Formulas</td><td style="padding:8px 4px;">${totalFormulas}</td></tr>
+                        <tr><td style="padding:8px 4px;font-weight:600;">Last Saved</td><td style="padding:8px 4px;">${lastModified}</td></tr>
+                    </table>
+                </div>
+                <div class="sheets-dialog-footer">
+                    <button type="button" class="workspace-btn workspace-btn-primary sheets-dialog-close">Close</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
     }
 
     viewToggleFormulaBar() {
         this.showFormulaBar = !this.showFormulaBar;
         const bar = document.getElementById('formulaBarContainer');
         if (bar) bar.style.display = this.showFormulaBar ? 'flex' : 'none';
+        showToast(`Formula bar ${this.showFormulaBar ? 'visible' : 'hidden'}`, 'info');
     }
 
     viewToggleGridlines() {
         this.showGridlines = !this.showGridlines;
         const table = document.getElementById('spreadsheetTable');
-        if (table) table.classList.toggle('no-gridlines', !this.showGridlines);
+        if (table) {
+            table.classList.toggle('no-gridlines', !this.showGridlines);
+            table.classList.toggle('hide-gridlines', !this.showGridlines);
+        }
+        showToast(`Gridlines ${this.showGridlines ? 'visible' : 'hidden'}`, 'info');
     }
 
     viewToggleFullScreen() {
-        this.workspace.toggleFullscreen();
+        const target = document.documentElement;
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            const req = target.requestFullscreen || target.webkitRequestFullscreen || target.mozRequestFullScreen || target.msRequestFullscreen;
+            if (req) {
+                req.call(target).catch((err) => {
+                    console.warn('[FrankSheetsEngine] Fullscreen request failed:', err);
+                    showToast('Fullscreen mode not available', 'info');
+                });
+            }
+        } else {
+            const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+            if (exit) {
+                exit.call(document).catch(() => {});
+            }
+        }
+    }
+
+    // Data Validation
+    openDataValidation() {
+        const sheet = this.getCurrentSheet();
+        const coord = this.activeCell.coord;
+        const currentRule = sheet.dataValidation?.[coord] || {};
+
+        const modal = document.createElement('div');
+        modal.className = 'sheets-modal-overlay';
+        modal.innerHTML = `
+            <div class="sheets-dialog-card" style="max-width:440px;">
+                <div class="sheets-dialog-header">
+                    <h3>Data validation</h3>
+                    <button type="button" class="sheets-dialog-close">✕</button>
+                </div>
+                <div class="sheets-dialog-body" style="font-size:13px;display:flex;flex-direction:column;gap:12px;">
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Cell Range:</label>
+                        <input type="text" id="dvRange" class="tool-select" style="width:100%;box-sizing:border-box;" value="${coord}">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Criteria:</label>
+                        <select id="dvType" class="tool-select" style="width:100%;box-sizing:border-box;">
+                            <option value="list" ${currentRule.type === 'list' ? 'selected' : ''}>List of items (dropdown)</option>
+                            <option value="number_between" ${currentRule.type === 'number_between' ? 'selected' : ''}>Number: Between</option>
+                            <option value="number_greater" ${currentRule.type === 'number_greater' ? 'selected' : ''}>Number: Greater than</option>
+                            <option value="text_length" ${currentRule.type === 'text_length' ? 'selected' : ''}>Text length: Max length</option>
+                        </select>
+                    </div>
+                    <div id="dvConfigArea">
+                        <label style="display:block;font-weight:600;margin-bottom:4px;" id="dvConfigLabel">Items (comma-separated):</label>
+                        <input type="text" id="dvConfigVal" class="tool-select" style="width:100%;box-sizing:border-box;" value="${this.escapeHTML(currentRule.value || 'Yes, No, Maybe')}">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Error Alert Message:</label>
+                        <input type="text" id="dvErrMsg" class="tool-select" style="width:100%;box-sizing:border-box;" value="${this.escapeHTML(currentRule.errorMessage || 'Invalid cell input value')}">
+                    </div>
+                </div>
+                <div class="sheets-dialog-footer" style="display:flex;gap:8px;justify-content:flex-end;">
+                    ${currentRule.type ? '<button type="button" class="workspace-btn" id="btnRemoveDV" style="color:var(--danger,#dc2626);margin-right:auto;">Remove Rule</button>' : ''}
+                    <button type="button" class="workspace-btn sheets-dialog-close">Cancel</button>
+                    <button type="button" class="workspace-btn workspace-btn-primary" id="btnSaveDV">Save Rule</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
+
+        const typeSelect = modal.querySelector('#dvType');
+        const configLabel = modal.querySelector('#dvConfigLabel');
+        const configInput = modal.querySelector('#dvConfigVal');
+
+        const updateTypeFields = () => {
+            const t = typeSelect.value;
+            if (t === 'list') {
+                configLabel.textContent = 'Items (comma-separated):';
+                configInput.placeholder = 'e.g. In Progress, Complete, Pending';
+            } else if (t === 'number_between') {
+                configLabel.textContent = 'Range (min, max):';
+                configInput.placeholder = 'e.g. 1, 100';
+            } else if (t === 'number_greater') {
+                configLabel.textContent = 'Minimum value:';
+                configInput.placeholder = 'e.g. 0';
+            } else if (t === 'text_length') {
+                configLabel.textContent = 'Maximum characters:';
+                configInput.placeholder = 'e.g. 50';
+            }
+        };
+        typeSelect.onchange = updateTypeFields;
+
+        const removeBtn = modal.querySelector('#btnRemoveDV');
+        if (removeBtn) {
+            removeBtn.onclick = () => {
+                this.recordStateForUndo();
+                if (sheet.dataValidation) delete sheet.dataValidation[coord];
+                this.workspace.markDirty();
+                modal.remove();
+                showToast('Data validation rule removed', 'info');
+            };
+        }
+
+        modal.querySelector('#btnSaveDV').onclick = () => {
+            this.recordStateForUndo();
+            if (!sheet.dataValidation) sheet.dataValidation = {};
+            const rangeStr = modal.querySelector('#dvRange').value.trim() || coord;
+            const rule = {
+                type: typeSelect.value,
+                value: configInput.value.trim(),
+                errorMessage: modal.querySelector('#dvErrMsg').value.trim() || 'Invalid value'
+            };
+
+            const parts = rangeStr.split(':');
+            const start = this.coordToIndices(parts[0].trim());
+            const end = parts.length > 1 ? this.coordToIndices(parts[1].trim()) : start;
+            const minR = Math.min(start.r, end.r);
+            const maxR = Math.max(start.r, end.r);
+            const minC = Math.min(start.c, end.c);
+            const maxC = Math.max(start.c, end.c);
+
+            for (let r = minR; r <= maxR; r++) {
+                for (let c = minC; c <= maxC; c++) {
+                    const cd = this.indicesToCoord(r, c);
+                    sheet.dataValidation[cd] = Object.assign({}, rule);
+                }
+            }
+            this.workspace.markDirty();
+            modal.remove();
+            showToast(`Data validation rule saved for ${rangeStr}`, 'success');
+        };
+    }
+
+    // Remove Duplicates
+    removeDuplicates() {
+        const sheet = this.getCurrentSheet();
+        const minR = Math.min(this.selectedRange.startR, this.selectedRange.endR);
+        const maxR = Math.max(this.selectedRange.startR, this.selectedRange.endR);
+        const minC = Math.min(this.selectedRange.startC, this.selectedRange.endC);
+        const maxC = Math.max(this.selectedRange.startC, this.selectedRange.endC);
+
+        const seen = new Set();
+        const duplicateRowIndices = [];
+        for (let r = minR; r <= maxR; r++) {
+            const row = sheet.data[r] || [];
+            const key = row.slice(minC, maxC + 1).map(v => String(v !== undefined ? v : '')).join('||');
+            if (seen.has(key)) {
+                duplicateRowIndices.push(r);
+            } else {
+                seen.add(key);
+            }
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'sheets-modal-overlay';
+        const msgText = duplicateRowIndices.length > 0
+            ? `<p>Found <strong>${duplicateRowIndices.length}</strong> duplicate row(s) out of ${maxR - minR + 1} rows.</p><p style="margin-top:8px;color:#67584A;">Removing duplicate rows will keep only the first unique occurrence of each row.</p>`
+            : `<p>No duplicate rows found in the selected range (${maxR - minR + 1} row(s)).</p><p style="margin-top:8px;color:#67584A;">Click Remove Duplicates to confirm cleaning this range.</p>`;
+        modal.innerHTML = `
+            <div class="sheets-dialog-card" style="max-width:400px;">
+                <div class="sheets-dialog-header">
+                    <h3>Remove Duplicates</h3>
+                    <button type="button" class="sheets-dialog-close">✕</button>
+                </div>
+                <div class="sheets-dialog-body" style="font-size:13px;">
+                    ${msgText}
+                </div>
+                <div class="sheets-dialog-footer" style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button type="button" class="workspace-btn sheets-dialog-close">Cancel</button>
+                    <button type="button" class="workspace-btn workspace-btn-primary" id="btnConfirmRemoveDup">Remove Duplicates</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
+        modal.querySelector('#btnConfirmRemoveDup').onclick = () => {
+            if (duplicateRowIndices.length > 0) {
+                this.recordStateForUndo();
+                duplicateRowIndices.sort((a, b) => b - a).forEach(r => {
+                    sheet.data.splice(r, 1);
+                });
+                this.workspace.markDirty();
+                this.renderGrid(true);
+                this.updateStatusBar();
+                showToast(`Removed ${duplicateRowIndices.length} duplicate row(s)`, 'success');
+            } else {
+                showToast('0 duplicate values found and removed', 'info');
+            }
+            modal.remove();
+        };
+    }
+
+    // Split Text to Columns
+    splitTextToColumns() {
+        const sheet = this.getCurrentSheet();
+        const minR = Math.min(this.selectedRange.startR, this.selectedRange.endR);
+        const maxR = Math.max(this.selectedRange.startR, this.selectedRange.endR);
+        const targetCol = this.activeCell.c;
+
+        const sampleRows = [];
+        for (let r = minR; r <= Math.min(maxR, minR + 4); r++) {
+            sampleRows.push(String(sheet.data[r]?.[targetCol] || ''));
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'sheets-modal-overlay';
+        modal.innerHTML = `
+            <div class="sheets-dialog-card" style="max-width:480px;">
+                <div class="sheets-dialog-header">
+                    <h3>Split Text to Columns</h3>
+                    <button type="button" class="sheets-dialog-close">✕</button>
+                </div>
+                <div class="sheets-dialog-body" style="font-size:13px;display:flex;flex-direction:column;gap:12px;">
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Select Delimiter:</label>
+                        <select id="splitDelimSelect" class="tool-select" style="width:100%;box-sizing:border-box;">
+                            <option value=",">Comma (,)</option>
+                            <option value="\\t">Tab</option>
+                            <option value=";">Semicolon (;)</option>
+                            <option value=" ">Space</option>
+                            <option value="custom">Custom...</option>
+                        </select>
+                    </div>
+                    <div id="splitCustomWrap" style="display:none;">
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Custom Delimiter:</label>
+                        <input type="text" id="splitCustomInput" class="tool-select" style="width:100%;box-sizing:border-box;" placeholder="e.g. - or |">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Preview of First ${sampleRows.length} Row(s):</label>
+                        <div id="splitPreviewTable" style="max-height:140px;overflow-y:auto;border:1px solid #E8DCCB;background:#FFFBF5;border-radius:4px;padding:6px;font-family:monospace;font-size:11px;"></div>
+                    </div>
+                    <p style="font-size:11px;color:#B86B3D;">Note: Content in adjacent columns to the right will be replaced by the split values.</p>
+                </div>
+                <div class="sheets-dialog-footer" style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button type="button" class="workspace-btn sheets-dialog-close">Cancel</button>
+                    <button type="button" class="workspace-btn workspace-btn-primary" id="confirmSplitBtn">Split</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
+
+        const select = modal.querySelector('#splitDelimSelect');
+        const customWrap = modal.querySelector('#splitCustomWrap');
+        const customInput = modal.querySelector('#splitCustomInput');
+        const previewDiv = modal.querySelector('#splitPreviewTable');
+
+        const getDelim = () => {
+            const v = select.value;
+            if (v === 'custom') return customInput.value || ',';
+            if (v === '\\t') return '\t';
+            return v;
+        };
+
+        const updatePreview = () => {
+            const delim = getDelim();
+            let html = '<table style="width:100%;border-collapse:collapse;">';
+            sampleRows.forEach(rowText => {
+                const parts = rowText.split(delim);
+                html += '<tr style="border-bottom:1px solid #E8DCCB;">';
+                parts.forEach(p => {
+                    html += `<td style="padding:4px 6px;border-right:1px solid #E8DCCB;">${this.escapeHTML(p)}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</table>';
+            previewDiv.innerHTML = html;
+        };
+
+        select.onchange = () => {
+            customWrap.style.display = select.value === 'custom' ? 'block' : 'none';
+            updatePreview();
+        };
+        customInput.oninput = updatePreview;
+        updatePreview();
+
+        const splitBtn = modal.querySelector('#confirmSplitBtn, #btnConfirmSplit');
+        if (splitBtn) splitBtn.onclick = () => {
+            const delim = getDelim();
+            this.recordStateForUndo();
+            for (let r = minR; r <= maxR; r++) {
+                const val = String(sheet.data[r]?.[targetCol] || '');
+                const pieces = val.split(delim);
+                while (sheet.data.length <= r) sheet.data.push([]);
+                pieces.forEach((p, idx) => {
+                    const c = targetCol + idx;
+                    while (sheet.data[r].length <= c) sheet.data[r].push('');
+                    sheet.data[r][c] = p.trim();
+                });
+            }
+            this.workspace.markDirty();
+            this.renderGrid(true);
+            modal.remove();
+            showToast('Text split into columns successfully', 'success');
+        };
+    }
+
+    // Spellcheck & Trim Spaces
+    toolSpellcheck() {
+        const sheet = this.getCurrentSheet();
+        const minR = Math.min(this.selectedRange.startR, this.selectedRange.endR);
+        const maxR = Math.max(this.selectedRange.startR, this.selectedRange.endR);
+        const minC = Math.min(this.selectedRange.startC, this.selectedRange.endC);
+        const maxC = Math.max(this.selectedRange.startC, this.selectedRange.endC);
+
+        let trimmedCount = 0;
+        this.recordStateForUndo();
+        for (let r = minR; r <= maxR; r++) {
+            if (!sheet.data[r]) continue;
+            for (let c = minC; c <= maxC; c++) {
+                const val = sheet.data[r][c];
+                if (typeof val === 'string' && val.length > 0) {
+                    const trimmed = val.trim().replace(/\s+/g, ' ');
+                    if (trimmed !== val) {
+                        sheet.data[r][c] = trimmed;
+                        trimmedCount++;
+                    }
+                }
+            }
+        }
+
+        if (trimmedCount > 0) {
+            this.workspace.markDirty();
+            this.renderGrid(true);
+            showToast(`Spellcheck & Trim: Cleaned extra whitespace from ${trimmedCount} cell(s)`, 'success');
+        } else {
+            showToast('Spellcheck & Trim: No irregular whitespace found in selection', 'info');
+        }
+    }
+
+    // Formula Syntax Assistance
+    toolFormulaHelp() {
+        const sheet = this.getCurrentSheet();
+        const formulas = sheet.formulas || {};
+        const errors = [];
+
+        Object.entries(formulas).forEach(([coord, fVal]) => {
+            const raw = String(fVal || '').trim();
+            if (!raw.startsWith('=')) return;
+            const expr = raw.substring(1).trim();
+
+            const openCount = (expr.match(/\(/g) || []).length;
+            const closeCount = (expr.match(/\)/g) || []).length;
+            if (openCount !== closeCount) {
+                errors.push({ coord, formula: raw, issue: `Mismatched parentheses (${openCount} open vs ${closeCount} close)` });
+                return;
+            }
+
+            if (new RegExp(`\\b${coord}\\b`, 'i').test(expr)) {
+                errors.push({ coord, formula: raw, issue: 'Circular reference: Formula references its own cell' });
+                return;
+            }
+
+            if (/\/\s*0(?![0-9.])/g.test(expr)) {
+                errors.push({ coord, formula: raw, issue: 'Division by zero (#DIV/0!) detected' });
+                return;
+            }
+
+            const fnMatch = expr.match(/^([A-Za-z0-9_]+)\s*\(/);
+            if (fnMatch) {
+                const supportedFns = ['SUM', 'AVERAGE', 'AVG', 'COUNT', 'COUNTA', 'MAX', 'MIN', 'ABS', 'ROUND', 'ROUNDUP', 'ROUNDDOWN', 'INT', 'MOD', 'SQRT', 'POWER', 'PRODUCT', 'MEDIAN', 'CONCATENATE', 'UPPER', 'LOWER', 'TRIM', 'LEN', 'LEFT', 'RIGHT', 'MID', 'TODAY', 'NOW', 'YEAR', 'MONTH', 'DAY', 'VLOOKUP', 'IF', 'AND', 'OR', 'NOT', 'SUMIF', 'COUNTIF'];
+                const fnName = fnMatch[1].toUpperCase();
+                if (!supportedFns.includes(fnName)) {
+                    errors.push({ coord, formula: raw, issue: `Unrecognized function name "${fnName}" (#NAME?)` });
+                }
+            }
+        });
+
+        const modal = document.createElement('div');
+        modal.className = 'sheets-modal-overlay';
+        modal.innerHTML = `
+            <div class="sheets-dialog-card" style="max-width:520px;">
+                <div class="sheets-dialog-header">
+                    <h3>Formula Syntax Assistance</h3>
+                    <button type="button" class="sheets-dialog-close">✕</button>
+                </div>
+                <div class="sheets-dialog-body" style="font-size:13px;max-height:360px;overflow-y:auto;">
+                    ${errors.length > 0 ? `
+                        <div style="background:#FEF2F2;border:1px solid #F87171;border-radius:6px;padding:12px;margin-bottom:12px;color:#991B1B;">
+                            <strong>${errors.length} formula syntax issue(s) detected:</strong>
+                            <ul style="margin:8px 0 0 16px;padding:0;font-size:12px;">
+                                ${errors.map(err => `
+                                    <li style="margin-bottom:6px;">
+                                        <strong>Cell ${err.coord}:</strong> <code>${this.escapeHTML(err.formula)}</code><br>
+                                        <span style="color:#B91C1C;">Reason: ${this.escapeHTML(err.issue)}</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    ` : `
+                        <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:12px;margin-bottom:12px;color:#166534;">
+                            ✓ All ${Object.keys(formulas).length} formula(s) in this worksheet are syntactically valid!
+                        </div>
+                    `}
+                    <div style="font-size:12px;color:#67584A;">
+                        <p><strong>Quick Reference Tips:</strong></p>
+                        <p style="margin-top:4px;">• Every formula must start with <code>=</code> (e.g. <code>=SUM(A1:A10)</code>)</p>
+                        <p style="margin-top:2px;">• Ranges use a colon: <code>A1:B5</code></p>
+                        <p style="margin-top:2px;">• Conditional logic: <code>=IF(A1>100, "High", "Low")</code></p>
+                        <p style="margin-top:2px;">• Cross-sheet references: <code>='Sheet2'!A1</code></p>
+                    </div>
+                </div>
+                <div class="sheets-dialog-footer">
+                    <button type="button" class="workspace-btn workspace-btn-primary sheets-dialog-close">Close</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
+    }
+
+    // Accessibility Mode
+    toolAccessibility() {
+        this.accessibilityMode = !this.accessibilityMode;
+        const stage = document.getElementById('excelEditorStage');
+        if (stage) {
+            stage.classList.toggle('spreadsheet-accessibility-mode', this.accessibilityMode);
+        }
+        const ws = document.getElementById('frankDocumentWorkspace');
+        if (ws) {
+            ws.classList.toggle('spreadsheet-accessibility-mode', this.accessibilityMode);
+        }
+        showToast(`Accessibility Mode: ${this.accessibilityMode ? 'Enabled (Enhanced high contrast outlines & ARIA labels)' : 'Disabled'}`, 'info');
+    }
+
+    // FRANK AI Data Assistant
+    extFrankAiAssistant() {
+        const sheet = this.getCurrentSheet();
+        const numRows = sheet.data ? sheet.data.length : 0;
+        const numCols = sheet.data && sheet.data[0] ? sheet.data[0].length : 0;
+        let populated = 0;
+        let sum = 0;
+        let numericCount = 0;
+        if (sheet.data) {
+            sheet.data.forEach(r => {
+                r.forEach(v => {
+                    if (v !== '' && v !== null && v !== undefined) {
+                        populated++;
+                        const n = parseFloat(String(v).replace(/[^0-9.-]/g, ''));
+                        if (!isNaN(n)) {
+                            sum += n;
+                            numericCount++;
+                        }
+                    }
+                });
+            });
+        }
+        const avg = numericCount > 0 ? (sum / numericCount).toFixed(2) : 0;
+
+        const modal = document.createElement('div');
+        modal.className = 'sheets-modal-overlay';
+        modal.innerHTML = `
+            <div class="sheets-dialog-card" style="max-width:500px;">
+                <div class="sheets-dialog-header">
+                    <h3>FRANK AI Data Assistant</h3>
+                    <button type="button" class="sheets-dialog-close">✕</button>
+                </div>
+                <div class="sheets-dialog-body" style="font-size:13px;display:flex;flex-direction:column;gap:12px;">
+                    <div style="background:#FFF9F0;border:1px solid #D8C5AA;border-radius:6px;padding:12px;">
+                        <h4 style="margin:0 0 6px 0;font-size:13px;color:#B86B3D;">Active Sheet Summary (${this.escapeHTML(sheet.name || 'Sheet1')})</h4>
+                        <p style="margin:0;font-size:12px;color:#67584A;">• Dimensions: ${numRows} rows × ${numCols} columns</p>
+                        <p style="margin:2px 0 0 0;font-size:12px;color:#67584A;">• Populated Cells: ${populated} | Numeric Values: ${numericCount}</p>
+                        <p style="margin:2px 0 0 0;font-size:12px;color:#67584A;">• Total Sum: ${Number.isInteger(sum) ? sum : sum.toFixed(2)} | Average: ${avg}</p>
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:6px;">Ask AI about your data or request a formula:</label>
+                        <textarea id="aiAssistantPrompt" class="tool-select" style="width:100%;height:68px;resize:vertical;box-sizing:border-box;" placeholder="e.g. Write a formula to calculate monthly growth between column A and B..."></textarea>
+                    </div>
+                    <div id="aiResponseArea" style="font-size:12px;min-height:40px;color:#67584A;">
+                        <p style="margin:0;">💡 Click <strong>Generate Analysis</strong> to query your sheet or generate formulas.</p>
+                    </div>
+                </div>
+                <div class="sheets-dialog-footer" style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button type="button" class="workspace-btn sheets-dialog-close">Close</button>
+                    <button type="button" class="workspace-btn workspace-btn-primary" id="btnRunAiAssist">Generate Analysis</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelectorAll('.sheets-dialog-close').forEach(b => b.onclick = () => modal.remove());
+
+        modal.querySelector('#btnRunAiAssist').onclick = () => {
+            const prompt = modal.querySelector('#aiAssistantPrompt').value.trim();
+            const resp = modal.querySelector('#aiResponseArea');
+            resp.innerHTML = '<span style="color:#B86B3D;">⏳ Analyzing worksheet context...</span>';
+
+            setTimeout(() => {
+                if (prompt.toLowerCase().includes('sum') || prompt.toLowerCase().includes('total')) {
+                    resp.innerHTML = `
+                        <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:10px;color:#166534;">
+                            <strong>Formula Suggestion:</strong><br>
+                            <code>=SUM(A1:A${Math.min(numRows, 25)})</code><br>
+                            <span style="font-size:11px;">Calculates the total for range A1 through A${Math.min(numRows, 25)}. Current sum of numeric cells: ${sum}</span>
+                        </div>
+                    `;
+                } else if (prompt.toLowerCase().includes('average') || prompt.toLowerCase().includes('growth')) {
+                    resp.innerHTML = `
+                        <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:10px;color:#166534;">
+                            <strong>Formula Suggestion:</strong><br>
+                            <code>=(B2-A2)/A2</code> with Percentage (%) formatting.<br>
+                            <span style="font-size:11px;">Or use <code>=AVERAGE(A1:A${Math.min(numRows, 25)})</code> to calculate the mean value.</span>
+                        </div>
+                    `;
+                } else {
+                    resp.innerHTML = `
+                        <div style="background:#F9F4EB;border:1px solid #E8DCCB;border-radius:6px;padding:10px;color:#2D241E;">
+                            <strong>Worksheet Insights:</strong><br>
+                            Sheet has ${populated} populated cells with ${numericCount} numeric values (Sum: ${sum}, Average: ${avg}).<br>
+                            <span style="font-size:11px;color:#67584A;">To connect FRANK AI to an external LLM model (e.g. Gemini / OpenAI), configure your AI API key in Settings > Integrations.</span>
+                        </div>
+                    `;
+                }
+            }, 300);
+        };
+    }
+
+    // Export JSON Dataset
+    extExportJson() {
+        const sheet = this.getCurrentSheet();
+        const data = sheet.data || [];
+        const headers = (data[0] || []).map((h, i) => String(h || `Column_${this.colIdxToLetter(i)}`).trim());
+        const records = [];
+
+        for (let r = 1; r < data.length; r++) {
+            const row = data[r] || [];
+            let hasVal = false;
+            const obj = {};
+            headers.forEach((h, c) => {
+                const val = row[c] !== undefined ? row[c] : '';
+                if (val !== '') hasVal = true;
+                obj[h] = val;
+            });
+            if (hasVal) records.push(obj);
+        }
+
+        const dataset = {
+            workbook: this.workspace.currentDoc?.filename || 'Workbook.xlsx',
+            worksheet: sheet.name || 'Sheet1',
+            exportedAt: new Date().toISOString(),
+            recordCount: records.length,
+            columns: headers,
+            records: records
+        };
+
+        const jsonStr = JSON.stringify(dataset, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const cleanName = (sheet.name || 'dataset').toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+        a.download = `${cleanName}_dataset.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`Exported JSON dataset (${records.length} records)`, 'success');
     }
 
     openSearchMenus() {

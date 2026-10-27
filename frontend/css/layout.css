@@ -166,6 +166,101 @@ body.dark .landing-header {
     background: var(--surface-elevated, rgba(184, 107, 61, 0.08));
 }
 
+/* ---------------- HERO ANDROID DOWNLOAD ---------------- */
+.hero-download-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+    max-width: 520px;
+    margin-top: 4px;
+}
+
+.hero-android-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 18px;
+    min-height: 50px;
+    background: var(--surface-elevated, #171717);
+    border: 1.5px solid var(--border-strong, var(--border));
+    border-radius: var(--radius-md, 12px);
+    color: var(--text) !important;
+    text-decoration: none;
+    transition: all var(--transition-fast, 0.15s ease);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.hero-android-btn:hover {
+    background: var(--surface-hover, var(--surface-muted));
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.hero-android-btn .android-icon {
+    flex-shrink: 0;
+    color: #3DDC84; /* Android Brand Green */
+}
+
+.hero-android-btn .android-btn-text-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.25;
+}
+
+.hero-android-btn .android-btn-main {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.hero-android-btn .android-btn-badge {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.hero-android-btn .android-download-icon {
+    margin-left: 8px;
+    color: var(--text-secondary);
+    transition: transform var(--transition-fast, 0.15s ease);
+}
+
+.hero-android-btn:hover .android-download-icon {
+    transform: translateY(2px);
+    color: var(--primary);
+}
+
+.hero-download-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.45;
+    background: var(--surface-muted, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    border-radius: var(--radius-sm, 8px);
+    padding: 8px 12px;
+    max-width: 480px;
+}
+
+.hero-download-note .note-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--cyan, #38bdf8);
+}
+
+.landing-mobile-apk-link {
+    display: flex;
+    align-items: center;
+    color: var(--primary) !important;
+    font-weight: 700;
+}
+
 .hero-stats {
     display: flex;
     gap: var(--space-8);

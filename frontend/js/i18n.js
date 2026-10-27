@@ -72,7 +72,10 @@
                         "demoMsg1": "Could you send over the updated design assets?",
                         "demoMsg2": "Sending them right now! 📦",
                         "demoMsg3": "Received! The new glassmorphic theme looks stunning.",
-                        "inputPlaceholder": "Type a message..."
+                        "inputPlaceholder": "Type a message...",
+                        "downloadAndroid": "Download for Android",
+                        "apkReleaseBadge": "Signed APK (5.6 MB)",
+                        "androidInstallInstructions": "After downloading, open the APK and follow Android's installation prompts. Android may require allowing installation from your browser or file manager."
                 },
                 "stats": {
                         "latencyValue": "< 50ms",
@@ -602,7 +605,10 @@
                         "demoMsg1": "புதுப்பிக்கப்பட்ட வடிவமைப்பு ஆவணங்களை அனுப்ப முடியுமா?",
                         "demoMsg2": "இப்போதே அனுப்புகிறேன்! 📦",
                         "demoMsg3": "கிடைத்துவிட்டது! புதிய தீம் மிக அழகாக இருக்கிறது.",
-                        "inputPlaceholder": "செய்தியை தட்டச்சு செய்க..."
+                        "inputPlaceholder": "செய்தியை தட்டச்சு செய்க...",
+                        "downloadAndroid": "Android-க்கான பதிவிறக்கம்",
+                        "apkReleaseBadge": "சரிபார்க்கப்பட்ட APK (5.6 MB)",
+                        "androidInstallInstructions": "பதிவிறக்கிய பிறகு, APK-ஐ திறந்து Android நிறுவல் வழிமுறைகளைப் பின்பற்றவும். உங்கள் உலாவி அல்லது கோப்பு மேலாளரிலிருந்து நிறுவலை அனுமதிக்க வேண்டியிருக்கலாம்."
                 },
                 "stats": {
                         "latencyValue": "< 50மி.வி",
@@ -1132,7 +1138,10 @@
                         "demoMsg1": "क्या आप अपडेटेड डिज़ाइन एसेट्स भेज सकते हैं?",
                         "demoMsg2": "अभी भेज रहा हूँ! 📦",
                         "demoMsg3": "मिल गया! नया थीम बहुत आकर्षक लग रहा है।",
-                        "inputPlaceholder": "संदेश लिखें..."
+                        "inputPlaceholder": "संदेश लिखें...",
+                        "downloadAndroid": "Android के लिए डाउनलोड करें",
+                        "apkReleaseBadge": "हस्ताक्षरित APK (5.6 MB)",
+                        "androidInstallInstructions": "डाउनलोड करने के बाद, APK खोलें और Android के इंस्टॉलेशन निर्देशों का पालन करें। आपको अपने ब्राउज़र या फ़ाइल मैनेजर से इंस्टॉलेशन की अनुमति देनी पड़ सकती है।"
                 },
                 "stats": {
                         "latencyValue": "< 50ms",

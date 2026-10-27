@@ -8,7 +8,7 @@ html_files = [
     "index.html", "login.html", "register.html", "dashboard.html",
     "settings.html", "profile.html", "admin.html",
     "forgot-password.html", "reset-password.html", "privacy.html", "privacy-dashboard.html", "chat.html", "404.html",
-    "robots.txt", "sitemap.xml", "favicon.ico"
+    "robots.txt", "sitemap.xml", "favicon.ico", "favicon-48x48.png"
 ]
 
 target_frontend_dirs = [
@@ -36,6 +36,11 @@ def sync_assets():
                 if dst_d.exists():
                     shutil.rmtree(dst_d)
                 shutil.copytree(src_d, dst_d)
+
+        # Sync downloads HTML page only (keep APK single-source at root to avoid bundle bloat)
+        if (root_dir / "downloads" / "index.html").exists():
+            (target / "downloads").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(root_dir / "downloads" / "index.html", target / "downloads" / "index.html")
 
     # Sync backend files to api/_backend
     api_backend = root_dir / "api" / "_backend"

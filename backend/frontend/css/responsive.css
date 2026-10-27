@@ -357,6 +357,22 @@ html, body {
         width: 100%;
     }
 
+    .hero-download-wrapper {
+        align-items: center;
+        width: 100%;
+    }
+
+    .hero-android-btn {
+        width: 100%;
+        max-width: 380px;
+        justify-content: center;
+    }
+
+    .hero-download-note {
+        text-align: left;
+        max-width: 380px;
+    }
+
     .hero-stats {
         gap: var(--space-4);
     }

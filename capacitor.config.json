@@ -1,0 +1,9 @@
+{
+  "appId": "app.frank.think",
+  "appName": "FRANK Think",
+  "webDir": "frontend",
+  "server": {
+    "url": "https://fnk.vercel.app/",
+    "cleartext": false
+  }
+}

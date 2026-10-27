@@ -32,6 +32,10 @@
     { "source": "/forgot-password", "destination": "/forgot-password.html" },
     { "source": "/reset-password", "destination": "/reset-password.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/download", "destination": "/downloads/index.html" },
+    { "source": "/downloads", "destination": "/downloads/index.html" },
+    { "source": "/downloads/", "destination": "/downloads/index.html" },
+    { "source": "/downloads/index", "destination": "/downloads/index.html" },
     { "source": "/404", "destination": "/404.html" }
   ],
   "headers": [
@@ -39,6 +43,13 @@
       "source": "/favicon.ico",
       "headers": [
         { "key": "Content-Type", "value": "image/x-icon" },
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+      ]
+    },
+    {
+      "source": "/favicon-48x48.png",
+      "headers": [
+        { "key": "Content-Type", "value": "image/png" },
         { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
       ]
     },
@@ -62,6 +73,14 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
+    {
+      "source": "/downloads/(.*\\.apk)",
+      "headers": [
+        { "key": "Content-Type", "value": "application/vnd.android.package-archive" },
+        { "key": "Content-Disposition", "value": "attachment; filename=\"frank-think.apk\"" },
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
       ]
     },
     {

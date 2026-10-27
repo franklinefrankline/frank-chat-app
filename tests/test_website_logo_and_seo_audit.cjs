@@ -66,11 +66,14 @@ async function runAudit() {
         check('Meta description mentions FRANK Think and collaboration', metaDesc && metaDesc.includes('FRANK Think') && metaDesc.length >= 80, `Length: ${metaDesc ? metaDesc.length : 0}`);
 
         // Favicons
-        const svgIcon = await pageDesktop.$eval('link[rel="icon"][type="image/svg+xml"]', el => el.getAttribute('href')).catch(() => null);
-        check('SVG favicon tag is assets/brand/frank-icon.svg', svgIcon === 'assets/brand/frank-icon.svg');
+        const png48Icon = await pageDesktop.$eval('link[rel="icon"][sizes="48x48"]', el => el.getAttribute('href')).catch(() => null);
+        check('48x48 PNG favicon tag is present for Google Search', png48Icon && png48Icon.includes('favicon-48x48.png'));
 
-        const icoIcon = await pageDesktop.$eval('link[rel="icon"][href="favicon.ico"]', el => el.getAttribute('href')).catch(() => null);
-        check('ICO favicon tag is favicon.ico', icoIcon === 'favicon.ico');
+        const svgIcon = await pageDesktop.$eval('link[rel="icon"][type="image/svg+xml"]', el => el.getAttribute('href')).catch(() => null);
+        check('SVG favicon tag is assets/brand/frank-icon.svg', svgIcon && svgIcon.includes('frank-icon.svg'));
+
+        const icoIcon = await pageDesktop.$eval('link[rel="icon"][href*="favicon.ico"]', el => el.getAttribute('href')).catch(() => null);
+        check('ICO favicon tag is favicon.ico', icoIcon && icoIcon.includes('favicon.ico'));
 
         // Logo in Navigation Bar
         const navBrandLogo = await pageDesktop.$('header.landing-header a.brand-link img');

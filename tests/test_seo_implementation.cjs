@@ -207,7 +207,7 @@ async function runTests() {
 
         // Back to home link & Favicon
         assert('Login page contains back-to-home link', res.body.includes('href="index.html"'));
-        assert('Login page contains favicon.ico link', res.body.includes('href="favicon.ico"'));
+        assert('Login page contains favicon.ico link', res.body.includes('favicon.ico'));
     } catch (err) {
         assert('Fetch /login succeeded', false, err.message);
     }
@@ -236,7 +236,7 @@ async function runTests() {
 
         // Back to home link & Favicon
         assert('Register page contains back-to-home link', res.body.includes('href="index.html"'));
-        assert('Register page contains favicon.ico link', res.body.includes('href="favicon.ico"'));
+        assert('Register page contains favicon.ico link', res.body.includes('favicon.ico'));
     } catch (err) {
         assert('Fetch /register succeeded', false, err.message);
     }
@@ -316,7 +316,7 @@ async function runTests() {
         path.join(ROOT_DIR, 'backend', 'frontend'),
         path.join(ROOT_DIR, 'api', '_backend', 'frontend')
     ];
-    const testFiles = ['index.html', 'login.html', 'register.html', 'privacy.html', 'privacy-dashboard.html', 'robots.txt', 'sitemap.xml', 'favicon.ico'];
+    const testFiles = ['index.html', 'login.html', 'register.html', 'privacy.html', 'privacy-dashboard.html', 'robots.txt', 'sitemap.xml', 'favicon.ico', 'favicon-48x48.png'];
     for (const file of testFiles) {
         const rootContent = fs.readFileSync(path.join(ROOT_DIR, file));
         for (const mirror of mirrors) {

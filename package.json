@@ -22,6 +22,9 @@
   },
   "homepage": "https://github.com/franklinefrankline/frank-chat-app#readme",
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "dompurify": "^3.4.17",
     "marked": "^18.1.1",
     "playwright": "^1.63.0"

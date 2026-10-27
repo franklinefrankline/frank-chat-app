@@ -293,6 +293,39 @@ if frontend_dir and frontend_dir.exists():
     elif (root_dir / "vendor").exists():
         app.mount("/vendor", StaticFiles(directory=str(root_dir / "vendor")), name="vendor")
 
+    @app.get("/download")
+    @app.get("/downloads")
+    @app.get("/downloads/")
+    @app.get("/downloads/index")
+    @app.get("/downloads/index.html")
+    @app.head("/downloads/index.html")
+    def serve_downloads_page():
+        target = root_dir / "downloads" / "index.html"
+        if not target.exists() and frontend_dir:
+            target = frontend_dir / "downloads" / "index.html"
+        if target.exists():
+            return FileResponse(target, media_type="text/html; charset=utf-8")
+        return JSONResponse(status_code=404, content={"detail": "Download page not found"})
+
+    @app.get("/downloads/{filename}")
+    @app.head("/downloads/{filename}")
+    def serve_downloads(filename: str):
+        if filename in ["index.html", "index"]:
+            return serve_downloads_page()
+        target = root_dir / "downloads" / filename
+        if not target.exists() and frontend_dir:
+            target = frontend_dir / "downloads" / filename
+        if target.exists():
+            if filename.endswith(".apk"):
+                return FileResponse(
+                    target,
+                    media_type="application/vnd.android.package-archive",
+                    filename=filename,
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+                )
+            return FileResponse(target)
+        return JSONResponse(status_code=404, content={"detail": "File not found"})
+
     @app.get("/")
     @app.get("/index")
     @app.get("/home")
@@ -348,6 +381,17 @@ if frontend_dir and frontend_dir.exists():
             target = root_dir / "assets" / "brand" / "favicon.ico"
         if target and target.exists():
             return FileResponse(target, media_type="image/x-icon")
+        return FileResponse(root_dir / "assets" / "brand" / "frank-icon.png", media_type="image/png")
+
+    @app.get("/favicon-48x48.png", include_in_schema=False)
+    def serve_favicon_48():
+        target = (frontend_dir / "favicon-48x48.png") if frontend_dir else None
+        if not target or not target.exists():
+            target = root_dir / "favicon-48x48.png"
+        if not target or not target.exists():
+            target = root_dir / "assets" / "brand" / "favicon-48x48.png"
+        if target and target.exists():
+            return FileResponse(target, media_type="image/png")
         return FileResponse(root_dir / "assets" / "brand" / "frank-icon.png", media_type="image/png")
 
     @app.get("/robots.txt")

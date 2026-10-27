@@ -10,7 +10,9 @@ ENV/
 build/
 develop-eggs/
 dist/
-downloads/
+downloads/*
+!downloads/frank-think.apk
+!downloads/index.html
 eggs/
 .eggs/
 lib/
@@ -69,6 +71,8 @@ test-results/
 tests/*.png
 tests/**/*.png
 tests/*screenshots*/
+android_screen.png
+android_screenshot.png
 tests/fixtures/
 tests/test_doc_*.docx
 playwright-report/
