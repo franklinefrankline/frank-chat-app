@@ -22,7 +22,13 @@
     <meta property="og:image:width" content="512">
     <meta property="og:image:height" content="512">
     <meta property="og:image:alt" content="FRANK Think Android App Download">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#B86B3D">
+
+    <!-- Twitter / X Card Metadata -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Download FRANK Think for Android — Real-Time Messaging App &amp; Mobile Office Suite">
+    <meta name="twitter:description" content="Download the official FRANK Think Android APK (v1.0.0). Fast, secure real-time messaging app, group chat platform, chat and file sharing, and mobile document collaboration platform.">
+    <meta name="twitter:image" content="https://fnk.vercel.app/assets/brand/frank-logo.png">
 
     <!-- Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,226 +44,678 @@
     <link rel="stylesheet" href="/css/responsive.css">
 
     <style>
-        .download-page-wrap {
+        /* -------------------------------------------------------------------------
+           DOWNLOAD APP PAGE ARCHITECTURE & THEME ADAPTATION
+           ------------------------------------------------------------------------- */
+        .download-page-body {
+            background-color: var(--theme-bg, #F4EBDD);
+            color: var(--theme-text, #2D241D);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            background: var(--bg);
-            color: var(--text);
+            position: relative;
+            overflow-x: hidden;
+            transition: background var(--transition-base), color var(--transition-base);
         }
-        .download-hero-section {
-            padding: calc(var(--space-12) + 60px) var(--space-4) var(--space-12);
-            display: flex;
-            justify-content: center;
+
+        /* Subtle Organic Background Decorative Elements */
+        .download-decor-orb-1 {
+            position: absolute;
+            top: 40px;
+            right: -100px;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(184, 107, 61, 0.15) 0%, rgba(200, 117, 77, 0.05) 50%, transparent 70%);
+            filter: blur(60px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .download-decor-orb-2 {
+            position: absolute;
+            top: 450px;
+            left: -120px;
+            width: 480px;
+            height: 480px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(118, 84, 59, 0.12) 0%, rgba(184, 107, 61, 0.04) 50%, transparent 70%);
+            filter: blur(70px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        [data-theme="monochrome"] .download-decor-orb-1,
+        body.dark .download-decor-orb-1 {
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+        }
+
+        [data-theme="monochrome"] .download-decor-orb-2,
+        body.dark .download-decor-orb-2 {
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+        }
+
+        .download-main-wrap {
+            flex: 1 0 auto;
+            position: relative;
+            z-index: 1;
+            padding-bottom: var(--space-16, 64px);
+        }
+
+        .download-container {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 0 var(--space-6, 24px);
+        }
+
+        /* Sub-navigation bar with Back to Home link */
+        .download-nav-subbar {
+            padding-top: calc(72px + var(--space-4));
+            padding-bottom: var(--space-2);
+        }
+
+        .back-home-link {
+            display: inline-flex;
             align-items: center;
-            flex: 1;
+            gap: 8px;
+            color: var(--theme-text-secondary, #67584A);
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-full, 9999px);
+            background: var(--theme-surface, #FFF9F0);
+            border: 1px solid var(--theme-border, #D8C5AA);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+            transition: all var(--transition-fast);
         }
-        .download-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-2xl, 24px);
-            padding: var(--space-8);
-            max-width: 680px;
-            width: 100%;
-            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+
+        .back-home-link:hover {
+            color: var(--primary, #B86B3D);
+            border-color: var(--primary, #B86B3D);
+            transform: translateX(-3px);
+            box-shadow: 0 4px 12px rgba(184, 107, 61, 0.15);
+        }
+
+        /* Page Heading Section */
+        .download-header-intro {
             text-align: center;
+            padding: var(--space-6) 0 var(--space-8);
         }
-        .app-badge-row {
+
+        .download-badge-tag {
             display: inline-flex;
             align-items: center;
             gap: 8px;
             padding: 6px 14px;
-            border-radius: 999px;
-            background: rgba(37, 99, 235, 0.08);
-            color: var(--primary);
+            border-radius: var(--radius-full);
+            background: rgba(184, 107, 61, 0.12);
+            color: var(--primary, #B86B3D);
             font-size: 13px;
             font-weight: 700;
-            margin-bottom: var(--space-4);
+            letter-spacing: 0.3px;
+            margin-bottom: var(--space-3);
         }
-        .app-icon-display {
-            width: 96px;
-            height: 96px;
-            border-radius: 22px;
-            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.22);
-            margin: 0 auto var(--space-4);
-            display: block;
+
+        [data-theme="monochrome"] .download-badge-tag,
+        body.dark .download-badge-tag {
+            background: rgba(255, 255, 255, 0.1);
+            color: #FFFFFF;
+        }
+
+        .download-page-title {
+            font-size: clamp(32px, 5vw, 46px);
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -1px;
+            margin-bottom: var(--space-3);
+            color: var(--theme-text, #2D241D);
+        }
+
+        .download-page-title .highlight-orange {
+            color: var(--primary, #B86B3D);
+            background: linear-gradient(135deg, #B86B3D 0%, #C8754D 50%, #9F5630 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        [data-theme="monochrome"] .download-page-title .highlight-orange,
+        body.dark .download-page-title .highlight-orange {
+            color: #FFFFFF;
+            background: linear-gradient(135deg, #FFFFFF 0%, #D4D4D4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .download-page-subtitle {
+            font-size: clamp(16px, 2.5vw, 19px);
+            line-height: 1.55;
+            color: var(--theme-text-secondary, #67584A);
+            max-width: 680px;
+            margin: 0 auto var(--space-3);
+            font-weight: 500;
+        }
+
+        .download-seo-note {
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: var(--theme-text-muted, #8F7B67);
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        /* ---------------- Android App Card ---------------- */
+        .download-app-card-section {
+            margin-bottom: var(--space-12, 48px);
+        }
+
+        .app-hero-card {
+            background: var(--theme-surface, #FFF9F0);
+            border: 1px solid var(--theme-border, #D8C5AA);
+            border-radius: var(--radius-xl, 24px);
+            padding: clamp(24px, 4vw, 40px);
+            box-shadow: 0 16px 40px -10px rgba(118, 84, 59, 0.12);
+            transition: border-color var(--transition-base), box-shadow var(--transition-base);
+            max-width: 820px;
+            margin: 0 auto;
+        }
+
+        [data-theme="monochrome"] .app-hero-card,
+        body.dark .app-hero-card {
+            background: var(--theme-card, #181818);
+            border-color: var(--theme-border, #303030);
+            box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.7);
+        }
+
+        .app-hero-top {
+            display: flex;
+            align-items: center;
+            gap: clamp(16px, 3vw, 24px);
+            margin-bottom: var(--space-6);
+        }
+
+        .app-main-icon {
+            width: clamp(72px, 12vw, 88px);
+            height: clamp(72px, 12vw, 88px);
+            border-radius: 20px;
+            box-shadow: 0 10px 24px rgba(184, 107, 61, 0.22);
             background: #ffffff;
             padding: 4px;
+            flex-shrink: 0;
+            display: block;
         }
-        .app-title-main {
-            font-size: clamp(26px, 4vw, 34px);
+
+        [data-theme="monochrome"] .app-main-icon,
+        body.dark .app-main-icon {
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+            background: #111111;
+        }
+
+        .app-main-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .app-verified-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+            background: rgba(16, 185, 129, 0.1);
+            color: #059669;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .app-hero-title {
+            font-size: clamp(22px, 3.5vw, 28px);
             font-weight: 900;
             letter-spacing: -0.5px;
-            margin-bottom: var(--space-2);
+            margin-bottom: 6px;
+            color: var(--theme-text, #2D241D);
         }
-        .app-title-main span {
-            color: var(--primary);
+
+        .app-hero-desc {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--theme-text-secondary, #67584A);
+            margin: 0;
         }
-        .app-lead-text {
-            color: var(--text-muted);
-            font-size: 15px;
-            line-height: 1.6;
-            max-width: 540px;
-            margin: 0 auto var(--space-6);
+
+        /* Specs Grid */
+        .app-specs-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: var(--space-4);
+            background: var(--theme-bg, #F4EBDD);
+            border: 1px solid var(--theme-border, #D8C5AA);
+            border-radius: var(--radius-lg, 16px);
+            margin-bottom: var(--space-6);
         }
-        .primary-download-action {
+
+        [data-theme="monochrome"] .app-specs-row,
+        body.dark .app-specs-row {
+            background: var(--theme-surface, #111111);
+            border-color: var(--theme-border, #303030);
+        }
+
+        .spec-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .spec-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-weight: 700;
+            color: var(--theme-text-muted, #8F7B67);
+        }
+
+        .spec-value {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--theme-text, #2D241D);
+            word-break: break-all;
+        }
+
+        /* Primary Orange Download Action */
+        .app-download-cta {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
-            margin-bottom: var(--space-8);
+            gap: 10px;
+            margin-bottom: var(--space-6);
         }
-        .btn-apk-main {
+
+        .btn-orange-download {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
-            background: var(--primary);
-            color: #ffffff !important;
+            background: linear-gradient(135deg, #B86B3D 0%, #C8754D 50%, #9F5630 100%);
+            color: #FFFFFF !important;
             padding: 16px 36px;
-            font-size: 17px;
-            font-weight: 700;
-            border-radius: 14px;
-            text-decoration: none;
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
-            transition: all 0.2s ease;
-            width: 100%;
-            max-width: 380px;
-        }
-        .btn-apk-main:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.45);
-            filter: brightness(1.05);
-        }
-        .btn-apk-main svg {
-            width: 22px;
-            height: 22px;
-            flex-shrink: 0;
-        }
-        .download-subtext {
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-        .specs-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 12px;
-            padding: var(--space-4);
-            background: var(--bg);
-            border-radius: var(--radius-lg, 16px);
-            border: 1px solid var(--border);
-            margin-bottom: var(--space-6);
-            text-align: left;
-        }
-        .spec-item {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .spec-label {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-        .spec-val {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text);
-            word-break: break-all;
-        }
-        .steps-container {
-            text-align: left;
-            margin-top: var(--space-6);
-            border-top: 1px solid var(--border);
-            padding-top: var(--space-6);
-        }
-        .steps-heading {
-            font-size: 17px;
+            font-size: 18px;
             font-weight: 800;
-            margin-bottom: var(--space-4);
+            border-radius: var(--radius-lg, 16px);
+            text-decoration: none;
+            box-shadow: 0 8px 24px rgba(184, 107, 61, 0.38);
+            transition: all var(--transition-fast);
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+        }
+
+        [data-theme="monochrome"] .btn-orange-download,
+        body.dark .btn-orange-download {
+            background: #FFFFFF;
+            color: #000000 !important;
+            box-shadow: 0 8px 24px rgba(255, 255, 255, 0.25);
+        }
+
+        .btn-orange-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(184, 107, 61, 0.48);
+            filter: brightness(1.04);
+        }
+
+        [data-theme="monochrome"] .btn-orange-download:hover,
+        body.dark .btn-orange-download:hover {
+            box-shadow: 0 12px 30px rgba(255, 255, 255, 0.35);
+        }
+
+        .btn-orange-download .dl-arrow-icon {
+            flex-shrink: 0;
+            transition: transform var(--transition-fast);
+        }
+
+        .btn-orange-download:hover .dl-arrow-icon {
+            transform: translateY(2px);
+        }
+
+        .download-safety-meta {
             display: flex;
             align-items: center;
             gap: 8px;
+            font-size: 13px;
+            color: var(--theme-text-muted, #8F7B67);
+            font-weight: 600;
         }
-        .step-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+
+        .download-safety-meta .sep {
+            color: var(--theme-border, #D8C5AA);
         }
-        .step-card {
+
+        /* Green Safe & Secure Section */
+        .safe-secure-box {
             display: flex;
             align-items: flex-start;
-            gap: 12px;
-            padding: 12px 14px;
-            border-radius: 12px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            font-size: 13px;
-            line-height: 1.5;
-        }
-        .step-num {
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            background: var(--primary);
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 12px;
-            flex-shrink: 0;
-        }
-        .security-callout {
-            margin-top: var(--space-6);
-            padding: 14px 16px;
-            border-radius: 12px;
+            gap: 14px;
+            padding: 16px 20px;
+            border-radius: var(--radius-md, 14px);
             background: rgba(16, 185, 129, 0.08);
             border: 1px solid rgba(16, 185, 129, 0.25);
-            color: var(--text);
-            font-size: 13px;
-            line-height: 1.5;
+            color: var(--theme-text, #2D241D);
             text-align: left;
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
         }
-        .security-callout svg {
-            color: #10b981;
+
+        .safe-icon-badge {
+            color: #10B981;
             flex-shrink: 0;
             margin-top: 2px;
         }
-        .footer-nav-links {
+
+        .safe-heading {
+            font-size: 14px;
+            font-weight: 800;
+            color: #059669;
+            margin-bottom: 4px;
+        }
+
+        [data-theme="monochrome"] .safe-heading,
+        body.dark .safe-heading {
+            color: #34D399;
+        }
+
+        .safe-description {
+            font-size: 13px;
+            line-height: 1.55;
+            color: var(--theme-text-secondary, #67584A);
+            margin: 0;
+        }
+
+        /* ---------------- Installation Guide Section ---------------- */
+        .installation-guide-section {
+            padding-top: var(--space-4);
+        }
+
+        .guide-header {
+            text-align: center;
+            margin-bottom: var(--space-8);
+        }
+
+        .guide-title {
+            font-size: clamp(24px, 3.5vw, 32px);
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            margin-bottom: var(--space-2);
+            color: var(--theme-text, #2D241D);
+        }
+
+        .guide-subtitle {
+            font-size: 15px;
+            color: var(--theme-text-secondary, #67584A);
+            margin: 0;
+        }
+
+        /* 4 Horizontal Step Cards */
+        .guide-steps-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: var(--space-8);
+        }
+
+        .guide-step-card {
+            background: var(--theme-surface, #FFF9F0);
+            border: 1px solid var(--theme-border, #D8C5AA);
+            border-radius: var(--radius-lg, 18px);
+            padding: 22px 20px;
             display: flex;
+            flex-direction: column;
+            box-shadow: 0 6px 18px rgba(118, 84, 59, 0.06);
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+        }
+
+        [data-theme="monochrome"] .guide-step-card,
+        body.dark .guide-step-card {
+            background: var(--theme-card, #181818);
+            border-color: var(--theme-border, #303030);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+        }
+
+        .guide-step-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary, #B86B3D);
+            box-shadow: 0 10px 25px rgba(184, 107, 61, 0.15);
+        }
+
+        [data-theme="monochrome"] .guide-step-card:hover,
+        body.dark .guide-step-card:hover {
+            box-shadow: 0 10px 25px rgba(255, 255, 255, 0.1);
+        }
+
+        .step-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-4);
+        }
+
+        .step-number-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #B86B3D 0%, #C8754D 100%);
+            color: #FFFFFF;
+            font-weight: 800;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(184, 107, 61, 0.25);
+        }
+
+        [data-theme="monochrome"] .step-number-badge,
+        body.dark .step-number-badge {
+            background: #FFFFFF;
+            color: #000000;
+            box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .step-icon-wrap {
+            color: var(--primary, #B86B3D);
+            background: rgba(184, 107, 61, 0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        [data-theme="monochrome"] .step-icon-wrap,
+        body.dark .step-icon-wrap {
+            color: #FFFFFF;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .step-card-title {
+            font-size: 17px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: var(--theme-text, #2D241D);
+            letter-spacing: -0.3px;
+        }
+
+        .step-card-text {
+            font-size: 13.5px;
+            line-height: 1.55;
+            color: var(--theme-text-secondary, #67584A);
+            margin: 0;
+            flex: 1;
+        }
+
+        .step-card-text strong {
+            color: var(--theme-text, #2D241D);
+        }
+
+        .step-card-text code {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.05);
+            padding: 2px 5px;
+            border-radius: 4px;
+            border: 1px solid var(--theme-border, #D8C5AA);
+        }
+
+        [data-theme="monochrome"] .step-card-text code,
+        body.dark .step-card-text code {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--theme-border, #303030);
+        }
+
+        /* Device variation note */
+        .device-variation-note {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            background: var(--theme-surface, #FFF9F0);
+            border: 1px solid var(--theme-border, #D8C5AA);
+            border-radius: var(--radius-md, 14px);
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--theme-text-muted, #8F7B67);
+            max-width: 820px;
+            margin: 0 auto;
+        }
+
+        [data-theme="monochrome"] .device-variation-note,
+        body.dark .device-variation-note {
+            background: var(--theme-card, #181818);
+            border-color: var(--theme-border, #303030);
+        }
+
+        .device-variation-note svg {
+            color: var(--primary, #B86B3D);
+            flex-shrink: 0;
+        }
+
+        [data-theme="monochrome"] .device-variation-note svg,
+        body.dark .device-variation-note svg {
+            color: #FFFFFF;
+        }
+
+        /* Bottom Quick Links */
+        .download-footer-links {
+            display: flex;
+            align-items: center;
             justify-content: center;
             gap: var(--space-4);
-            margin-top: var(--space-6);
-        }
-        .footer-nav-links a {
-            color: var(--primary);
-            text-decoration: none;
+            margin-top: var(--space-10);
             font-size: 14px;
             font-weight: 600;
         }
-        .footer-nav-links a:hover {
+
+        .download-footer-links a {
+            color: var(--primary, #B86B3D);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+
+        [data-theme="monochrome"] .download-footer-links a,
+        body.dark .download-footer-links a {
+            color: #FFFFFF;
+        }
+
+        .download-footer-links a:hover {
             text-decoration: underline;
         }
-        @media (max-width: 640px) {
-            .download-card {
-                padding: var(--space-6) var(--space-4);
+
+        .download-footer-links .dot {
+            color: var(--theme-border, #D8C5AA);
+        }
+
+        /* Toast Feedback */
+        #downloadToast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--theme-surface, #FFF9F0);
+            border: 1px solid var(--primary, #B86B3D);
+            color: var(--theme-text, #2D241D);
+            padding: 12px 24px;
+            border-radius: var(--radius-full);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        [data-theme="monochrome"] #downloadToast,
+        body.dark #downloadToast {
+            background: #181818;
+            border-color: #FFFFFF;
+            color: #FFFFFF;
+        }
+
+        #downloadToast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 960px) {
+            .guide-steps-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
-            .specs-grid {
-                grid-template-columns: 1fr 1fr;
+        }
+
+        @media (max-width: 680px) {
+            .app-hero-top {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .app-specs-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .guide-steps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .device-variation-note {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-specs-row {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-orange-download {
+                padding: 14px 20px;
+                font-size: 16px;
             }
         }
     </style>
 </head>
-<body class="download-page-wrap">
+<body class="download-page-body">
 
-    <!-- Header Navigation -->
-    <header class="landing-header" style="position: fixed; top: 0; left: 0; right: 0; z-index: 100;">
+    <!-- Subtle Background Shapes -->
+    <div class="download-decor-orb-1" aria-hidden="true"></div>
+    <div class="download-decor-orb-2" aria-hidden="true"></div>
+
+    <!-- Fixed Top Navigation Header -->
+    <header class="landing-header">
         <a href="/" class="brand-link" aria-label="FRANK Think Home">
             <img src="/assets/brand/frank-icon.svg" alt="FRANK Think Logo" width="34" height="34" decoding="async" style="border-radius: 8px;">
             <span style="display: inline-flex; align-items: baseline; gap: 4px;">
@@ -266,128 +724,399 @@
             </span>
         </a>
 
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <a href="/" class="btn btn-secondary btn-sm">Home</a>
-            <a href="/login" class="btn btn-primary btn-sm">Open Web App</a>
+        <nav class="landing-nav" aria-label="Main Navigation">
+            <a href="/#features" data-i18n="nav.features">Features</a>
+            <a href="/#office" data-i18n="nav.office">Office Suite</a>
+            <a href="/#security" data-i18n="nav.security">Security</a>
+            <a href="/#preview" data-i18n="nav.experience">Experience</a>
+            <a href="/#about" data-i18n="nav.about">About</a>
+        </nav>
+
+        <div class="header-actions">
+            <!-- Theme Toggle -->
+            <button type="button" class="btn btn-ghost btn-icon" id="themeToggleBtn" aria-label="Toggle Theme" title="Toggle Theme">
+                <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+
+            <!-- Language Selector (Desktop) -->
+            <div class="lang-selector-container" id="langSelector">
+                <button type="button" class="btn btn-ghost lang-btn" id="langDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language">
+                    <svg class="lang-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    <span class="current-lang-label" id="currentLangLabel">English</span>
+                    <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="lang-dropdown-menu" id="langDropdownMenu" role="menu" aria-label="Select Language">
+                    <button type="button" class="lang-option active" data-lang="en" role="menuitem">English</button>
+                    <button type="button" class="lang-option" data-lang="ta" role="menuitem">தமிழ்</button>
+                    <button type="button" class="lang-option" data-lang="hi" role="menuitem">हिन्दी</button>
+                </div>
+            </div>
+
+            <!-- Download App Navigation Action Button -->
+            <a href="/download" class="btn btn-primary btn-sm landing-nav-download-btn" id="navDownloadAppBtn" aria-label="Download App">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span data-i18n="nav.downloadApp">Download App</span>
+            </a>
+
+            <!-- Mobile Navigation Drawer Toggle Button -->
+            <button type="button" class="btn btn-ghost btn-icon landing-mobile-toggle" id="landingMobileToggle" aria-label="Open Navigation Menu" title="Open Menu">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
         </div>
     </header>
 
-    <!-- Download Hero Container -->
-    <main class="download-hero-section">
-        <article class="download-card">
-            
-            <div class="app-badge-row">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                <span>Official Release • Android APK</span>
-            </div>
-
-            <img src="/assets/brand/frank-icon.svg" alt="FRANK Think App Icon" class="app-icon-display" width="96" height="96">
-
-            <h1 class="app-title-main">FRANK <span>Think</span> for Android</h1>
-            <p class="app-lead-text">
-                Get the official APK for FRANK Think — your real-time messaging app, group chat platform, and mobile document collaboration platform. Enjoy private chat application features, chat and file sharing, an online file sharing platform, and team communication tool on Android.
-            </p>
-
-            <!-- Primary Download Button -->
-            <div class="primary-download-action">
-                <a href="/downloads/frank-think.apk" download="frank-think.apk" class="btn-apk-main" id="apkDownloadLink">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9992.4482.9992.9993s-.4482.9997-.9992.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993s-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5802 8.4116 13.8475 8.125 12 8.125c-1.8475 0-3.5802.2866-5.1368.8247L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.75h24c-.3432-4.0911-2.6889-7.5633-6.1185-9.4286"/>
-                    </svg>
-                    <span>Download APK (5.6 MB)</span>
-                </a>
-                <span class="download-subtext">Direct download • Version 1.0.0 • Verified digital signature</span>
-            </div>
-
-            <!-- APK Specs -->
-            <div class="specs-grid">
-                <div class="spec-item">
-                    <span class="spec-label">Package</span>
-                    <span class="spec-val">app.frank.think</span>
-                </div>
-                <div class="spec-item">
-                    <span class="spec-label">Version</span>
-                    <span class="spec-val">1.0.0 (Build 1)</span>
-                </div>
-                <div class="spec-item">
-                    <span class="spec-label">File Size</span>
-                    <span class="spec-val">5.61 MB</span>
-                </div>
-                <div class="spec-item">
-                    <span class="spec-label">Requires</span>
-                    <span class="spec-val">Android 8.0+</span>
-                </div>
-            </div>
-
-            <!-- Security Callout -->
-            <div class="security-callout">
+    <!-- Mobile Navigation Drawer & Backdrop Overlay -->
+    <div class="landing-mobile-overlay" id="landingMobileOverlay"></div>
+    <div class="landing-mobile-drawer" id="landingMobileDrawer" role="dialog" aria-label="Mobile Navigation">
+        <div class="landing-mobile-drawer-header">
+            <a href="/" class="brand-link" aria-label="FRANK Think Home" style="text-decoration: none;">
+                <img src="/assets/brand/frank-icon.svg" alt="FRANK Think Logo" width="28" height="28" decoding="async" style="border-radius: 8px;">
+                <span style="display: inline-flex; align-items: baseline; gap: 4px;">
+                    <span style="color: var(--text); font-weight: 900; letter-spacing: 1px;">FRANK</span>
+                    <span style="color: var(--primary); font-weight: 700; font-size: 12px; letter-spacing: 0.5px;">Think</span>
+                </span>
+            </a>
+            <button type="button" class="btn btn-ghost btn-icon" id="landingMobileCloseBtn" aria-label="Close Navigation Menu">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
-                <div>
-                    <strong>Verified &amp; Safe APK:</strong> Built from source and digitally signed with SHA-256 APK Signature Scheme v2. If Android displays <em>"File might be harmful"</em>, tap <strong>Download anyway</strong> — this is Android's standard prompt for apps installed outside the Play Store.
-                </div>
-            </div>
-
-            <!-- Installation Instructions -->
-            <div class="steps-container">
-                <h2 class="steps-heading">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            </button>
+        </div>
+        <nav class="landing-mobile-nav">
+            <a href="/#features" class="landing-mobile-link" data-i18n="nav.features">Features</a>
+            <a href="/#office" class="landing-mobile-link" data-i18n="nav.office">Office Suite</a>
+            <a href="/#security" class="landing-mobile-link" data-i18n="nav.security">Security</a>
+            <a href="/#preview" class="landing-mobile-link" data-i18n="nav.experience">Experience</a>
+            <a href="/#about" class="landing-mobile-link" data-i18n="nav.about">About</a>
+            <a href="/download" class="landing-mobile-link landing-mobile-apk-link" aria-label="Download App">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: 8px;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span data-i18n="nav.downloadApp">Download App</span>
+            </a>
+        </nav>
+        <div class="mobile-lang-box">
+            <span class="mobile-lang-title" data-i18n="nav.language">Language</span>
+            <div class="lang-selector-container mobile-lang-selector" id="mobileLangSelector">
+                <button type="button" class="btn btn-ghost lang-btn" id="mobileLangDropdownBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language">
+                    <svg class="lang-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 14 14"></polyline>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                     </svg>
-                    <span>How to Install on Android</span>
-                </h2>
-                <div class="step-list">
-                    <div class="step-card">
-                        <span class="step-num">1</span>
-                        <div><strong>Download:</strong> Tap the blue <strong>Download APK</strong> button above to save <code>frank-think.apk</code> to your device.</div>
-                    </div>
-                    <div class="step-card">
-                        <span class="step-num">2</span>
-                        <div><strong>Open File:</strong> Pull down your notifications or open your browser's <strong>Downloads</strong> folder and tap <code>frank-think.apk</code>.</div>
-                    </div>
-                    <div class="step-card">
-                        <span class="step-num">3</span>
-                        <div><strong>Enable Install:</strong> If prompted <em>"Install unknown apps"</em>, tap <strong>Settings</strong> and switch on <strong>Allow from this source</strong>.</div>
-                    </div>
-                    <div class="step-card">
-                        <span class="step-num">4</span>
-                        <div><strong>Install &amp; Launch:</strong> Tap <strong>Install</strong>, then tap <strong>Open</strong> to launch FRANK Think and log in.</div>
-                    </div>
+                    <span class="current-lang-label" id="mobileCurrentLangLabel">English</span>
+                    <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="lang-dropdown-menu" id="mobileLangDropdownMenu" role="menu" aria-label="Select Language">
+                    <button type="button" class="lang-option active" data-lang="en" role="menuitem">English</button>
+                    <button type="button" class="lang-option" data-lang="ta" role="menuitem">தமிழ்</button>
+                    <button type="button" class="lang-option" data-lang="hi" role="menuitem">हिन्दी</button>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Bottom Navigation -->
-            <div class="footer-nav-links">
-                <a href="/">← Return to Homepage</a>
-                <span style="color: var(--border);">•</span>
-                <a href="/login">Open Web App</a>
-                <span style="color: var(--border);">•</span>
-                <a href="/privacy">Privacy Policy</a>
+    <!-- Main Content Area -->
+    <main class="download-main-wrap">
+        
+        <!-- Back to Home Bar -->
+        <div class="download-nav-subbar">
+            <div class="download-container">
+                <a href="/" class="back-home-link" aria-label="Back to Home">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Back to Home</span>
+                </a>
             </div>
+        </div>
 
-        </article>
+        <!-- Page Heading & Subtitle -->
+        <section class="download-header-intro">
+            <div class="download-container">
+                <div class="download-badge-tag">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5872 8.414 13.8407 8.125 12 8.125s-3.5872.289-5.1368.8247L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.7612h24c-.3432-4.1023-2.6889-7.5745-6.1185-9.4398"/>
+                    </svg>
+                    <span>Official Android Release</span>
+                </div>
+                <h1 class="download-page-title">Download <span class="highlight-orange">FRANK Think</span></h1>
+                <p class="download-page-subtitle">Get the official Android app and follow the simple steps below to install FRANK Think on your Android device.</p>
+                <p class="download-seo-note">
+                    Experience our secure real-time messaging app, group chat platform, and private chat application with integrated chat and file sharing, online file sharing platform features, and a team communication tool built for modern document collaboration.
+                </p>
+            </div>
+        </section>
+
+        <!-- Android App Card -->
+        <section class="download-app-card-section">
+            <div class="download-container">
+                <article class="app-hero-card">
+                    <div class="app-hero-top">
+                        <img src="/assets/brand/frank-icon.svg" alt="FRANK Think App Icon" class="app-main-icon" width="88" height="88">
+                        <div class="app-main-details">
+                            <div class="app-verified-pill">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <span>Verified Official APK</span>
+                            </div>
+                            <h2 class="app-hero-title">FRANK Think for Android</h2>
+                            <p class="app-hero-desc">
+                                Native performance, secure WebSocket messaging, push alerts, and in-chat document workspace on your smartphone.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Verified Project Specifications Grid -->
+                    <div class="app-specs-row">
+                        <div class="spec-cell">
+                            <span class="spec-title">App Version</span>
+                            <span class="spec-value">1.0.0</span>
+                        </div>
+                        <div class="spec-cell">
+                            <span class="spec-title">APK File Size</span>
+                            <span class="spec-value">5.54 MB</span>
+                        </div>
+                        <div class="spec-cell">
+                            <span class="spec-title">Compatibility</span>
+                            <span class="spec-value">Android 7.0+ (API 24+)</span>
+                        </div>
+                        <div class="spec-cell">
+                            <span class="spec-title">Package ID</span>
+                            <span class="spec-value">app.frank.think</span>
+                        </div>
+                    </div>
+
+                    <!-- Prominent Orange Download Button -->
+                    <div class="app-download-cta">
+                        <a href="/downloads/frank-think.apk" download="frank-think.apk" class="btn-orange-download" id="downloadAppBtn" aria-label="Download FRANK Think APK">
+                            <svg class="dl-arrow-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            <span class="dl-label">Download App</span>
+                        </a>
+                        <div class="download-safety-meta">
+                            <span>Direct Download (5.54 MB)</span>
+                            <span class="sep">•</span>
+                            <span>SHA-256 Digitally Signed</span>
+                        </div>
+                    </div>
+
+                    <!-- Green Safe & Secure Information Section -->
+                    <div class="safe-secure-box">
+                        <div class="safe-icon-badge" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                <polyline points="9 12 11 14 15 10"></polyline>
+                            </svg>
+                        </div>
+                        <div class="safe-content">
+                            <div class="safe-heading">Safe &amp; Secure Verification</div>
+                            <p class="safe-description">
+                                Directly compiled from source and digitally signed with SHA-256 APK Signature Scheme v2. Scanned and verified free from malware and trackers. If Android displays a default <em>"File might be harmful"</em> warning, tap <strong>Download anyway</strong> — this is Android's standard notification for applications downloaded directly from the web.
+                            </p>
+                        </div>
+                    </div>
+
+                </article>
+            </div>
+        </section>
+
+        <!-- Installation Guide Section (4 Horizontal Cards) -->
+        <section class="installation-guide-section">
+            <div class="download-container">
+                <div class="guide-header">
+                    <h2 class="guide-title">How to Install FRANK Think on Android</h2>
+                    <p class="guide-subtitle">Follow these 4 simple steps to install and start using FRANK Think</p>
+                </div>
+
+                <div class="guide-steps-grid">
+                    <!-- Step 1 -->
+                    <div class="guide-step-card">
+                        <div class="step-card-top">
+                            <span class="step-number-badge">1</span>
+                            <div class="step-icon-wrap" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="step-card-title">Download the App</h3>
+                        <p class="step-card-text">
+                            Click the orange <strong>Download App</strong> button above and wait for <code>frank-think.apk</code> to download to your Android device.
+                        </p>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="guide-step-card">
+                        <div class="step-card-top">
+                            <span class="step-number-badge">2</span>
+                            <div class="step-icon-wrap" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="step-card-title">Allow Installation</h3>
+                        <p class="step-card-text">
+                            Android may require permission to install apps from your browser or file manager. Tap <strong>Settings</strong> and turn on <strong>"Allow from this source"</strong>.
+                        </p>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="guide-step-card">
+                        <div class="step-card-top">
+                            <span class="step-number-badge">3</span>
+                            <div class="step-icon-wrap" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="step-card-title">Install the App</h3>
+                        <p class="step-card-text">
+                            Open the downloaded APK from your notification bar or <strong>Downloads</strong> folder, review the Android prompt, and tap <strong>Install</strong>.
+                        </p>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="guide-step-card">
+                        <div class="step-card-top">
+                            <span class="step-number-badge">4</span>
+                            <div class="step-icon-wrap" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="step-card-title">Open and Start</h3>
+                        <p class="step-card-text">
+                            Tap <strong>Open</strong> to launch FRANK Think on your Android phone. Sign in with your credentials or create a new account to start messaging and collaborating!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- OS Variation Note -->
+                <div class="device-variation-note">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <span>
+                        <strong>Note:</strong> Android settings and permission steps may vary slightly depending on your device brand (Samsung One UI, Google Pixel, Xiaomi HyperOS, OnePlus OxygenOS) and Android operating system version.
+                    </span>
+                </div>
+
+                <!-- Bottom Quick Links -->
+                <div class="download-footer-links">
+                    <a href="/">← Return to Homepage</a>
+                    <span class="dot">•</span>
+                    <a href="/login">Open Web App</a>
+                    <span class="dot">•</span>
+                    <a href="/privacy">Privacy Policy</a>
+                </div>
+
+            </div>
+        </section>
+
     </main>
 
-    <footer class="landing-footer" style="padding: var(--space-4); text-align: center; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--border);">
+    <!-- Footer -->
+    <footer class="landing-footer" style="padding: var(--space-6) var(--space-4); text-align: center; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--border);">
         <p>&copy; 2026 FRANK Think. All rights reserved.</p>
     </footer>
 
-    <!-- Theme and UI Scripts -->
+    <!-- Toast Notification for Download Feedback -->
+    <div id="downloadToast" role="status" aria-live="polite">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span id="downloadToastMsg">Downloading FRANK Think APK (5.54 MB)...</span>
+    </div>
+
+    <!-- Theme & Multi-Language Scripts -->
     <script src="/js/theme.js"></script>
+    <script src="/js/i18n.js"></script>
     <script>
-        // Automatic download trigger if URL has ?auto=1 or #download
-        if (window.location.search.includes('auto=1') || window.location.hash === '#download') {
-            const dl = document.getElementById('apkDownloadLink');
-            if (dl) {
-                setTimeout(() => {
-                    dl.click();
-                }, 800);
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mobile drawer toggle
+            const toggleBtn = document.getElementById('landingMobileToggle');
+            const closeBtn = document.getElementById('landingMobileCloseBtn');
+            const drawer = document.getElementById('landingMobileDrawer');
+            const overlay = document.getElementById('landingMobileOverlay');
+
+            function toggleDrawer(open) {
+                if (drawer && overlay) {
+                    drawer.classList.toggle('active', open);
+                    overlay.classList.toggle('active', open);
+                    document.body.style.overflow = open ? 'hidden' : '';
+                }
             }
-        }
+
+            if (toggleBtn) toggleBtn.addEventListener('click', () => toggleDrawer(true));
+            if (closeBtn) closeBtn.addEventListener('click', () => toggleDrawer(false));
+            if (overlay) overlay.addEventListener('click', () => toggleDrawer(false));
+
+            // Download Button Visual & Error Feedback
+            const downloadBtn = document.getElementById('downloadAppBtn');
+            const toast = document.getElementById('downloadToast');
+            const toastMsg = document.getElementById('downloadToastMsg');
+
+            function showToast(msg) {
+                if (!toast) return;
+                if (toastMsg) toastMsg.textContent = msg;
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 4000);
+            }
+
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', () => {
+                    showToast('Downloading FRANK Think APK (5.54 MB)...');
+                });
+            }
+
+            // Automatic download trigger if URL has ?auto=1 or #download
+            if (window.location.search.includes('auto=1') || window.location.hash === '#download') {
+                if (downloadBtn) {
+                    setTimeout(() => {
+                        downloadBtn.click();
+                    }, 800);
+                }
+            }
+        });
     </script>
 </body>
 </html>

@@ -1061,7 +1061,7 @@ body.dark .footer-contact-btn:hover {
         display: inline-flex;
     }
 
-    .header-actions .btn-primary,
+    .header-actions .btn-primary:not(.landing-nav-download-btn),
     .header-actions .btn-ghost:not(.btn-icon):not(.lang-btn) {
         display: none;
     }
@@ -1118,4 +1118,42 @@ body.dark .footer-contact-btn:hover {
         gap: 4px;
     }
 }
+
+/* ---------------- Navigation Download App Button ---------------- */
+.landing-nav-download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    font-size: 13.5px;
+    font-weight: 700;
+    border-radius: var(--radius-full);
+    text-decoration: none;
+    box-shadow: 0 4px 14px var(--primary-glow);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.landing-nav-download-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px var(--primary-glow);
+}
+
+@media (max-width: 768px) {
+    .landing-nav-download-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        gap: 6px;
+    }
+}
+
+@media (max-width: 440px) {
+    .landing-nav-download-btn span {
+        display: none;
+    }
+    .landing-nav-download-btn {
+        padding: 8px;
+        border-radius: var(--radius-md);
+    }
+}
+
 

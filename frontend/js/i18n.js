@@ -56,7 +56,8 @@
                         "signIn": "Sign In",
                         "startChatting": "Start Chatting",
                         "language": "Language",
-                        "selectLanguage": "Select Language"
+                        "selectLanguage": "Select Language",
+                        "downloadApp": "Download App"
                 },
                 "hero": {
                         "badge": "Think",
@@ -589,7 +590,8 @@
                         "signIn": "உள்நுழை",
                         "startChatting": "அரட்டையை தொடங்கு",
                         "language": "மொழி",
-                        "selectLanguage": "மொழியைத் தேர்வுசெய்"
+                        "selectLanguage": "மொழியைத் தேர்வுசெய்",
+                        "downloadApp": "செயலியைப் பதிவிறக்கு"
                 },
                 "hero": {
                         "badge": "சிந்தி",
@@ -1122,7 +1124,8 @@
                         "signIn": "साइन इन",
                         "startChatting": "चैट शुरू करें",
                         "language": "भाषा",
-                        "selectLanguage": "भाषा चुनें"
+                        "selectLanguage": "भाषा चुनें",
+                        "downloadApp": "ऐप डाउनलोड करें"
                 },
                 "hero": {
                         "badge": "सोचें",

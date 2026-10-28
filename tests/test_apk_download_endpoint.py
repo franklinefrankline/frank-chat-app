@@ -12,10 +12,27 @@ client = TestClient(main.app)
 def test_landing():
     r = client.get("/")
     assert r.status_code == 200, f"Status: {r.status_code}"
-    assert "Download for Android" in r.text, "Download button missing in landing page"
-    assert "/downloads/frank-think.apk" in r.text, "APK download link missing in landing page"
-    assert "androidInstallNote" in r.text, "Install note missing in landing page"
-    print("PASS: Landing page contains Download for Android button and installation guidance.")
+    # Verify the landing page navbar and buttons route to /download
+    assert "Download App" in r.text, "Download App button missing in landing page"
+    assert "/download" in r.text, "Link to /download instructions missing in landing page"
+    assert "navDownloadAppBtn" in r.text, "Navbar Download App button missing"
+    print("PASS: Landing page contains Download App button routing to /download.")
+
+def test_downloads_page():
+    for route in ["/downloads/index.html", "/downloads", "/downloads/", "/download"]:
+        r = client.get(route)
+        assert r.status_code == 200, f"Route {route} returned {r.status_code}"
+        ct = r.headers.get("content-type", "")
+        assert "text/html" in ct, f"Wrong Content-Type for {route}: {ct}"
+        assert "Download FRANK Think" in r.text or "FRANK Think for Android" in r.text, f"Title missing in {route}"
+        assert "/downloads/frank-think.apk" in r.text, f"APK download link missing in {route}"
+        assert "Back to Home" in r.text, f"Back to Home link missing in {route}"
+        assert "Download the App" in r.text, f"Step 1 missing in {route}"
+        assert "Allow Installation" in r.text, f"Step 2 missing in {route}"
+        assert "Install the App" in r.text, f"Step 3 missing in {route}"
+        assert "Open and Start" in r.text, f"Step 4 missing in {route}"
+        assert "Safe &amp; Secure" in r.text or "Safe & Secure" in r.text, f"Security section missing in {route}"
+    print("PASS: Dedicated /download landing page and all 4 installation steps verified.")
 
 def test_apk_download():
     r = client.get("/downloads/frank-think.apk")
@@ -36,19 +53,9 @@ def test_existing_routes():
         assert r.status_code == 200, f"Route {route} returned {r.status_code}"
     print("PASS: Existing routes (/login, /register, /privacy) unaffected and load cleanly.")
 
-def test_downloads_page():
-    for route in ["/downloads/index.html", "/downloads", "/downloads/", "/download"]:
-        r = client.get(route)
-        assert r.status_code == 200, f"Route {route} returned {r.status_code}"
-        ct = r.headers.get("content-type", "")
-        assert "text/html" in ct, f"Wrong Content-Type for {route}: {ct}"
-        assert "FRANK Think for Android" in r.text, f"Title missing in {route}"
-        assert "/downloads/frank-think.apk" in r.text, f"APK link missing in {route}"
-    print("PASS: Dedicated /downloads and /downloads/index.html landing page verified.")
-
 if __name__ == "__main__":
     test_landing()
-    test_apk_download()
     test_downloads_page()
+    test_apk_download()
     test_existing_routes()
     print("ALL TESTS PASSED SUCCESSFULLY!")
