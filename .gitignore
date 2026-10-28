@@ -44,6 +44,8 @@ backend/.env.*
 *.bak
 *.sqlite
 *.sqlite3
+!api/_backend/seed.sqlite.gz
+!backend/seed.sqlite.gz
 backend/chatapp.db
 backend/uploads/
 uploads/

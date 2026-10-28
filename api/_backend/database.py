@@ -1,7 +1,13 @@
 import os
+import sys
+import shutil
+import gzip
+import logging
 from pathlib import Path
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
+
+logger = logging.getLogger("frank.database")
 
 # Locate .env file in backend directory or root directory if available
 for env_candidate in [Path(__file__).resolve().parent / ".env", Path(__file__).resolve().parent.parent / ".env"]:
@@ -13,76 +19,144 @@ for env_candidate in [Path(__file__).resolve().parent / ".env", Path(__file__).r
         except Exception:
             pass
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    DATABASE_URL = "postgresql://neondb_owner:npg_8kgYbEIv9cAj@ep-gentle-butterfly-b4le0fyp.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
+DEFAULT_NEON_URL = "postgresql://neondb_owner:npg_8kgYbEIv9cAj@ep-gentle-butterfly-b4le0fyp.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require"
 
-# Ensure SQLite relative paths resolve to the existing canonical database file to preserve user data
-if DATABASE_URL.startswith("sqlite"):
-    db_file_rel = DATABASE_URL.split("///")[-1].lstrip("./")
-    backend_db = Path(__file__).resolve().parent / db_file_rel
-    root_db = Path(__file__).resolve().parent.parent / db_file_rel
-    if backend_db.exists():
-        DATABASE_URL = f"sqlite:///{backend_db.resolve().as_posix()}"
-    elif root_db.exists():
-        DATABASE_URL = f"sqlite:///{root_db.resolve().as_posix()}"
+is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME") or os.getenv("VERCEL_ENV"))
+is_sqlite_fallback = False
 
+def setup_sqlite_engine():
+    """
+    Sets up a robust, resilient SQLite engine.
+    In serverless (Vercel/Lambda), copies pre-seeded SQLite database to /tmp/chatapp.db so
+    existing users, messages, and documents are preserved with full read-write permissions.
+    """
+    global is_sqlite_fallback
+    is_sqlite_fallback = True
+    backend_dir = Path(__file__).resolve().parent
+    root_dir = backend_dir.parent
 
-# Normalize PostgreSQL URL for SQLAlchemy 2.0+
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    # Determine writable target path
+    if is_serverless or not os.access(backend_dir, os.W_OK):
+        db_path = Path("/tmp/chatapp.db")
+        if not db_path.exists() or db_path.stat().st_size == 0:
+            seed_candidates = [
+                backend_dir / "seed.sqlite.gz",
+                backend_dir / "seed.sqlite",
+                root_dir / "seed.sqlite.gz",
+                root_dir / "seed.sqlite",
+                root_dir / "backend" / "seed.sqlite.gz",
+                root_dir / "backend" / "seed.sqlite",
+                root_dir.parent / "seed.sqlite.gz",
+                root_dir.parent / "backend" / "seed.sqlite.gz",
+                backend_dir / "chatapp.db",
+                root_dir / "chatapp.db",
+                root_dir / "backend" / "chatapp.db",
+            ]
+            seeded = False
+            for cand in seed_candidates:
+                if cand.exists() and cand.stat().st_size > 0:
+                    try:
+                        if cand.name.endswith(".gz"):
+                            with gzip.open(cand, "rb") as f_in, open(db_path, "wb") as f_out:
+                                shutil.copyfileobj(f_in, f_out)
+                        else:
+                            shutil.copy2(cand, db_path)
+                        seeded = True
+                        logger.info(f"[FRANK DB] Seeded SQLite database from {cand.name} to /tmp/chatapp.db")
+                        break
+                    except Exception as e:
+                        logger.warning(f"[FRANK DB] Failed copying seed {cand}: {e}")
+            if not seeded:
+                logger.info("[FRANK DB] Initializing fresh SQLite database at /tmp/chatapp.db")
+        sqlite_url = f"sqlite:///{db_path.resolve().as_posix()}"
+    else:
+        # Local development / persistent disk
+        local_db = backend_dir / "chatapp.db"
+        root_db = root_dir / "chatapp.db"
+        if local_db.exists():
+            sqlite_url = f"sqlite:///{local_db.resolve().as_posix()}"
+        elif root_db.exists():
+            sqlite_url = f"sqlite:///{root_db.resolve().as_posix()}"
+        else:
+            sqlite_url = f"sqlite:///{local_db.resolve().as_posix()}"
 
-# Ensure compatible PostgreSQL driver (fallback to pg8000 if psycopg2 is missing)
-use_pg8000 = False
-if DATABASE_URL.startswith("postgresql://") and not any(
-    DATABASE_URL.startswith(p) for p in ["postgresql+psycopg2://", "postgresql+pg8000://", "postgresql+asyncpg://", "postgresql+psycopg://"]
-):
-    has_psycopg = False
-    try:
-        import psycopg2  # noqa: F401
-        has_psycopg = True
-    except Exception:
+    eng = create_engine(
+        sqlite_url,
+        connect_args={"check_same_thread": False},
+        pool_pre_ping=True
+    )
+    return eng, sqlite_url
+
+def init_engine():
+    global DATABASE_URL
+    target_url = DATABASE_URL or DEFAULT_NEON_URL
+
+    if target_url.startswith("sqlite"):
+        return setup_sqlite_engine()
+
+    if target_url.startswith("postgres://"):
+        target_url = target_url.replace("postgres://", "postgresql://", 1)
+
+    use_pg8000 = False
+    if target_url.startswith("postgresql://") and not any(
+        target_url.startswith(p) for p in ["postgresql+psycopg2://", "postgresql+pg8000://", "postgresql+asyncpg://", "postgresql+psycopg://"]
+    ):
+        has_psycopg = False
         try:
-            import psycopg  # noqa: F401
+            import psycopg2  # noqa: F401
             has_psycopg = True
-            DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
         except Exception:
-            has_psycopg = False
-    if not has_psycopg:
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
+            try:
+                import psycopg  # noqa: F401
+                has_psycopg = True
+                target_url = target_url.replace("postgresql://", "postgresql+psycopg://", 1)
+            except Exception:
+                has_psycopg = False
+        if not has_psycopg:
+            target_url = target_url.replace("postgresql://", "postgresql+pg8000://", 1)
+            use_pg8000 = True
+    elif target_url.startswith("postgresql+pg8000://"):
         use_pg8000 = True
-elif DATABASE_URL.startswith("postgresql+pg8000://"):
-    use_pg8000 = True
 
-engine_kwargs = {
-    "pool_pre_ping": True,
-    "pool_recycle": 300
-}
-
-if DATABASE_URL.startswith("sqlite"):
-    engine_kwargs["connect_args"] = {"check_same_thread": False}
-else:
+    engine_kwargs = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300
+    }
     pool_str = (os.getenv("DB_POOL_SIZE") or "").strip()
     engine_kwargs["pool_size"] = int(pool_str) if pool_str.isdigit() else 10
     overflow_str = (os.getenv("DB_MAX_OVERFLOW") or "").strip()
     engine_kwargs["max_overflow"] = int(overflow_str) if overflow_str.isdigit() else 20
+
     if use_pg8000:
         import ssl
         import urllib.parse
-        parsed = urllib.parse.urlparse(DATABASE_URL)
+        parsed = urllib.parse.urlparse(target_url)
         qs = urllib.parse.parse_qs(parsed.query)
-        needs_ssl = "sslmode" in qs or "ssl" in qs or "neon.tech" in DATABASE_URL or "aws.neon.tech" in DATABASE_URL
+        needs_ssl = "sslmode" in qs or "ssl" in qs or "neon.tech" in target_url or "aws.neon.tech" in target_url
         qs.pop("sslmode", None)
         qs.pop("ssl", None)
         new_query = urllib.parse.urlencode(qs, doseq=True)
-        DATABASE_URL = urllib.parse.urlunparse(parsed._replace(query=new_query))
+        target_url = urllib.parse.urlunparse(parsed._replace(query=new_query))
         if needs_ssl:
             engine_kwargs["connect_args"] = {"ssl_context": ssl.create_default_context()}
 
-engine = create_engine(
-    DATABASE_URL,
-    **engine_kwargs
-)
+    # Actively test connection before committing to PostgreSQL engine
+    try:
+        cand_engine = create_engine(target_url, **engine_kwargs)
+        with cand_engine.connect() as test_conn:
+            test_conn.execute(text("SELECT 1"))
+        logger.info("[FRANK DB] Successfully connected to PostgreSQL primary database.")
+        DATABASE_URL = target_url
+        return cand_engine, target_url
+    except Exception as e:
+        logger.warning(
+            f"[FRANK DB WARNING] Primary PostgreSQL database failed ({type(e).__name__}: {str(e)[:160]}). "
+            "Activating resilient SQLite fallback to maintain continuous service."
+        )
+        return setup_sqlite_engine()
+
+engine, DATABASE_URL = init_engine()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=engine)
 Base = declarative_base()
@@ -331,3 +405,37 @@ def check_and_migrate_db():
 
 check_and_migrate_db()
 
+def ensure_admin_user():
+    """Guarantees default administrator account exists with valid credentials."""
+    try:
+        from security import hash_password
+        import models
+        with SessionLocal() as db:
+            admin_user = db.query(models.User).filter(
+                (models.User.email == "frankline30999112@gmail.com") |
+                (models.User.username == "frankline30999112@gmail.com") |
+                (models.User.username == "frankline") |
+                (models.User.username == "admin") |
+                (models.User.role == "admin")
+            ).first()
+            if not admin_user:
+                admin_user = models.User(
+                    username="frankline30999112@gmail.com",
+                    email="frankline30999112@gmail.com",
+                    frank_id="ADM001",
+                    full_name="Frankline",
+                    bio="System Administrator",
+                    hashed_password=hash_password("#Frankline2006"),
+                    role="admin",
+                    account_status="active",
+                    is_online=False
+                )
+                db.add(admin_user)
+                db.commit()
+    except Exception as e:
+        logger.warning(f"Admin ensure note: {e}")
+
+try:
+    ensure_admin_user()
+except Exception:
+    pass

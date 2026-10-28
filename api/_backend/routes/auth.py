@@ -413,18 +413,26 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
     ident_lower = raw_ident.lower()
 
     # Allow login by email, full_name, name, username, or frank_id (case-insensitive)
-    candidates = db.query(models.User).filter(
-        (func.lower(models.User.email) == ident_lower) | 
-        (func.lower(models.User.full_name) == ident_lower) |
-        (func.lower(models.User.name) == ident_lower) |
-        (func.lower(models.User.username) == ident_lower) | 
-        (func.lower(models.User.frank_id) == ident_lower) |
-        ((func.lower(models.User.email) == "frankline30999112@gmail.com") & (
-            (ident_lower == "frankline") | 
-            (ident_lower == "admin") | 
-            (ident_lower == "frankline30999112@gmail.com")
-        ))
-    ).all()
+    try:
+        candidates = db.query(models.User).filter(
+            (func.lower(models.User.email) == ident_lower) | 
+            (func.lower(models.User.full_name) == ident_lower) |
+            (func.lower(models.User.name) == ident_lower) |
+            (func.lower(models.User.username) == ident_lower) | 
+            (func.lower(models.User.frank_id) == ident_lower) |
+            ((func.lower(models.User.email) == "frankline30999112@gmail.com") & (
+                (ident_lower == "frankline") | 
+                (ident_lower == "admin") | 
+                (ident_lower == "frankline30999112@gmail.com")
+            ))
+        ).all()
+    except Exception as db_err:
+        import logging
+        logging.error(f"[AUTH LOGIN DB ERROR] Database lookup failed: {db_err}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database service is temporarily unavailable. Please try again shortly."
+        )
 
     if not candidates:
         raise HTTPException(

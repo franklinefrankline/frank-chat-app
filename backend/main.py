@@ -56,16 +56,15 @@ def check_and_migrate_db():
     except Exception as e:
         print(f"Migration note: {e}")
 
-if not is_serverless or os.getenv("RUN_MIGRATIONS", "").lower() in ["1", "true"]:
-    try:
-        Base.metadata.create_all(bind=engine)
-    except Exception as e:
-        print(f"Table creation note: {e}")
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Table creation note: {e}")
 
-    try:
-        check_and_migrate_db()
-    except Exception as e:
-        print(f"Migration init note: {e}")
+try:
+    check_and_migrate_db()
+except Exception as e:
+    print(f"Migration init note: {e}")
 
 
 # Ensure default administrator exists if database is newly initialized
@@ -100,8 +99,7 @@ def seed_demo_users():
     finally:
         db.close()
 
-if not is_serverless or os.getenv("RUN_MIGRATIONS", "").lower() in ["1", "true"]:
-    seed_demo_users()
+seed_demo_users()
 
 
 # Security Headers Middleware
@@ -137,6 +135,27 @@ app = FastAPI(
     description="FRANK real-time communication platform API",
     version="2.0.0"
 )
+
+from sqlalchemy.exc import SQLAlchemyError
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    import logging
+    logging.error(f"[DB ERROR] {request.method} {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Database service is temporarily unavailable. Please try again shortly."}
+    )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import logging
+    logging.error(f"[SERVER ERROR] {request.method} {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected server error occurred. Please try again in a moment."}
+    )
+
 
 # CORS configuration
 default_origins = [

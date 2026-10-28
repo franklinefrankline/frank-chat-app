@@ -6,6 +6,8 @@
 *.sqlite
 *.sqlite3
 **/*.sqlite*
+!api/_backend/seed.sqlite.gz
+!backend/seed.sqlite.gz
 **/*.bak
 *.bak
 chatapp.db

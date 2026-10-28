@@ -661,14 +661,38 @@ const api = {
             }
 
             let data = null;
-            const contentType = res.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                data = await res.json();
+            const contentType = res.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                try {
+                    data = await res.json();
+                } catch {}
+            } else {
+                try {
+                    const text = await res.text();
+                    if (text && text.trim().startsWith('{')) {
+                        data = JSON.parse(text);
+                    }
+                } catch {}
             }
 
             // If backend returned non-OK response
             if (!res.ok) {
-                const errorMsg = (data && (data.detail || data.message)) || `Request failed with status ${res.status}`;
+                let errorMsg = (data && (data.detail || data.message));
+                if (!errorMsg) {
+                    if (res.status === 500) {
+                        errorMsg = 'Server encountered an unexpected error. Please try again in a moment.';
+                    } else if (res.status === 502 || res.status === 503 || res.status === 504) {
+                        errorMsg = 'Service is temporarily unavailable. Please check back shortly.';
+                    } else if (res.status === 401) {
+                        errorMsg = 'Invalid email/username or password.';
+                    } else if (res.status === 403) {
+                        errorMsg = 'Access forbidden. Your account may be disabled or restricted.';
+                    } else if (res.status === 404) {
+                        errorMsg = 'Requested service endpoint could not be found.';
+                    } else {
+                        errorMsg = `Request failed with status ${res.status}`;
+                    }
+                }
                 const err = new Error(errorMsg);
                 err.status = res.status;
                 err.data = data;

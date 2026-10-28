@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FRANK Word Engine Test Harness</title>
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/office_workspace.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+            background: var(--theme-bg, #F4EBDD);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #frankDocumentWorkspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+        #workspaceTopBar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: var(--theme-surface, #FFF9F0);
+            border-bottom: 1px solid var(--theme-border, #D8C5AA);
+            height: 48px;
+            box-sizing: border-box;
+        }
+        #workspaceDocTitle {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--theme-text, #2D241E);
+        }
+        #workspaceSaveStatus {
+            font-size: 12px;
+            color: var(--theme-text-muted, #7C6F64);
+        }
+        #toastContainer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .test-toast {
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: #2D241E;
+            color: #FFF;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body data-theme="sandstone">
+    <div id="frankDocumentWorkspace" class="frank-document-workspace active">
+        <!-- Top Workspace Bar -->
+        <div id="workspaceTopBar" class="workspace-top-bar">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span id="workspaceDocTitle">Annual Strategic Report.docx</span>
+                <span id="workspaceSaveStatus">Saved</span>
+            </div>
+            <div id="versionHistoryDrawer" style="display:none;padding:8px;background:#FFF;border:1px solid #CCC;">
+                Version History Active
+            </div>
+        </div>
+
+        <!-- Word Ribbon Toolbar Container -->
+        <div id="officeWordToolbar" class="word-ribbon-toolbar"></div>
+
+        <!-- Word Canvas Stage Container -->
+        <div id="officeWordCanvas" class="word-canvas-wrapper" style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;"></div>
+
+        <!-- Status Bar -->
+        <div class="workspace-status-bar" id="workspaceStatusBar"></div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <script>
+        // Global helper mock for messagesModule
+        window.messagesModule = {
+            escapeHTML: function(str) {
+                if (str === null || str === undefined) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+        };
+
+        window.showToast = function(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (container) {
+                const toast = document.createElement('div');
+                toast.className = 'test-toast';
+                toast.textContent = msg;
+                container.appendChild(toast);
+                setTimeout(() => toast.remove(), 2500);
+            }
+        };
+    </script>
+    <script src="../js/office_word_engine.js"></script>
+    <script>
+        // Setup mock workspace
+        class MockWordWorkspace {
+            constructor() {
+                this.category = 'word';
+                this.isDirty = false;
+                this.currentDoc = {
+                    id: 101,
+                    filename: 'Annual Strategic Report.docx',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    current_version_number: 1
+                };
+                this.toasts = [];
+                this.versionDrawerOpen = false;
+                this.closed = false;
+            }
+
+            markDirty() {
+                this.isDirty = true;
+                const status = document.getElementById('workspaceSaveStatus');
+                if (status) status.textContent = 'Unsaved changes';
+            }
+
+            updateSaveStatus(status) {
+                const el = document.getElementById('workspaceSaveStatus');
+                if (el) el.textContent = status === 'saved' ? 'Saved' : (status === 'saving' ? 'Saving...' : 'Unsaved changes');
+                if (status === 'saved') this.isDirty = false;
+            }
+
+            showToast(msg, type = 'info') {
+                window.showToast(msg, type);
+                this.toasts.push({ msg, type, time: Date.now() });
+            }
+
+            saveDocument() {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        this.updateSaveStatus('saved');
+                        this.showToast('Document saved successfully', 'success');
+                        resolve({ ok: true, version: 2 });
+                    }, 50);
+                });
+            }
+
+            toggleVersionDrawer(force) {
+                this.versionDrawerOpen = force !== undefined ? force : !this.versionDrawerOpen;
+                const d = document.getElementById('versionHistoryDrawer');
+                if (d) d.style.display = this.versionDrawerOpen ? 'block' : 'none';
+                this.showToast('Version history toggled', 'info');
+            }
+
+            closeWorkspace() {
+                this.closed = true;
+                this.showToast('Workspace closed', 'info');
+            }
+        }
+
+        window.mockWorkspace = new MockWordWorkspace();
+        window.wordEngine = new FrankWordEditorEngine(window.mockWorkspace);
+        window.frankOfficeWorkspace = {
+            wordEngine: window.wordEngine,
+            saveDocument: () => window.mockWorkspace.saveDocument(),
+            toggleVersionDrawer: (f) => window.mockWorkspace.toggleVersionDrawer(f),
+            closeWorkspace: () => window.mockWorkspace.closeWorkspace(),
+            markDirty: () => window.mockWorkspace.markDirty(),
+            showToast: (m, t) => window.mockWorkspace.showToast(m, t)
+        };
+
+        const toolbarEl = document.getElementById('officeWordToolbar');
+        const canvasEl = document.getElementById('officeWordCanvas');
+        window.wordEngine.mount(toolbarEl, canvasEl);
+        window.wordEngineReady = true;
+    </script>
+</body>
+</html>
