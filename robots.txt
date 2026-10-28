@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
+Allow: /download
+Allow: /downloads/
 Allow: /login
 Allow: /register
 Allow: /privacy
