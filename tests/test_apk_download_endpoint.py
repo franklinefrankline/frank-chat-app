@@ -25,9 +25,9 @@ def test_apk_download():
     cd = r.headers.get("content-disposition", "")
     assert "frank-think.apk" in cd, f"Wrong Content-Disposition: {cd}"
     content = r.content
-    assert len(content) == 5711528, f"Size mismatch: {len(content)}"
+    assert len(content) == 5805623, f"Size mismatch: {len(content)}"
     h = hashlib.sha256(content).hexdigest().upper()
-    assert h == "FA5B4C9E89ACCE77C53648A90DC0ADF3D4DE3263C376DF9E533EAB095C7C5D67", f"Hash mismatch: {h}"
+    assert h == "3C7C26BF6A03319C6CCB52C86DDC5F3FCDFB62A62A06932C323B4459A4803322", f"Hash mismatch: {h}"
     print(f"PASS: APK download verified. Size: {len(content)} bytes, Content-Type: {ct}, Disposition: {cd}, SHA-256: {h}")
 
 def test_existing_routes():

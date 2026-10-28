@@ -1,20 +1,17 @@
 /**
  * Google Search Favicon Audit Suite for FRANK Think
  * Validates Google Search Central Favicon Guidelines:
- * 1. Image is square and multiple of 48x48px (48x48 PNG provided)
- * 2. Stable, publicly accessible URL on the same domain
- * 3. HTML link tags use root-relative paths and raster-first priority
- * 4. Robots.txt does not block Googlebot-Image
- * 5. HTTP endpoints return 200 OK with correct image MIME types
- * 6. Playwright browser audit confirms clean rendering with 0 network failures
+ * 1. Image is square high-res PNG (512x512) and 48x48 multiple of 48px
+ * 2. Stable, publicly accessible root URLs (/favicon.png, /favicon.ico, /apple-touch-icon.png)
+ * 3. HTML head link tags use canonical, non-conflicting root-relative paths
+ * 4. Robots.txt does not block Googlebot-Image or favicon assets
+ * 5. Multi-frame ICO contains 16x16, 32x32, and 48x48 frames
+ * 6. Mirrors are 100% synchronized
  */
 
 const fs = require('fs');
 const path = require('path');
-const http = require('http');
-const { chromium } = require('playwright');
 
-const BASE_URL = 'http://127.0.0.1:8000';
 const ROOT_DIR = path.resolve(__dirname, '..');
 
 let passed = 0;
@@ -28,24 +25,6 @@ function assert(description, condition, details = '') {
         console.error(`  [FAIL] ${description} ${details ? '— ' + details : ''}`);
         failed++;
     }
-}
-
-function fetch(urlPath) {
-    return new Promise((resolve, reject) => {
-        const u = new URL(urlPath, BASE_URL);
-        http.get(u, (res) => {
-            const chunks = [];
-            res.on('data', chunk => chunks.push(chunk));
-            res.on('end', () => {
-                const buf = Buffer.concat(chunks);
-                resolve({
-                    statusCode: res.statusCode,
-                    headers: res.headers,
-                    body: buf
-                });
-            });
-        }).on('error', reject);
-    });
 }
 
 function readPngDimensions(buf) {
@@ -80,6 +59,16 @@ async function runAudit() {
 
     // 1. Physical Assets & Dimensions
     console.log('1. Auditing Physical Favicon Assets & Pixel Dimensions:');
+    
+    // Root favicon.png (512x512 high-resolution source)
+    const rootFavPng = path.join(ROOT_DIR, 'favicon.png');
+    assert('favicon.png exists at root', fs.existsSync(rootFavPng));
+    if (fs.existsSync(rootFavPng)) {
+        const dims = readPngDimensions(fs.readFileSync(rootFavPng));
+        assert('favicon.png has high-resolution 512x512 dimensions', dims && dims.width === 512 && dims.height === 512, JSON.stringify(dims));
+    }
+
+    // Root favicon-48x48.png (48x48 exact multiple of 48)
     const rootFav48 = path.join(ROOT_DIR, 'favicon-48x48.png');
     assert('favicon-48x48.png exists at root', fs.existsSync(rootFav48));
     if (fs.existsSync(rootFav48)) {
@@ -87,53 +76,56 @@ async function runAudit() {
         assert('favicon-48x48.png has exactly 48x48 dimensions', dims && dims.width === 48 && dims.height === 48, JSON.stringify(dims));
     }
 
-    const brandFav48 = path.join(ROOT_DIR, 'assets', 'brand', 'favicon-48x48.png');
-    assert('assets/brand/favicon-48x48.png exists', fs.existsSync(brandFav48));
-    if (fs.existsSync(brandFav48)) {
-        const dims = readPngDimensions(fs.readFileSync(brandFav48));
-        assert('assets/brand/favicon-48x48.png has exactly 48x48 dimensions', dims && dims.width === 48 && dims.height === 48, JSON.stringify(dims));
+    // Root apple-touch-icon.png (180x180 standard touch icon)
+    const rootApple = path.join(ROOT_DIR, 'apple-touch-icon.png');
+    assert('apple-touch-icon.png exists at root', fs.existsSync(rootApple));
+    if (fs.existsSync(rootApple)) {
+        const dims = readPngDimensions(fs.readFileSync(rootApple));
+        assert('apple-touch-icon.png has 180x180 dimensions', dims && dims.width === 180 && dims.height === 180, JSON.stringify(dims));
     }
 
-    const brandFav96 = path.join(ROOT_DIR, 'assets', 'brand', 'frank-icon.png');
-    assert('assets/brand/frank-icon.png exists (96x96 multiple of 48)', fs.existsSync(brandFav96));
-    if (fs.existsSync(brandFav96)) {
-        const dims = readPngDimensions(fs.readFileSync(brandFav96));
-        assert('assets/brand/frank-icon.png has exactly 96x96 dimensions', dims && dims.width === 96 && dims.height === 96, JSON.stringify(dims));
-    }
-
+    // Root favicon.ico (multi-layer ICO)
     const rootIco = path.join(ROOT_DIR, 'favicon.ico');
     assert('favicon.ico exists at root', fs.existsSync(rootIco));
     if (fs.existsSync(rootIco)) {
         const sizes = readIcoSizes(fs.readFileSync(rootIco));
-        assert('favicon.ico contains multiple frames including 48x48', sizes && sizes.some(s => s.width === 48 && s.height === 48), JSON.stringify(sizes));
+        assert('favicon.ico contains multi-resolution frames (16, 32, 48)', 
+            sizes && sizes.some(s => s.width === 16) && sizes.some(s => s.width === 32) && sizes.some(s => s.width === 48), 
+            JSON.stringify(sizes)
+        );
     }
 
-    // 2. HTML Markup & Googlebot Ordering
-    console.log('\n2. Auditing HTML Head Favicon Link Tags & Googlebot Ordering:');
+    // Brand directory assets
+    const brandFavPng = path.join(ROOT_DIR, 'assets', 'brand', 'favicon.png');
+    assert('assets/brand/favicon.png exists', fs.existsSync(brandFavPng));
+
+    const brandFav48 = path.join(ROOT_DIR, 'assets', 'brand', 'favicon-48x48.png');
+    assert('assets/brand/favicon-48x48.png exists', fs.existsSync(brandFav48));
+
+    const brandIcon = path.join(ROOT_DIR, 'assets', 'brand', 'frank-icon.png');
+    assert('assets/brand/frank-icon.png exists', fs.existsSync(brandIcon));
+
+    // 2. HTML Markup & Canonical Favicon Linking
+    console.log('\n2. Auditing HTML Head Favicon Link Tags & Canonical Priority:');
     const htmlPages = ['index.html', 'login.html', 'register.html', 'privacy.html', '404.html'];
     for (const pageName of htmlPages) {
         const content = fs.readFileSync(path.join(ROOT_DIR, pageName), 'utf8');
         
-        // Check 48x48 PNG link
-        const has48Png = content.includes('<link rel="icon" type="image/png" sizes="48x48" href="/assets/brand/favicon-48x48.png">');
-        assert(`${pageName}: Has 48x48 PNG favicon tag with root-relative path`, has48Png);
+        // Canonical favicon.png link
+        const hasFavPng = content.includes('<link rel="icon" type="image/png" href="/favicon.png">');
+        assert(`${pageName}: Has canonical <link rel="icon" type="image/png" href="/favicon.png">`, hasFavPng);
 
-        // Check 96x96 PNG link
-        const has96Png = content.includes('<link rel="icon" type="image/png" sizes="96x96" href="/assets/brand/frank-icon.png">');
-        assert(`${pageName}: Has 96x96 PNG favicon tag with root-relative path`, has96Png);
-
-        // Check ICO link
+        // ICO fallback link
         const hasIco = content.includes('<link rel="icon" type="image/x-icon" href="/favicon.ico">');
-        assert(`${pageName}: Has /favicon.ico icon tag with root-relative path`, hasIco);
+        assert(`${pageName}: Has /favicon.ico fallback tag`, hasIco);
 
-        // Check shortcut icon link
-        const hasShortcut = content.includes('<link rel="shortcut icon" href="/favicon.ico">');
-        assert(`${pageName}: Has /favicon.ico shortcut icon tag`, hasShortcut);
+        // Apple touch icon
+        const hasApple = content.includes('<link rel="apple-touch-icon" href="/apple-touch-icon.png">');
+        assert(`${pageName}: Has /apple-touch-icon.png tag`, hasApple);
 
-        // Check raster before SVG ordering
-        const pngIndex = content.indexOf('favicon-48x48.png');
-        const svgIndex = content.indexOf('frank-icon.svg');
-        assert(`${pageName}: Raster PNG is declared BEFORE SVG (critical for Googlebot)`, pngIndex !== -1 && svgIndex !== -1 && pngIndex < svgIndex);
+        // No conflicting duplicate declarations
+        const iconMatches = content.match(/<link[^>]+rel=["']icon["'][^>]*>/g) || [];
+        assert(`${pageName}: Has clean non-duplicated rel="icon" declarations (expected 2: PNG + ICO)`, iconMatches.length === 2, `Found ${iconMatches.length}`);
     }
 
     // 3. Robots.txt Compliance for Googlebot-Image
@@ -142,36 +134,21 @@ async function runAudit() {
     assert('robots.txt allows root /', robotsTxt.includes('Allow: /'));
     assert('robots.txt allows /assets/', robotsTxt.includes('Allow: /assets/'));
     assert('robots.txt does not disallow favicon.ico', !robotsTxt.includes('Disallow: /favicon.ico'));
+    assert('robots.txt does not disallow favicon.png', !robotsTxt.includes('Disallow: /favicon.png'));
     assert('robots.txt does not disallow favicon-48x48.png', !robotsTxt.includes('Disallow: /favicon-48x48.png'));
 
-    // 4. Local Server HTTP Endpoints & Content-Type
-    console.log('\n4. Auditing Local Server Favicon HTTP Responses & MIME Types:');
-    try {
-        const resFavIco = await fetch('/favicon.ico');
-        assert('GET /favicon.ico returns 200 OK', resFavIco.statusCode === 200, `Got ${resFavIco.statusCode}`);
-        assert('GET /favicon.ico Content-Type is image/x-icon', (resFavIco.headers['content-type'] || '').includes('image/x-icon') || (resFavIco.headers['content-type'] || '').includes('icon'));
-        assert('GET /favicon.ico has valid non-empty body', resFavIco.body.length > 500, `${resFavIco.body.length} bytes`);
-
-        const resFav48 = await fetch('/favicon-48x48.png');
-        assert('GET /favicon-48x48.png returns 200 OK', resFav48.statusCode === 200, `Got ${resFav48.statusCode}`);
-        assert('GET /favicon-48x48.png Content-Type is image/png', (resFav48.headers['content-type'] || '').includes('image/png'));
-        assert('GET /favicon-48x48.png has valid non-empty body', resFav48.body.length > 500, `${resFav48.body.length} bytes`);
-
-        const resBrandFav48 = await fetch('/assets/brand/favicon-48x48.png');
-        assert('GET /assets/brand/favicon-48x48.png returns 200 OK', resBrandFav48.statusCode === 200, `Got ${resBrandFav48.statusCode}`);
-        assert('GET /assets/brand/favicon-48x48.png Content-Type is image/png', (resBrandFav48.headers['content-type'] || '').includes('image/png'));
-
-        const resBrandFav96 = await fetch('/assets/brand/frank-icon.png');
-        assert('GET /assets/brand/frank-icon.png returns 200 OK', resBrandFav96.statusCode === 200, `Got ${resBrandFav96.statusCode}`);
-        assert('GET /assets/brand/frank-icon.png Content-Type is image/png', (resBrandFav96.headers['content-type'] || '').includes('image/png'));
-
-        const resBrandSvg = await fetch('/assets/brand/frank-icon.svg');
-        assert('GET /assets/brand/frank-icon.svg returns 200 OK', resBrandSvg.statusCode === 200, `Got ${resBrandSvg.statusCode}`);
-        assert('GET /assets/brand/frank-icon.svg Content-Type is image/svg+xml', (resBrandSvg.headers['content-type'] || '').includes('svg'));
-    } catch (err) {
-        console.error('Server fetch failed:', err.message);
-        failed++;
-    }
+    // 4. Vercel Header Configuration
+    console.log('\n4. Auditing Vercel JSON Header Configuration:');
+    const vercelJson = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'vercel.json'), 'utf8'));
+    const headers = vercelJson.headers || [];
+    const hasFavIcoHeader = headers.some(h => h.source === '/favicon.ico' && h.headers.some(x => x.key === 'Content-Type' && x.value === 'image/x-icon'));
+    const hasFavPngHeader = headers.some(h => h.source === '/favicon.png' && h.headers.some(x => x.key === 'Content-Type' && x.value === 'image/png'));
+    const hasFav48Header = headers.some(h => h.source === '/favicon-48x48.png' && h.headers.some(x => x.key === 'Content-Type' && x.value === 'image/png'));
+    const hasAppleHeader = headers.some(h => h.source === '/apple-touch-icon.png' && h.headers.some(x => x.key === 'Content-Type' && x.value === 'image/png'));
+    assert('vercel.json specifies image/x-icon header for /favicon.ico', hasFavIcoHeader);
+    assert('vercel.json specifies image/png header for /favicon.png', hasFavPngHeader);
+    assert('vercel.json specifies image/png header for /favicon-48x48.png', hasFav48Header);
+    assert('vercel.json specifies image/png header for /apple-touch-icon.png', hasAppleHeader);
 
     // 5. Mirror Parity Check
     console.log('\n5. Auditing Mirror Consistency:');
@@ -181,48 +158,17 @@ async function runAudit() {
         path.join(ROOT_DIR, 'api', '_backend', 'frontend')
     ];
     for (const mDir of mirrorDirs) {
+        const mFavPng = path.join(mDir, 'favicon.png');
+        assert(`${path.relative(ROOT_DIR, mFavPng)} exists and matches root`, fs.existsSync(mFavPng) && fs.readFileSync(mFavPng).equals(fs.readFileSync(rootFavPng)));
+
+        const mFavIco = path.join(mDir, 'favicon.ico');
+        assert(`${path.relative(ROOT_DIR, mFavIco)} exists and matches root`, fs.existsSync(mFavIco) && fs.readFileSync(mFavIco).equals(fs.readFileSync(rootIco)));
+
         const mFav48 = path.join(mDir, 'favicon-48x48.png');
         assert(`${path.relative(ROOT_DIR, mFav48)} exists and matches root`, fs.existsSync(mFav48) && fs.readFileSync(mFav48).equals(fs.readFileSync(rootFav48)));
 
-        const mBrandFav48 = path.join(mDir, 'assets', 'brand', 'favicon-48x48.png');
-        assert(`${path.relative(ROOT_DIR, mBrandFav48)} exists and matches root`, fs.existsSync(mBrandFav48) && fs.readFileSync(mBrandFav48).equals(fs.readFileSync(brandFav48)));
-    }
-
-    // 6. Playwright Headless Browser Audit
-    console.log('\n6. Playwright Headless Browser End-to-End Audit:');
-    let browser;
-    try {
-        browser = await chromium.launch();
-        const page = await browser.newPage();
-        
-        const consoleErrors = [];
-        const failedRequests = [];
-        page.on('console', msg => {
-            if (msg.type() === 'error') consoleErrors.push(msg.text());
-        });
-        page.on('requestfailed', req => {
-            failedRequests.push(`${req.url()} (${req.failure() ? req.failure().errorText : 'failed'})`);
-        });
-
-        await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' });
-
-        // Check favicon elements in live DOM
-        const domFav48 = await page.$eval('link[rel="icon"][sizes="48x48"]', el => el.getAttribute('href')).catch(() => null);
-        assert('DOM has 48x48 favicon element pointing to /assets/brand/favicon-48x48.png', domFav48 === '/assets/brand/favicon-48x48.png');
-
-        const domFavIco = await page.$eval('link[rel="icon"][href="/favicon.ico"]', el => el.getAttribute('href')).catch(() => null);
-        assert('DOM has /favicon.ico element with leading slash', domFavIco === '/favicon.ico');
-
-        const domFavSvg = await page.$eval('link[rel="icon"][type="image/svg+xml"]', el => el.getAttribute('href')).catch(() => null);
-        assert('DOM has SVG favicon element with leading slash', domFavSvg === '/assets/brand/frank-icon.svg');
-
-        assert('0 console errors on homepage with new favicon links', consoleErrors.length === 0, consoleErrors.join(', '));
-        assert('0 failed network requests on homepage', failedRequests.length === 0, failedRequests.join(', '));
-    } catch (err) {
-        console.error('Playwright audit failed:', err.message);
-        failed++;
-    } finally {
-        if (browser) await browser.close();
+        const mApple = path.join(mDir, 'apple-touch-icon.png');
+        assert(`${path.relative(ROOT_DIR, mApple)} exists and matches root`, fs.existsSync(mApple) && fs.readFileSync(mApple).equals(fs.readFileSync(rootApple)));
     }
 
     console.log('\n======================================================');

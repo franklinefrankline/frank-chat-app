@@ -8,7 +8,7 @@ html_files = [
     "index.html", "login.html", "register.html", "dashboard.html",
     "settings.html", "profile.html", "admin.html",
     "forgot-password.html", "reset-password.html", "privacy.html", "privacy-dashboard.html", "chat.html", "404.html",
-    "offline.html", "robots.txt", "sitemap.xml", "favicon.ico", "favicon-48x48.png"
+    "offline.html", "robots.txt", "sitemap.xml", "favicon.ico", "favicon.png", "favicon-48x48.png", "apple-touch-icon.png"
 ]
 
 target_frontend_dirs = [
