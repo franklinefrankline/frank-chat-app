@@ -31,7 +31,21 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 FRANK_ID_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 
-def get_frontend_base_url() -> str:
+def get_frontend_base_url(request: Optional[Request] = None) -> str:
+    """
+    Resolves the frontend base URL accurately:
+    - If a valid request is passed with a host, matches that host (e.g. https://fnk.vercel.app).
+    - Production: Uses FRONTEND_URL environment variable, defaulting to https://fnk.vercel.app.
+    - Local development: Uses FRONTEND_URL or defaults to http://localhost:8000.
+    - Guarantees valid protocol (https:// or http://) and strips trailing slashes.
+    """
+    if request:
+        req_host = (request.headers.get("x-forwarded-host") or request.headers.get("host") or "").split(",")[0].strip()
+        if req_host:
+            proto = request.headers.get("x-forwarded-proto", "https" if ("vercel" in req_host or "fnk." in req_host) else "http")
+            if "localhost" in req_host or "127.0.0.1" in req_host:
+                return f"http://{req_host}".rstrip("/")
+            return f"{proto}://{req_host}".rstrip("/")
     """
     Resolves the frontend base URL accurately:
     - Production: Uses FRONTEND_URL environment variable, defaulting to https://frank-chat-app.vercel.app in Vercel/production environments.
@@ -927,7 +941,7 @@ def get_google_oauth_config(request: Optional[Request] = None) -> Tuple[str, str
         elif request and request.headers.get("host") and ("localhost" in request.headers.get("host") or "127.0.0.1" in request.headers.get("host")):
             base = f"http://{request.headers.get('host')}".rstrip("/")
         else:
-            base = get_frontend_base_url().rstrip("/")
+            base = get_frontend_base_url(request).rstrip("/")
         redirect_uri = f"{base}/api/auth/google/callback"
 
     is_configured = bool(client_id and client_secret)
@@ -1153,7 +1167,7 @@ async def google_oauth_callback(
     Exchanges code for tokens, fetches profile info, validates email, links or creates user,
     and redirects user to frontend with an authenticated session.
     """
-    frontend_base = get_frontend_base_url()
+    frontend_base = get_frontend_base_url(request)
 
     # 1. User cancelled or error returned by Google
     if error:
