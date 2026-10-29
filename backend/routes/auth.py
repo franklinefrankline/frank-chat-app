@@ -2,11 +2,14 @@ import os
 import hashlib
 import hmac
 import secrets
+import re
 import urllib.parse
 from datetime import timedelta, timezone
 from typing import Tuple, Optional
 import sys
-from fastapi import APIRouter, Depends, HTTPException, status
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, and_
 from database import get_db
@@ -17,6 +20,7 @@ from security import (
     verify_password,
     create_access_token,
     get_current_user,
+    get_current_user_optional,
     ACCESS_TOKEN_EXPIRE_MINUTES,
     decode_token
 )
@@ -43,7 +47,7 @@ def get_frontend_base_url() -> str:
 
     if is_prod_env:
         if not raw or "localhost" in raw or "127.0.0.1" in raw:
-            raw = "https://frank-chat-app.vercel.app"
+            raw = "https://fnk.vercel.app"
     else:
         if not raw:
             port = os.getenv("PORT", "8000")
@@ -58,7 +62,7 @@ def get_frontend_base_url() -> str:
 
     # In production or Vercel, never allow localhost fallback
     if is_prod_env and ("localhost" in raw or "127.0.0.1" in raw):
-        raw = "https://frank-chat-app.vercel.app"
+        raw = "https://fnk.vercel.app"
 
     return raw.rstrip("/")
 
@@ -174,7 +178,7 @@ def check_and_consume_otp(
 
 
 @router.post("/register", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
-def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
+def register(user_in: schemas.UserRegister, request: Request, response: Response, db: Session = Depends(get_db)):
     # Check if admin-only mode is explicitly enabled (default: false to allow registration)
     if os.getenv("ADMIN_ONLY_MODE", "false").lower() in ["true", "1", "yes"]:
         raise HTTPException(
@@ -394,6 +398,28 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
+    # Set secure persistent cookie matching deployment scheme
+    is_secure = request.url.scheme == "https" or "vercel" in (request.url.netloc or "")
+    response.set_cookie(
+        key="frank_token",
+        value=token_str,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        httponly=False,
+        samesite="lax",
+        secure=is_secure
+    )
+
+    # Set secure persistent cookie matching deployment scheme
+    is_secure = request.url.scheme == "https" or "vercel" in (request.url.netloc or "")
+    response.set_cookie(
+        key="frank_token",
+        value=token_str,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        httponly=False,
+        samesite="lax",
+        secure=is_secure
+    )
+
     return schemas.Token(
         access_token=token_str,
         token_type="bearer",
@@ -402,7 +428,7 @@ def register(user_in: schemas.UserRegister, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=schemas.Token)
-def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
+def login(login_data: schemas.UserLogin, request: Request, response: Response, db: Session = Depends(get_db)):
     # Support email, username, or identifier field
     raw_ident = (login_data.email or login_data.username or login_data.identifier or "").strip()
     if not raw_ident:
@@ -489,6 +515,17 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
+    # Set secure persistent cookie matching deployment scheme
+    is_secure = request.url.scheme == "https" or "vercel" in (request.url.netloc or "")
+    response.set_cookie(
+        key="frank_token",
+        value=token_str,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        httponly=False,
+        samesite="lax",
+        secure=is_secure
+    )
+
     return schemas.Token(
         access_token=token_str,
         token_type="bearer",
@@ -499,6 +536,17 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/logout")
+def logout(response: Response, user: Optional[models.User] = Depends(get_current_user_optional)):
+    """
+    Revokes server-side session cookies and returns successful logout response.
+    """
+    response.delete_cookie("frank_token")
+    response.delete_cookie("chatapp_token")
+    response.delete_cookie("frank_oauth_state")
+    return {"status": "success", "message": "Successfully logged out"}
 
 
 @router.post("/send-otp")
@@ -853,4 +901,425 @@ def verify_smtp_connection():
         "message": msg,
         "status": email_service.get_safe_status()
     }
+
+
+# ==============================================================================
+# GOOGLE OAUTH 2.0 INTEGRATION (Personal & Google Workspace Accounts)
+# ==============================================================================
+
+def get_google_oauth_config(request: Optional[Request] = None) -> Tuple[str, str, str, bool]:
+    """
+    Returns (client_id, client_secret, redirect_uri, is_configured).
+    Resolves the canonical redirect URI accurately for both production and local development.
+    """
+    client_id = (os.getenv("GOOGLE_CLIENT_ID") or os.getenv("GOOGLE_OAUTH_CLIENT_ID") or "").strip()
+    client_secret = (os.getenv("GOOGLE_CLIENT_SECRET") or os.getenv("GOOGLE_OAUTH_CLIENT_SECRET") or "").strip()
+    explicit_redirect = (os.getenv("GOOGLE_REDIRECT_URI") or os.getenv("GOOGLE_OAUTH_REDIRECT_URI") or "").strip()
+
+    if explicit_redirect:
+        redirect_uri = explicit_redirect
+    else:
+        # Determine host dynamically from request headers if available
+        if request and request.headers.get("x-forwarded-host"):
+            proto = request.headers.get("x-forwarded-proto", "https")
+            host = request.headers.get("x-forwarded-host")
+            base = f"{proto}://{host}".rstrip("/")
+        elif request and request.headers.get("host") and ("localhost" in request.headers.get("host") or "127.0.0.1" in request.headers.get("host")):
+            base = f"http://{request.headers.get('host')}".rstrip("/")
+        else:
+            base = get_frontend_base_url().rstrip("/")
+        redirect_uri = f"{base}/api/auth/google/callback"
+
+    is_configured = bool(client_id and client_secret)
+    return client_id, client_secret, redirect_uri, is_configured
+
+
+def process_google_user(
+    google_email: str,
+    google_sub: str,
+    google_name: str,
+    google_picture: str,
+    db: Session
+) -> Tuple[models.User, str]:
+    """
+    Looks up or provisions a user authenticated via Google OAuth.
+    Supports all personal Google accounts and Google Workspace accounts.
+    Preserves account linking, security checks, and token generation.
+    """
+    clean_email = google_email.strip().lower()
+
+    # 1. Optional domain filtering if explicitly configured
+    allowed_domains_raw = (os.getenv("GOOGLE_ALLOWED_DOMAINS") or "").strip().lower()
+    if allowed_domains_raw:
+        allowed_domains = [d.strip() for d in allowed_domains_raw.split(",") if d.strip()]
+        user_domain = clean_email.split("@")[-1]
+        if user_domain not in allowed_domains:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Google account domain (@{user_domain}) is not authorized to sign in."
+            )
+
+    # 2. Check if user already exists by email (case-insensitive) or linked oauth_id
+    user = db.query(models.User).filter(
+        (func.lower(models.User.email) == clean_email) |
+        ((models.User.oauth_provider == "google") & (models.User.oauth_id == str(google_sub)))
+    ).first()
+
+    if user:
+        # Verify account status
+        cand_status = str(getattr(user, "account_status", "") or getattr(user, "status", "") or "active").lower()
+        is_active = getattr(user, "is_active", True)
+        if is_active is False or cand_status in ["disabled", "deactivated", "inactive", "deleted"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is disabled. Please contact an administrator."
+            )
+
+        # Link Google OAuth details if not already set
+        updated = False
+        if not getattr(user, "oauth_provider", None):
+            user.oauth_provider = "google"
+            user.oauth_id = str(google_sub)
+            updated = True
+        if google_picture and not getattr(user, "avatar_url", ""):
+            user.avatar_url = google_picture
+            updated = True
+        if updated:
+            db.commit()
+            db.refresh(user)
+    else:
+        # Check if public registration is disabled
+        if os.getenv("ADMIN_ONLY_MODE", "false").lower() in ["true", "1", "yes"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Public registration is currently disabled. Access is restricted to the administrator."
+            )
+
+        # Generate unique username from Google email
+        base_uname = re.sub(r"[^a-zA-Z0-9_]", "", clean_email.split("@")[0].lower())[:40] or "user"
+        uname = base_uname
+        counter = 1
+        while db.query(models.User).filter(func.lower(models.User.username) == uname).first():
+            uname = f"{base_uname[:35]}_{secrets.randbelow(900) + 100}"
+            counter += 1
+            if counter > 50:
+                uname = f"u_{secrets.token_hex(4)}"
+                break
+
+        frank_id = generate_unique_frank_id(db)
+        display_name = google_name or uname
+        oauth_pwd_hash = hash_password(secrets.token_urlsafe(32))
+        user = models.User(
+            username=uname,
+            email=clean_email,
+            full_name=display_name,
+            name=display_name,
+            frank_id=frank_id,
+            hashed_password=oauth_pwd_hash,
+            password_hash=oauth_pwd_hash,
+            oauth_provider="google",
+            oauth_id=str(google_sub),
+            avatar_url=google_picture or "",
+            role="user",
+            account_status="active",
+            is_active=True,
+            language="en",
+            theme="light",
+            bio="Hey there! I am using FRANK."
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    # Issue standard FRANK JWT token
+    token_str = create_access_token(
+        data={
+            "sub": user.username,
+            "user_id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "frank_id": user.frank_id,
+            "role": user.role
+        },
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    return user, token_str
+
+
+@router.get("/google/status")
+def google_auth_status(request: Request):
+    """
+    Public diagnostic check for Google OAuth availability.
+    Returns configuration status without leaking client secrets.
+    """
+    client_id, _, redirect_uri, is_configured = get_google_oauth_config(request)
+    return {
+        "configured": is_configured,
+        "client_id_configured": bool(client_id),
+        "redirect_uri": redirect_uri,
+        "allowed_account_types": "all_personal_and_workspace" if not os.getenv("GOOGLE_ALLOWED_DOMAINS") else os.getenv("GOOGLE_ALLOWED_DOMAINS")
+    }
+
+
+@router.get("/google/url")
+def get_google_auth_url(request: Request, response: Response):
+    """
+    Generates a secure Google OAuth authorization URL with CSRF state protection.
+    """
+    client_id, _, redirect_uri, is_configured = get_google_oauth_config(request)
+    if not is_configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google Sign-In is not configured yet. GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in server environment variables."
+        )
+
+    state = secrets.token_urlsafe(32)
+    response.set_cookie(
+        key="frank_oauth_state",
+        value=state,
+        max_age=600,
+        httponly=True,
+        samesite="lax",
+        secure=request.url.scheme == "https" or "vercel" in request.url.netloc
+    )
+
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "offline",
+        "prompt": "select_account"
+    }
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+    return {
+        "url": auth_url,
+        "state": state,
+        "redirect_uri": redirect_uri,
+        "configured": True
+    }
+
+
+@router.get("/google")
+@router.get("/google/login")
+def initiate_google_oauth(request: Request):
+    """
+    Browser-direct redirect to Google OAuth consent screen.
+    """
+    client_id, _, redirect_uri, is_configured = get_google_oauth_config(request)
+    frontend_base = get_frontend_base_url()
+    if not is_configured:
+        msg = urllib.parse.quote("Google Sign-In is not configured yet. GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in server environment variables.")
+        return RedirectResponse(
+            url=f"{frontend_base}/login.html?oauth_error=not_configured&message={msg}",
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT
+        )
+
+    state = secrets.token_urlsafe(32)
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "offline",
+        "prompt": "select_account"
+    }
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+    redirect_resp = RedirectResponse(url=auth_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+    redirect_resp.set_cookie(
+        key="frank_oauth_state",
+        value=state,
+        max_age=600,
+        httponly=True,
+        samesite="lax",
+        secure=request.url.scheme == "https" or "vercel" in request.url.netloc
+    )
+    return redirect_resp
+
+
+@router.api_route("/google/callback", methods=["GET", "POST"])
+async def google_oauth_callback(
+    request: Request,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    error_description: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Handles Google OAuth redirect callback.
+    Exchanges code for tokens, fetches profile info, validates email, links or creates user,
+    and redirects user to frontend with an authenticated session.
+    """
+    frontend_base = get_frontend_base_url()
+
+    # 1. User cancelled or error returned by Google
+    if error:
+        if error == "access_denied":
+            msg = urllib.parse.quote("Google sign-in was cancelled.")
+            return RedirectResponse(f"{frontend_base}/login.html?oauth_error=cancelled&message={msg}")
+        msg = urllib.parse.quote(f"Google sign-in failed: {error_description or error}")
+        return RedirectResponse(f"{frontend_base}/login.html?oauth_error=failed&message={msg}")
+
+    # 2. Missing authorization code
+    if not code:
+        msg = urllib.parse.quote("No authorization code was received from Google.")
+        return RedirectResponse(f"{frontend_base}/login.html?oauth_error=no_code&message={msg}")
+
+    # 3. State verification
+    stored_state = request.cookies.get("frank_oauth_state")
+    if stored_state and state and not hmac.compare_digest(state, stored_state):
+        msg = urllib.parse.quote("Invalid OAuth state parameter. Please try again.")
+        return RedirectResponse(f"{frontend_base}/login.html?oauth_error=invalid_state&message={msg}")
+
+    # 4. Exchange authorization code for tokens
+    client_id, client_secret, redirect_uri, is_configured = get_google_oauth_config(request)
+    if not is_configured:
+        msg = urllib.parse.quote("Google Sign-In is not configured yet. GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in server environment variables.")
+        return RedirectResponse(f"{frontend_base}/login.html?oauth_error=not_configured&message={msg}")
+
+    token_url = "https://oauth2.googleapis.com/token"
+    token_payload = {
+        "code": code,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code"
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            token_resp = await client.post(token_url, data=token_payload)
+            if token_resp.status_code != 200:
+                import logging
+                logging.error(f"[GOOGLE OAUTH ERROR] Token exchange failed ({token_resp.status_code}): {token_resp.text}")
+                msg = urllib.parse.quote("Failed to exchange authorization code with Google.")
+                return RedirectResponse(f"{frontend_base}/login.html?oauth_error=token_failed&message={msg}")
+
+            token_data = token_resp.json()
+            google_access_token = token_data.get("access_token")
+            if not google_access_token:
+                msg = urllib.parse.quote("Google did not return an access token.")
+                return RedirectResponse(f"{frontend_base}/login.html?oauth_error=no_token&message={msg}")
+
+            userinfo_resp = await client.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {google_access_token}"}
+            )
+            if userinfo_resp.status_code != 200:
+                import logging
+                logging.error(f"[GOOGLE OAUTH ERROR] Userinfo fetch failed ({userinfo_resp.status_code}): {userinfo_resp.text}")
+                msg = urllib.parse.quote("Failed to retrieve Google profile information.")
+                return RedirectResponse(f"{frontend_base}/login.html?oauth_error=userinfo_failed&message={msg}")
+
+            user_info = userinfo_resp.json()
+    except Exception as exc:
+        import logging
+        logging.error(f"[GOOGLE OAUTH EXCEPTION] {exc}")
+        msg = urllib.parse.quote("Unable to communicate with Google authentication servers. Please try again.")
+        return RedirectResponse(f"{frontend_base}/login.html?oauth_error=network_error&message={msg}")
+
+    google_sub = user_info.get("sub")
+    google_email = (user_info.get("email") or "").strip().lower()
+    google_name = (user_info.get("name") or "").strip()
+    google_picture = user_info.get("picture") or ""
+    email_verified = bool(user_info.get("email_verified", True))
+
+    if not google_email:
+        msg = urllib.parse.quote("Your Google account does not provide an email address.")
+        return RedirectResponse(f"{frontend_base}/login.html?oauth_error=no_email&message={msg}")
+
+    if not email_verified:
+        msg = urllib.parse.quote("Your Google email address is not verified by Google.")
+        return RedirectResponse(f"{frontend_base}/login.html?oauth_error=unverified_email&message={msg}")
+
+    try:
+        user, token_str = process_google_user(
+            google_email=google_email,
+            google_sub=google_sub,
+            google_name=google_name,
+            google_picture=google_picture,
+            db=db
+        )
+    except HTTPException as http_exc:
+        msg = urllib.parse.quote(http_exc.detail)
+        return RedirectResponse(f"{frontend_base}/login.html?oauth_error=auth_failed&message={msg}")
+
+    # Set up authenticated redirect response
+    redirect_target = f"{frontend_base}/login.html?oauth_token={urllib.parse.quote(token_str)}&role={user.role}"
+    redirect_resp = RedirectResponse(url=redirect_target, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+    redirect_resp.delete_cookie("frank_oauth_state")
+    redirect_resp.set_cookie(
+        key="frank_token",
+        value=token_str,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        httponly=False,
+        samesite="lax",
+        secure=request.url.scheme == "https" or "vercel" in request.url.netloc
+    )
+    return redirect_resp
+
+
+@router.post("/google/token", response_model=schemas.Token)
+async def google_token_login(req: schemas.GoogleTokenLogin, db: Session = Depends(get_db)):
+    """
+    Direct token verification endpoint for Google One-Tap or mobile app integrations.
+    Validates Google ID token via Google's tokeninfo API.
+    """
+    if not req.id_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="id_token parameter is required."
+        )
+
+    tokeninfo_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={urllib.parse.quote(req.id_token.strip())}"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(tokeninfo_url)
+            if r.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid or expired Google ID token."
+                )
+            info = r.json()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Failed to communicate with Google authentication service: {exc}"
+        )
+
+    google_sub = info.get("sub")
+    google_email = (info.get("email") or "").strip().lower()
+    google_name = (info.get("name") or "").strip()
+    google_picture = info.get("picture") or ""
+    email_verified = info.get("email_verified") in [True, "true", "True", 1, "1"]
+
+    if not google_email:
+        raise HTTPException(status_code=400, detail="Google token does not contain an email address.")
+    if not email_verified:
+        raise HTTPException(status_code=400, detail="Google email address is not verified.")
+
+    # Validate audience / client ID if configured
+    client_id = (os.getenv("GOOGLE_CLIENT_ID") or "").strip()
+    aud = info.get("aud")
+    if client_id and aud and aud != client_id:
+        raise HTTPException(status_code=401, detail="Google token audience does not match application client ID.")
+
+    user, token_str = process_google_user(
+        google_email=google_email,
+        google_sub=google_sub,
+        google_name=google_name,
+        google_picture=google_picture,
+        db=db
+    )
+
+    return schemas.Token(
+        access_token=token_str,
+        token_type="bearer",
+        user=schemas.UserResponse.from_orm(user)
+    )
 

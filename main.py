@@ -33,4 +33,7 @@ if __name__ == "__main__":
     print(f"Starting FRANK backend on http://127.0.0.1:{port}")
     print(f"Frontend available at: http://127.0.0.1:{port}/login.html")
     print(f"==================================================")
-    uvicorn.run("main:app", host=host, port=port, reload=False, app_dir=str(backend_dir))
+    if app is not None:
+        uvicorn.run(app, host=host, port=port, reload=False)
+    else:
+        uvicorn.run("main:app", host=host, port=port, reload=False, app_dir=str(backend_dir))

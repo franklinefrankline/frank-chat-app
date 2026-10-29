@@ -36,6 +36,10 @@ backend/venv/
 backend/.env
 backend/.env.*
 !backend/.env.example
+api/_backend/.env
+api/_backend/.env.*
+!api/_backend/.env.example
+.vercel/.env*
 
 # Local SQLite databases & uploads
 *.db
@@ -73,6 +77,10 @@ test-results/
 tests/*.png
 tests/**/*.png
 tests/*screenshots*/
+/*.png
+!favicon.png
+!favicon-48x48.png
+!apple-touch-icon.png
 android_screen.png
 android_screenshot.png
 tests/fixtures/

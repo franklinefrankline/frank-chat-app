@@ -7,8 +7,9 @@ root_dir = Path(__file__).resolve().parent.parent
 html_files = [
     "index.html", "login.html", "register.html", "dashboard.html",
     "settings.html", "profile.html", "admin.html",
-    "forgot-password.html", "reset-password.html", "privacy.html", "privacy-dashboard.html", "chat.html", "404.html",
-    "offline.html", "robots.txt", "sitemap.xml", "favicon.ico", "favicon.png", "favicon-48x48.png", "apple-touch-icon.png"
+    "forgot-password.html", "reset-password.html", "verify-otp.html", "privacy.html", "privacy-dashboard.html", "chat.html", "404.html",
+    "offline.html", "robots.txt", "sitemap.xml", "favicon.ico", "favicon.png", "favicon-48x48.png", "apple-touch-icon.png",
+    "spreadsheet.html", "manifest.json"
 ]
 
 target_frontend_dirs = [
@@ -16,6 +17,9 @@ target_frontend_dirs = [
     root_dir / "backend" / "frontend",
     root_dir / "api" / "_backend" / "frontend"
 ]
+android_public = root_dir / "android" / "app" / "src" / "main" / "assets" / "public"
+if android_public.exists():
+    target_frontend_dirs.append(android_public)
 
 def sync_assets():
     print("Syncing assets and frontend...")

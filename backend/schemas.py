@@ -39,6 +39,18 @@ class UserLogin(BaseModel):
     password: str
 
 
+class GoogleTokenLogin(BaseModel):
+    id_token: str
+    access_token: Optional[str] = None
+
+
+class GoogleAuthUrlResponse(BaseModel):
+    url: str
+    state: str
+    redirect_uri: str
+    configured: bool = True
+
+
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     name: Optional[str] = None

@@ -12,6 +12,7 @@
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json">
 
     <!-- Open Graph Metadata -->
     <meta property="og:type" content="website">
@@ -96,6 +97,19 @@
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/cookie_consent.css">
+
+    <!-- Instant Startup Session Cloak -->
+    <script>
+        (function() {
+            try {
+                var token = localStorage.getItem('chatapp_token') || localStorage.getItem('frank_token') || localStorage.getItem('frank_auth_token');
+                var isLogout = window.location.search && window.location.search.indexOf('logout=1') !== -1;
+                if (token && !isLogout) {
+                    document.documentElement.classList.add('app-checking-session');
+                }
+            } catch (e) {}
+        })();
+    </script>
 </head>
 <body>
 
@@ -247,31 +261,6 @@
                         </a>
                     </div>
 
-                    <!-- Android App Download Action -->
-                    <div class="hero-download-wrapper">
-                        <a href="/download" class="btn btn-secondary hero-android-btn" id="heroDownloadAndroidBtn" aria-label="Download FRANK Think for Android">
-                            <svg class="android-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5872 8.414 13.8407 8.125 12 8.125s-3.5872.289-5.1368.8247L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.7612h24c-.3432-4.1023-2.6889-7.5745-6.1185-9.4398"/>
-                            </svg>
-                            <span class="android-btn-text-wrap">
-                                <span class="android-btn-main" data-i18n="hero.downloadAndroid">Download App</span>
-                                <span class="android-btn-badge" data-i18n="hero.apkReleaseBadge">Android APK (5.54 MB)</span>
-                            </span>
-                            <svg class="android-download-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                        </a>
-                        <div class="hero-download-note" id="androidInstallNote">
-                            <svg class="note-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="16" x2="12" y2="12"></line>
-                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                            </svg>
-                            <span data-i18n="hero.androidInstallInstructions">After downloading, open the APK and follow Android's installation prompts. Android may require allowing installation from your browser or file manager.</span>
-                        </div>
-                    </div>
                     <div class="hero-secondary-btns">
                         <a href="#features" class="btn btn-ghost hero-explore-btn" id="heroExploreBtn" data-i18n="hero.exploreFeatures">
                             <span>Explore Features</span>
@@ -643,10 +632,15 @@
     </footer>
 
     <!-- Scripts -->
+    <script src="js/config.js"></script>
     <script src="js/i18n.js"></script>
     <script src="js/theme.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/contact_modal.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/share_target.js"></script>
     <script src="js/cookie_consent.js"></script>
     <script>
         document.getElementById('landingContactAdminBtn')?.addEventListener('click', function () {

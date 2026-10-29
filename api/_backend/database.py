@@ -246,6 +246,10 @@ def check_and_migrate_db():
                 if "language" not in columns:
                     conn.execute(text("ALTER TABLE users ADD COLUMN language VARCHAR(10) DEFAULT 'en'"))
                     conn.execute(text("UPDATE users SET language = 'en' WHERE language IS NULL"))
+                if "oauth_provider" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN oauth_provider VARCHAR(50) NULL"))
+                if "oauth_id" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN oauth_id VARCHAR(100) NULL"))
 
                 result = conn.execute(text("SELECT id FROM users WHERE frank_id IS NULL OR frank_id = ''")).fetchall()
                 alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"

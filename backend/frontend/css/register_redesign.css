@@ -1,0 +1,1287 @@
+/* =========================================================================
+   FRANK Think — Animated Registration UI Redesign & Mobile App Integration
+   Visual Reference: Warm Cream, Peach, Burnt Orange & Glowing Navy Art
+   ========================================================================= */
+
+:root {
+    --frank-cream: #FFF7ED;
+    --frank-beige: #F2E4D0;
+    --frank-peach: #F9D9C3;
+    --frank-peach-soft: #FDE8D7;
+    --frank-orange: #B85F2F;
+    --frank-orange-hover: #A04F24;
+    --frank-brown: #60351F;
+    --frank-text-dark: #1E1B18;
+    --frank-text-body: #503E33;
+    --frank-text-muted: #8C786A;
+    --frank-navy: #10183F;
+    --frank-blue: #287BFF;
+    --frank-cyan: #12C8E8;
+    --frank-purple: #8038F5;
+    --frank-magenta: #D12AEF;
+    --frank-card-bg: rgba(255, 255, 255, 0.88);
+    --frank-card-border: rgba(255, 255, 255, 0.95);
+    --frank-input-border: #E8DACB;
+    --frank-input-focus: #B85F2F;
+    --frank-card-shadow: 0 24px 60px rgba(96, 53, 31, 0.09), 0 6px 18px rgba(0, 0, 0, 0.03);
+}
+
+/* Page Root & Ambient Canvas */
+body.auth-page.register-redesign-body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background-color: var(--frank-cream);
+    background-image: 
+        radial-gradient(circle at 12% 18%, rgba(249, 217, 195, 0.75) 0%, transparent 45%),
+        radial-gradient(circle at 85% 15%, rgba(253, 232, 215, 0.85) 0%, transparent 40%),
+        radial-gradient(circle at 45% 85%, rgba(242, 228, 208, 0.7) 0%, transparent 50%),
+        radial-gradient(circle at 92% 82%, rgba(249, 217, 195, 0.65) 0%, transparent 45%),
+        linear-gradient(135deg, #FFF9F2 0%, #FFF5EA 50%, #FDF0E2 100%);
+    background-attachment: fixed;
+    color: var(--frank-text-dark);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Decorative Ambient Light Blooms & Orbital Streaks (Pointer-events none) */
+.ambient-decorations {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.ambient-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.55;
+    will-change: transform, opacity;
+}
+
+.ambient-blob-1 {
+    width: 480px;
+    height: 480px;
+    top: -120px;
+    left: 20%;
+    background: radial-gradient(circle, rgba(249, 217, 195, 0.85) 0%, rgba(255, 247, 237, 0) 70%);
+    animation: pulseBlob 12s ease-in-out infinite alternate;
+}
+
+.ambient-blob-2 {
+    width: 420px;
+    height: 420px;
+    bottom: -60px;
+    left: 5%;
+    background: radial-gradient(circle, rgba(209, 42, 239, 0.12) 0%, rgba(40, 123, 255, 0.08) 50%, transparent 70%);
+    animation: pulseBlob 15s ease-in-out infinite alternate-reverse;
+}
+
+.ambient-blob-3 {
+    width: 520px;
+    height: 520px;
+    top: 30%;
+    right: -100px;
+    background: radial-gradient(circle, rgba(242, 228, 208, 0.75) 0%, rgba(249, 217, 195, 0.4) 60%, transparent 75%);
+}
+
+.ambient-streak {
+    position: absolute;
+    width: 1000px;
+    height: 1px;
+    top: 45%;
+    left: -200px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.6) 30%, rgba(40, 123, 255, 0.25) 50%, rgba(209, 42, 239, 0.2) 70%, transparent 100%);
+    transform: rotate(-18deg);
+    opacity: 0.6;
+}
+
+/* Floating ambient particle sparks */
+.ambient-spark {
+    position: absolute;
+    border-radius: 50%;
+    background: #FFFFFF;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 18px rgba(40, 123, 255, 0.6);
+    pointer-events: none;
+    animation: floatParticle 8s ease-in-out infinite alternate;
+}
+
+.spark-1 { width: 5px; height: 5px; top: 18%; left: 42%; animation-duration: 7s; opacity: 0.8; }
+.spark-2 { width: 4px; height: 4px; top: 38%; left: 18%; animation-duration: 9s; opacity: 0.7; }
+.spark-3 { width: 6px; height: 6px; top: 72%; left: 46%; animation-duration: 11s; opacity: 0.65; box-shadow: 0 0 12px rgba(209, 42, 239, 0.7); }
+.spark-4 { width: 4px; height: 4px; top: 22%; right: 28%; animation-duration: 8.5s; opacity: 0.6; }
+.spark-5 { width: 5px; height: 5px; top: 82%; right: 15%; animation-duration: 10s; opacity: 0.55; }
+
+/* Main Split-Screen Container */
+.register-redesign-container {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.16fr) minmax(440px, 0.94fr);
+    min-height: 100vh;
+    min-height: 100dvh;
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 28px 56px;
+    align-items: center;
+    gap: 48px;
+    box-sizing: border-box;
+}
+
+/* =========================================================================
+   LEFT PROMOTIONAL PANEL (~52–55% Viewport)
+   ========================================================================= */
+.register-promo-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: calc(100vh - 64px);
+    min-height: calc(100dvh - 64px);
+    padding: 8px 12px 8px 0;
+    box-sizing: border-box;
+}
+
+/* A. Brand Header */
+.promo-brand-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.promo-brand-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.promo-brand-link:hover {
+    transform: translateY(-1px);
+    opacity: 0.95;
+}
+
+.promo-brand-tile {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #10183F;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(16, 24, 63, 0.25);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.promo-brand-tile img {
+    width: 38px;
+    height: 38px;
+    display: block;
+}
+
+.promo-brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.promo-brand-name {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: var(--frank-text-dark);
+}
+
+.promo-brand-sub {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--frank-text-muted);
+    margin-top: 3px;
+}
+
+/* B. Tagline Pill */
+.promo-tagline-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    padding: 7px 18px;
+    background: rgba(255, 247, 237, 0.92);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(184, 95, 47, 0.25);
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--frank-orange);
+    letter-spacing: 0.4px;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 8px rgba(184, 95, 47, 0.06);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.promo-tagline-pill:hover {
+    transform: translateY(-1px);
+    border-color: rgba(184, 95, 47, 0.4);
+}
+
+.promo-tagline-pill .dot-sep {
+    font-size: 10px;
+    opacity: 0.6;
+}
+
+/* C. Main Heading */
+.promo-hero-title {
+    font-size: clamp(2.3rem, 3.5vw, 3.3rem);
+    font-weight: 850;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    color: var(--frank-text-dark);
+    margin: 0 0 14px 0;
+}
+
+.promo-hero-title .title-row-1 {
+    display: block;
+    color: var(--frank-text-dark);
+}
+
+.promo-hero-title .title-row-2 {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.promo-hero-title .title-to {
+    color: var(--frank-orange);
+    font-weight: 800;
+}
+
+.frank-gradient-text {
+    background: linear-gradient(135deg, #287BFF 0%, #8038F5 50%, #D12AEF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    filter: drop-shadow(0 2px 14px rgba(128, 56, 245, 0.2));
+}
+
+/* D. Supporting Description */
+.promo-description {
+    font-size: 15.5px;
+    line-height: 1.6;
+    color: var(--frank-text-body);
+    max-width: 500px;
+    margin: 0 0 26px 0;
+}
+
+/* Central Stage: Feature Highlights (Left) + 3D Animated Illustration (Right) */
+.promo-stage {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 26px;
+    position: relative;
+}
+
+/* E. Feature Highlights List */
+.promo-features-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.promo-feature-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 16px;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(242, 228, 208, 0.9);
+    border-radius: 16px;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease;
+}
+
+.promo-feature-row:hover {
+    transform: translateX(4px);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 8px 20px rgba(96, 53, 31, 0.08);
+    border-color: rgba(184, 95, 47, 0.25);
+}
+
+.promo-feature-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #FCECE0;
+    border: 1px solid rgba(184, 95, 47, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--frank-orange);
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(184, 95, 47, 0.08);
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.promo-feature-row:hover .promo-feature-icon-box {
+    transform: scale(1.08);
+    background: #F9DFCE;
+}
+
+.promo-feature-text {
+    font-size: 13.5px;
+    font-weight: 550;
+    line-height: 1.4;
+    color: var(--frank-text-dark);
+}
+
+/* F. Central Animated FRANK 3D Logo Illustration Stage */
+.promo-artwork-stage {
+    position: relative;
+    width: 100%;
+    height: 270px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Orbital Path Rings */
+.promo-orbit-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px dashed rgba(40, 123, 255, 0.32);
+    box-shadow: 0 0 14px rgba(40, 123, 255, 0.12);
+    pointer-events: none;
+    transform-origin: center center;
+}
+
+.orbit-ring-1 {
+    width: 240px;
+    height: 190px;
+    transform: rotate(-25deg);
+    animation: rotateRing 40s linear infinite;
+}
+
+.orbit-ring-2 {
+    width: 270px;
+    height: 160px;
+    border: 1.2px solid rgba(209, 42, 239, 0.25);
+    box-shadow: 0 0 14px rgba(209, 42, 239, 0.1);
+    transform: rotate(35deg);
+    animation: rotateRingRev 35s linear infinite;
+}
+
+/* Central Glowing Ambient Aura */
+.promo-artwork-aura {
+    position: absolute;
+    width: 170px;
+    height: 170px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(40, 123, 255, 0.4) 0%, rgba(128, 56, 245, 0.32) 45%, rgba(209, 42, 239, 0.25) 70%, transparent 80%);
+    filter: blur(28px);
+    animation: pulseGlow 4s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+/* 3D Floating Midnight Navy FRANK Tile */
+.frank-central-tile {
+    position: relative;
+    z-index: 3;
+    width: 114px;
+    height: 114px;
+    border-radius: 28px;
+    background: linear-gradient(145deg, #070B1F 0%, #10183F 55%, #182258 100%);
+    border: 2px solid rgba(40, 123, 255, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        0 20px 45px rgba(16, 24, 63, 0.45),
+        0 0 35px rgba(40, 123, 255, 0.4),
+        0 0 50px rgba(209, 42, 239, 0.25),
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.45);
+    animation: floatTile 5.5s ease-in-out infinite;
+    transform-style: preserve-3d;
+    cursor: default;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.frank-central-tile:hover {
+    box-shadow: 
+        0 26px 54px rgba(16, 24, 63, 0.55),
+        0 0 50px rgba(209, 42, 239, 0.55),
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.65);
+}
+
+.frank-central-tile img {
+    width: 90px;
+    height: 90px;
+    display: block;
+    filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.55));
+}
+
+/* 4 Orbiting / Floating Glassmorphic Feature Cards */
+.orbit-feature-card {
+    position: absolute;
+    z-index: 4;
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.98);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 22px rgba(96, 53, 31, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.orbit-feature-card:hover {
+    transform: scale(1.14) !important;
+    box-shadow: 0 12px 28px rgba(96, 53, 31, 0.18);
+}
+
+/* Position 1: Collaboration / Team (Top-Right) */
+.card-collab {
+    top: 12px;
+    right: 26px;
+    animation: floatCard1 5.5s ease-in-out infinite;
+}
+
+/* Position 2: Messaging / Chat (Mid-Left) */
+.card-messaging {
+    top: 95px;
+    left: 2px;
+    animation: floatCard2 6.2s ease-in-out infinite -1.5s;
+}
+
+/* Position 3: Documents (Bottom-Left) */
+.card-documents {
+    bottom: 22px;
+    left: 24px;
+    animation: floatCard3 5.8s ease-in-out infinite -3s;
+}
+
+/* Position 4: Cloud / Upload (Bottom-Right) */
+.card-cloud {
+    bottom: 16px;
+    right: 36px;
+    animation: floatCard4 6.5s ease-in-out infinite -4.2s;
+}
+
+/* G. Statistics Cards */
+.promo-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.promo-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(242, 228, 208, 0.95);
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(96, 53, 31, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.promo-stat-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 8px 20px rgba(96, 53, 31, 0.09);
+    border-color: rgba(184, 95, 47, 0.3);
+}
+
+.promo-stat-icon-wrap {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #FCECE0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.promo-stat-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.promo-stat-num {
+    font-size: 16.5px;
+    font-weight: 850;
+    color: var(--frank-text-dark);
+}
+
+.promo-stat-label {
+    font-size: 11.5px;
+    font-weight: 550;
+    color: var(--frank-text-muted);
+    margin-top: 2px;
+}
+
+/* H. Promo Footer */
+.promo-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--frank-text-muted);
+    padding-top: 12px;
+    border-top: 1px solid rgba(242, 228, 208, 0.65);
+}
+
+.promo-footer a,
+.promo-footer button {
+    color: inherit;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.promo-footer a:hover,
+.promo-footer button:hover {
+    color: var(--frank-orange);
+}
+
+/* =========================================================================
+   RIGHT REGISTRATION PANEL / CARD (~45% Viewport)
+   ========================================================================= */
+.register-form-panel {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.register-glass-card {
+    width: 100%;
+    max-width: 490px;
+    background: var(--frank-card-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1.5px solid var(--frank-card-border);
+    border-radius: 28px;
+    padding: 36px 42px;
+    box-shadow: var(--frank-card-shadow);
+    box-sizing: border-box;
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Card Header & Center Logo */
+.card-header-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.card-center-logo-link {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    margin-bottom: 10px;
+    transition: transform 0.2s ease;
+}
+
+.card-center-logo-link:hover {
+    transform: scale(1.04);
+}
+
+.card-center-logo-tile {
+    width: 52px;
+    height: 52px;
+    border-radius: 15px;
+    background: #10183F;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px rgba(16, 24, 63, 0.28), 0 0 16px rgba(40, 123, 255, 0.25);
+    margin-bottom: 8px;
+}
+
+.card-center-logo-tile img {
+    width: 44px;
+    height: 44px;
+    display: block;
+}
+
+.card-brand-name {
+    font-size: 18px;
+    font-weight: 850;
+    letter-spacing: 0.5px;
+    color: var(--frank-text-dark);
+    line-height: 1;
+}
+
+.card-brand-tagline {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--frank-text-muted);
+    margin-top: 4px;
+}
+
+.card-title {
+    font-size: 24px;
+    font-weight: 850;
+    letter-spacing: -0.02em;
+    color: var(--frank-text-dark);
+    margin: 6px 0 3px 0;
+}
+
+.card-subtitle {
+    font-size: 13.5px;
+    color: var(--frank-text-body);
+    margin: 0;
+    line-height: 1.45;
+}
+
+/* Form Controls & Inputs */
+.register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.field-label {
+    font-size: 13px;
+    font-weight: 650;
+    color: var(--frank-text-dark);
+    margin-bottom: 6px;
+    display: block;
+}
+
+.field-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.field-icon-left {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--frank-text-muted);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.field-input {
+    width: 100%;
+    height: 46px;
+    padding: 0 16px 0 44px;
+    background: #FFFFFF;
+    border: 1.5px solid var(--frank-input-border);
+    border-radius: 13px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--frank-text-dark);
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.field-input.has-icon-right {
+    padding-right: 44px;
+}
+
+.field-input::placeholder {
+    color: #A99688;
+    font-size: 13.5px;
+}
+
+.field-input:focus {
+    outline: none;
+    border-color: var(--frank-input-focus);
+    background: #FFFFFF;
+    box-shadow: 0 0 0 3.5px rgba(184, 95, 47, 0.16);
+}
+
+.field-input-wrap:focus-within .field-icon-left {
+    color: var(--frank-orange);
+}
+
+/* Password Toggle Eye Button */
+.password-toggle-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--frank-text-muted);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.password-toggle-btn:hover {
+    color: var(--frank-text-dark);
+    background: rgba(184, 95, 47, 0.08);
+}
+
+.password-toggle-btn:focus-visible {
+    outline: 2px solid var(--frank-orange);
+}
+
+/* Dynamic Password Strength Meter */
+.password-meter {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.password-meter-track {
+    width: 100%;
+    height: 5px;
+    background: #EADCCE;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.password-meter-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 4px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.password-meter-bar.weak {
+    width: 25%;
+    background-color: #EF4444;
+}
+
+.password-meter-bar.fair {
+    width: 50%;
+    background-color: #F59E0B;
+}
+
+.password-meter-bar.good {
+    width: 75%;
+    background-color: #3B82F6;
+}
+
+.password-meter-bar.strong {
+    width: 100%;
+    background-color: #10B981;
+}
+
+.password-meter-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--frank-text-muted);
+}
+
+/* DPDP Privacy Notice Box */
+.dpdp-privacy-box {
+    background: rgba(40, 123, 255, 0.05);
+    border: 1.2px solid rgba(40, 123, 255, 0.22);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-top: 2px;
+    margin-bottom: 4px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.dpdp-icon-wrap {
+    color: var(--frank-blue);
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.dpdp-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.dpdp-title {
+    font-size: 13px;
+    font-weight: 750;
+    color: var(--frank-text-dark);
+}
+
+.dpdp-text {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--frank-text-body);
+    margin: 0;
+}
+
+.dpdp-text a {
+    color: var(--frank-orange);
+    font-weight: 650;
+    text-decoration: underline;
+}
+
+/* Error States */
+.field-error-msg {
+    display: none;
+    font-size: 12px;
+    font-weight: 550;
+    color: #DC2626;
+    margin-top: 5px;
+}
+
+.field-group.has-error .field-input {
+    border-color: #DC2626 !important;
+    background: #FFF5F5 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14) !important;
+}
+
+.field-group.has-error .field-icon-left {
+    color: #DC2626 !important;
+}
+
+.field-group.has-error .field-error-msg {
+    display: block;
+    animation: fadeInError 0.2s ease-out;
+}
+
+/* Row: One Required Consent Checkbox */
+.consent-checkbox-row {
+    margin-top: 2px;
+    margin-bottom: 4px;
+}
+
+.custom-checkbox-label {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--frank-text-dark);
+    cursor: pointer;
+    user-select: none;
+}
+
+.custom-checkbox-label input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    border-radius: 5px;
+    border: 1.5px solid var(--frank-input-border);
+    accent-color: var(--frank-orange);
+    cursor: pointer;
+    margin-top: 2px;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
+
+.custom-checkbox-label input[type="checkbox"]:hover {
+    transform: scale(1.05);
+}
+
+.custom-checkbox-label a {
+    color: var(--frank-orange);
+    font-weight: 650;
+    text-decoration: underline;
+}
+
+.custom-checkbox-label a:hover {
+    color: var(--frank-orange-hover);
+}
+
+/* Primary Create Account Button */
+.btn-primary-register {
+    width: 100%;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #C2632B 0%, #B85F2F 50%, #873E1B 100%);
+    border: none;
+    color: #FFFFFF;
+    font-family: inherit;
+    font-size: 15.5px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 8px 24px rgba(184, 95, 47, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+    margin-top: 4px;
+}
+
+.btn-primary-register:hover {
+    transform: translateY(-1.5px);
+    box-shadow: 0 12px 28px rgba(184, 95, 47, 0.48);
+    filter: brightness(1.08);
+}
+
+.btn-primary-register:active {
+    transform: translateY(0.5px) scale(0.99);
+}
+
+.btn-primary-register:focus-visible {
+    outline: 3px solid rgba(184, 95, 47, 0.4);
+    outline-offset: 2px;
+}
+
+.btn-primary-register:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-arrow {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1;
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+.btn-primary-register:hover .btn-arrow {
+    transform: translateX(3px);
+}
+
+/* Card Bottom Links */
+.card-bottom-links {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    margin-top: 16px;
+}
+
+.card-signin-link {
+    font-size: 13.5px;
+    color: var(--frank-text-dark);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.card-signin-link strong {
+    color: var(--frank-orange);
+    font-weight: 700;
+}
+
+.card-signin-link:hover strong {
+    text-decoration: underline;
+}
+
+.card-legal-links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--frank-text-muted);
+}
+
+.card-legal-links a,
+.card-legal-links button {
+    color: inherit;
+    text-decoration: none;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.card-legal-links a:hover,
+.card-legal-links button:hover {
+    color: var(--frank-orange);
+    text-decoration: underline;
+}
+
+/* Mobile-Only Top Artwork */
+.mobile-top-artwork {
+    display: none;
+}
+
+/* =========================================================================
+   ANIMATION KEYFRAMES (60fps GPU-Accelerated)
+   ========================================================================= */
+@keyframes floatTile {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-10px) rotate(1.5deg);
+    }
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        transform: scale(0.95);
+        opacity: 0.55;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.85;
+    }
+}
+
+@keyframes floatCard1 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-3px, -8px); }
+}
+
+@keyframes floatCard2 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(4px, -7px); }
+}
+
+@keyframes floatCard3 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-4px, 6px); }
+}
+
+@keyframes floatCard4 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(5px, 8px); }
+}
+
+@keyframes rotateRing {
+    0% { transform: rotate(-25deg); }
+    100% { transform: rotate(335deg); }
+}
+
+@keyframes rotateRingRev {
+    0% { transform: rotate(35deg); }
+    100% { transform: rotate(-325deg); }
+}
+
+@keyframes pulseBlob {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+    100% { transform: translate(25px, -20px) scale(1.08); opacity: 0.7; }
+}
+
+@keyframes floatParticle {
+    0% { transform: translateY(0); opacity: 0.5; }
+    50% { transform: translateY(-16px); opacity: 0.9; }
+    100% { transform: translateY(0); opacity: 0.5; }
+}
+
+@keyframes fadeInError {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Initial Entrance Animation Classes */
+.entrance-fade {
+    animation: entranceFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.entrance-slide-up {
+    animation: entranceSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes entranceFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes entranceSlideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================================
+   RESPONSIVENESS & BREAKPOINTS (DESKTOP, TABLET, MOBILE, CAPACITOR)
+   ========================================================================= */
+
+/* Tablet & Compact Desktop (768px – 1140px) */
+@media (max-width: 1140px) {
+    .register-redesign-container {
+        padding: 24px 32px;
+        gap: 32px;
+        grid-template-columns: minmax(0, 1.05fr) minmax(380px, 0.95fr);
+    }
+
+    .promo-stage {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .promo-artwork-stage {
+        height: 200px;
+    }
+
+    .promo-hero-title {
+        font-size: 2.2rem;
+    }
+
+    .register-glass-card {
+        padding: 30px 28px;
+    }
+}
+
+/* Mobile & Android Capacitor (< 960px) */
+@media (max-width: 960px) {
+    .register-redesign-container {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        padding: 16px 16px 40px 16px;
+        gap: 16px;
+    }
+
+    /* Hide desktop promo panel on mobile */
+    .register-promo-panel {
+        display: none !important;
+    }
+
+    /* Mobile Top Floating Logo Artwork */
+    .mobile-top-artwork {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding-top: 10px;
+        padding-bottom: 4px;
+        position: relative;
+        width: 100%;
+    }
+
+    .mobile-artwork-stage {
+        position: relative;
+        width: 230px;
+        height: 175px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .mobile-artwork-stage .frank-central-tile {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+    }
+
+    .mobile-artwork-stage .frank-central-tile img {
+        width: 64px;
+        height: 64px;
+    }
+
+    .mobile-artwork-stage .orbit-feature-card {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+    }
+
+    .mobile-artwork-stage .orbit-feature-card svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .mobile-artwork-stage .card-collab { top: 8px; right: 26px; }
+    .mobile-artwork-stage .card-messaging { top: 68px; left: 0px; }
+    .mobile-artwork-stage .card-documents { bottom: 10px; left: 16px; }
+    .mobile-artwork-stage .card-cloud { bottom: 14px; right: 22px; }
+
+    .mobile-artwork-stage .orbit-ring-1 {
+        width: 190px;
+        height: 140px;
+    }
+
+    .mobile-artwork-stage .orbit-ring-2 {
+        width: 205px;
+        height: 120px;
+    }
+
+    .register-glass-card {
+        max-width: 440px;
+        padding: 28px 22px;
+        border-radius: 24px;
+    }
+
+    .card-title {
+        font-size: 22px;
+    }
+
+    /* Touch Target & iOS Safe Area Adjustments */
+    .field-input {
+        font-size: 16px; /* Prevents auto-zoom in iOS Safari */
+        height: 48px;
+    }
+
+    .btn-primary-register {
+        height: 48px;
+        font-size: 15px;
+    }
+}
+
+/* Very Small Mobile (< 400px) */
+@media (max-width: 400px) {
+    .register-redesign-container {
+        padding: 12px 10px 32px 10px;
+    }
+
+    .register-glass-card {
+        padding: 24px 16px;
+        border-radius: 20px;
+    }
+
+    .card-title {
+        font-size: 20px;
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .frank-central-tile,
+    .orbit-feature-card,
+    .ambient-blob,
+    .promo-orbit-ring,
+    .ambient-spark {
+        animation: none !important;
+    }
+}

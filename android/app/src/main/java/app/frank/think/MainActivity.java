@@ -1,5 +1,6 @@
 package app.frank.think;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
@@ -36,13 +37,43 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(FrankShareTargetPlugin.class);
         super.onCreate(savedInstanceState);
 
+        FrankShareTargetPlugin.handleShareIntent(this, getIntent());
+
         this.getBridge().addWebViewListener(new WebViewListener() {
+            @Override
+            public void onPageLoaded(WebView webView) {
+                FrankShareTargetPlugin.notifyWebViewIfPending(webView);
+                try {
+                    webView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
+                        try {
+                            android.net.Uri uri = android.net.Uri.parse(url);
+                            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(intent);
+                        } catch (Exception e) {
+                            android.util.Log.w("MainActivity", "Download listener failed to open URI", e);
+                        }
+                    });
+                } catch (Exception ignored) {}
+            }
+
             @Override
             public void onReceivedError(WebView webView) {
                 webView.loadDataWithBaseURL("https://fnk.vercel.app/", OFFLINE_HTML, "text/html", "UTF-8", null);
             }
         });
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        boolean handled = FrankShareTargetPlugin.handleShareIntent(this, intent);
+        if (handled && getBridge() != null && getBridge().getWebView() != null) {
+            FrankShareTargetPlugin.notifyWebViewIfPending(getBridge().getWebView());
+        }
     }
 }

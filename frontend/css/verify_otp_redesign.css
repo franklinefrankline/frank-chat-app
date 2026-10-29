@@ -1,0 +1,591 @@
+/* ==========================================================================
+   FRANK Think — Email OTP Verification Page Redesign
+   Faithfully matching Reference Image 2:
+   - Dark navy & deep-blue cybersecurity-inspired background
+   - Electric blue & purple radiant atmospheric glows
+   - Glowing violet border around verification card
+   - Dark branded top header with official FRANK Think logo
+   - Pale lavender/white verification card body
+   - Floating 3D envelope illustration with orbital trail (top-left)
+   - Floating glowing 3D shield/check illustration with orbital trail (bottom-right)
+   - 6 separate accessible OTP digit input positions with auto-focus & paste
+   - 15-minute expiry notice with clock & security notice with shield
+   - Responsive & accessible across mobile, tablet, and desktop
+   ========================================================================== */
+
+:root {
+    --otp-navy-bg: #070B19;
+    --otp-navy-surface: #0B112C;
+    --otp-navy-header: #0B0F24;
+    --otp-card-bg: #FFFFFF;
+    --otp-violet-glow: rgba(124, 58, 237, 0.45);
+    --otp-blue-glow: rgba(37, 99, 235, 0.4);
+    --otp-border-violet: rgba(139, 92, 246, 0.6);
+    --otp-digit-bg: #F4F7FF;
+    --otp-digit-border: #C7D2FE;
+    --otp-digit-text: #3730A3;
+    --otp-digit-focus-border: #6366F1;
+    --otp-digit-focus-shadow: rgba(99, 102, 241, 0.25);
+    --otp-notice-bg: #EFF4FE;
+    --otp-notice-border: #DBEAFE;
+    --otp-text-dark: #0F172A;
+    --otp-text-muted: #64748B;
+    --otp-text-light: #94A3B8;
+}
+
+/* Page Outer Container */
+.otp-page-body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: radial-gradient(circle at 50% 10%, #10193E 0%, #080D21 45%, #050814 100%);
+    color: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow-x: hidden;
+    padding: 32px 16px;
+    box-sizing: border-box;
+}
+
+/* Atmospheric Radiant Glows (Nebula Effects) */
+.otp-ambient-glow {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+    will-change: transform, opacity;
+}
+
+.otp-glow-1 {
+    width: 440px;
+    height: 440px;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.55) 0%, rgba(30, 58, 138, 0.2) 70%, transparent 100%);
+    top: -100px;
+    left: -60px;
+    animation: otpPulseGlow 9s ease-in-out infinite alternate;
+}
+
+.otp-glow-2 {
+    width: 480px;
+    height: 480px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.45) 0%, rgba(88, 28, 135, 0.2) 65%, transparent 100%);
+    bottom: -120px;
+    right: -80px;
+    animation: otpPulseGlow 11s ease-in-out 1.5s infinite alternate;
+}
+
+.otp-glow-3 {
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(67, 56, 202, 0.15) 60%, transparent 100%);
+    top: 35%;
+    right: 5%;
+    animation: otpPulseGlow 10s ease-in-out 3s infinite alternate;
+}
+
+@keyframes otpPulseGlow {
+    0% { transform: scale(1) translate(0, 0); opacity: 0.5; }
+    50% { transform: scale(1.12) translate(15px, -15px); opacity: 0.75; }
+    100% { transform: scale(0.96) translate(-10px, 10px); opacity: 0.55; }
+}
+
+/* Background Orbital Rings & Stars */
+.otp-orbital-stage {
+    position: absolute;
+    width: 100%;
+    max-width: 900px;
+    height: 800px;
+    pointer-events: none;
+    z-index: 1;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    overflow: visible;
+}
+
+.otp-orbital-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(99, 102, 241, 0.16);
+    pointer-events: none;
+}
+
+.otp-ring-1 {
+    width: 680px;
+    height: 520px;
+    top: 48%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-18deg);
+    border-color: rgba(59, 130, 246, 0.22);
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.08);
+}
+
+.otp-ring-2 {
+    width: 580px;
+    height: 580px;
+    top: 52%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(30deg);
+    border-color: rgba(139, 92, 246, 0.22);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.08);
+}
+
+/* Sparkling luminous star particles */
+.otp-star {
+    position: absolute;
+    border-radius: 50%;
+    background: #FFFFFF;
+    box-shadow: 0 0 6px #FFFFFF, 0 0 14px rgba(99, 102, 241, 0.9);
+    animation: otpStarTwinkle 4s ease-in-out infinite alternate;
+}
+
+.otp-star-1 { width: 4px; height: 4px; top: 12%; left: 18%; animation-delay: 0s; }
+.otp-star-2 { width: 5px; height: 5px; top: 22%; right: 16%; animation-delay: 1.2s; }
+.otp-star-3 { width: 3px; height: 3px; bottom: 18%; left: 14%; animation-delay: 2.1s; }
+.otp-star-4 { width: 4px; height: 4px; bottom: 26%; right: 20%; animation-delay: 0.7s; }
+.otp-star-5 { width: 3px; height: 3px; top: 45%; left: 8%; animation-delay: 1.8s; }
+
+@keyframes otpStarTwinkle {
+    0% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.3); }
+    100% { opacity: 0.4; transform: scale(0.9); }
+}
+
+/* Central Card Stage Wrap */
+.otp-card-stage {
+    position: relative;
+    z-index: 5;
+    width: 100%;
+    max-width: 460px;
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Floating 3D Envelope Badge (Top-Left) */
+.otp-floating-envelope {
+    position: absolute;
+    top: -38px;
+    left: -48px;
+    z-index: 7;
+    pointer-events: none;
+    animation: otpFloatEnvelope 6.5s ease-in-out infinite alternate;
+    filter: drop-shadow(0 14px 28px rgba(37, 99, 235, 0.4));
+}
+
+@keyframes otpFloatEnvelope {
+    0% { transform: translateY(0) rotate(-6deg); }
+    50% { transform: translateY(-14px) rotate(-1deg); }
+    100% { transform: translateY(2px) rotate(-8deg); }
+}
+
+/* Floating 3D Shield Badge (Bottom-Right) */
+.otp-floating-shield {
+    position: absolute;
+    bottom: -32px;
+    right: -42px;
+    z-index: 7;
+    pointer-events: none;
+    animation: otpFloatShield 6.8s ease-in-out 1s infinite alternate;
+    filter: drop-shadow(0 14px 30px rgba(99, 102, 241, 0.5));
+}
+
+@keyframes otpFloatShield {
+    0% { transform: translateY(0) rotate(4deg); }
+    50% { transform: translateY(-12px) rotate(8deg); }
+    100% { transform: translateY(3px) rotate(2deg); }
+}
+
+/* Main Verification Card with Glowing Violet Border */
+.otp-card {
+    position: relative;
+    width: 100%;
+    background: var(--otp-card-bg);
+    border-radius: 28px;
+    box-shadow: 0 0 0 1.5px var(--otp-border-violet), 0 20px 60px rgba(0, 0, 0, 0.45), 0 0 50px var(--otp-violet-glow);
+    overflow: hidden;
+    animation: otpCardEntrance 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes otpCardEntrance {
+    0% { opacity: 0; transform: translateY(24px) scale(0.97); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Dark Branded Header Bar with FRANK Think Logo */
+.otp-card-header {
+    background: var(--otp-navy-header);
+    padding: 22px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.otp-header-logo-tile {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #0B0F28;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.otp-header-logo-tile img,
+.otp-header-logo-tile svg {
+    width: 34px;
+    height: 34px;
+    display: block;
+}
+
+.otp-header-brand {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+    text-align: left;
+}
+
+.otp-header-title {
+    font-size: 20px;
+    font-weight: 850;
+    letter-spacing: 0.8px;
+    color: #FFFFFF;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.otp-header-sub {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.6px;
+    color: #94A3B8;
+    margin-top: 2px;
+}
+
+/* Card Body Content */
+.otp-card-body {
+    padding: 34px 34px 28px 34px;
+    text-align: center;
+    color: var(--otp-text-dark);
+}
+
+.otp-title {
+    font-size: 25px;
+    font-weight: 850;
+    color: var(--otp-text-dark);
+    margin: 0 0 10px 0;
+    letter-spacing: -0.4px;
+    line-height: 1.25;
+}
+
+.otp-greeting {
+    font-size: 14px;
+    color: #475569;
+    margin: 0 0 6px 0;
+    line-height: 1.45;
+}
+
+.otp-instruction {
+    font-size: 14px;
+    color: var(--otp-text-muted);
+    margin: 0 0 24px 0;
+    line-height: 1.5;
+}
+
+/* Label: YOUR VERIFICATION CODE */
+.otp-code-label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 1.8px;
+    color: #6366F1;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+/* 6-Digit Positions Input Container */
+.otp-inputs-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.otp-digit-box {
+    width: 48px;
+    height: 58px;
+    background: var(--otp-digit-bg);
+    border: 1.5px solid var(--otp-digit-border);
+    border-radius: 12px;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--otp-digit-text);
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', Monaco, monospace;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.06);
+    caret-color: #6366F1;
+}
+
+.otp-digit-box::placeholder {
+    color: #A5B4FC;
+    opacity: 0.6;
+}
+
+.otp-digit-box:focus {
+    background: #FFFFFF;
+    border-color: var(--otp-digit-focus-border);
+    box-shadow: 0 0 0 4px var(--otp-digit-focus-shadow), 0 4px 12px rgba(99, 102, 241, 0.15);
+    transform: translateY(-2px);
+}
+
+.otp-digit-box.has-value {
+    background: #FFFFFF;
+    border-color: #818CF8;
+    color: #312E81;
+}
+
+/* Error State on Input Boxes */
+.otp-inputs-wrapper.has-error .otp-digit-box {
+    border-color: #EF4444;
+    background: #FEF2F2;
+    color: #DC2626;
+    animation: otpErrorShake 0.4s ease;
+}
+
+@keyframes otpErrorShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+}
+
+/* Verification Action Button */
+.otp-verify-btn {
+    width: 100%;
+    height: 50px;
+    border: none;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #7C3AED 100%);
+    color: #FFFFFF;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 8px 22px rgba(99, 102, 241, 0.38);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
+    margin-bottom: 12px;
+}
+
+.otp-verify-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(99, 102, 241, 0.48);
+    background: linear-gradient(135deg, #4338CA 0%, #4F46E5 50%, #6D28D9 100%);
+}
+
+.otp-verify-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Resend Action & Back Link */
+.otp-actions-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    font-size: 13px;
+}
+
+.otp-resend-btn {
+    background: none;
+    border: none;
+    color: #6366F1;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: color 0.2s ease;
+}
+
+.otp-resend-btn:hover:not(:disabled) {
+    color: #4338CA;
+    text-decoration: underline;
+}
+
+.otp-resend-btn:disabled {
+    color: #94A3B8;
+    cursor: not-allowed;
+}
+
+.otp-back-link {
+    color: #64748B;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.otp-back-link:hover {
+    color: #0F172A;
+    text-decoration: underline;
+}
+
+/* Security Notice 1: Expiry in 15 Minutes */
+.otp-notice-expiry {
+    background: var(--otp-notice-bg);
+    border: 1px solid var(--otp-notice-border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    margin-bottom: 14px;
+}
+
+.otp-clock-icon-wrap {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #DBEAFE;
+    color: #2563EB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.otp-notice-text {
+    font-size: 13px;
+    color: #1E3A8A;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.otp-notice-text strong {
+    font-weight: 700;
+    color: #1E40AF;
+}
+
+/* Security Notice 2: Unsolicited Request Safe */
+.otp-notice-secondary {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+    padding: 0 4px;
+    margin-bottom: 18px;
+}
+
+.otp-shield-icon-wrap {
+    color: #6366F1;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.otp-notice-secondary-text {
+    font-size: 12px;
+    color: #64748B;
+    line-height: 1.45;
+    margin: 0;
+}
+
+/* Divider & Footer */
+.otp-divider {
+    border: none;
+    border-top: 1px solid #E2E8F0;
+    margin: 0 0 14px 0;
+}
+
+.otp-footer-text {
+    font-size: 11.5px;
+    color: var(--otp-text-light);
+    margin: 0;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 520px) {
+    .otp-page-body {
+        padding: 20px 10px;
+    }
+
+    .otp-card {
+        border-radius: 22px;
+    }
+
+    .otp-card-header {
+        padding: 18px 20px;
+    }
+
+    .otp-card-body {
+        padding: 24px 18px 20px 18px;
+    }
+
+    .otp-title {
+        font-size: 21px;
+    }
+
+    .otp-inputs-wrapper {
+        gap: 6px;
+    }
+
+    .otp-digit-box {
+        width: 42px;
+        height: 52px;
+        font-size: 22px;
+        border-radius: 10px;
+    }
+
+    .otp-floating-envelope {
+        width: 48px;
+        height: 48px;
+        top: -24px;
+        left: -10px;
+    }
+
+    .otp-floating-shield {
+        width: 48px;
+        height: 48px;
+        bottom: -20px;
+        right: -8px;
+    }
+
+    .otp-ring-1, .otp-ring-2 {
+        display: none;
+    }
+}
+
+/* Accessibility: Respect Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+    .otp-ambient-glow,
+    .otp-star,
+    .otp-floating-envelope,
+    .otp-floating-shield,
+    .otp-card,
+    .otp-verify-btn,
+    .otp-inputs-wrapper.has-error .otp-digit-box {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+    }
+}

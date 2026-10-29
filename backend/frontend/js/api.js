@@ -224,6 +224,16 @@ function handleMockRequest(endpoint, options = {}) {
         return currentUser;
     }
 
+    // 3b. Auth: Google OAuth Mock Fallback
+    if (endpoint === '/api/auth/google/status') {
+        return { configured: false, client_id_configured: false, redirect_uri: '', allowed_account_types: 'all_personal_and_workspace' };
+    }
+    if (endpoint === '/api/auth/google/url') {
+        const err = new Error('Google Sign-In is not configured yet. Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in server environment variables.');
+        err.status = 503;
+        throw err;
+    }
+
     // 4. Users: Lookup by FRANK ID
     if (endpoint.startsWith('/api/users/frank/') && method === 'GET') {
         const frankId = endpoint.replace('/api/users/frank/', '').trim().toUpperCase();
@@ -556,12 +566,19 @@ function handleMockRequest(endpoint, options = {}) {
 const api = {
     baseUrl: API_BASE,
     getToken() {
-        return localStorage.getItem('chatapp_token') || 
+        let token = localStorage.getItem('chatapp_token') || 
                localStorage.getItem('frank_token') || 
                localStorage.getItem('frank_auth_token') || 
                sessionStorage.getItem('frank_token') || 
                sessionStorage.getItem('chatapp_token') || 
                sessionStorage.getItem('frank_auth_token');
+        if (!token && typeof document !== 'undefined' && document.cookie) {
+            const match = document.cookie.match(/(?:^|;\s*)(?:frank_token|chatapp_token)=([^;]+)/);
+            if (match) {
+                token = decodeURIComponent(match[1]);
+            }
+        }
+        return token;
     },
 
     setToken(token) {
@@ -569,6 +586,11 @@ const api = {
             localStorage.setItem('chatapp_token', token);
             localStorage.setItem('frank_token', token);
             localStorage.setItem('frank_auth_token', token);
+            try {
+                const maxAge = 60 * 60 * 24 * 7;
+                const secure = (window.location && window.location.protocol === 'https:') ? '; Secure' : '';
+                document.cookie = `frank_token=${encodeURIComponent(token)}; Max-Age=${maxAge}; path=/; SameSite=Lax${secure}`;
+            } catch (e) {}
         } else {
             localStorage.removeItem('chatapp_token');
             localStorage.removeItem('frank_token');
@@ -576,6 +598,10 @@ const api = {
             sessionStorage.removeItem('frank_token');
             sessionStorage.removeItem('chatapp_token');
             sessionStorage.removeItem('frank_auth_token');
+            try {
+                document.cookie = 'frank_token=; Max-Age=0; path=/;';
+                document.cookie = 'chatapp_token=; Max-Age=0; path=/;';
+            } catch (e) {}
         }
     },
 
@@ -596,6 +622,7 @@ const api = {
         }
 
         const config = {
+            credentials: 'include',
             ...options,
             headers
         };
@@ -638,21 +665,17 @@ const api = {
                 }
             }
 
-            // Handle 401 Unauthorized — SMART SESSION HANDLER
-            // Never destroy the session prematurely on initial dashboard bootstrap.
-            // Only force-logout if the token is genuinely expired or permanently invalid.
+            // Handle 401 Unauthorized — Session Invalidation
             if (res.status === 401) {
-                if (!url.includes('/api/auth/login') && !url.includes('/api/auth/register')) {
-                    const token = this.getToken();
-                    if (this.isTokenExpired(token)) {
-                        this.setToken(null);
-                        localStorage.removeItem('chatapp_user');
-                        const currentPath = (window.location.pathname || '').toLowerCase();
-                        const guestPages = ['login.html', 'register.html', 'index.html', 'forgot-password.html', 'reset-password.html', '404.html'];
-                        const isGuest = guestPages.some(page => currentPath.endsWith(page) || currentPath.endsWith('/' + page.replace('.html', '')) || currentPath === '/' || currentPath === '');
-                        if (!isGuest && window.location.protocol !== 'file:') {
-                            window.location.href = 'login.html?expired=1';
-                        }
+                if (!url.includes('/api/auth/login') && !url.includes('/api/auth/register') && !url.includes('/api/auth/forgot-password') && !url.includes('/api/auth/reset-password')) {
+                    this.setToken(null);
+                    localStorage.removeItem('chatapp_user');
+                    sessionStorage.clear();
+                    const currentPath = (window.location.pathname || '').toLowerCase();
+                    const guestPages = ['login.html', 'register.html', 'index.html', 'forgot-password.html', 'reset-password.html', 'verify-otp.html', '404.html'];
+                    const isGuest = guestPages.some(page => currentPath.endsWith(page) || currentPath.endsWith('/' + page.replace('.html', '')) || currentPath === '/' || currentPath === '');
+                    if (!isGuest && window.location.protocol !== 'file:') {
+                        window.location.replace('login.html?expired=1');
                     }
                 }
             } else {
@@ -806,6 +829,21 @@ const api = {
 
     async verifySMTP() {
         return this.request('/api/auth/smtp/verify', { method: 'POST' });
+    },
+
+    async getGoogleAuthUrl() {
+        return this.request('/api/auth/google/url');
+    },
+
+    async getGoogleAuthStatus() {
+        return this.request('/api/auth/google/status');
+    },
+
+    async loginWithGoogleToken(id_token, access_token = null) {
+        return this.request('/api/auth/google/token', {
+            method: 'POST',
+            body: JSON.stringify({ id_token, access_token })
+        });
     },
 
     // Users & Contacts endpoints
@@ -1719,10 +1757,18 @@ const api = {
     },
 
     // Logout
-    logout() {
+    async logout() {
+        try {
+            await this.request('/api/auth/logout', { method: 'POST' });
+        } catch (e) {}
         this.setToken(null);
         localStorage.removeItem('chatapp_user');
-        window.location.href = 'login.html?logout=1';
+        sessionStorage.clear();
+        try {
+            document.cookie = 'frank_token=; Max-Age=0; path=/;';
+            document.cookie = 'chatapp_token=; Max-Age=0; path=/;';
+        } catch (e) {}
+        window.location.replace('login.html?logout=1');
     }
 };
 

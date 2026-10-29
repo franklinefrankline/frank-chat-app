@@ -20,7 +20,45 @@ const theme = {
         return this.THEMES.SANDSTONE;
     },
 
+    initSafeArea() {
+        if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+        const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+        const isCapacitor = typeof window.Capacitor !== 'undefined' && (
+            (typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) ||
+            (typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() !== 'web')
+        );
+
+        if (isStandalone) document.documentElement.classList.add('is-standalone');
+        if (isCapacitor) document.documentElement.classList.add('is-capacitor');
+
+        const updateInsets = () => {
+            const probe = document.createElement('div');
+            probe.style.cssText = 'position:fixed;top:0;left:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;';
+            document.documentElement.appendChild(probe);
+            const measured = probe.offsetHeight;
+            document.documentElement.removeChild(probe);
+
+            const existingSafe = document.documentElement.style.getPropertyValue('--safe-top');
+            if (existingSafe && existingSafe !== '0px' && existingSafe !== 'env(safe-area-inset-top, 0px)') {
+                // Keep explicitly set or device-provided non-zero --safe-top
+                return;
+            }
+
+            if (measured > 0) {
+                document.documentElement.style.setProperty('--safe-top', 'env(safe-area-inset-top, 0px)');
+            } else if (isCapacitor || isStandalone || document.documentElement.classList.contains('is-capacitor') || document.documentElement.classList.contains('is-standalone')) {
+                const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+                document.documentElement.style.setProperty('--safe-top', isIOS ? '44px' : '24px');
+            }
+        };
+
+        updateInsets();
+        window.addEventListener('resize', updateInsets);
+    },
+
     init() {
+        this.initSafeArea();
         const saved = localStorage.getItem(this.KEY);
         const resolved = this.normalize(saved);
         this.apply(resolved, false);

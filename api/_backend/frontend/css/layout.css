@@ -15,8 +15,7 @@ main {
 
 /* Header / Navbar */
 .landing-header {
-    position: sticky;
-    top: 0;
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -25,7 +24,7 @@ main {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
-    z-index: var(--z-sticky);
+    z-index: 20;
     transition: background var(--transition-base), border-color var(--transition-base);
 }
 

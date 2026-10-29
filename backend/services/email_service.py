@@ -242,7 +242,7 @@ class EmailService:
                         subtype = "png" if ext == "png" else ("jpeg" if ext in ["jpg", "jpeg"] else "octet-stream")
                         img_part = MIMEImage(img_data, _subtype=subtype)
                         img_part.add_header("Content-ID", f"<{cid_name}>")
-                        img_part.add_header("Content-Disposition", "inline", filename=os.path.basename(img_path))
+                        img_part.add_header("Content-Disposition", "inline")
                         msg.attach(img_part)
                     except Exception as e:
                         logger.warning(f"[SMTP ATTACH NOTE] Could not attach CID inline image {cid_name}: {e}")
@@ -357,49 +357,91 @@ class EmailService:
         action_button_url: Optional[str] = None,
     ) -> str:
         """
-        Renders a responsive, professional FRANK Think branded email template.
+        Renders a responsive, cyber-secure FRANK Think branded email template matching Reference Image 2:
+        Dark navy background, electric blue & purple gradients, violet bordered card, 6-digit code positions,
+        clock expiry notice, and shield security notice. 100% email-client compatible (Gmail, Outlook, Apple Mail).
         """
         btn_html = ""
         if action_button_label and action_button_url:
             btn_html = f"""
-            <div style="margin: 28px 0; text-align: center;">
-                <a href="{action_button_url}" target="_blank" rel="noopener noreferrer" style="background-color: #ea580c; color: #ffffff; text-decoration: none; padding: 13px 32px; border-radius: 8px; font-weight: 700; font-size: 15px; display: inline-block; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);">
-                    {action_button_label}
-                </a>
-            </div>
-            <div style="margin: 16px 0 24px 0; padding: 14px 18px; background-color: #faf8f5; border-radius: 8px; border: 1px dashed #e7dfd5; text-align: center;">
-                <p style="margin: 0 0 6px 0; font-size: 12px; color: #78716c; font-weight: 600;">
-                    Can't click the button above? Copy and paste this link into your browser:
-                </p>
-                <a href="{action_button_url}" target="_blank" rel="noopener noreferrer" style="color: #ea580c; text-decoration: underline; font-size: 12px; word-break: break-all; line-height: 1.4;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 24px auto 14px auto;">
+                <tr>
+                    <td align="center" style="border-radius: 12px; background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #7c3aed 100%); background-color: #6366f1; box-shadow: 0 8px 22px rgba(99, 102, 241, 0.38);">
+                        <a href="{action_button_url}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 14px 36px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 12px; letter-spacing: 0.2px;">
+                            {action_button_label} &rarr;
+                        </a>
+                    </td>
+                </tr>
+            </table>
+            <div style="margin: 8px auto 20px auto; max-width: 460px; text-align: center; word-break: break-all;">
+                <span style="font-size: 11px; color: #94a3b8;">Can't click the button? Copy and paste this link:</span><br/>
+                <a href="{action_button_url}" target="_blank" rel="noopener noreferrer" style="color: #6366f1; font-size: 11px; word-break: break-all; text-decoration: underline;">
                     {action_button_url}
                 </a>
             </div>
             """
 
-        return f"""<!DOCTYPE html>
-<html lang="en">
+        digits = [ch for ch in str(otp_code or "000000").strip()]
+        if len(digits) == 6:
+            boxes = []
+            for d in digits:
+                boxes.append(f"""
+                <td align="center" valign="middle" style="padding: 0 4px;">
+                    <div style="width: 44px; height: 54px; line-height: 54px; background-color: #f4f7ff; border: 1.5px solid #c7d2fe; border-radius: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'SF Pro Display', Monaco, monospace; font-size: 28px; font-weight: 800; color: #3730a3; text-align: center; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.08);">{d}</div>
+                </td>""")
+            code_boxes_html = "".join(boxes)
+        else:
+            code_boxes_html = f"""
+            <td align="center" valign="middle" style="padding: 0 8px;">
+                <div style="padding: 10px 24px; background-color: #f4f7ff; border: 1.5px solid #c7d2fe; border-radius: 12px; font-family: monospace; font-size: 28px; font-weight: 800; color: #3730a3; letter-spacing: 8px;">
+                    {otp_code}
+                </div>
+            </td>"""
+
+        return f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td, h1, p, a, div, span {{ font-family: Segoe UI, Arial, sans-serif !important; }}
+    </style>
+    <![endif]-->
+    <style type="text/css">
+        body, table, td, a {{ -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }}
+        table, td {{ mso-table-lspace: 0pt; mso-table-rspace: 0pt; }}
+        img {{ -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }}
+        @media only screen and (max-width: 580px) {{
+            .email-outer-table {{ padding: 18px 8px !important; }}
+            .email-container {{ width: 100% !important; border-radius: 20px !important; }}
+            .card-body-padding {{ padding: 26px 18px 22px 18px !important; }}
+            .code-digit-box {{ width: 38px !important; height: 48px !important; line-height: 48px !important; font-size: 24px !important; }}
+        }}
+    </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f7f4ed; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #292524; line-height: 1.6;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f7f4ed; padding: 40px 16px;">
+<body style="margin: 0; padding: 0; background-color: #070b19; background: radial-gradient(circle at 50% 15%, #10193e 0%, #080d21 50%, #050814 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.6;">
+    <table role="presentation" class="email-outer-table" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #070b19; padding: 40px 16px;">
         <tr>
             <td align="center">
-                <!-- Main Container -->
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 560px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e7dfd5; box-shadow: 0 4px 20px rgba(41, 37, 36, 0.06); overflow: hidden;">
+                <!-- Main Verification Card -->
+                <table role="presentation" class="email-container" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; background-color: #ffffff; border-radius: 26px; border: 1.5px solid #8b5cf6; box-shadow: 0 16px 50px rgba(124, 58, 237, 0.35), 0 0 35px rgba(37, 99, 235, 0.25); overflow: hidden;">
                     
-                    <!-- Header Bar -->
+                    <!-- Dark Branded Header Bar -->
                     <tr>
-                        <td style="background-color: #1c1917; padding: 28px 32px; text-align: center;">
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                        <td style="background-color: #0b0f24; padding: 22px 28px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center">
                                 <tr>
-                                    <td align="center">
-                                        <div style="display: inline-flex; align-items: center; gap: 10px;">
-                                            <span style="font-size: 24px; font-weight: 900; color: #ffffff; letter-spacing: 1.5px; font-family: 'Inter', sans-serif;">FRANK</span>
-                                            <span style="display: inline-block; background-color: #ea580c; color: #ffffff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; letter-spacing: 1px; text-transform: uppercase;">Think</span>
+                                    <td valign="middle" style="padding-right: 12px;">
+                                        <div style="width: 40px; height: 40px; background-color: #0b0f28; border-radius: 11px; border: 1px solid rgba(59, 130, 246, 0.4); text-align: center; line-height: 40px;">
+                                            <span style="font-size: 22px; font-weight: 900; color: #38bdf8; font-family: sans-serif;">F</span>
+                                        </div>
+                                    </td>
+                                    <td valign="middle" align="left">
+                                        <div style="line-height: 1.15;">
+                                            <span style="font-size: 21px; font-weight: 900; color: #ffffff; letter-spacing: 0.8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">FRANK</span>
+                                            <span style="display: block; font-size: 12px; font-weight: 500; color: #94a3b8; letter-spacing: 0.6px;">Think</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -409,52 +451,67 @@ class EmailService:
 
                     <!-- Body Content -->
                     <tr>
-                        <td style="padding: 36px 36px 28px 36px;">
-                            <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 800; color: #1c1917; letter-spacing: -0.3px;">
+                        <td class="card-body-padding" style="padding: 34px 34px 28px 34px; text-align: center; background-color: #ffffff;">
+                            <h1 style="margin: 0 0 10px 0; font-size: 23px; font-weight: 850; color: #0f172a; letter-spacing: -0.3px; line-height: 1.25;">
                                 {title}
                             </h1>
-                            <p style="margin: 0 0 20px 0; font-size: 15px; color: #57534e;">
+                            <p style="margin: 0 0 6px 0; font-size: 14px; color: #475569; line-height: 1.45;">
                                 {subtitle}
                             </p>
-                            
-                            <p style="margin: 0 0 24px 0; font-size: 14px; color: #78716c;">
+                            <p style="margin: 0 0 24px 0; font-size: 14px; color: #64748b; line-height: 1.5;">
                                 {instructions}
                             </p>
 
-                            <!-- OTP Box -->
-                            <div style="text-align: center; margin: 28px 0;">
-                                <div style="display: inline-block; background-color: #fff7ed; border: 2px dashed #fdba74; border-radius: 12px; padding: 18px 36px; text-align: center;">
-                                    <span style="display: block; font-size: 11px; font-weight: 700; color: #9a3412; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px;">Your Verification Code</span>
-                                    <span style="font-family: 'SF Pro Display', Consolas, Monaco, monospace; font-size: 36px; font-weight: 800; letter-spacing: 10px; color: #c2410c; display: block; margin-left: 10px;">
-                                        {otp_code}
-                                    </span>
-                                </div>
+                            <!-- Section Label -->
+                            <div style="margin-bottom: 12px;">
+                                <span style="font-size: 11px; font-weight: 800; color: #6366f1; letter-spacing: 1.8px; text-transform: uppercase;">
+                                    YOUR VERIFICATION CODE
+                                </span>
                             </div>
+
+                            <!-- 6 Split Digit Positions Table -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto 24px auto;">
+                                <tr>
+                                    {code_boxes_html}
+                                </tr>
+                            </table>
 
                             {btn_html}
 
-                            <div style="background-color: #faf8f5; border-radius: 10px; padding: 14px 18px; margin-top: 24px; border: 1px solid #f0eae1;">
+                            <!-- Notice 1: Expiry in 15 Minutes with Clock -->
+                            <div style="background-color: #eff4fe; border: 1px solid #dbeafe; border-radius: 12px; padding: 13px 18px; margin-top: 18px; text-align: left;">
                                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                                     <tr>
-                                        <td width="20" valign="top" style="padding-right: 10px; font-size: 16px;">⏱</td>
-                                        <td style="font-size: 13px; color: #78716c; line-height: 1.5;">
-                                            This code will expire in <strong>{expires_in_minutes} minutes</strong>. For your security, never share this code with anyone.
+                                        <td width="24" valign="middle" style="padding-right: 10px; font-size: 18px; line-height: 1;">
+                                            &#9201;
+                                        </td>
+                                        <td style="font-size: 13px; color: #1e3a8a; line-height: 1.45;">
+                                            This code expires in <strong>{expires_in_minutes} minutes</strong>. Never share this code with anyone.
                                         </td>
                                     </tr>
                                 </table>
                             </div>
 
-                            <p style="margin: 28px 0 0 0; font-size: 13px; color: #a8a29e; line-height: 1.5;">
-                                If you did not request this email, no further action is required. Your FRANK Think account remains secure.
-                            </p>
-                        </td>
-                    </tr>
+                            <!-- Notice 2: Unsolicited Email Protection -->
+                            <div style="margin-top: 14px; text-align: left; padding: 0 4px;">
+                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                    <tr>
+                                        <td width="20" valign="top" style="padding-right: 8px; font-size: 14px; line-height: 1.3; color: #6366f1;">
+                                            &#128737;
+                                        </td>
+                                        <td style="font-size: 12px; color: #64748b; line-height: 1.45;">
+                                            If you did not request this email, no action is required. Your FRANK Think account remains secure.
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
 
-                    <!-- Footer -->
-                    <tr>
-                        <td style="background-color: #f7f4ed; border-top: 1px solid #e7dfd5; padding: 20px 32px; text-align: center;">
-                            <p style="margin: 0; font-size: 12px; color: #a8a29e;">
-                                &copy; 2026 FRANK Think. Engineered for effortless, secure communication.
+                            <!-- Divider Line -->
+                            <div style="border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;"></div>
+
+                            <!-- Footer -->
+                            <p style="margin: 0; font-size: 11.5px; color: #94a3b8; text-align: center;">
+                                &copy; 2026 FRANK Think &middot; Secure communication, made simple.
                             </p>
                         </td>
                     </tr>
@@ -517,16 +574,18 @@ class EmailService:
     def _render_password_reset_html(
         self,
         otp_code: str,
-        reset_link: Optional[str],
-        expires_in_minutes: int,
-        logo_src: str,
-        lock_src: str,
-        app_url: str,
+        reset_link: Optional[str] = None,
+        expires_in_minutes: int = 15,
+        logo_src: Optional[str] = None,
+        lock_src: Optional[str] = None,
+        app_url: Optional[str] = None,
     ) -> str:
         """
         Renders the premium FRANK Think glassmorphism password-reset email template,
-        faithfully matching the approved reference design with table-based email compatibility.
+        faithfully matching the approved reference design with table-based email compatibility,
+        without image attachments or external image dependencies.
         """
+        app_url = (app_url or "https://fnk.vercel.app").rstrip("/")
         digits = [ch for ch in str(otp_code or "143249").strip()]
         if len(digits) == 6:
             boxes = []
@@ -592,8 +651,7 @@ class EmailService:
             .header-badge-col {{ margin-top: 10px !important; }}
             .header-badge-table {{ float: left !important; margin: 0 !important; }}
             .hero-col {{ display: block !important; width: 100% !important; max-width: 100% !important; }}
-            .hero-lock-col {{ display: block !important; width: 100% !important; max-width: 100% !important; text-align: center !important; margin: 12px auto !important; }}
-            .hero-title {{ font-size: 25px !important; line-height: 1.18 !important; }}
+            .hero-title {{ font-size: 24px !important; line-height: 1.2 !important; }}
             .code-digit-box {{ width: 38px !important; height: 48px !important; line-height: 48px !important; font-size: 26px !important; }}
             .footer-col {{ display: block !important; width: 100% !important; text-align: center !important; }}
             .footer-social-table {{ float: none !important; margin: 12px auto 0 auto !important; }}
@@ -618,7 +676,9 @@ class EmailService:
                                         <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                                             <tr>
                                                 <td style="vertical-align: middle; padding-right: 12px;">
-                                                    <img src="{logo_src}" width="40" height="40" alt="FRANK Logo" style="display: block; width: 40px; height: 40px; border-radius: 10px;" />
+                                                    <div style="width: 40px; height: 40px; background-color: #4f46e5; border-radius: 10px; text-align: center; line-height: 40px;">
+                                                        <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 22px; font-weight: 900; color: #ffffff;">F</span>
+                                                    </div>
                                                 </td>
                                                 <td style="vertical-align: middle;">
                                                     <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 23px; font-weight: 900; color: #0f172a; letter-spacing: 0.6px; line-height: 1;">FRANK</span><span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 23px; font-weight: 700; color: #f97316; letter-spacing: 0.6px; line-height: 1; margin-left: 4px;">Think</span>
@@ -644,22 +704,17 @@ class EmailService:
                                 </tr>
                             </table>
 
-                            <!-- Hero Section: Title/Subtitle on Left, 3D Lock Illustration on Right -->
+                            <!-- Hero Section: Clean Title and Instructions -->
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 18px;">
                                 <tr>
-                                    <td class="hero-col" width="315" valign="middle">
+                                    <td class="hero-col" width="100%" valign="middle">
                                         <p style="margin: 12px 0 8px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: #6366f1; text-transform: uppercase;">PASSWORD RESET REQUEST &#8212;</p>
-                                        <h1 class="hero-title" style="margin: 0 0 14px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 30px; font-weight: 900; line-height: 1.15; color: #0f172a; letter-spacing: -0.5px;">
-                                            Reset your<br/>
-                                            <span style="color: #4338ca;">FRANK Think</span><br/>
-                                            password
+                                        <h1 class="hero-title" style="margin: 0 0 14px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 28px; font-weight: 900; line-height: 1.2; color: #0f172a; letter-spacing: -0.5px;">
+                                            Reset your <span style="color: #4338ca;">FRANK Think</span> password
                                         </h1>
                                         <p style="margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.55; color: #64748b;">
                                             We received a request to reset your FRANK Think password. Use the verification code below to continue.
                                         </p>
-                                    </td>
-                                    <td class="hero-lock-col" width="195" valign="middle" align="right">
-                                        <img src="{lock_src}" width="190" height="185" alt="Security Lock" style="display: block; width: 190px; height: auto; max-width: 100%; border-radius: 16px;" />
                                     </td>
                                 </tr>
                             </table>
@@ -770,8 +825,8 @@ class EmailService:
         expires_in_minutes: int = 15,
     ) -> Tuple[bool, str]:
         """
-        Sends a password reset email with both OTP code and direct reset link,
-        rendered using the approved premium FRANK Think glassmorphism email design.
+        Sends a password reset email with the OTP code and direct reset link,
+        rendered using the approved FRANK Think design without image attachments.
         """
         subject = f"{otp_code} is your FRANK Think password reset code"
 
@@ -790,39 +845,20 @@ class EmailService:
             f"© 2026 FRANK Think. Engineered for effortless, secure communication.\n"
         )
 
-        # Resolve asset files and application URL
-        icon_path = self._find_asset_path(os.path.join("assets", "brand", "frank-icon.png"))
-        lock_path = self._find_asset_path(os.path.join("assets", "brand", "security-lock.png"))
-
         frontend_base = (os.getenv("FRONTEND_URL") or "").strip().rstrip("/")
         if not frontend_base or "localhost" in frontend_base or "127.0.0.1" in frontend_base:
             db_url = os.getenv("DATABASE_URL", "").lower()
             is_prod = (os.getenv("ENVIRONMENT", "").lower() == "production") or ("neon.tech" in db_url) or bool(os.getenv("VERCEL"))
             if is_prod:
-                frontend_base = "https://frank-chat-app.vercel.app"
+                frontend_base = "https://fnk.vercel.app"
             else:
                 port = os.getenv("PORT", "8000")
                 frontend_base = f"http://localhost:{port}"
-
-        inline_images: Dict[str, str] = {}
-        if icon_path and os.path.isfile(icon_path):
-            inline_images["frank_logo"] = icon_path
-            logo_src = "cid:frank_logo"
-        else:
-            logo_src = f"{frontend_base}/assets/brand/frank-icon.png"
-
-        if lock_path and os.path.isfile(lock_path):
-            inline_images["security_lock"] = lock_path
-            lock_src = "cid:security_lock"
-        else:
-            lock_src = f"{frontend_base}/assets/brand/security-lock.png"
 
         html_content = self._render_password_reset_html(
             otp_code=otp_code,
             reset_link=reset_link,
             expires_in_minutes=expires_in_minutes,
-            logo_src=logo_src,
-            lock_src=lock_src,
             app_url=frontend_base,
         )
 
@@ -831,7 +867,7 @@ class EmailService:
             subject,
             text_content,
             html_content,
-            inline_images=inline_images if inline_images else None,
+            inline_images=None,
         )
 
 

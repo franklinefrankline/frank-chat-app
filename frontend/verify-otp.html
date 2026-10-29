@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Verify Email Address — FRANK Think</title>
+    <meta name="description" content="Verify your email address to activate your FRANK Think account.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Favicon & Brand Icons -->
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <!-- Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/verify_otp_redesign.css">
+</head>
+<body class="otp-page-body">
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Atmospheric Glowing Nebulas -->
+    <div class="otp-ambient-glow otp-glow-1" aria-hidden="true"></div>
+    <div class="otp-ambient-glow otp-glow-2" aria-hidden="true"></div>
+    <div class="otp-ambient-glow otp-glow-3" aria-hidden="true"></div>
+
+    <!-- Background Orbital Rings & Stars -->
+    <div class="otp-orbital-stage" aria-hidden="true">
+        <div class="otp-orbital-ring otp-ring-1"></div>
+        <div class="otp-orbital-ring otp-ring-2"></div>
+        <div class="otp-star otp-star-1"></div>
+        <div class="otp-star otp-star-2"></div>
+        <div class="otp-star otp-star-3"></div>
+        <div class="otp-star otp-star-4"></div>
+        <div class="otp-star otp-star-5"></div>
+    </div>
+
+    <!-- Central Verification Stage -->
+    <main class="otp-card-stage" role="main">
+
+        <!-- Top-Left Floating 3D Envelope Badge -->
+        <div class="otp-floating-envelope" aria-hidden="true" title="Verification Code Dispatched">
+            <svg width="68" height="68" viewBox="0 0 72 72" fill="none">
+                <defs>
+                    <linearGradient id="envBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#38BDF8"/>
+                        <stop offset="60%" stop-color="#2563EB"/>
+                        <stop offset="100%" stop-color="#1D4ED8"/>
+                    </linearGradient>
+                    <linearGradient id="envLetterGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#FFFFFF"/>
+                        <stop offset="100%" stop-color="#F1F5F9"/>
+                    </linearGradient>
+                </defs>
+                <!-- Orbit Ring around Envelope -->
+                <ellipse cx="36" cy="38" rx="34" ry="14" stroke="rgba(56, 189, 248, 0.45)" stroke-width="1.4" transform="rotate(-20 36 38)"/>
+                <!-- Letter emerging -->
+                <rect x="20" y="14" width="32" height="26" rx="4" fill="url(#envLetterGrad)" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.15))"/>
+                <line x1="26" y1="22" x2="46" y2="22" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
+                <line x1="26" y1="28" x2="42" y2="28" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/>
+                <!-- Envelope Body -->
+                <rect x="12" y="24" width="48" height="34" rx="8" fill="url(#envBodyGrad)"/>
+                <!-- Envelope Flap Lines -->
+                <path d="M14 26 L36 44 L58 26" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+                <!-- Particle dot -->
+                <circle cx="60" cy="18" r="2.5" fill="#38BDF8"/>
+            </svg>
+        </div>
+
+        <!-- Bottom-Right Floating Glowing 3D Shield Badge -->
+        <div class="otp-floating-shield" aria-hidden="true" title="Account Security Protected">
+            <svg width="74" height="74" viewBox="0 0 74 74" fill="none">
+                <defs>
+                    <linearGradient id="shieldBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#60A5FA"/>
+                        <stop offset="50%" stop-color="#3B82F6"/>
+                        <stop offset="100%" stop-color="#1D4ED8"/>
+                    </linearGradient>
+                    <linearGradient id="shieldAuraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="rgba(192, 132, 252, 0.5)"/>
+                        <stop offset="100%" stop-color="rgba(99, 102, 241, 0.2)"/>
+                    </linearGradient>
+                </defs>
+                <!-- Aura Outer Shield -->
+                <path d="M37 6 C48 13 60 14 66 17 C66 42 52 59 37 68 C22 59 8 42 8 17 C14 14 26 13 37 6 Z" fill="url(#shieldAuraGrad)" stroke="rgba(167, 139, 250, 0.5)" stroke-width="1.5"/>
+                <!-- Solid Inner Shield -->
+                <path d="M37 13 C45 18 54 19 59 22 C59 42 48 55 37 62 C26 55 15 42 15 22 C20 19 29 18 37 13 Z" fill="url(#shieldBgGrad)"/>
+                <!-- White Checkmark Badge -->
+                <path d="M28 37 L34 43 L47 30" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- Particle dot -->
+                <circle cx="16" cy="60" r="2.5" fill="#818CF8"/>
+            </svg>
+        </div>
+
+        <!-- Main Verification Card -->
+        <div class="otp-card">
+
+            <!-- Dark Branded Top Header with FRANK Think Logo -->
+            <div class="otp-card-header">
+                <div class="otp-header-logo-tile">
+                    <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="34" height="34" decoding="async">
+                </div>
+                <div class="otp-header-brand">
+                    <h2 class="otp-header-title">FRANK</h2>
+                    <span class="otp-header-sub">Think</span>
+                </div>
+            </div>
+
+            <!-- Pale Lavender / White Card Body -->
+            <div class="otp-card-body">
+
+                <!-- Title & Instructions matching reference -->
+                <h1 class="otp-title">Verify your email address</h1>
+                <p class="otp-greeting">Thank you for creating an account on FRANK Think.</p>
+                <p class="otp-instruction">Enter the 6-digit code below to verify your email address and activate your account.</p>
+
+                <!-- Section Label -->
+                <label class="otp-code-label" for="digit-0">YOUR VERIFICATION CODE</label>
+
+                <!-- 6 Accessible Split Digit Input Positions -->
+                <form id="otpVerifyForm" novalidate onsubmit="return false;">
+                    <div class="otp-inputs-wrapper" id="otpInputsWrapper" role="group" aria-label="6-digit verification code">
+                        <input type="text" class="otp-digit-box" id="digit-0" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" data-index="0" aria-label="Digit 1" placeholder="0" autofocus>
+                        <input type="text" class="otp-digit-box" id="digit-1" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="1" aria-label="Digit 2" placeholder="0">
+                        <input type="text" class="otp-digit-box" id="digit-2" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="2" aria-label="Digit 3" placeholder="0">
+                        <input type="text" class="otp-digit-box" id="digit-3" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="3" aria-label="Digit 4" placeholder="0">
+                        <input type="text" class="otp-digit-box" id="digit-4" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="4" aria-label="Digit 5" placeholder="0">
+                        <input type="text" class="otp-digit-box" id="digit-5" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="5" aria-label="Digit 6" placeholder="0">
+                    </div>
+
+                    <!-- Hidden single input for mobile fallback / form serialisation -->
+                    <input type="hidden" id="fullOtpCode" name="otp_code">
+
+                    <!-- Verification Submit Action -->
+                    <button type="button" class="otp-verify-btn" id="verifyOtpBtn">
+                        <span class="btn-text">Verify &amp; Activate Account</span>
+                        <span aria-hidden="true">&rarr;</span>
+                    </button>
+
+                    <!-- Resend Code & Back to Register -->
+                    <div class="otp-actions-row">
+                        <button type="button" class="otp-resend-btn" id="otpResendBtn">
+                            <span class="btn-text">Resend Code</span>
+                        </button>
+                        <a href="register.html" class="otp-back-link" id="otpBackLink">
+                            &larr; Back to Registration
+                        </a>
+                    </div>
+                </form>
+
+                <!-- Security Notice 1: Expiry matching backend 15 minutes -->
+                <div class="otp-notice-expiry">
+                    <div class="otp-clock-icon-wrap" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <p class="otp-notice-text">
+                        This code expires in <strong>15 minutes</strong>. Never share this code with anyone.
+                    </p>
+                </div>
+
+                <!-- Security Notice 2: Unsolicited Email Notice -->
+                <div class="otp-notice-secondary">
+                    <div class="otp-shield-icon-wrap" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <p class="otp-notice-secondary-text">
+                        If you did not request this email, no action is required. Your FRANK Think account remains secure.
+                    </p>
+                </div>
+
+                <hr class="otp-divider">
+
+                <!-- Footer Text matching reference -->
+                <p class="otp-footer-text">
+                    &copy; 2026 FRANK Think &middot; Secure communication, made simple.
+                </p>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/ui.js"></script>
+    <script>
+        (function initOtpVerification() {
+            const digitInputs = Array.from(document.querySelectorAll('.otp-digit-box'));
+            const wrapper = document.getElementById('otpInputsWrapper');
+            const fullInput = document.getElementById('fullOtpCode');
+            const verifyBtn = document.getElementById('verifyOtpBtn');
+            const resendBtn = document.getElementById('otpResendBtn');
+            const backLink = document.getElementById('otpBackLink');
+
+            const params = new URLSearchParams(window.location.search);
+            const targetEmail = (params.get('email') || sessionStorage.getItem('pending_reg_email') || '').trim();
+            const targetPurpose = (params.get('purpose') || sessionStorage.getItem('pending_otp_purpose') || 'registration').trim();
+
+            if (targetPurpose === 'password_reset') {
+                if (backLink) {
+                    backLink.href = 'forgot-password.html';
+                    backLink.textContent = '← Back to Reset Password';
+                }
+            }
+
+            // Update full code string from individual digit boxes
+            function updateFullCode() {
+                const code = digitInputs.map(input => input.value.trim()).join('');
+                fullInput.value = code;
+                return code;
+            }
+
+            // Digit input behavior: auto-advance, backspace retreat, paste distribution
+            digitInputs.forEach((input, index) => {
+                input.addEventListener('input', (e) => {
+                    const val = input.value.replace(/[^0-9]/g, '');
+                    input.value = val ? val[val.length - 1] : '';
+                    if (input.value) {
+                        input.classList.add('has-value');
+                        wrapper.classList.remove('has-error');
+                        if (index < digitInputs.length - 1) {
+                            digitInputs[index + 1].focus();
+                        }
+                    } else {
+                        input.classList.remove('has-value');
+                    }
+                    const code = updateFullCode();
+                    if (code.length === 6) {
+                        handleVerification();
+                    }
+                });
+
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace') {
+                        if (!input.value && index > 0) {
+                            digitInputs[index - 1].focus();
+                            digitInputs[index - 1].value = '';
+                            digitInputs[index - 1].classList.remove('has-value');
+                            updateFullCode();
+                        } else {
+                            input.value = '';
+                            input.classList.remove('has-value');
+                            updateFullCode();
+                        }
+                    } else if (e.key === 'ArrowLeft' && index > 0) {
+                        digitInputs[index - 1].focus();
+                    } else if (e.key === 'ArrowRight' && index < digitInputs.length - 1) {
+                        digitInputs[index + 1].focus();
+                    }
+                });
+
+                input.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    const pastedData = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '').trim();
+                    if (!pastedData) return;
+
+                    const digits = pastedData.slice(0, 6).split('');
+                    digits.forEach((digit, i) => {
+                        if (digitInputs[i]) {
+                            digitInputs[i].value = digit;
+                            digitInputs[i].classList.add('has-value');
+                        }
+                    });
+
+                    const focusIndex = Math.min(digits.length, digitInputs.length - 1);
+                    digitInputs[focusIndex].focus();
+                    wrapper.classList.remove('has-error');
+
+                    const code = updateFullCode();
+                    if (code.length === 6) {
+                        handleVerification();
+                    }
+                });
+            });
+
+            // Verification Submission Logic
+            async function handleVerification() {
+                const code = updateFullCode();
+                if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
+                    wrapper.classList.add('has-error');
+                    showToast('Please enter the complete 6-digit verification code.', 'error');
+                    digitInputs[0].focus();
+                    return;
+                }
+
+                if (!targetEmail) {
+                    showToast('Email address not specified. Please start registration again.', 'error');
+                    setTimeout(() => window.location.href = 'register.html', 1500);
+                    return;
+                }
+
+                verifyBtn.disabled = true;
+                const btnText = verifyBtn.querySelector('.btn-text');
+                if (btnText) btnText.textContent = 'Verifying Code...';
+
+                try {
+                    // Check if pending registration details exist in sessionStorage
+                    const regPayloadStr = sessionStorage.getItem('pending_registration_payload');
+                    if (regPayloadStr && targetPurpose === 'registration') {
+                        const payload = JSON.parse(regPayloadStr);
+                        payload.otp_code = code;
+                        const regRes = await api.register(payload);
+                        sessionStorage.removeItem('pending_registration_payload');
+                        sessionStorage.removeItem('pending_reg_email');
+                        showToast('Account verified and activated successfully!', 'success');
+                        setTimeout(() => window.location.href = 'dashboard.html', 800);
+                        return;
+                    }
+
+                    // Otherwise verify via standard verify-otp endpoint
+                    const verifyRes = await api.verifyOTP(targetEmail, code, targetPurpose);
+                    showToast(verifyRes.message || 'Verification successful!', 'success');
+
+                    if (targetPurpose === 'password_reset') {
+                        setTimeout(() => {
+                            window.location.href = `reset-password.html?email=${encodeURIComponent(targetEmail)}&token=${encodeURIComponent(verifyRes.verification_token || code)}`;
+                        }, 700);
+                    } else {
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 700);
+                    }
+                } catch (err) {
+                    wrapper.classList.add('has-error');
+                    const errDetail = err.message || (err.data && (err.data.detail || err.data.message)) || 'Invalid verification code. Please check and try again.';
+                    showToast(errDetail, 'error');
+                } finally {
+                    verifyBtn.disabled = false;
+                    if (btnText) btnText.textContent = 'Verify & Activate Account';
+                }
+            }
+
+            verifyBtn?.addEventListener('click', handleVerification);
+
+            // Resend Code Cooldown
+            let cooldownTimer = null;
+            let cooldownSeconds = 60;
+
+            function startResendCooldown() {
+                if (cooldownTimer) clearInterval(cooldownTimer);
+                cooldownSeconds = 60;
+                resendBtn.disabled = true;
+                const btnText = resendBtn.querySelector('.btn-text');
+                if (btnText) btnText.textContent = `Resend Code (${cooldownSeconds}s)`;
+
+                cooldownTimer = setInterval(() => {
+                    cooldownSeconds--;
+                    if (cooldownSeconds <= 0) {
+                        clearInterval(cooldownTimer);
+                        cooldownTimer = null;
+                        resendBtn.disabled = false;
+                        if (btnText) btnText.textContent = 'Resend Code';
+                    } else {
+                        if (btnText) btnText.textContent = `Resend Code (${cooldownSeconds}s)`;
+                    }
+                }, 1000);
+            }
+
+            resendBtn?.addEventListener('click', async () => {
+                if (!targetEmail) {
+                    showToast('Email address missing. Please return to registration.', 'error');
+                    return;
+                }
+                resendBtn.disabled = true;
+                try {
+                    const res = await api.sendOTP(targetEmail, targetPurpose);
+                    showToast(res.message || `New code sent to ${targetEmail}`, 'success');
+                    startResendCooldown();
+                } catch (err) {
+                    resendBtn.disabled = false;
+                    const msg = err.message || (err.data && (err.data.detail || err.data.message)) || 'Failed to resend code.';
+                    showToast(msg, 'error');
+                }
+            });
+
+            // Start initial cooldown if navigated from registration
+            startResendCooldown();
+        })();
+    </script>
+</body>
+</html>

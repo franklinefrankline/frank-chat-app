@@ -973,4 +973,62 @@
     width: 100%;
     max-width: 100%;
 }
-
+
+
+
+/* -------------------------------------------------------------------------
+   GLOBAL APPLICATION STARTUP & LOADING SCREEN
+   Universal splash and auth check loader supporting Sandstone & Monochrome
+   ------------------------------------------------------------------------- */
+.app-loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #080B24;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s ease;
+}
+
+[data-theme="sandstone"] .app-loading-screen {
+    background: #1C1917;
+}
+
+.app-loading-screen.fade-out {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+.frank-logo-anim-stage.splash {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    text-align: center;
+}
+
+.frank-anim-wordmark {
+    background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+[data-theme="sandstone"] .frank-anim-wordmark {
+    background: linear-gradient(135deg, #FDFBF7 0%, #E7E5E4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+
+/* Instant startup cloak to prevent visual flashing during session validation */
+html.app-checking-session body > *:not(.app-loading-screen):not(#appLoadingScreen) {
+    display: none !important;
+}

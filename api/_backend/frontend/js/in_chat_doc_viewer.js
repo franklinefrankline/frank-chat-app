@@ -42,6 +42,7 @@ class InChatDocViewer {
             typeIcon: document.getElementById('inChatDocTypeIcon'),
             filename: document.getElementById('inChatDocFilename'),
             meta: document.getElementById('inChatDocMeta'),
+            topPrintBtn: document.getElementById('inChatDocPrintBtn'),
             topDownloadBtn: document.getElementById('inChatDocDownloadBtn'),
             topCloseBtn: document.getElementById('inChatDocCloseBtn'),
 
@@ -75,6 +76,7 @@ class InChatDocViewer {
             formulaBar: document.getElementById('docFormulaBar'),
             activeCellCoord: document.getElementById('docActiveCellCoord'),
             formulaInput: document.getElementById('docFormulaInput'),
+            editCellBtn: document.getElementById('docEditCellBtn'),
 
             thumbsPanel: document.getElementById('docThumbnailsPanel'),
             thumbsTitle: document.getElementById('docThumbnailsTitle'),
@@ -110,6 +112,7 @@ class InChatDocViewer {
             moreActionsBtn: document.getElementById('docMoreActionsBtn'),
             moreActionsDropdown: document.getElementById('docMoreActionsDropdown'),
             overflowSearchBtn: document.getElementById('docOverflowSearchBtn'),
+            overflowEditBtn: document.getElementById('docOverflowEditBtn'),
             overflowDownloadBtn: document.getElementById('docOverflowDownloadBtn'),
             overflowPrintBtn: document.getElementById('docOverflowPrintBtn'),
             overflowFitZoomBtn: document.getElementById('docOverflowFitZoomBtn')
@@ -150,9 +153,15 @@ class InChatDocViewer {
         this.dom.topCloseBtn?.addEventListener('click', () => this.close());
         this.dom.toolbarCloseBtn?.addEventListener('click', () => this.close());
 
-        // Download Buttons
+        // Download & Print Buttons
         this.dom.topDownloadBtn?.addEventListener('click', () => this.downloadOriginal());
         this.dom.downloadToolBtn?.addEventListener('click', () => this.downloadOriginal());
+        this.dom.topPrintBtn?.addEventListener('click', () => this.printDocument());
+        this.dom.editCellBtn?.addEventListener('click', () => {
+            if (this.selectedCellTd) {
+                this.startInlineCellEdit(this.selectedCellTd);
+            }
+        });
 
         // Thumbnail Panel Toggle
         this.dom.toggleThumbsBtn?.addEventListener('click', () => this.toggleThumbnails());
@@ -208,6 +217,12 @@ class InChatDocViewer {
         this.dom.overflowSearchBtn?.addEventListener('click', () => {
             this.closeOverflowDropdown();
             this.toggleSearch(true);
+        });
+        this.dom.overflowEditBtn?.addEventListener('click', () => {
+            this.closeOverflowDropdown();
+            if (this.selectedCellTd) {
+                this.startInlineCellEdit(this.selectedCellTd);
+            }
         });
         this.dom.overflowDownloadBtn?.addEventListener('click', () => {
             this.closeOverflowDropdown();
@@ -997,30 +1012,21 @@ class InChatDocViewer {
                 td.dataset.formula = formula;
                 td.dataset.value = val;
 
-                td.onclick = () => this.selectExcelCell(td, cellCoord, formula || val, r, c);
+                td.onclick = () => {
+                    if (this.selectedCellTd === td) {
+                        this.startInlineCellEdit(td);
+                    } else {
+                        this.selectExcelCell(td, cellCoord, formula || val, r, c);
+                    }
+                };
+                td.ontouchend = (e) => {
+                    if (this.selectedCellTd === td) {
+                        this.startInlineCellEdit(td);
+                    }
+                };
 
                 // Double click for inline cell editing
-                td.ondblclick = () => {
-                    const currentVal = td.dataset.formula || td.dataset.value || '';
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.value = currentVal;
-                    input.className = 'excel-inline-cell-editor';
-                    input.style.cssText = 'width:100%; height:100%; border:none; outline:none; font:inherit; padding:0; margin:0; background:#FFF;';
-                    td.textContent = '';
-                    td.appendChild(input);
-                    input.focus();
-                    input.select();
-                    const finish = () => {
-                        const newVal = input.value;
-                        this.commitExcelCellEdit(newVal);
-                    };
-                    input.onblur = finish;
-                    input.onkeydown = (e) => {
-                        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
-                        else if (e.key === 'Escape') { td.textContent = td.dataset.value || ''; }
-                    };
-                };
+                td.ondblclick = () => this.startInlineCellEdit(td);
 
                 tr.appendChild(td);
             }
@@ -1061,12 +1067,42 @@ class InChatDocViewer {
         }
     }
 
+    startInlineCellEdit(td) {
+        if (!td || td.querySelector('.excel-inline-cell-editor')) return;
+        const currentVal = td.dataset.formula || td.dataset.value || '';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentVal;
+        input.className = 'excel-inline-cell-editor';
+        input.style.cssText = 'width:100%; height:100%; min-height:26px; border:2px solid #b86b3d; outline:none; font-size:16px; padding:2px 4px; margin:0; background:#FFF; color:#000; z-index:10; box-sizing:border-box;';
+        td.textContent = '';
+        td.appendChild(input);
+        input.focus();
+        input.select();
+        let finished = false;
+        const finish = () => {
+            if (finished) return;
+            finished = true;
+            const newVal = input.value;
+            this.commitExcelCellEdit(newVal);
+        };
+        input.onblur = finish;
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); finish(); }
+            else if (e.key === 'Escape') {
+                finished = true;
+                td.textContent = td.dataset.value || '';
+            }
+        };
+    }
+
     selectExcelCell(td, coord, formulaOrVal, r, c) {
         // Clear previous selection
         this.dom.contentStage.querySelectorAll('.excel-td.selected').forEach(el => el.classList.remove('selected'));
         this.dom.contentStage.querySelectorAll('.header-highlight').forEach(el => el.classList.remove('header-highlight'));
 
         td.classList.add('selected');
+        this.selectedCellTd = td;
         this.activeCell = { r, c, coord };
 
         // Highlight corresponding sticky column and row headers
@@ -1103,6 +1139,7 @@ class InChatDocViewer {
             td.textContent = trimmed;
             ws[coord] = { t: 's', v: trimmed };
         }
+        this.isEdited = true;
     }
 
     // =========================================================================
@@ -2093,20 +2130,101 @@ class InChatDocViewer {
         this.dom.contentStage.querySelectorAll('.search-match').forEach(el => el.classList.remove('search-match'));
     }
 
-    downloadOriginal() {
+    async downloadOriginal() {
         if (!this.currentDoc) return;
-        const url = this.currentDoc.viewUrl;
         const name = this.currentDoc.filename || 'document';
 
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        // 1. If this is an Excel workbook and has in-memory edits, export updated workbook
+        if (this.xlsxWb && (this.isEdited || this.currentDoc.isExcel)) {
+            try {
+                if (typeof XLSX !== 'undefined') {
+                    const wbOut = XLSX.write(this.xlsxWb, { bookType: 'xlsx', type: 'array' });
+                    const blob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const outName = name.endsWith('.xlsx') ? name : `${name}.xlsx`;
+                    await this.saveFileMobileSafe(blob, outName, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                    if (window.showToast) window.showToast(`Downloaded ${outName}`, 'success');
+                    return;
+                }
+            } catch (err) {
+                console.warn('[InChatDocViewer] Edited XLSX export error:', err);
+            }
+        }
+
+        // 2. Original file download
+        const url = this.currentDoc.viewUrl;
+        if (url) {
+            try {
+                const res = await fetch(url);
+                const blob = await res.blob();
+                await this.saveFileMobileSafe(blob, name, blob.type || 'application/octet-stream');
+                if (window.showToast) window.showToast(`Downloaded ${name}`, 'success');
+                return;
+            } catch (fetchErr) {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = name;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }
+        }
     }
 
-    printDocument() {
+    async saveFileMobileSafe(blob, filename, mimeType) {
+        // A. Capacitor Android native bridge
+        try {
+            const capacitor = window.Capacitor;
+            const frankPlugin = capacitor?.Plugins?.FrankShareTarget;
+            if (frankPlugin && typeof frankPlugin.downloadFile === 'function') {
+                const buffer = await blob.arrayBuffer();
+                const bytes = new Uint8Array(buffer);
+                let binary = '';
+                for (let i = 0; i < bytes.byteLength; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                const base64Data = btoa(binary);
+                await frankPlugin.downloadFile({ filename, base64Data, mimeType });
+                return true;
+            }
+        } catch (e) {
+            console.warn('[saveFileMobileSafe] Native bridge fallback:', e);
+        }
+
+        // B. Browser Blob download
+        try {
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            a.setAttribute('download', filename);
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                a.remove();
+                URL.revokeObjectURL(blobUrl);
+            }, 2000);
+            return true;
+        } catch (e) {
+            console.error('[saveFileMobileSafe] Blob download failed:', e);
+        }
+        return false;
+    }
+
+    async printDocument() {
+        // 1. If running in Capacitor Android native app
+        try {
+            const capacitor = window.Capacitor;
+            const frankPlugin = capacitor?.Plugins?.FrankShareTarget;
+            if (frankPlugin && typeof frankPlugin.printDocument === 'function' && capacitor.isNativePlatform?.()) {
+                await frankPlugin.printDocument();
+                if (window.showToast) window.showToast('Sent to Android Print Spooler', 'success');
+                return;
+            }
+        } catch (err) {
+            console.warn('[printDocument] Native print fallback:', err);
+        }
+
+        // 2. Browser print
         window.print();
     }
 

@@ -22,7 +22,7 @@
     <meta property="og:image:width" content="512">
     <meta property="og:image:height" content="512">
     <meta property="og:image:alt" content="FRANK Think Logo">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#FFF7ED">
 
     <!-- Twitter / X Card Metadata -->
     <meta name="twitter:card" content="summary">
@@ -59,135 +59,376 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/register_redesign.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/cookie_consent.css">
-</head>
-<body class="auth-page">
 
+    <!-- Instant Startup Session Cloak -->
+    <script>
+        (function() {
+            try {
+                var token = localStorage.getItem('chatapp_token') || localStorage.getItem('frank_token') || localStorage.getItem('frank_auth_token');
+                var isLogout = window.location.search && window.location.search.indexOf('logout=1') !== -1;
+                if (token && !isLogout) {
+                    document.documentElement.classList.add('app-checking-session');
+                }
+            } catch (e) {}
+        })();
+    </script>
+</head>
+<body class="auth-page register-redesign-body">
+
+    <!-- Toast Notification Container -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <div class="auth-wrapper">
-        <!-- Left Showcase (Futuristic FRANK Branding Panel) -->
-        <div class="auth-showcase frank-showcase-bg">
-            <div class="frank-light-ring frank-light-ring-1" aria-hidden="true"></div>
-            <div class="frank-light-ring frank-light-ring-2" aria-hidden="true"></div>
-            <div class="frank-glow-streak" aria-hidden="true"></div>
+    <!-- Decorative Ambient Blobs, Orbital Streaks & Light Sparks -->
+    <div class="ambient-decorations" aria-hidden="true">
+        <div class="ambient-blob ambient-blob-1"></div>
+        <div class="ambient-blob ambient-blob-2"></div>
+        <div class="ambient-blob ambient-blob-3"></div>
+        <div class="ambient-streak"></div>
+        <div class="ambient-spark spark-1"></div>
+        <div class="ambient-spark spark-2"></div>
+        <div class="ambient-spark spark-3"></div>
+        <div class="ambient-spark spark-4"></div>
+        <div class="ambient-spark spark-5"></div>
+    </div>
 
-            <div class="auth-showcase-header" style="position: relative; z-index: 2;">
-                <a href="index.html" class="brand-link">
-                    <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="32" height="32" decoding="async" style="width: 32px; height: 32px; border-radius: 8px;">
-                    <span>FRANK</span>
-                </a>
-            </div>
+    <!-- Main Split-Screen Layout Container -->
+    <main class="register-redesign-container">
 
-            <div class="auth-showcase-content">
-                <!-- Official FRANK Brand Logo -->
-                <div class="frank-logo-anim-stage compact" style="margin-bottom: var(--space-4); align-items: flex-start;">
-                    <div class="frank-anim-glow" aria-hidden="true"></div>
-                    <div class="frank-anim-emblem auth-logo-frame">
-                        <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="60" height="60" decoding="async">
-                    </div>
-                    <div class="auth-showcase-wordmark">FRANK</div>
-                    <div class="auth-showcase-tagline" data-i18n="hero.badge">Think</div>
+        <!-- Mobile-Only Compact 3D Floating Artwork (Visible < 960px) -->
+        <div class="mobile-top-artwork" aria-hidden="true">
+            <div class="mobile-artwork-stage">
+                <div class="promo-orbit-ring orbit-ring-1"></div>
+                <div class="promo-orbit-ring orbit-ring-2"></div>
+                <div class="promo-artwork-aura"></div>
+
+                <!-- Central 3D Tile with Official Glowing Logo -->
+                <div class="frank-central-tile">
+                    <img src="assets/brand/frank-icon.svg" alt="FRANK Think" width="64" height="64" decoding="async">
                 </div>
 
-                <div class="auth-showcase-title" role="heading" aria-level="2" data-i18n="auth.createAccount">Create an Account</div>
-                <p class="auth-showcase-subtitle" data-i18n="hero.badge">Think</p>
-
-                <div class="auth-feature-list">
-                    <div class="auth-feature-item">
-                        <div class="auth-feature-icon">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>
-                        <span data-i18n="auth.feature1">Real-time messaging app and group chat platform</span>
-                    </div>
-                    <div class="auth-feature-item">
-                        <div class="auth-feature-icon">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>
-                        <span data-i18n="auth.feature2">Online office suite and document editing platform with file sharing</span>
-                    </div>
-                    <div class="auth-feature-item">
-                        <div class="auth-feature-icon">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>
-                        <span data-i18n="auth.feature3">Private chat application and online document workspace</span>
-                    </div>
+                <!-- 4 Floating Orbiting Feature Tiles -->
+                <div class="orbit-feature-card card-collab" title="Team Collaboration">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M15 19v-1.5a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3V19" stroke="#7C3AED" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="9" cy="8" r="3" stroke="#7C3AED" stroke-width="2"/>
+                        <path d="M19 19v-1.2a2.5 2.5 0 0 0-2-2.45" stroke="#9333EA" stroke-width="1.8" stroke-linecap="round"/>
+                        <circle cx="16" cy="8" r="2.2" stroke="#9333EA" stroke-width="1.8"/>
+                    </svg>
                 </div>
-            </div>
-
-            <div class="auth-showcase-footer">
-                &copy; 2026 FRANK. All rights reserved. &bull; <a href="privacy.html" style="color: inherit; text-decoration: underline;">Privacy Policy</a> &bull; <button type="button" class="open-cookie-settings" style="color: inherit; background: none; border: none; cursor: pointer; text-decoration: underline; font-size: inherit; font-family: inherit; padding: 0;">Cookie Settings</button>
+                <div class="orbit-feature-card card-messaging" title="Messaging">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M21 12c0-4.418-4.03-8-9-8s-9 3.582-9 8c0 1.956.79 3.754 2.13 5.16L4 21l4.13-1.07C9.33 20.14 10.63 20.3 12 20.3c4.97 0 9-3.582 9-8.3z" fill="#0284C7"/>
+                        <circle cx="8.5" cy="12" r="1.3" fill="#FFFFFF"/>
+                        <circle cx="12" cy="12" r="1.3" fill="#FFFFFF"/>
+                        <circle cx="15.5" cy="12" r="1.3" fill="#FFFFFF"/>
+                    </svg>
+                </div>
+                <div class="orbit-feature-card card-documents" title="Documents">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" fill="#2563EB"/>
+                        <path d="M14 2v6h6" fill="#93C5FD"/>
+                        <line x1="8" y1="13" x2="16" y2="13" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round"/>
+                        <line x1="8" y1="17" x2="13" y2="17" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="orbit-feature-card card-cloud" title="Cloud & Files">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M17.5 17.5A4.5 4.5 0 0 0 17 8.5a6 6 0 0 0-10.5 2A4.5 4.5 0 0 0 6.5 17.5h11z" fill="#0284C7"/>
+                        <path d="M12 15v-5m0 0l-2.2 2.2M12 10l2.2 2.2" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
             </div>
         </div>
 
-        <!-- Right Registration Form (Clean Unified Theme Surface) -->
-        <div class="auth-form-container">
-            <div class="auth-card">
-                <div class="auth-card-header">
-                    <a href="index.html" class="auth-card-logo" style="text-decoration:none; color:inherit; display:inline-flex; flex-direction:column; align-items:center;" aria-label="Back to FRANK Think Home">
-                        <div class="auth-logo-frame" style="padding: 4px; border-radius: 14px; margin-bottom: 6px;">
-                            <img src="assets/brand/frank-icon.svg" alt="FRANK Think Icon" width="44" height="44" decoding="async" class="auth-logo-img">
+        <!-- LEFT PROMOTIONAL PANEL (Desktop ~52–55% of Viewport) -->
+        <section class="register-promo-panel entrance-fade" aria-label="FRANK Think Overview">
+            
+            <div class="promo-top-content">
+                <!-- A. Brand Header -->
+                <div class="promo-brand-header">
+                    <a href="index.html" class="promo-brand-link" aria-label="Back to FRANK Think Home">
+                        <div class="promo-brand-tile">
+                            <img src="assets/brand/frank-icon.svg" alt="FRANK Think Logo" width="38" height="38" decoding="async">
                         </div>
-                        <div class="auth-card-logo-name">FRANK</div>
-                        <div class="auth-card-logo-tagline" data-i18n="hero.badge">Think</div>
+                        <div class="promo-brand-text">
+                            <span class="promo-brand-name">FRANK</span>
+                            <span class="promo-brand-sub" data-i18n="hero.badge">Think</span>
+                        </div>
                     </a>
-                    <h1 class="auth-card-title" data-i18n="auth.createAccount">Create an Account</h1>
-                    <p class="auth-card-subtitle" data-i18n="auth.createAccountSubtitle">Join FRANK for secure real-time messaging</p>
                 </div>
 
-                <form id="registerForm" novalidate>
+                <!-- B. Tagline Pill -->
+                <div class="promo-tagline-pill">
+                    <span>Think</span>
+                    <span class="dot-sep">&bull;</span>
+                    <span>Chat</span>
+                    <span class="dot-sep">&bull;</span>
+                    <span>Create</span>
+                    <span class="dot-sep">&bull;</span>
+                    <span>Collaborate</span>
+                </div>
+
+                <!-- C. Main Heading -->
+                <h1 class="promo-hero-title">
+                    <span class="title-row-1" data-i18n="auth.createAccount">Create an Account</span>
+                    <span class="title-row-2">
+                        <span class="title-to">Join</span>
+                        <span class="frank-gradient-text">FRANK Think</span>
+                    </span>
+                </h1>
+
+                <!-- D. Supporting Description -->
+                <p class="promo-description">
+                    Get started with secure real-time messaging, document editing, and seamless collaboration.
+                </p>
+
+                <!-- Central Stage: Feature Highlights + 3D Animated Illustration -->
+                <div class="promo-stage">
+                    
+                    <!-- E. 3 Feature Highlights with Official SEO Intent Keywords -->
+                    <div class="promo-features-list">
+                        <div class="promo-feature-row">
+                            <div class="promo-feature-icon-box" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                    <circle cx="8" cy="10" r="1" fill="currentColor"></circle>
+                                    <circle cx="12" cy="10" r="1" fill="currentColor"></circle>
+                                    <circle cx="16" cy="10" r="1" fill="currentColor"></circle>
+                                </svg>
+                            </div>
+                            <span class="promo-feature-text" data-i18n="auth.feature1">
+                                Real-time messaging app and group chat platform
+                            </span>
+                        </div>
+
+                        <div class="promo-feature-row">
+                            <div class="promo-feature-icon-box" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <line x1="10" y1="9" x2="8" y2="9"></line>
+                                </svg>
+                            </div>
+                            <span class="promo-feature-text" data-i18n="auth.feature2">
+                                Online office suite and document editing platform with file sharing
+                            </span>
+                        </div>
+
+                        <div class="promo-feature-row">
+                            <div class="promo-feature-icon-box" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                            </div>
+                            <span class="promo-feature-text" data-i18n="auth.feature3">
+                                Private chat application and online document workspace
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- F. Main Animated FRANK 3D Logo Artwork Stage -->
+                    <div class="promo-artwork-stage" aria-hidden="true">
+                        <div class="promo-orbit-ring orbit-ring-1"></div>
+                        <div class="promo-orbit-ring orbit-ring-2"></div>
+                        <div class="promo-artwork-aura"></div>
+
+                        <!-- 3D Floating Midnight Navy FRANK Tile with Glowing Logo -->
+                        <div class="frank-central-tile" title="FRANK Think">
+                            <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="90" height="90" decoding="async">
+                        </div>
+
+                        <!-- 4 Orbiting Floating Cards -->
+                        <div class="orbit-feature-card card-collab" title="Team Collaboration">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M15 19v-1.5a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3V19" stroke="#7C3AED" stroke-width="2" stroke-linecap="round"/>
+                                <circle cx="9" cy="8" r="3" stroke="#7C3AED" stroke-width="2"/>
+                                <path d="M19 19v-1.2a2.5 2.5 0 0 0-2-2.45" stroke="#9333EA" stroke-width="1.8" stroke-linecap="round"/>
+                                <circle cx="16" cy="8" r="2.2" stroke="#9333EA" stroke-width="1.8"/>
+                            </svg>
+                        </div>
+                        <div class="orbit-feature-card card-messaging" title="Real-time Messaging">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M21 12c0-4.418-4.03-8-9-8s-9 3.582-9 8c0 1.956.79 3.754 2.13 5.16L4 21l4.13-1.07C9.33 20.14 10.63 20.3 12 20.3c4.97 0 9-3.582 9-8.3z" fill="#0284C7"/>
+                                <circle cx="8.5" cy="12" r="1.4" fill="#FFFFFF"/>
+                                <circle cx="12" cy="12" r="1.4" fill="#FFFFFF"/>
+                                <circle cx="15.5" cy="12" r="1.4" fill="#FFFFFF"/>
+                            </svg>
+                        </div>
+                        <div class="orbit-feature-card card-documents" title="Document Tools">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" fill="#2563EB"/>
+                                <path d="M14 2v6h6" fill="#93C5FD"/>
+                                <line x1="8" y1="13" x2="16" y2="13" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+                                <line x1="8" y1="17" x2="14" y2="17" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <div class="orbit-feature-card card-cloud" title="Cloud & File Sharing">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M17.5 17.5A4.5 4.5 0 0 0 17 8.5a6 6 0 0 0-10.5 2A4.5 4.5 0 0 0 6.5 17.5h11z" fill="#0284C7"/>
+                                <path d="M12 15v-5m0 0l-2.5 2.5M12 10l2.5 2.5" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- G. Statistics Cards -->
+                <div class="promo-stats-row">
+                    <div class="promo-stat-card">
+                        <div class="promo-stat-icon-wrap" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B85F2F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <div class="promo-stat-info">
+                            <span class="promo-stat-num">10K+</span>
+                            <span class="promo-stat-label">Active Users</span>
+                        </div>
+                    </div>
+
+                    <div class="promo-stat-card">
+                        <div class="promo-stat-icon-wrap" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B85F2F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                        </div>
+                        <div class="promo-stat-info">
+                            <span class="promo-stat-num">1M+</span>
+                            <span class="promo-stat-label">Documents</span>
+                        </div>
+                    </div>
+
+                    <div class="promo-stat-card">
+                        <div class="promo-stat-icon-wrap" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B85F2F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                <polyline points="9 12 11 14 15 10"></polyline>
+                            </svg>
+                        </div>
+                        <div class="promo-stat-info">
+                            <span class="promo-stat-num">Secure</span>
+                            <span class="promo-stat-label">&amp; Private</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- H. Footer -->
+            <footer class="promo-footer">
+                <span>&copy; 2026 FRANK. All rights reserved.</span>
+                <span>&bull;</span>
+                <a href="privacy.html">Privacy Policy</a>
+                <span>&bull;</span>
+                <button type="button" class="open-cookie-settings">Cookie Settings</button>
+            </footer>
+
+        </section>
+
+        <!-- RIGHT REGISTRATION PANEL / CARD (~45% of Viewport) -->
+        <section class="register-form-panel entrance-slide-up" aria-label="Registration Card">
+            <div class="register-glass-card">
+                
+                <!-- A. Brand Header & Centered Logo -->
+                <div class="card-header-center">
+                    <a href="index.html" class="card-center-logo-link" aria-label="Back to FRANK Think Home">
+                        <div class="card-center-logo-tile">
+                            <img src="assets/brand/frank-icon.svg" alt="FRANK Think Logo" width="44" height="44" decoding="async">
+                        </div>
+                        <span class="card-brand-name">FRANK</span>
+                        <span class="card-brand-tagline" data-i18n="hero.badge">Think</span>
+                    </a>
+                    <h2 class="card-title" data-i18n="auth.createAccount">Create an Account</h2>
+                    <p class="card-subtitle" data-i18n="auth.createAccountSubtitle">
+                        Join FRANK for secure real-time messaging
+                    </p>
+                </div>
+
+                <!-- Existing Working Registration Form -->
+                <form id="registerForm" class="register-form" novalidate>
+                    
                     <div id="registerStepFields">
-                        <!-- Full Name -->
-                        <div class="form-group" id="groupFullName">
-                            <label class="form-label" for="regFullName" data-i18n="auth.fullName">Full Name</label>
-                            <input 
-                                type="text" 
-                                class="form-input" 
-                                id="regFullName" 
-                                placeholder="Enter your full name" 
-                                data-i18n-placeholder="auth.fullNamePlaceholder"
-                                required
-                                autocomplete="name"
-                            >
-                            <div class="form-error" id="errorFullName">Please enter your full name.</div>
+                        
+                        <!-- 1. Full Name -->
+                        <div class="field-group" id="groupFullName">
+                            <label class="field-label" for="regFullName" data-i18n="auth.fullName">Full Name</label>
+                            <div class="field-input-wrap">
+                                <span class="field-icon-left" aria-hidden="true">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                </span>
+                                <input 
+                                    type="text" 
+                                    class="field-input" 
+                                    id="regFullName" 
+                                    placeholder="Enter your full name" 
+                                    data-i18n-placeholder="auth.fullNamePlaceholder"
+                                    required
+                                    autocomplete="name"
+                                >
+                            </div>
+                            <div class="field-error-msg" id="errorFullName">Please enter your full name.</div>
                         </div>
 
-                        <!-- Email -->
-                        <div class="form-group" id="groupEmail">
-                            <label class="form-label" for="regEmail" data-i18n="auth.email">Email Address</label>
-                            <input 
-                                type="email" 
-                                class="form-input" 
-                                id="regEmail" 
-                                placeholder="name@example.com" 
-                                data-i18n-placeholder="auth.emailPlaceholder"
-                                required
-                                autocomplete="email"
-                            >
-                            <div class="form-error" id="errorEmail">Please enter a valid email address.</div>
+                        <!-- 2. Email Address -->
+                        <div class="field-group" id="groupEmail">
+                            <label class="field-label" for="regEmail" data-i18n="auth.email">Email Address</label>
+                            <div class="field-input-wrap">
+                                <span class="field-icon-left" aria-hidden="true">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                        <polyline points="22,6 12,13 2,6"></polyline>
+                                    </svg>
+                                </span>
+                                <input 
+                                    type="email" 
+                                    class="field-input" 
+                                    id="regEmail" 
+                                    placeholder="name@example.com" 
+                                    data-i18n-placeholder="auth.emailPlaceholder"
+                                    required
+                                    autocomplete="email"
+                                    spellcheck="false"
+                                >
+                            </div>
+                            <div class="field-error-msg" id="errorEmail">Please enter a valid email address.</div>
                         </div>
 
-                        <!-- Password with dynamic strength meter -->
-                        <div class="form-group" id="groupPassword">
-                            <label class="form-label" for="regPassword" data-i18n="auth.password">Password</label>
-                            <div class="input-wrap">
+                        <!-- 3. Password with dynamic strength meter -->
+                        <div class="field-group" id="groupPassword">
+                            <label class="field-label" for="regPassword" data-i18n="auth.password">Password</label>
+                            <div class="field-input-wrap">
+                                <span class="field-icon-left" aria-hidden="true">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                </span>
                                 <input 
                                     type="password" 
-                                    class="form-input input-icon-right" 
+                                    class="field-input has-icon-right" 
                                     id="regPassword" 
                                     placeholder="Enter your password" 
                                     data-i18n-placeholder="auth.passwordPlaceholder"
                                     required
                                     autocomplete="new-password"
                                 >
-                                <button type="button" class="input-icon-btn password-toggle-btn" data-target="regPassword" aria-label="Toggle password visibility">
+                                <button type="button" class="password-toggle-btn input-icon-btn" data-target="regPassword" aria-label="Toggle password visibility">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                         <circle cx="12" cy="12" r="3"></circle>
@@ -195,135 +436,145 @@
                                 </button>
                             </div>
 
-                            <!-- Strength Meter Bar -->
+                            <!-- Dynamic Strength Meter Bar -->
                             <div class="password-meter">
                                 <div class="password-meter-track">
                                     <div class="password-meter-bar" id="strengthBar"></div>
                                 </div>
                                 <span class="password-meter-label" id="strengthLabel">Password strength: Weak</span>
                             </div>
-                            <div class="form-error" id="errorPassword">Password must be at least 6 characters.</div>
+                            <div class="field-error-msg" id="errorPassword">Password must be at least 6 characters.</div>
                         </div>
 
-                        <!-- Confirm Password -->
-                        <div class="form-group" id="groupConfirmPassword">
-                            <label class="form-label" for="regConfirmPassword" data-i18n="auth.confirmPassword">Confirm Password</label>
-                            <input 
-                                type="password" 
-                                class="form-input" 
-                                id="regConfirmPassword" 
-                                placeholder="Re-enter your password" 
-                                data-i18n-placeholder="auth.confirmPasswordPlaceholder"
-                                required
-                                autocomplete="new-password"
-                            >
-                            <div class="form-error" id="errorConfirmPassword" data-i18n="auth.passwordsDoNotMatch">Passwords do not match.</div>
-                        </div>
-
-                        <!-- DPDP Data-Use Notice -->
-                        <div style="background: rgba(37,99,235,0.05); border: 1px solid rgba(37,99,235,0.15); border-radius: var(--radius-md, 8px); padding: 12px 14px; margin-bottom: 16px; font-size: 12.5px; line-height: 1.5; color: var(--text-secondary);">
-                            <div style="font-weight: 700; color: var(--text); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                                <span>DPDP Privacy Notice</span>
+                        <!-- 4. Confirm Password -->
+                        <div class="field-group" id="groupConfirmPassword">
+                            <label class="field-label" for="regConfirmPassword" data-i18n="auth.confirmPassword">Confirm Password</label>
+                            <div class="field-input-wrap">
+                                <span class="field-icon-left" aria-hidden="true">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                </span>
+                                <input 
+                                    type="password" 
+                                    class="field-input has-icon-right" 
+                                    id="regConfirmPassword" 
+                                    placeholder="Re-enter your password" 
+                                    data-i18n-placeholder="auth.confirmPasswordPlaceholder"
+                                    required
+                                    autocomplete="new-password"
+                                >
+                                <button type="button" class="password-toggle-btn input-icon-btn" data-target="regConfirmPassword" aria-label="Toggle password visibility">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </button>
                             </div>
-                            <span>We process your name, email, and credentials for account delivery and secure communication. Messages and attachments are stored on our servers; optional Smart AI features utilize Google Gemini without foundation training. You retain statutory rights to access, correction, erasure, and consent withdrawal. Read our full <a href="privacy.html" target="_blank" style="color: var(--accent); font-weight: 600; text-decoration: underline;">Privacy Policy</a>.</span>
+                            <div class="field-error-msg" id="errorConfirmPassword" data-i18n="auth.passwordsDoNotMatch">Passwords do not match.</div>
                         </div>
 
-                        <!-- Age Verification Checkbox (DPDP Section 9) -->
-                        <div class="form-group" style="margin-bottom: 10px;">
-                            <label class="auth-checkbox-label" style="align-items: flex-start; gap: 8px;">
-                                <input type="checkbox" id="regAgeConsent" required style="margin-top: 3px;">
-                                <span style="font-size: 13px; color: var(--text);">I confirm that I am <strong>18 years of age or older</strong> (or registering with verifiable parental guidance pursuant to DPDP Act Section 9).</span>
+                        <!-- 5. DPDP Privacy Notice -->
+                        <div class="dpdp-privacy-box" role="region" aria-label="DPDP Privacy Notice">
+                            <div class="dpdp-icon-wrap" aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    <polyline points="9 12 11 14 15 10"></polyline>
+                                </svg>
+                            </div>
+                            <div class="dpdp-content">
+                                <span class="dpdp-title">DPDP Privacy Notice</span>
+                                <p class="dpdp-text">
+                                    We process your name, email, and credentials for account delivery and secure communication. Read our full <a href="privacy.html" target="_blank" onclick="event.stopPropagation()">Privacy Policy</a>.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 6. One Required Consent Checkbox -->
+                        <div class="consent-checkbox-row form-group" id="groupTerms">
+                            <label class="custom-checkbox-label">
+                                <input type="checkbox" id="regTerms" required>
+                                <span>I agree to the <a href="terms.html" target="_blank" onclick="event.stopPropagation()">Terms of Service</a> &amp; <a href="privacy.html" target="_blank" onclick="event.stopPropagation()">Privacy Policy</a>.</span>
                             </label>
-                            <div class="form-error" id="errorAgeConsent">You must confirm your age eligibility to continue.</div>
+                            <div class="field-error-msg" id="errorTerms">You must accept the terms and privacy notice to continue.</div>
                         </div>
 
-                        <!-- Terms & Privacy Checkbox -->
-                        <div class="form-group" style="margin-bottom: var(--space-4);">
-                            <label class="auth-checkbox-label" style="align-items: flex-start; gap: 8px;">
-                                <input type="checkbox" id="regTerms" required style="margin-top: 3px;">
-                                <span style="font-size: 13px; color: var(--text);">I agree to the Terms of Service &amp; acknowledge the <a href="privacy.html" target="_blank" style="color: var(--accent); font-weight: 600; text-decoration: underline;">Privacy Policy</a>.</span>
-                            </label>
-                            <div class="form-error" id="errorTerms">You must accept the terms and privacy notice to continue.</div>
-                        </div>
-
-                        <!-- Optional Communications Checkbox (Unchecked by default) -->
-                        <div class="form-group" style="margin-bottom: var(--space-6);">
-                            <label class="auth-checkbox-label" style="align-items: flex-start; gap: 8px;">
-                                <input type="checkbox" id="regOptCommunications" style="margin-top: 3px;">
-                                <span style="font-size: 12.5px; color: var(--text-muted);">Optional: Send me non-critical product enhancements and security bulletins via email.</span>
-                            </label>
-                        </div>
-
-                        <!-- Submit Button -->
-                        <button type="submit" class="btn btn-primary btn-full btn-large" id="registerSubmitBtn">
+                        <!-- 7. Primary Create Account Button -->
+                        <button type="submit" class="btn-primary-register" id="registerSubmitBtn">
                             <span class="btn-text" data-i18n="auth.createAccount">Create Account</span>
+                            <span class="btn-arrow" aria-hidden="true">&rarr;</span>
                         </button>
                     </div>
 
-                    <!-- Step 2: Email OTP Verification Step -->
+                    <!-- Step 2: Email OTP Verification Step (Preserved) -->
                     <div id="registerOtpStep" style="display: none;">
-                        <div style="background: var(--surface-secondary, rgba(255,255,255,0.05)); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: var(--radius-md, 12px); padding: 16px; margin-bottom: 20px; text-align: center;">
-                            <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--accent-subtle, rgba(255,107,0,0.15)); color: var(--accent-color, #ff6b00); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+                        <div style="background: rgba(255, 255, 255, 0.75); border: 1px solid #E8DACB; border-radius: 16px; padding: 18px; margin-bottom: 20px; text-align: center;">
+                            <div style="width: 44px; height: 44px; border-radius: 50%; background: #FCECE0; color: #B85F2F; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px;">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                                     <polyline points="22,6 12,13 2,6"></polyline>
                                 </svg>
                             </div>
-                            <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">Verify Your Email</div>
-                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.4;">
-                                We sent a 6-digit verification code to<br><strong id="otpTargetEmail" style="color: var(--text-primary); word-break: break-all;"></strong>
+                            <div style="font-weight: 750; font-size: 16px; margin-bottom: 4px; color: #1E1B18;">Verify Your Email</div>
+                            <div style="font-size: 13px; color: #60351F; line-height: 1.4;">
+                                We sent a 6-digit verification code to<br><strong id="otpTargetEmail" style="color: #1E1B18; word-break: break-all;"></strong>
                             </div>
-                            <div style="margin-top: 12px; padding: 10px 14px; background: rgba(234, 88, 12, 0.08); border: 1px solid rgba(234, 88, 12, 0.25); border-radius: 8px; font-size: 12px; color: var(--text-secondary); text-align: left; line-height: 1.45;">
-                                <div style="font-weight: 700; color: var(--accent-color, #ff6b00); margin-bottom: 2px; display: flex; align-items: center; gap: 6px;">
+                            <div style="margin-top: 12px; padding: 10px 14px; background: rgba(234, 88, 12, 0.08); border: 1px solid rgba(234, 88, 12, 0.25); border-radius: 10px; font-size: 12px; color: #60351F; text-align: left; line-height: 1.45;">
+                                <div style="font-weight: 700; color: #B85F2F; margin-bottom: 2px; display: flex; align-items: center; gap: 6px;">
                                     <span>📬</span> Check Your Spam / Junk Folder
                                 </div>
-                                If you don't see the email in your primary inbox, please check your <strong>Spam</strong>, <strong>Junk</strong>, or <strong>Promotions</strong> folder. Automated emails can sometimes be filtered there.
+                                If you don't see the email in your primary inbox, please check your <strong>Spam</strong>, <strong>Junk</strong>, or <strong>Promotions</strong> folder.
                             </div>
                         </div>
 
-                        <div class="form-group" id="groupOtpCode" style="margin-bottom: 20px;">
-                            <label class="form-label" for="regOtpCode" style="text-align: center; display: block;">Enter 6-Digit Code</label>
+                        <div class="field-group" id="groupOtpCode" style="margin-bottom: 18px;">
+                            <label class="field-label" for="regOtpCode" style="text-align: center; display: block;">Enter 6-Digit Code</label>
                             <input 
                                 type="text" 
-                                class="form-input" 
+                                class="field-input" 
                                 id="regOtpCode" 
                                 placeholder="······" 
                                 maxlength="6" 
                                 inputmode="numeric" 
                                 pattern="[0-9]*" 
                                 autocomplete="one-time-code"
-                                style="font-size: 26px; letter-spacing: 12px; text-align: center; font-weight: 700; font-family: monospace; padding: 12px;"
+                                style="font-size: 26px; letter-spacing: 12px; text-align: center; font-weight: 700; font-family: monospace; height: 52px;"
                             >
-                            <div class="form-error" id="errorOtpCode" style="text-align: center;">Please enter the 6-digit verification code.</div>
+                            <div class="field-error-msg" id="errorOtpCode" style="text-align: center;">Please enter the 6-digit verification code.</div>
                         </div>
 
-                        <button type="button" class="btn btn-primary btn-full btn-large" id="verifyOtpSubmitBtn" style="margin-bottom: 12px;">
+                        <button type="button" class="btn-primary-register" id="verifyOtpSubmitBtn" style="margin-bottom: 12px;">
                             <span class="btn-text">Verify &amp; Create Account</span>
                         </button>
 
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
-                            <button type="button" class="btn btn-ghost btn-sm" id="resendOtpBtn" style="font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <button type="button" class="btn btn-ghost btn-sm" id="resendOtpBtn" style="font-size: 13px; color: #8C786A; background: none; border: none; cursor: pointer;">
                                 <span class="btn-text">Resend Code (30s)</span>
                             </button>
-                            <button type="button" class="btn btn-ghost btn-sm" id="backToRegisterBtn" style="font-size: 13px; color: var(--accent-color, #ff6b00); font-weight: 600;">
-                                ← Edit details / Email
+                            <button type="button" class="btn btn-ghost btn-sm" id="backToRegisterBtn" style="font-size: 13px; color: #B85F2F; font-weight: 600; background: none; border: none; cursor: pointer;">
+                                &larr; Edit details / Email
                             </button>
                         </div>
                     </div>
                 </form>
 
-                <div class="auth-card-footer" style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
-                    <a href="login.html" class="auth-link" data-i18n="auth.alreadyHaveAccount">Already have an account? Sign In</a>
-                    <div style="display: flex; gap: 12px; align-items: center; justify-content: center; font-size: 12px; color: var(--text-muted);">
-                        <a href="privacy.html" class="auth-link" style="color: var(--text-muted); text-decoration: none;">Privacy Policy</a>
-                        <span>&bull;</span>
-                        <button type="button" class="open-cookie-settings" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0; font-size: 12px; text-decoration: underline;">Cookie Settings</button>
+                <!-- Bottom Links -->
+                <div class="card-bottom-links">
+                    <a href="login.html" class="card-signin-link">
+                        Already have an account? <strong data-i18n="auth.signIn">Sign In</strong>
+                    </a>
+                    <div class="card-legal-links">
+                        <a href="privacy.html">Privacy Policy</a>
+                        <span aria-hidden="true">&bull;</span>
+                        <button type="button" class="open-cookie-settings">Cookie Settings</button>
                     </div>
                 </div>
+
             </div>
-        </div>
-    </div>
+        </section>
+
+    </main>
 
     <!-- Scripts -->
     <script src="js/config.js"></script>

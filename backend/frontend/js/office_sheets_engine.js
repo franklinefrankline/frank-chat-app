@@ -1337,9 +1337,18 @@ class FrankSheetsEngine {
             // Click / MouseDown Selection
             td.addEventListener('click', (e) => {
                 if (e.shiftKey) return;
-                if (this.activeCell.r !== r || this.activeCell.c !== c) {
+                const isDifferent = (this.activeCell.r !== r || this.activeCell.c !== c);
+                if (isDifferent) {
                     this.selectCell(r, c, false);
                     this.renderRangeHighlight();
+                } else if (!this.isEditingInline) {
+                    this.startInlineEditing(td, r, c);
+                }
+            });
+
+            td.addEventListener('touchend', () => {
+                if (this.activeCell.r === r && this.activeCell.c === c && !this.isEditingInline) {
+                    this.startInlineEditing(td, r, c);
                 }
             });
 
@@ -4798,6 +4807,23 @@ class FrankSheetsEngine {
     }
 
     fileEditDocument() {
+        const r = this.activeCell?.r || 0;
+        const c = this.activeCell?.c || 0;
+        const table = document.getElementById('excelSheetTable');
+        const td = table?.querySelector('.sheet-cell[data-r="' + r + '"][data-c="' + c + '"]');
+        if (td) {
+            this.startInlineEditing(td, r, c);
+        } else {
+            const formulaInput = document.getElementById('formulaInputField');
+            if (formulaInput) {
+                formulaInput.focus();
+                formulaInput.select();
+            }
+        }
+        showToast('Editing active cell', 'info');
+    }
+
+    fileWorkbookProperties() {
         const modal = document.createElement('div');
         modal.className = 'sheets-modal-overlay';
         const doc = this.workspace.currentDoc || {};
@@ -5141,7 +5167,7 @@ class FrankSheetsEngine {
         showToast(`Created copy: ${baseName}`, 'success');
     }
 
-    fileExportXlsx() {
+    async fileExportXlsx() {
         if (!window.XLSX) {
             showToast('Export library not available', 'error');
             return;
@@ -5150,7 +5176,6 @@ class FrankSheetsEngine {
             const wb = window.XLSX.utils.book_new();
             this.workspace.excelData.sheets.forEach(sh => {
                 const ws = window.XLSX.utils.aoa_to_sheet(sh.data || [[]]);
-                // Re-attach formulas
                 if (sh.formulas) {
                     Object.entries(sh.formulas).forEach(([coord, fVal]) => {
                         if (ws[coord]) {
@@ -5161,7 +5186,10 @@ class FrankSheetsEngine {
                 window.XLSX.utils.book_append_sheet(wb, ws, sh.name || 'Sheet');
             });
             const filename = this.workspace.currentDoc?.filename || 'spreadsheet.xlsx';
-            window.XLSX.writeFile(wb, filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`);
+            const outName = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`;
+            const wbOut = window.XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            await this.downloadBlobMobileSafe(blob, outName, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             showToast('Exported workbook to .xlsx', 'success');
         } catch (e) {
             console.error('XLSX export error:', e);
@@ -5169,28 +5197,67 @@ class FrankSheetsEngine {
         }
     }
 
-    fileExportCsv() {
+    async fileExportCsv() {
         const sheet = this.getCurrentSheet();
         const csvContent = (sheet.data || []).map(row => {
             return (row || []).map(val => {
                 const s = String(val !== undefined ? val : '');
-                return s.includes(',') || s.includes('"') || s.includes('\\n')
+                return s.includes(',') || s.includes('"') || s.includes('\n')
                     ? `"${s.replace(/"/g, '""')}"`
                     : s;
             }).join(',');
-        }).join('\\n');
+        }).join('\n');
 
-        const blob = new Blob(['\\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${sheet.name || 'sheet'}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const outName = `${sheet.name || 'sheet'}.csv`;
+        await this.downloadBlobMobileSafe(blob, outName, 'text/csv;charset=utf-8;');
         showToast('Exported CSV file', 'success');
     }
 
-    filePrint() {
+    async downloadBlobMobileSafe(blob, filename, mimeType) {
+        try {
+            const capacitor = window.Capacitor;
+            const frankPlugin = capacitor?.Plugins?.FrankShareTarget;
+            if (frankPlugin && typeof frankPlugin.downloadFile === 'function') {
+                const buffer = await blob.arrayBuffer();
+                const bytes = new Uint8Array(buffer);
+                let binary = '';
+                for (let i = 0; i < bytes.byteLength; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                const base64Data = btoa(binary);
+                await frankPlugin.downloadFile({ filename, base64Data, mimeType });
+                return;
+            }
+        } catch (e) {
+            console.warn('[downloadBlobMobileSafe] Native bridge fallback:', e);
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.setAttribute('download', filename);
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 1500);
+    }
+
+    async filePrint() {
+        try {
+            const capacitor = window.Capacitor;
+            const frankPlugin = capacitor?.Plugins?.FrankShareTarget;
+            if (frankPlugin && typeof frankPlugin.printDocument === 'function' && capacitor.isNativePlatform?.()) {
+                await frankPlugin.printDocument();
+                showToast('Sent to Android Print Spooler', 'success');
+                return;
+            }
+        } catch (e) {
+            console.warn('[filePrint] Native print fallback:', e);
+        }
         window.print();
     }
 

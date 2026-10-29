@@ -5,11 +5,17 @@
 
 const auth = {
     getToken() {
-        return localStorage.getItem('chatapp_token') || localStorage.getItem('frank_token') || (typeof api !== 'undefined' && api.getToken ? api.getToken() : null);
+        return (typeof api !== 'undefined' && api.getToken)
+            ? api.getToken()
+            : (localStorage.getItem('chatapp_token') || localStorage.getItem('frank_token') || localStorage.getItem('frank_auth_token'));
     },
 
     isAuthenticated() {
-        return !!(localStorage.getItem('chatapp_token') || localStorage.getItem('frank_token'));
+        return !!this.getToken();
+    },
+
+    hasSavedSession() {
+        return !!this.getToken();
     },
 
     getUser() {
@@ -25,7 +31,7 @@ const auth = {
         if (typeof api !== 'undefined' && api.getCurrentUser) {
             try {
                 const user = await api.getCurrentUser();
-                if (user) {
+                if (user && user.id) {
                     this.setUser(user);
                     return user;
                 }
@@ -50,14 +56,112 @@ const auth = {
         }
     },
 
+    clearSession() {
+        if (typeof api !== 'undefined' && api.setToken) {
+            api.setToken(null);
+        } else {
+            localStorage.removeItem('chatapp_token');
+            localStorage.removeItem('frank_token');
+            localStorage.removeItem('frank_auth_token');
+            sessionStorage.removeItem('chatapp_token');
+            sessionStorage.removeItem('frank_token');
+            sessionStorage.removeItem('frank_auth_token');
+        }
+        localStorage.removeItem('chatapp_user');
+        sessionStorage.removeItem('chatapp_user');
+        try {
+            document.cookie = 'frank_token=; Max-Age=0; path=/;';
+            document.cookie = 'chatapp_token=; Max-Age=0; path=/;';
+        } catch (e) {}
+    },
+
+    async validateSession() {
+        const token = this.getToken();
+        if (!token) {
+            return { valid: false, reason: 'no_token' };
+        }
+        if (typeof api !== 'undefined' && api.isTokenExpired && api.isTokenExpired(token)) {
+            this.clearSession();
+            return { valid: false, reason: 'expired' };
+        }
+        try {
+            const user = await api.getCurrentUser();
+            if (user && user.id) {
+                this.setUser(user);
+                return { valid: true, user };
+            }
+            this.clearSession();
+            return { valid: false, reason: 'invalid_user' };
+        } catch (err) {
+            if (err.status === 401 || err.status === 403) {
+                this.clearSession();
+                return {
+                    valid: false,
+                    reason: err.status === 403 ? 'disabled' : 'unauthorized',
+                    message: err.message
+                };
+            }
+            // Preserve session for offline mobile or network failure
+            const cachedUser = this.getUser();
+            if (cachedUser && (!navigator.onLine || err.name === 'TypeError' || String(err).includes('fetch') || String(err).includes('NetworkError'))) {
+                return { valid: true, user: cachedUser, offline: true };
+            }
+            if (err.status >= 500 && cachedUser) {
+                return { valid: true, user: cachedUser, serverError: true };
+            }
+            return { valid: false, reason: 'error', error: err };
+        }
+    },
+
+    showStartupScreen(title = 'FRANK', subtitle = 'Think') {
+        let loader = document.getElementById('appLoadingScreen');
+        if (!loader) {
+            loader = document.createElement('div');
+            loader.className = 'app-loading-screen';
+            loader.id = 'appLoadingScreen';
+            loader.innerHTML = `
+                <div class="frank-logo-anim-stage splash">
+                    <div class="frank-anim-glow" aria-hidden="true"></div>
+                    <div class="frank-anim-emblem" style="width: 84px; height: 84px; filter: drop-shadow(0 0 24px rgba(59, 130, 246, 0.45));">
+                        <img src="assets/brand/frank-icon.svg" alt="FRANK Logo" width="84" height="84" style="border-radius: 20px; display: block;" onerror="this.onerror=null; this.src='favicon.png';">
+                    </div>
+                    <div class="frank-anim-wordmark" style="margin-top: 16px; font-size: 26px; font-weight: 900; letter-spacing: 2px;">${title}</div>
+                    <div class="frank-anim-tagline" style="margin-top: 6px; font-size: 14px; font-weight: 600; color: #94A3B8;">${subtitle}</div>
+                    <div class="frank-loading-bar-wrap" style="width: 120px; height: 3px; background: rgba(255,255,255,0.08); border-radius: 9999px; margin-top: 20px; overflow: hidden; position: relative;">
+                        <div class="frank-loading-bar-fill" style="width: 50%; height: 100%; background: linear-gradient(90deg, #2563EB, #7C3AED, #D946EF, #06B6D4); border-radius: 9999px; animation: frankBarShimmer 0.9s infinite ease-in-out;"></div>
+                    </div>
+                </div>
+            `;
+            if (document.body) {
+                document.body.prepend(loader);
+            } else {
+                document.addEventListener('DOMContentLoaded', () => document.body && document.body.prepend(loader));
+            }
+        } else {
+            loader.classList.remove('fade-out');
+        }
+    },
+
+    dismissStartupScreen() {
+        document.documentElement.classList.remove('app-checking-session');
+        const loader = document.getElementById('appLoadingScreen');
+        if (loader && !loader.classList.contains('fade-out')) {
+            loader.classList.add('fade-out');
+            setTimeout(() => {
+                if (loader && loader.parentNode) loader.remove();
+            }, 380);
+        }
+    },
+
     guard() {
-        const path = window.location.pathname.replace(/\/+$/, '') || '/';
-        const isAuth = this.isAuthenticated();
+        const rawPath = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+        const path = rawPath.toLowerCase();
+        const hasSession = this.hasSavedSession();
         const user = this.getUser();
 
         const protectedRoutes = [
-            'dashboard.html', 'chat.html', 'profile.html', 'settings.html', 'admin.html',
-            '/dashboard', '/chat', '/profile', '/settings', '/admin'
+            'dashboard.html', 'chat.html', 'profile.html', 'settings.html', 'admin.html', 'spreadsheet.html',
+            '/dashboard', '/chat', '/profile', '/settings', '/admin', '/spreadsheet'
         ];
         const guestOnlyRoutes = [
             'login.html', 'register.html',
@@ -66,27 +170,91 @@ const auth = {
 
         const isProtected = protectedRoutes.some(route => path.endsWith(route) || path === route);
         const isGuestOnly = guestOnlyRoutes.some(route => path.endsWith(route) || path === route);
+        const isRoot = !isProtected && !isGuestOnly && (path === '/' || path === '' || path === '/index.html' || path.endsWith('/index.html') || path === 'index.html');
         const isAdminRoute = path.endsWith('admin.html') || path === '/admin';
 
-        if (isProtected && !isAuth) {
-            window.location.href = 'login.html';
-        } else if (isAdminRoute && isAuth && (!user || user.role !== 'admin')) {
-            // Normal user trying to access admin dashboard -> redirect to user dashboard
-            window.location.href = 'dashboard.html';
-        } else if (isGuestOnly && isAuth) {
-            if (user && user.role === 'admin') {
-                window.location.href = 'admin.html';
+        // 1. Protected routes: If not authenticated, redirect to login
+        if (isProtected && !hasSession) {
+            window.location.replace('login.html');
+            return;
+        }
+
+        // 2. Protected admin route: User authenticated but not admin
+        if (isAdminRoute && hasSession && (!user || user.role !== 'admin')) {
+            window.location.replace('dashboard.html');
+            return;
+        }
+
+        // 3. Guest-only routes (login, register)
+        if (isGuestOnly) {
+            const searchParams = new URLSearchParams(window.location.search);
+            const isLogout = searchParams.get('logout') === '1';
+            const isExpired = searchParams.get('expired') === '1';
+
+            if (isLogout || isExpired) {
+                this.clearSession();
+                this.dismissStartupScreen();
+                if (typeof showToast === 'function') {
+                    if (isLogout) showToast('You have been logged out successfully.', 'info');
+                    if (isExpired) showToast('Your session has expired. Please sign in again.', 'warning');
+                }
+                return;
+            }
+
+            // If user has saved session: validate before deciding whether to redirect
+            if (hasSession) {
+                this.showStartupScreen('FRANK', 'Restoring Session...');
+                this.validateSession().then(result => {
+                    if (result.valid && result.user) {
+                        const target = (result.user.role === 'admin') ? 'admin.html' : 'dashboard.html';
+                        window.location.replace(target);
+                    } else {
+                        this.clearSession();
+                        this.dismissStartupScreen();
+                        if (result.reason === 'expired' && typeof showToast === 'function') {
+                            showToast('Your session has expired. Please sign in again.', 'warning');
+                        }
+                    }
+                }).catch(() => {
+                    this.dismissStartupScreen();
+                });
+                return;
             } else {
-                window.location.href = 'dashboard.html';
+                this.dismissStartupScreen();
+            }
+        }
+
+        // 4. Root / Landing page (index.html, /)
+        if (isRoot) {
+            if (hasSession) {
+                this.showStartupScreen('FRANK', 'Opening Chats...');
+                this.validateSession().then(result => {
+                    if (result.valid && result.user) {
+                        const target = (result.user.role === 'admin') ? 'admin.html' : 'dashboard.html';
+                        window.location.replace(target);
+                    } else {
+                        this.clearSession();
+                        this.dismissStartupScreen();
+                    }
+                }).catch(() => {
+                    this.dismissStartupScreen();
+                });
+            } else {
+                this.dismissStartupScreen();
             }
         }
     },
 
-    logout() {
+    async logout() {
         if (typeof window.wsClient !== 'undefined' && window.wsClient) {
             window.wsClient.disconnect();
         }
-        api.logout();
+        if (typeof api !== 'undefined' && api.logout) {
+            await api.logout();
+        } else {
+            this.clearSession();
+            window.location.replace('login.html?logout=1');
+        }
     }
 };
 
@@ -153,11 +321,11 @@ if (loginForm) {
             showToast(`Welcome back, ${data.user.full_name}!`, 'success');
             setTimeout(() => {
                 if (data.user && data.user.role === 'admin') {
-                    window.location.href = 'admin.html';
+                    window.location.replace('admin.html');
                 } else {
-                    window.location.href = 'dashboard.html';
+                    window.location.replace('dashboard.html');
                 }
-            }, 500);
+            }, 300);
         } catch (err) {
             const isAccountDisabled = (err.status === 403) || (err.message && (
                 err.message.toLowerCase().includes('disabled') || 
@@ -358,6 +526,13 @@ if (registerForm) {
             const res = await api.sendOTP(email, 'registration');
             showToast(res.message || `Verification code sent to ${email}`, 'success');
 
+            // Store pending registration details for OTP verification continuity
+            try {
+                sessionStorage.setItem('pending_registration_payload', JSON.stringify({ full_name, email, password, terms }));
+                sessionStorage.setItem('pending_reg_email', email);
+                sessionStorage.setItem('pending_otp_purpose', 'registration');
+            } catch (e) {}
+
             const currentStepFields = document.getElementById('registerStepFields') || stepFields;
             const currentOtpStep = document.getElementById('registerOtpStep') || otpStep;
             const currentTargetEmail = document.getElementById('otpTargetEmail') || otpTargetEmail;
@@ -418,8 +593,8 @@ if (registerForm) {
             auth.setUser(data.user);
             showToast('Account verified and created successfully! Welcome to FRANK.', 'success');
             setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 500);
+                window.location.replace('dashboard.html');
+            }, 300);
         } catch (err) {
             const msg = err.message || (err.data && (err.data.detail || err.data.message)) || 'Invalid verification code.';
             showToast(msg, 'error');

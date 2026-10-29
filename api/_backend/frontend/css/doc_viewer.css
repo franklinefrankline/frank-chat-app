@@ -1805,7 +1805,72 @@ section.docx-view-sheet {
 }
 
 @media (max-width: 480px) {
-    .toolbar-btn#docPrintToolBtn {
-        display: none;
+    .toolbar-btn#docPrintToolBtn,
+    .toolbar-btn#docDownloadToolBtn {
+        padding: 4px;
+    }
+}
+
+/* Print styling for In-Chat / In-Dashboard Spreadsheet Viewer */
+@media print {
+    /* Hide dashboard chrome, sidebars, headers, composer */
+    .app-sidebar,
+    .chat-header,
+    .chat-composer,
+    .chat-welcome,
+    .chat-history,
+    .chat-messages-container,
+    .in-chat-doc-header,
+    .in-chat-doc-toolbar,
+    .in-chat-doc-search-bar,
+    .in-chat-doc-formula-bar,
+    .in-chat-doc-thumbnails-panel,
+    .in-chat-doc-sheets-strip,
+    .doc-slideshow-overlay,
+    .toast,
+    .modal-backdrop,
+    .mobile-header {
+        display: none !important;
+    }
+
+    body, html, .app-layout, .chat-view, #inChatDocViewer, .in-chat-doc-body, .in-chat-doc-viewport, .doc-content-stage {
+        background: #ffffff !important;
+        color: #000000 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        position: static !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .excel-stage-wrapper, .excel-grid-container {
+        overflow: visible !important;
+        height: auto !important;
+        width: 100% !important;
+    }
+
+    .excel-table {
+        border-collapse: collapse !important;
+        width: 100% !important;
+        font-size: 9pt !important;
+    }
+
+    .excel-th {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+        border: 1px solid #94a3b8 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .excel-td {
+        border: 1px solid #cbd5e1 !important;
+        color: #000000 !important;
+        background: #ffffff !important;
+        padding: 4px 6px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 }

@@ -25,7 +25,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from database import engine, Base, SessionLocal
 import models
 from security import hash_password
-from routes import auth, users, messages, groups, files, admin, smart, conversations, contact, privacy
+from routes import auth, users, messages, groups, files, admin, smart, conversations, contact, privacy, spreadsheets
 from websocket.chat import handle_websocket_connection
 from services.smart_service import smart_service
 
@@ -43,6 +43,10 @@ def check_and_migrate_db():
                     conn.execute(text("ALTER TABLE users ADD COLUMN auto_translate BOOLEAN DEFAULT TRUE"))
                 if "default_view_translation" not in u_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN default_view_translation BOOLEAN DEFAULT TRUE"))
+                if "oauth_provider" not in u_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN oauth_provider VARCHAR(50) NULL"))
+                if "oauth_id" not in u_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN oauth_id VARCHAR(100) NULL"))
             if "messages" in table_names:
                 columns = [col["name"] for col in inspector.get_columns("messages")]
                 if "message_type" not in columns:
@@ -100,6 +104,44 @@ def seed_demo_users():
         db.close()
 
 seed_demo_users()
+
+def seed_spreadsheets():
+    """Safely imports pre-existing spreadsheets from EXCELL project for default admin user."""
+    db = SessionLocal()
+    try:
+        if db.query(models.Spreadsheet).count() == 0:
+            admin_user = db.query(models.User).filter(
+                (models.User.email == "frankline30999112@gmail.com") |
+                (models.User.role == "admin")
+            ).first()
+            if admin_user:
+                import sqlite3
+                src_sqlite = Path(r"C:\Users\inbat\OneDrive\Documents\EXCELL project\data\spreadsheets.sqlite")
+                if src_sqlite.exists():
+                    conn = sqlite3.connect(str(src_sqlite))
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT id, title, active_sheet_id, data, created_at, updated_at FROM spreadsheets")
+                    for row in cursor.fetchall():
+                        r_id, r_title, r_active, r_data, r_created, r_updated = row
+                        now_dt = models.get_utc_now()
+                        sheet = models.Spreadsheet(
+                            id=r_id,
+                            user_id=admin_user.id,
+                            title=r_title,
+                            active_sheet_id=r_active,
+                            data=r_data,
+                            created_at=now_dt,
+                            updated_at=now_dt
+                        )
+                        db.add(sheet)
+                    db.commit()
+                    conn.close()
+    except Exception as e:
+        print(f"Spreadsheet seed note: {e}")
+    finally:
+        db.close()
+
+seed_spreadsheets()
 
 
 # Security Headers Middleware
@@ -202,7 +244,7 @@ async def ensure_api_prefix(request: Request, call_next):
     path = request.url.path
     # Never rewrite static frontend assets or HTML pages
     if not any(path.endswith(ext) for ext in [".html", ".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".webp", ".woff", ".woff2", ".ttf", ".txt", ".xml"]):
-        for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health", "/admin", "/conversations", "/smart", "/contact", "/privacy"]:
+        for pfx in ["/auth", "/users", "/messages", "/groups", "/files", "/health", "/admin", "/conversations", "/smart", "/contact", "/privacy", "/spreadsheets"]:
             if (path == pfx and pfx not in ["/admin", "/privacy"]) or path.startswith(pfx + "/"):
                 request.scope["path"] = "/api" + path
                 break
@@ -210,7 +252,7 @@ async def ensure_api_prefix(request: Request, call_next):
     return response
 
 # Include Routers with both /api prefix and root prefix
-for r in [auth.router, users.router, messages.router, groups.router, files.router, admin.router, smart.router, conversations.router, contact.router, privacy.router]:
+for r in [auth.router, users.router, messages.router, groups.router, files.router, admin.router, smart.router, conversations.router, contact.router, privacy.router, spreadsheets.router]:
     app.include_router(r, prefix="/api")
     app.include_router(r)
 
@@ -386,6 +428,18 @@ if frontend_dir and frontend_dir.exists():
     @app.get("/reset-password")
     def serve_reset_password():
         return FileResponse(frontend_dir / "reset-password.html")
+
+    @app.get("/spreadsheet")
+    @app.get("/spreadsheet.html")
+    @app.get("/sheets")
+    @app.get("/excel")
+    def serve_spreadsheet():
+        target = frontend_dir / "spreadsheet.html" if frontend_dir else None
+        if not target or not target.exists():
+            target = root_dir / "spreadsheet.html"
+        if target and target.exists():
+            return FileResponse(target, media_type="text/html; charset=utf-8")
+        return JSONResponse(status_code=404, content={"detail": "Spreadsheet editor page not found"})
 
     @app.get("/privacy")
     def serve_privacy():

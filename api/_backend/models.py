@@ -33,6 +33,8 @@ class User(Base):
     last_seen = Column(DateTime(timezone=True), default=get_utc_now)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
     updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+    oauth_provider = Column(String(50), nullable=True)
+    oauth_id = Column(String(100), nullable=True)
 
 
     # Relationships
@@ -45,6 +47,7 @@ class User(Base):
     audit_logs = relationship("AuditLog", back_populates="admin", foreign_keys="AuditLog.admin_id")
     consent_records = relationship("ConsentRecord", back_populates="user", cascade="all, delete-orphan")
     privacy_requests = relationship("PrivacyDataRequest", foreign_keys="PrivacyDataRequest.user_id", back_populates="user")
+    spreadsheets = relationship("Spreadsheet", back_populates="user", cascade="all, delete-orphan")
 
 
 class Message(Base):
@@ -455,3 +458,15 @@ class ComplianceFinding(Base):
     created_by = relationship("User")
 
 
+class Spreadsheet(Base):
+    __tablename__ = "spreadsheets"
+
+    id = Column(String(100), primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String(255), nullable=False, default="Untitled Spreadsheet")
+    active_sheet_id = Column(String(100), nullable=False, default="sheet-1")
+    data = Column(Text, nullable=False)  # JSON representation of sheets and cell data
+    created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now, index=True)
+
+    user = relationship("User", back_populates="spreadsheets")
