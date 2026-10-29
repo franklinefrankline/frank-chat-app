@@ -36,16 +36,25 @@ const contactsModule = {
 
             users.forEach(user => {
                 const initials = (user.full_name || user.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                const safeHandle = user.username && user.username.includes('@') ? user.username.split('@')[0] : (user.username || 'user');
+                let safeName = user.full_name || safeHandle;
+                if (safeName.includes('@') && safeName.includes('.')) safeName = safeName.split('@')[0];
+                const frankPill = user.frank_id
+                    ? `<span style="font-family: monospace; font-size: 10px; font-weight: 700; padding: 2px 5px; background: rgba(6, 182, 212, 0.12); color: var(--accent-cyan); border-radius: 4px; border: 1px solid rgba(6, 182, 212, 0.25); margin-left: 6px;">${messagesModule.escapeHTML(user.frank_id)}</span>`
+                    : '';
+                const avatarContent = user.avatar_url
+                    ? `<img src="${messagesModule.escapeHTML(user.avatar_url)}" alt="${messagesModule.escapeHTML(safeName)}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`
+                    : `<span>${initials}</span>`;
                 const card = document.createElement('div');
                 card.className = 'conversation-card';
                 card.innerHTML = `
                     <div class="avatar avatar-md">
-                        <span>${initials}</span>
+                        ${avatarContent}
                         <span class="avatar-status ${user.is_online ? 'online' : 'offline'}"></span>
                     </div>
                     <div class="conversation-details">
-                        <div class="conversation-name">${messagesModule.escapeHTML(user.full_name)}</div>
-                        <div class="conversation-snippet">@${messagesModule.escapeHTML(user.username)} &bull; ${messagesModule.escapeHTML((user.bio || 'FRANK User').replace(/ChatApp|QENVO/gi, 'FRANK'))}</div>
+                        <div class="conversation-name" style="display: flex; align-items: center;">${messagesModule.escapeHTML(safeName)}${frankPill}</div>
+                        <div class="conversation-snippet">@${messagesModule.escapeHTML(safeHandle)} &bull; ${messagesModule.escapeHTML((user.bio || 'FRANK User').replace(/ChatApp|QENVO/gi, 'FRANK'))}</div>
                     </div>
                 `;
 

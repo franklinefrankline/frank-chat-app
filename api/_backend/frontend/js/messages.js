@@ -113,6 +113,10 @@ const messagesModule = {
             return `<span class="message-status-check read" title="Read"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 6 7 17 2 12"></polyline><polyline points="22 10 13 19 11 17"></polyline></svg></span>`;
         } else if (status === 'delivered') {
             return `<span class="message-status-check delivered" title="Delivered"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 6 7 17 2 12"></polyline><polyline points="22 10 13 19 11 17"></polyline></svg></span>`;
+        } else if (status === 'sending') {
+            return `<span class="message-status-check sending" title="Sending..."><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>`;
+        } else if (status === 'failed') {
+            return `<span class="message-status-check failed" title="Failed to send. Click to retry"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></span>`;
         } else {
             return `<span class="message-status-check sent" title="Sent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
         }
@@ -399,9 +403,21 @@ const messagesModule = {
         const downloadSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
         const openSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`;
         const moreSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5"></circle><circle cx="12" cy="5" r="1.5"></circle><circle cx="12" cy="19" r="1.5"></circle></svg>`;
+        const forwardSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></svg>`;
 
         const hasRealText = safeContent && !safeContent.startsWith('Shared a file:') && safeContent !== 'Voice message';
         const copyPayload = hasRealText ? safeContent : (docFilename || safeContent || '');
+        const isDeletedAll = !!msg.deleted_for_everyone;
+        const isForwarded = !!msg.is_forwarded;
+
+        let displayBodyHtml = bodyHtml;
+        if (isDeletedAll) {
+            displayBodyHtml = `<div class="deleted-message-placeholder"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px; vertical-align:middle;"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg><em>This message was deleted</em></div>`;
+            replyHtml = '';
+            reactionsHtml = '';
+        } else if (isForwarded) {
+            displayBodyHtml = `<div class="message-forwarded-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></svg> Forwarded</div>` + displayBodyHtml;
+        }
 
         return `
             <div class="message-row ${isSent ? 'sent' : 'received'} ${isGroup ? 'is-group' : ''} ${isConsecutive ? 'is-consecutive' : ''} ${hasAttachment ? 'has-document' : ''}" id="msgRow-${msg.id}" data-message-id="${msg.id}">
@@ -411,6 +427,7 @@ const messagesModule = {
                         ${avatarMarkup}
                     </div>
                     ` : ''}
+                    <input type="checkbox" class="message-select-checkbox" data-msg-id="${msg.id}" aria-label="Select message">
                     <div class="message-bubble-col">
                         <!-- Message Action Toolbar: Exactly 8 actions in required order -->
                         <div class="message-actions-toolbar" role="toolbar" aria-label="Message actions">
@@ -442,6 +459,10 @@ const messagesModule = {
                             <button type="button" class="action-tool-btn msg-action-copy" title="Copy Message" aria-label="Copy Message" data-msg-id="${msg.id}" data-content="${this.escapeHTML(copyPayload)}">
                                 ${copySvg}
                             </button>
+                            <!-- 7b. Forward message -->
+                            <button type="button" class="action-tool-btn msg-action-forward" title="Forward Message" aria-label="Forward Message" data-msg-id="${msg.id}">
+                                ${forwardSvg}
+                            </button>
                             <!-- 8. More options (three-dot menu) -->
                             <button type="button" class="action-tool-btn msg-action-more-btn" title="More Options" aria-label="More Options" data-msg-id="${msg.id}">
                                 ${moreSvg}
@@ -452,7 +473,7 @@ const messagesModule = {
                         <div class="message-bubble ${isDocument ? 'document-bubble' : ''}">
                             ${(isGroup && !isSent && !isConsecutive) ? `<div class="message-group-sender-name">${this.escapeHTML(senderDisplayName)}</div>` : ''}
                             ${replyHtml}
-                            ${bodyHtml}
+                            ${displayBodyHtml}
                         </div>
 
                         <!-- Metadata (Time & Read Status) -->
@@ -704,6 +725,21 @@ document.addEventListener('click', async (e) => {
             e.preventDefault();
         }
         return;
+    }
+
+    // 0a1. Forward message button
+    const fwdBtn = e.target.closest('.msg-action-forward');
+    if (fwdBtn) {
+        e.stopPropagation();
+        const messageId = parseInt(fwdBtn.dataset.msgId, 10);
+        if (window.chatController) window.chatController.openForwardModal(messageId);
+        return;
+    }
+
+    // 0a2. Message selection checkbox
+    const chk = e.target.closest('.message-select-checkbox');
+    if (chk) {
+        if (window.chatController) window.chatController.handleMessageSelectionChange();
     }
 
     // 0b. Open in-message context menu (More options three-dot menu)

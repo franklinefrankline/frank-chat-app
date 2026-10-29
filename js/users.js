@@ -178,7 +178,10 @@ const usersModule = {
             }
 
             users.forEach(user => {
-                const initials = (user.full_name || user.username || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                const safeHandle = user.username && user.username.includes('@') ? user.username.split('@')[0] : (user.username || 'user');
+                let safeName = user.full_name || safeHandle;
+                if (safeName.includes('@') && safeName.includes('.')) safeName = safeName.split('@')[0];
+                const initials = safeName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
                 const card = document.createElement('div');
                 card.className = 'conversation-card';
                 card.style.borderRadius = 'var(--radius-md)';
@@ -196,10 +199,10 @@ const usersModule = {
                     </div>
                     <div class="conversation-details" style="flex:1; min-width:0;">
                         <div style="display: flex; align-items: center; gap: 6px;">
-                            <span class="conversation-name">${messagesModule.escapeHTML(user.full_name)}</span>
+                            <span class="conversation-name">${messagesModule.escapeHTML(safeName)}</span>
                             ${frankBadge}
                         </div>
-                        <div style="font-size:12px; color:var(--text-muted);">@${messagesModule.escapeHTML(user.username)}</div>
+                        <div style="font-size:12px; color:var(--text-muted);">@${messagesModule.escapeHTML(safeHandle)}</div>
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm" style="flex-shrink:0;">Chat</button>
                 `;
@@ -281,8 +284,11 @@ const usersModule = {
             const avatarEl = document.getElementById('previewAvatar');
             const statusDot = document.getElementById('previewStatusDot');
 
-            if (fullNameEl) fullNameEl.textContent = user.full_name;
-            if (usernameEl) usernameEl.textContent = `@${user.username}`;
+            const safeHandle = user.username && user.username.includes('@') ? user.username.split('@')[0] : (user.username || 'user');
+            let safeName = user.full_name || safeHandle;
+            if (safeName.includes('@') && safeName.includes('.')) safeName = safeName.split('@')[0];
+            if (fullNameEl) fullNameEl.textContent = safeName;
+            if (usernameEl) usernameEl.textContent = `@${safeHandle}`;
             if (badgeEl) badgeEl.textContent = `ID: ${user.frank_id}`;
             if (bioEl) bioEl.textContent = user.bio || 'Hey there! I am using FRANK.';
 

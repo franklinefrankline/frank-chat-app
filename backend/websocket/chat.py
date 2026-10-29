@@ -492,39 +492,136 @@ async def handle_websocket_connection(websocket: WebSocket, token: str):
                         finally:
                             db_session.close()
 
-                # 4. DELETE MESSAGE
+                # 4. DELETE MESSAGE (Delete for Me vs Delete for Everyone)
                 elif event_type in ("delete_message", "message_delete"):
                     try:
                         del_msg_id = int(data.get("message_id")) if data.get("message_id") else None
                     except (ValueError, TypeError):
                         del_msg_id = None
+                    delete_type = data.get("delete_type", "me")
                     if del_msg_id:
                         db_session = SessionLocal()
                         try:
                             del_msg = db_session.query(models.Message).filter(models.Message.id == del_msg_id).first()
-                            if del_msg and del_msg.sender_id == user_id:
+                            if del_msg:
                                 recip_id = del_msg.recipient_id
                                 grp_id = del_msg.group_id
-                                db_session.delete(del_msg)
+                                if delete_type == "everyone":
+                                    is_sender = (del_msg.sender_id == user_id)
+                                    is_admin_or_owner = False
+                                    if grp_id:
+                                        m_rec = db_session.query(models.GroupMember).filter(
+                                            models.GroupMember.group_id == grp_id,
+                                            models.GroupMember.user_id == user_id
+                                        ).first()
+                                        if m_rec and m_rec.role in ("owner", "admin"):
+                                            is_admin_or_owner = True
+                                    if is_sender or is_admin_or_owner:
+                                        del_msg.deleted_for_everyone = True
+                                        del_msg.updated_at = datetime.now(timezone.utc)
+                                        db_session.commit()
+                                        del_payload = {
+                                            "type": "message_deleted",
+                                            "message_id": del_msg_id,
+                                            "delete_type": "everyone",
+                                            "sender_id": del_msg.sender_id
+                                        }
+                                        await manager.send_to_user(user_id, del_payload)
+                                        if grp_id:
+                                            await manager.broadcast_to_group(grp_id, del_payload, sender_id=user_id)
+                                        elif recip_id:
+                                            await manager.send_to_user(recip_id, del_payload)
+                                else:
+                                    # delete for me
+                                    if del_msg.sender_id == user_id:
+                                        del_msg.deleted_for_sender = True
+                                    if del_msg.recipient_id == user_id:
+                                        del_msg.deleted_for_recipient = True
+                                    db_session.commit()
+                                    del_payload = {
+                                        "type": "message_deleted",
+                                        "message_id": del_msg_id,
+                                        "delete_type": "me",
+                                        "user_id": user_id
+                                    }
+                                    await manager.send_to_user(user_id, del_payload)
+                        finally:
+                            db_session.close()
+
+                # 4b. MARK AS READ (WebSocket receipt)
+                elif event_type in ("mark_read", "read_messages"):
+                    partner_raw = data.get("partner_id") or data.get("recipient_id")
+                    try:
+                        p_id = int(partner_raw) if partner_raw else None
+                    except Exception:
+                        p_id = None
+                    if p_id:
+                        now_utc = datetime.now(timezone.utc)
+                        db_session = SessionLocal()
+                        try:
+                            db_session.query(models.Message).filter(
+                                models.Message.sender_id == p_id,
+                                models.Message.recipient_id == user_id,
+                                models.Message.group_id.is_(None),
+                                models.Message.status != "read"
+                            ).update({"status": "read", "read_at": now_utc}, synchronize_session=False)
+                            db_session.commit()
+                            await manager.send_to_user(p_id, {
+                                "type": "messages_read",
+                                "partner_id": user_id,
+                                "reader_id": user_id,
+                                "read_at": schemas.format_iso_utc(now_utc)
+                            })
+                        finally:
+                            db_session.close()
+
+                # 4c. PIN / UNPIN MESSAGE
+                elif event_type == "pin_message":
+                    msg_id = int(data.get("message_id")) if data.get("message_id") else None
+                    if msg_id:
+                        db_session = SessionLocal()
+                        try:
+                            pm = db_session.query(models.Message).filter(models.Message.id == msg_id).first()
+                            if pm:
+                                pm.is_pinned = not bool(pm.is_pinned)
+                                pm.pinned_at = datetime.now(timezone.utc) if pm.is_pinned else None
                                 db_session.commit()
-
-                                del_payload = {
-                                    "type": "message_deleted",
-                                    "message_id": del_msg_id
+                                pin_payload = {
+                                    "type": "message_pinned",
+                                    "message_id": pm.id,
+                                    "is_pinned": pm.is_pinned
                                 }
-                                await manager.send_to_user(user_id, del_payload)
-                                if grp_id:
-                                    await manager.broadcast_to_group(grp_id, del_payload, sender_id=user_id)
-                                elif recip_id:
-                                    await manager.send_to_user(recip_id, del_payload)
+                                if pm.group_id:
+                                    await manager.broadcast_to_group(pm.group_id, pin_payload)
+                                    await manager.send_to_user(user_id, pin_payload)
+                                elif pm.recipient_id:
+                                    await manager.send_to_user(pm.recipient_id, pin_payload)
+                                    await manager.send_to_user(user_id, pin_payload)
+                        finally:
+                            db_session.close()
 
-                                # Broadcast updated message count to admin
-                                total_cnt = db_session.query(models.Message).count()
-                                await manager.broadcast_admin({
-                                    "type": "admin_message_count_updated",
-                                    "total_messages": total_cnt
-                                })
-                                await manager.broadcast_admin_metrics(db_session)
+                # 4d. STAR / UNSTAR MESSAGE
+                elif event_type == "star_message":
+                    msg_id = int(data.get("message_id")) if data.get("message_id") else None
+                    if msg_id:
+                        db_session = SessionLocal()
+                        try:
+                            star = db_session.query(models.StarredMessage).filter(
+                                models.StarredMessage.user_id == user_id,
+                                models.StarredMessage.message_id == msg_id
+                            ).first()
+                            if star:
+                                db_session.delete(star)
+                                is_starred = False
+                            else:
+                                db_session.add(models.StarredMessage(user_id=user_id, message_id=msg_id))
+                                is_starred = True
+                            db_session.commit()
+                            await manager.send_to_user(user_id, {
+                                "type": "message_starred",
+                                "message_id": msg_id,
+                                "is_starred": is_starred
+                            })
                         finally:
                             db_session.close()
 

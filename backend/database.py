@@ -190,6 +190,27 @@ def check_and_migrate_db():
                     conn.execute(text("ALTER TABLE messages ADD COLUMN file_id INTEGER NULL"))
                 if "updated_at" not in columns:
                     conn.execute(text("ALTER TABLE messages ADD COLUMN updated_at TIMESTAMP NULL"))
+                if "deleted_for_sender" not in columns:
+                    conn.execute(text("ALTER TABLE messages ADD COLUMN deleted_for_sender BOOLEAN DEFAULT FALSE"))
+                if "deleted_for_recipient" not in columns:
+                    conn.execute(text("ALTER TABLE messages ADD COLUMN deleted_for_recipient BOOLEAN DEFAULT FALSE"))
+                if "deleted_for_everyone" not in columns:
+                    conn.execute(text("ALTER TABLE messages ADD COLUMN deleted_for_everyone BOOLEAN DEFAULT FALSE"))
+                if "delivered_at" not in columns:
+                    conn.execute(text("ALTER TABLE messages ADD COLUMN delivered_at TIMESTAMP NULL"))
+                if "read_at" not in columns:
+                    conn.execute(text("ALTER TABLE messages ADD COLUMN read_at TIMESTAMP NULL"))
+                if "is_pinned" not in columns:
+                    conn.execute(text("ALTER TABLE messages ADD COLUMN is_pinned BOOLEAN DEFAULT FALSE"))
+                if "pinned_at" not in columns:
+                    conn.execute(text("ALTER TABLE messages ADD COLUMN pinned_at TIMESTAMP NULL"))
+                if "is_forwarded" not in columns:
+                    conn.execute(text("ALTER TABLE messages ADD COLUMN is_forwarded BOOLEAN DEFAULT FALSE"))
+                try:
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_messages_direct_conv ON messages (sender_id, recipient_id, id)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_messages_group_conv ON messages (group_id, id)"))
+                except Exception:
+                    pass
 
             if "documents" in tables:
                 columns = [col["name"] for col in inspector.get_columns("documents")]

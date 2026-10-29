@@ -931,12 +931,12 @@ def get_google_oauth_config(request: Optional[Request] = None) -> Tuple[str, str
     explicit_redirect = (os.getenv("GOOGLE_REDIRECT_URI") or os.getenv("GOOGLE_OAUTH_REDIRECT_URI") or "").strip()
 
     if explicit_redirect:
-        redirect_uri = explicit_redirect
+        redirect_uri = explicit_redirect.rstrip("/")
     else:
         # Determine host dynamically from request headers if available
         if request and request.headers.get("x-forwarded-host"):
             proto = request.headers.get("x-forwarded-proto", "https")
-            host = request.headers.get("x-forwarded-host")
+            host = request.headers.get("x-forwarded-host").split(",")[0].strip()
             base = f"{proto}://{host}".rstrip("/")
         elif request and request.headers.get("host") and ("localhost" in request.headers.get("host") or "127.0.0.1" in request.headers.get("host")):
             base = f"http://{request.headers.get('host')}".rstrip("/")
@@ -1154,6 +1154,7 @@ def initiate_google_oauth(request: Request):
 
 
 @router.api_route("/google/callback", methods=["GET", "POST"])
+@router.api_route("/callback/google", methods=["GET", "POST"])
 async def google_oauth_callback(
     request: Request,
     code: Optional[str] = None,
@@ -1168,6 +1169,25 @@ async def google_oauth_callback(
     and redirects user to frontend with an authenticated session.
     """
     frontend_base = get_frontend_base_url(request)
+
+    # Fallback to inspecting POST/form or JSON body if parameters not in query string
+    if not code and not error:
+        try:
+            content_type = request.headers.get("content-type", "")
+            if "application/json" in content_type:
+                body_json = await request.json()
+                code = code or body_json.get("code")
+                state = state or body_json.get("state")
+                error = error or body_json.get("error")
+                error_description = error_description or body_json.get("error_description")
+            elif "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+                form = await request.form()
+                code = code or form.get("code")
+                state = state or form.get("state")
+                error = error or form.get("error")
+                error_description = error_description or form.get("error_description")
+        except Exception:
+            pass
 
     # 1. User cancelled or error returned by Google
     if error:

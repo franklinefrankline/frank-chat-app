@@ -64,6 +64,14 @@ class Message(Base):
     status = Column(String(20), default="sent")  # sent, delivered, read
     created_at = Column(DateTime(timezone=True), default=get_utc_now, index=True)
     updated_at = Column(DateTime(timezone=True), nullable=True)
+    deleted_for_sender = Column(Boolean, default=False, nullable=True)
+    deleted_for_recipient = Column(Boolean, default=False, nullable=True)
+    deleted_for_everyone = Column(Boolean, default=False, nullable=True)
+    delivered_at = Column(DateTime(timezone=True), nullable=True)
+    read_at = Column(DateTime(timezone=True), nullable=True)
+    is_pinned = Column(Boolean, default=False, nullable=True)
+    pinned_at = Column(DateTime(timezone=True), nullable=True)
+    is_forwarded = Column(Boolean, default=False, nullable=True)
 
     # Relationships
     sender = relationship("User", back_populates="sent_messages", foreign_keys=[sender_id])
@@ -470,3 +478,18 @@ class Spreadsheet(Base):
     updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now, index=True)
 
     user = relationship("User", back_populates="spreadsheets")
+
+
+class StarredMessage(Base):
+    __tablename__ = "starred_messages"
+    __table_args__ = (
+        UniqueConstraint("user_id", "message_id", name="uq_starred_user_message"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    message_id = Column(Integer, ForeignKey("messages.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+    user = relationship("User", foreign_keys=[user_id])
+    message = relationship("Message", foreign_keys=[message_id])

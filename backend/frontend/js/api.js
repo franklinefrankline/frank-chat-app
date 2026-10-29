@@ -909,7 +909,11 @@ const api = {
     // Messages endpoints
     async getDirectMessages(partnerId, options = {}) {
         const lang = options.target_language || (typeof i18n !== 'undefined' ? i18n.getLanguage() : '');
-        const query = lang ? `?target_language=${encodeURIComponent(lang)}` : '';
+        const params = new URLSearchParams();
+        if (lang) params.append('target_language', lang);
+        if (options.limit) params.append('limit', options.limit);
+        if (options.before_id) params.append('before_id', options.before_id);
+        const query = params.toString() ? `?${params.toString()}` : '';
         try {
             return await this.request(`/api/messages/direct/${partnerId}${query}`);
         } catch (err) {
@@ -934,9 +938,38 @@ const api = {
         });
     },
 
-    async deleteMessage(messageId) {
-        return this.request(`/api/messages/${messageId}`, {
+    async deleteMessage(messageId, deleteType = 'me') {
+        return this.request(`/api/messages/${messageId}?delete_type=${encodeURIComponent(deleteType)}`, {
             method: 'DELETE'
+        });
+    },
+
+    async pinMessage(messageId) {
+        return this.request(`/api/messages/${messageId}/pin`, {
+            method: 'POST'
+        });
+    },
+
+    async starMessage(messageId) {
+        return this.request(`/api/messages/${messageId}/star`, {
+            method: 'POST'
+        });
+    },
+
+    async getStarredMessages() {
+        return this.request('/api/messages/starred');
+    },
+
+    async forwardMessage(messageId, recipientIds = [], groupIds = []) {
+        return this.request(`/api/messages/${messageId}/forward`, {
+            method: 'POST',
+            body: JSON.stringify({ recipient_ids: recipientIds, group_ids: groupIds })
+        });
+    },
+
+    async markConversationRead(conversationId) {
+        return this.request(`/api/conversations/${conversationId}/read`, {
+            method: 'POST'
         });
     },
 

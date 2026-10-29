@@ -3,7 +3,7 @@ import uuid
 from pathlib import Path
 from datetime import datetime, timezone
 from urllib.parse import urlparse
-from typing import List, Optional
+from typing import Union, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, desc, func, and_
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 
 def serialize_user_for_ws(user: models.User) -> dict:
-    resp = schemas.UserResponse.from_orm(user).dict()
+    resp = schemas.UserPublicResponse.from_orm(user).dict()
     for k, v in resp.items():
         if isinstance(v, datetime):
             resp[k] = schemas.format_iso_utc(v)
@@ -35,7 +35,7 @@ async def broadcast_profile_update(user: models.User):
         print(f"Profile broadcast error: {e}")
 
 
-@router.get("", response_model=List[schemas.UserResponse])
+@router.get("", response_model=List[schemas.UserPublicResponse])
 def get_users(
     q: Optional[str] = Query(None, description="Search by username or name"),
     current_user: models.User = Depends(get_current_user),
@@ -51,7 +51,8 @@ def get_users(
                 models.User.frank_id.ilike(search_pattern)
             )
         )
-    return query.order_by(models.User.full_name).limit(50).all()
+    users = query.order_by(models.User.full_name).limit(50).all()
+    return [schemas.UserPublicResponse.from_orm(u) for u in users]
 
 
 @router.get("/me", response_model=schemas.UserResponse)
@@ -261,7 +262,7 @@ def get_or_create_private_conversation(
         user_b_id=conv.user_b_id,
         created_at=conv.created_at,
         updated_at=conv.updated_at,
-        other_user=schemas.UserResponse.from_orm(target_user)
+        other_user=schemas.UserPublicResponse.from_orm(target_user) if target_user.id != current_user.id else schemas.UserResponse.from_orm(target_user)
     )
 
 
@@ -348,16 +349,20 @@ def delete_direct_conversation(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    ua = min(current_user.id, partner_id)
-    ub = max(current_user.id, partner_id)
-    conv = db.query(models.Conversation).filter(
-        models.Conversation.user_a_id == ua,
-        models.Conversation.user_b_id == ub
-    ).first()
-    if conv:
-        db.delete(conv)
-        db.commit()
-    return {"success": True, "message": "Conversation removed"}
+    db.query(models.Message).filter(
+        models.Message.group_id.is_(None),
+        models.Message.sender_id == current_user.id,
+        models.Message.recipient_id == partner_id
+    ).update({"deleted_for_sender": True}, synchronize_session=False)
+
+    db.query(models.Message).filter(
+        models.Message.group_id.is_(None),
+        models.Message.sender_id == partner_id,
+        models.Message.recipient_id == current_user.id
+    ).update({"deleted_for_recipient": True}, synchronize_session=False)
+
+    db.commit()
+    return {"success": True, "message": "Conversation cleared for you"}
 
 
 @router.get("/conversations")
@@ -397,11 +402,17 @@ def get_conversations(
     # 3. Fetch recent direct messages involving current user (up to 300) in ONE query
     recent_msgs = db.query(models.Message).filter(
         or_(
-            models.Message.sender_id == current_user.id,
-            models.Message.recipient_id == current_user.id
+            and_(
+                models.Message.sender_id == current_user.id,
+                or_(models.Message.deleted_for_sender.is_(False), models.Message.deleted_for_sender.is_(None))
+            ),
+            and_(
+                models.Message.recipient_id == current_user.id,
+                or_(models.Message.deleted_for_recipient.is_(False), models.Message.deleted_for_recipient.is_(None))
+            )
         ),
         models.Message.group_id.is_(None)
-    ).order_by(desc(models.Message.created_at)).limit(300).all()
+    ).order_by(desc(models.Message.id)).limit(300).all()
 
     # Extract last message per partner and collect additional partner IDs
     last_msg_map = {}
@@ -409,10 +420,11 @@ def get_conversations(
         pid = msg.recipient_id if msg.sender_id == current_user.id else msg.sender_id
         partner_ids.add(pid)
         if pid not in last_msg_map:
+            is_del_all = bool(getattr(msg, "deleted_for_everyone", False))
             last_msg_map[pid] = {
                 "id": msg.id,
-                "content": msg.content,
-                "message_type": msg.message_type or "text",
+                "content": "🚫 This message was deleted" if is_del_all else msg.content,
+                "message_type": "text" if is_del_all else (msg.message_type or "text"),
                 "sender_id": msg.sender_id,
                 "created_at": schemas.format_iso_utc(msg.created_at),
                 "status": msg.status
@@ -430,7 +442,9 @@ def get_conversations(
     ).filter(
         models.Message.recipient_id == current_user.id,
         models.Message.group_id.is_(None),
-        models.Message.status != "read"
+        models.Message.status != "read",
+        or_(models.Message.deleted_for_recipient.is_(False), models.Message.deleted_for_recipient.is_(None)),
+        or_(models.Message.deleted_for_everyone.is_(False), models.Message.deleted_for_everyone.is_(None))
     ).group_by(models.Message.sender_id).all()
     unread_map = {r[0]: r[1] for r in unread_raw}
 
@@ -450,8 +464,10 @@ def get_conversations(
             "conversation_id": conv_id,
             "partner_id": partner.id,
             "type": "direct",
-            "name": f"{partner.full_name} (You)" if is_self else partner.full_name,
-            "username": partner.username,
+            "name": f"{partner.full_name} (You)" if is_self else (
+                partner.full_name.split("@")[0] if (partner.full_name and "@" in partner.full_name and "." in partner.full_name.split("@")[-1]) else partner.full_name
+            ),
+            "username": (partner.username.split("@")[0] if (partner.username and "@" in partner.username) else partner.username) if not is_self else partner.username,
             "frank_id": partner.frank_id,
             "bio": "Message yourself • Notes & bookmarks" if is_self else partner.bio,
             "avatar_url": partner.avatar_url,
@@ -566,7 +582,7 @@ def get_conversations(
     return conv_list
 
 
-@router.get("/{user_id}", response_model=schemas.UserResponse)
+@router.get("/{user_id}", response_model=Union[schemas.UserResponse, schemas.UserPublicResponse])
 def get_user_by_id(
     user_id: int,
     current_user: models.User = Depends(get_current_user),
@@ -575,7 +591,9 @@ def get_user_by_id(
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
+    if user.id == current_user.id:
+        return schemas.UserResponse.from_orm(user)
+    return schemas.UserPublicResponse.from_orm(user)
 
 
 async def _perform_user_deletion(target_user: models.User, db: Session):

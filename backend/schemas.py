@@ -65,6 +65,7 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     id: int
     frank_id: str
+    email: Optional[str] = None
     name: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
@@ -81,9 +82,48 @@ class UserResponse(UserBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
+    @field_serializer("created_at", "updated_at", "last_seen", check_fields=False)
+    def serialize_utc_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
+        return format_iso_utc(dt)
+
     class Config:
         from_attributes = True
 
+
+class UserPublicResponse(BaseModel):
+    id: int
+    username: Optional[str] = None
+    full_name: str
+    name: Optional[str] = None
+    frank_id: str
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    role: str = "user"
+    status: str = "active"
+    account_status: str = "active"
+    is_active: bool = True
+    is_online: bool = False
+    last_seen: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_serializer("created_at", "updated_at", "last_seen", check_fields=False)
+    def serialize_utc_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
+        return format_iso_utc(dt)
+
+    @model_validator(mode="after")
+    def sanitize_email_leakage(self):
+        # Never leak email inside username, full_name, or name to third-party viewers
+        if self.username and "@" in self.username:
+            self.username = self.username.split("@")[0]
+        if self.full_name and "@" in self.full_name and "." in self.full_name.split("@")[-1]:
+            self.full_name = self.full_name.split("@")[0]
+        if self.name and "@" in self.name and "." in self.name.split("@")[-1]:
+            self.name = self.name.split("@")[0]
+        return self
+
+    class Config:
+        from_attributes = True
 
 
 class UserPreviewResponse(BaseModel):
@@ -94,6 +134,14 @@ class UserPreviewResponse(BaseModel):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     is_online: bool = False
+
+    @model_validator(mode="after")
+    def sanitize_email_leakage(self):
+        if self.username and "@" in self.username:
+            self.username = self.username.split("@")[0]
+        if self.full_name and "@" in self.full_name and "." in self.full_name.split("@")[-1]:
+            self.full_name = self.full_name.split("@")[0]
+        return self
 
     class Config:
         from_attributes = True
@@ -202,7 +250,7 @@ class ConversationResponse(BaseModel):
     user_b_id: int
     created_at: datetime
     updated_at: datetime
-    other_user: Optional[UserResponse] = None
+    other_user: Optional[UserPublicResponse] = None
 
     class Config:
         from_attributes = True
@@ -213,7 +261,7 @@ class ConversationResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    user: UserResponse
+    user: UserPublicResponse
 
 
 class TokenPayload(BaseModel):
@@ -329,14 +377,21 @@ class MessageResponse(BaseModel):
     status: Optional[str] = "sent"
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    sender: Optional[UserResponse] = None
+    sender: Optional[UserPublicResponse] = None
     document: Optional[DocumentResponse] = None
     reactions: List[ReactionResponse] = []
     translated_content: Optional[str] = None
     source_language: Optional[str] = None
     target_language: Optional[str] = None
+    deleted_for_everyone: Optional[bool] = False
+    delivered_at: Optional[datetime] = None
+    read_at: Optional[datetime] = None
+    is_pinned: Optional[bool] = False
+    pinned_at: Optional[datetime] = None
+    is_forwarded: Optional[bool] = False
+    is_starred: Optional[bool] = False
 
-    @field_serializer("created_at", "updated_at", check_fields=False)
+    @field_serializer("created_at", "updated_at", "delivered_at", "read_at", check_fields=False)
     def serialize_utc_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
         return format_iso_utc(dt)
 
@@ -378,7 +433,7 @@ class GroupMemberResponse(BaseModel):
     user_id: int
     role: str
     joined_at: datetime
-    user: UserResponse
+    user: UserPublicResponse
 
     class Config:
         from_attributes = True
@@ -1088,3 +1143,19 @@ class ComplianceChecklistResponse(BaseModel):
 
 
 
+
+
+class MessageForwardRequest(BaseModel):
+    recipient_ids: List[int] = []
+    group_ids: List[int] = []
+
+
+class StarredMessageResponse(BaseModel):
+    id: int
+    user_id: int
+    message_id: int
+    created_at: Optional[datetime] = None
+    message: Optional[MessageResponse] = None
+
+    class Config:
+        from_attributes = True

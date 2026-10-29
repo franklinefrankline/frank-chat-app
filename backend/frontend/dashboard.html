@@ -897,6 +897,14 @@
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                                 <span id="morePinText">Pin Chat</span>
                             </button>
+                            <button type="button" class="chat-more-item" id="moreStarredMessagesBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <span>Starred Messages</span>
+                            </button>
+                            <button type="button" class="chat-more-item" id="moreSelectMessagesBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                                <span>Select Messages</span>
+                            </button>
                             <button type="button" class="chat-more-item" id="moreFavoriteBtn">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                                 <span id="moreFavoriteText">Mark as Favorite</span>
@@ -1184,6 +1192,56 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- In-Chat Search Toolbar -->
+                <div class="in-chat-search-bar" id="inChatSearchBar" style="display: none;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="inChatSearchInput" placeholder="Search in this conversation..." aria-label="Search messages">
+                    <span class="in-chat-search-count" id="inChatSearchCount">0 / 0</span>
+                    <button type="button" class="btn btn-ghost btn-sm" id="inChatSearchPrevBtn" title="Previous match">▲</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="inChatSearchNextBtn" title="Next match">▼</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="inChatSearchCloseBtn" title="Close search">✕</button>
+                </div>
+
+                <!-- Pinned Message Bar -->
+                <div class="pinned-message-bar" id="pinnedMessageBar" style="display: none;">
+                    <div class="pinned-bar-content" id="pinnedBarContent" title="Click to jump to pinned message">
+                        <span class="pinned-bar-icon">📌</span>
+                        <div class="pinned-bar-text">
+                            <span class="pinned-bar-title" id="pinnedBarTitle">Pinned Message</span>
+                            <span class="pinned-bar-preview" id="pinnedBarPreview"></span>
+                        </div>
+                    </div>
+                    <button type="button" class="pinned-bar-unpin-btn" id="pinnedBarUnpinBtn" title="Unpin message">✕</button>
+                </div>
+
+                <!-- Multi-Message Selection Floating Bar -->
+                <div class="selection-action-bar" id="selectionActionBar" style="display: none;">
+                    <div class="selection-count" id="selectionCount">0 selected</div>
+                    <div class="selection-actions">
+                        <button type="button" class="btn btn-sm btn-secondary" id="selectionForwardBtn" title="Forward selected">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></svg> Forward
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" id="selectionCopyBtn" title="Copy text">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" id="selectionStarBtn" title="Star selected">
+                            ⭐ Star
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger" id="selectionDeleteBtn" title="Delete selected for me">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete
+                        </button>
+                        <button type="button" class="btn btn-sm btn-ghost" id="selectionCancelBtn" title="Cancel selection">
+                            ✕ Cancel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Floating Scroll to Bottom / New Messages Pill -->
+                <button type="button" class="scroll-bottom-pill" id="scrollBottomPill" style="display: none;" title="Scroll to bottom">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                    <span class="scroll-bottom-badge" id="scrollBottomBadge" style="display: none;">1</span>
+                </button>
 
                 <!-- Scrollable Messages Area -->
                 <div class="messages-container" id="messagesContainer">
@@ -2104,5 +2162,65 @@
             window.addEventListener('load', () => setTimeout(dismissLoadingScreen, 150));
         })();
     </script>
+
+    <!-- Forward Message Modal -->
+    <div class="modal-backdrop" id="forwardModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="forwardModalTitle">
+        <div class="modal-card forward-modal-card" style="max-width: 440px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="forwardModalTitle" style="font-size:16px; font-weight:700;">Forward Message</h3>
+                <button type="button" class="modal-close" id="forwardModalCloseBtn">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px;">
+                <div class="forward-search-wrap" style="position:relative; margin-bottom:12px;">
+                    <input type="text" id="forwardSearchInput" class="form-control" placeholder="Search chats or contacts..." style="padding-left:34px; width:100%;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text-muted);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </div>
+                <div class="forward-list" id="forwardList" style="max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+                    <!-- Dynamically populated conversations and contacts -->
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border);">
+                <span class="forward-selected-count" id="forwardSelectedCount" style="font-size: 13px; color: var(--text-muted);">0 selected</span>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-secondary" id="forwardCancelBtn">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="forwardSendBtn" disabled>Forward</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WhatsApp-Style Delete Message Confirmation Dialog -->
+    <div class="modal-backdrop" id="deleteMsgModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="deleteMsgTitle">
+        <div class="modal-card delete-msg-card" style="max-width: 360px; text-align: center;">
+            <div class="modal-header" style="border:none; padding:18px 20px 8px 20px; justify-content:center;">
+                <h3 class="modal-title" id="deleteMsgTitle" style="font-size: 16px; font-weight: 700;">Delete Message?</h3>
+            </div>
+            <div class="modal-body" style="padding: 0 20px 16px 20px; font-size: 13px; color: var(--text-secondary);">
+                <p id="deleteMsgPrompt" style="margin:0;">Choose an option to delete this message.</p>
+            </div>
+            <div class="modal-footer" style="padding: 0 20px 18px 20px; display: flex; flex-direction: column; gap: 8px; border:none;">
+                <button type="button" class="btn btn-danger w-100" id="deleteForEveryoneBtn" style="display:none; width:100%; justify-content:center;">Delete for Everyone</button>
+                <button type="button" class="btn btn-secondary w-100" id="deleteForMeBtn" style="width:100%; justify-content:center;">Delete for Me</button>
+                <button type="button" class="btn btn-ghost w-100" id="deleteCancelBtn" style="width:100%; justify-content:center;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Starred Messages Viewer Modal -->
+    <div class="modal-backdrop" id="starredMessagesModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="starredModalTitle">
+        <div class="modal-card starred-modal-card" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="starredModalTitle" style="font-size: 16px; font-weight: 700; display:flex; align-items:center; gap:8px;">
+                    <span>⭐</span> Starred Messages
+                </h3>
+                <button type="button" class="modal-close" id="starredModalCloseBtn">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px; max-height: 400px; overflow-y: auto;">
+                <div class="starred-list" id="starredList" style="display:flex; flex-direction:column; gap:8px;">
+                    <!-- Dynamically populated starred messages -->
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
